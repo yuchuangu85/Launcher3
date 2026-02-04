@@ -1,0 +1,43 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.google.protobuf)
+}
+
+android {
+    namespace = "com.android.app.viewcapture"
+    testNamespace = "com.android.app.viewcapture.test"
+    defaultConfig {
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            kotlin.srcDirs = ['src']
+            manifest.srcFile 'AndroidManifest.xml'
+            proto.srcDirs = ['src']
+        }
+        androidTest {
+            java.srcDirs = ["tests"]
+            kotlin.srcDirs = ['src']
+            manifest.srcFile "tests/AndroidManifest.xml"
+        }
+    }
+    lint {
+        abortOnError false
+    }
+
+}
+
+
+addFrameworkJar('framework-16.jar')
+compileOnlyCommonJars()
+
+dependencies {
+    implementation libs.androidx.core.ktx
+//    implementation project(":frameworks:libs:systemui:viewcapturelib:view_capture_proto")
+//    api project(":frameworks:base:core:FrameworkFlags")
+//    androidTestImplementation project(':SharedTestLib')
+//    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+//    androidTestImplementation "androidx.test:rules:1.4.0"
+}

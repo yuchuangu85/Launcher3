@@ -1,0 +1,322 @@
+{
+  "frame_ids": [
+    0,
+    16,
+    32,
+    48,
+    64,
+    80,
+    96,
+    112,
+    128,
+    144,
+    160,
+    176,
+    192,
+    208,
+    224,
+    240,
+    256,
+    272,
+    288,
+    304,
+    320,
+    336,
+    352,
+    368,
+    384,
+    400,
+    416,
+    432
+  ],
+  "features": [
+    {
+      "name": "input",
+      "type": "float",
+      "data_points": [
+        36,
+        33,
+        30,
+        27,
+        24,
+        21,
+        18,
+        15,
+        12,
+        9,
+        6,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "gestureDirection",
+      "type": "string",
+      "data_points": [
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min"
+      ]
+    },
+    {
+      "name": "output",
+      "type": "float",
+      "data_points": [
+        27,
+        27,
+        27,
+        24,
+        21,
+        18,
+        15,
+        12,
+        9,
+        6.1834006,
+        4.0823064,
+        2.5971997,
+        1.58311,
+        0.9141716,
+        0.4889884,
+        0.2301146,
+        0.08085263,
+        0.001194974,
+        -0.03613234,
+        -0.049089864,
+        -0.049071845,
+        -0.042999808,
+        -0.034852397,
+        -0.026743067,
+        -0.019653551,
+        -0.013916051,
+        -0.009518558,
+        0
+      ]
+    },
+    {
+      "name": "outputTarget",
+      "type": "float",
+      "data_points": [
+        27,
+        27,
+        27,
+        24,
+        21,
+        18,
+        15,
+        12,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "outputSpring",
+      "type": "springParameters",
+      "data_points": [
+        {
+          "stiffness": 100000,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100000,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        }
+      ]
+    },
+    {
+      "name": "isStable",
+      "type": "boolean",
+      "data_points": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  ]
+}

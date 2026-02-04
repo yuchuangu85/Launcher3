@@ -1,0 +1,392 @@
+{
+  "frame_ids": [
+    0,
+    16,
+    32,
+    48,
+    64,
+    80,
+    96,
+    112,
+    128,
+    144,
+    160,
+    176,
+    192,
+    208,
+    224,
+    240,
+    256,
+    272,
+    288,
+    304,
+    320,
+    336,
+    352,
+    368,
+    384,
+    400,
+    416,
+    432,
+    448,
+    464,
+    480,
+    496,
+    512,
+    528,
+    544
+  ],
+  "features": [
+    {
+      "name": "input",
+      "type": "float",
+      "data_points": [
+        10,
+        -6,
+        -22,
+        -38,
+        -54,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70,
+        -70
+      ]
+    },
+    {
+      "name": "gestureDirection",
+      "type": "string",
+      "data_points": [
+        "Max",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min",
+        "Min"
+      ]
+    },
+    {
+      "name": "output",
+      "type": "float",
+      "data_points": [
+        -100,
+        52.204758,
+        83.69019,
+        113.146576,
+        143.9473,
+        177.50067,
+        240.57437,
+        329.32672,
+        416.95862,
+        492.2793,
+        552.2154,
+        597.5444,
+        630.5683,
+        653.9236,
+        670.03204,
+        680.8976,
+        688.07654,
+        692.7254,
+        695.6756,
+        697.5083,
+        698.62054,
+        699.2776,
+        699.65326,
+        699.85913,
+        699.9653,
+        700.0149,
+        700.0339,
+        700.0373,
+        700.03375,
+        700.02765,
+        700.02136,
+        700.0158,
+        700.01135,
+        700.0079,
+        700
+      ]
+    },
+    {
+      "name": "outputTarget",
+      "type": "float",
+      "data_points": [
+        -100,
+        -52,
+        -3.9999924,
+        44.000008,
+        92.000015,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700,
+        700
+      ]
+    },
+    {
+      "name": "outputSpring",
+      "type": "springParameters",
+      "data_points": [
+        {
+          "stiffness": 100000,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 700,
+          "dampingRatio": 0.9
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        },
+        {
+          "stiffness": 800,
+          "dampingRatio": 0.95
+        }
+      ]
+    },
+    {
+      "name": "isStable",
+      "type": "boolean",
+      "data_points": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  ]
+}

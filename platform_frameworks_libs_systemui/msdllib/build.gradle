@@ -1,0 +1,36 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace = "com.google.android.msdl"
+    testNamespace = "com.google.android.msdl.tests"
+    defaultConfig {
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            kotlin.srcDirs = ['src']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+//        androidTest {
+//            java.srcDirs = ["tests/src"]
+//            manifest.srcFile 'tests/AndroidManifest.xml'
+//        }
+    }
+    lint {
+        abortOnError false
+    }
+    tasks.lint.enabled = false
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+}
+
+addFrameworkJar('framework-16.jar')
+
+dependencies {
+    implementation libs.kotlin.stdlib.jdk7
+    implementation libs.androidx.core.animation
+    implementation libs.androidx.core.ktx
+}

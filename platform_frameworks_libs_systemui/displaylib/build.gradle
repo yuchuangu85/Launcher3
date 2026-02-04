@@ -1,0 +1,28 @@
+plugins {
+    id 'com.android.library'
+    alias(libs.plugins.google.ksp)
+}
+
+android {
+    namespace "com.android.app.displaylib"
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            kotlin.srcDirs = ['src']
+        }
+    }
+}
+
+addFrameworkJar('framework-16.jar')
+
+dependencies {
+    implementation libs.javax.inject
+    implementation libs.kotlinx.coroutines.android
+    ksp libs.dagger.compiler
+    implementation libs.dagger.hilt.android
+    ksp libs.dagger.hilt.compiler
+}
+
+ksp {
+    arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
+}

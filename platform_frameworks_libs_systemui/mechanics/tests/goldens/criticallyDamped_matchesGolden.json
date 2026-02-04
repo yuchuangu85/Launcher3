@@ -1,0 +1,814 @@
+{
+  "frame_ids": [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    60,
+    70,
+    80,
+    90,
+    100,
+    110,
+    120,
+    130,
+    140,
+    150,
+    160,
+    170,
+    180,
+    190,
+    200,
+    210,
+    220,
+    230,
+    240,
+    250,
+    260,
+    270,
+    280,
+    290,
+    300,
+    310,
+    320,
+    330,
+    340,
+    350,
+    360,
+    370,
+    380,
+    390,
+    400,
+    410,
+    420,
+    430,
+    440,
+    450,
+    460,
+    470,
+    480,
+    490,
+    500,
+    510,
+    520,
+    530,
+    540,
+    550,
+    560,
+    570,
+    580,
+    590,
+    600,
+    610,
+    620,
+    630,
+    640,
+    650,
+    660,
+    670,
+    680,
+    690,
+    700,
+    710,
+    720,
+    730,
+    740,
+    750,
+    760,
+    770,
+    780,
+    790,
+    800,
+    810,
+    820,
+    830,
+    840,
+    850,
+    860,
+    870,
+    880,
+    890,
+    900,
+    910,
+    920,
+    930,
+    940,
+    950,
+    960,
+    970
+  ],
+  "features": [
+    {
+      "name": "displacement",
+      "type": "float",
+      "data_points": [
+        10,
+        9.953212,
+        9.824769,
+        9.630637,
+        9.38448,
+        9.0979595,
+        8.780986,
+        8.44195,
+        8.087921,
+        7.7248235,
+        7.357589,
+        6.9902925,
+        6.6262727,
+        6.2682314,
+        5.9183273,
+        5.578254,
+        5.2493095,
+        4.932455,
+        4.628369,
+        4.33749,
+        4.0600586,
+        3.7961493,
+        3.545701,
+        3.3085418,
+        3.0844104,
+        2.8729749,
+        2.6738486,
+        2.4866037,
+        2.3107822,
+        2.1459055,
+        1.9914826,
+        1.8470172,
+        1.7120124,
+        1.585976,
+        1.4684237,
+        1.3588821,
+        1.256891,
+        1.1620055,
+        1.0737969,
+        0.9918535,
+        0.91578174,
+        0.84520626,
+        0.77976984,
+        0.7191335,
+        0.6629762,
+        0.61099464,
+        0.5629026,
+        0.51843065,
+        0.4773252,
+        0.43934828,
+        0.4042767,
+        0.37190142,
+        0.3420269,
+        0.31447032,
+        0.2890611,
+        0.26564008,
+        0.24405895,
+        0.22417964,
+        0.20587368,
+        0.18902166,
+        0.17351262,
+        0.15924358,
+        0.14611898,
+        0.13405024,
+        0.122955225,
+        0.11275793,
+        0.10338796,
+        0.09478021,
+        0.086874455,
+        0.07961504,
+        0.07295055,
+        0.06683349,
+        0.061220028,
+        0.05606971,
+        0.051345225,
+        0.047012165,
+        0.04303882,
+        0.039395962,
+        0.036056675,
+        0.032996174,
+        0.030191636,
+        0.02762206,
+        0.025268128,
+        0.023112064,
+        0.021137528,
+        0.019329496,
+        0.017674157,
+        0.016158825,
+        0.014771842,
+        0.013502505,
+        0.0123409815,
+        0.011278247,
+        0.01030602,
+        0.009416698,
+        0.008603305,
+        0.007859444,
+        0.007179248,
+        0.006557336
+      ]
+    },
+    {
+      "name": "velocity",
+      "type": "float",
+      "data_points": [
+        0,
+        -9.048374,
+        -16.374615,
+        -22.224546,
+        -26.812801,
+        -30.326532,
+        -32.928696,
+        -34.760967,
+        -35.946312,
+        -36.591267,
+        -36.78794,
+        -36.615818,
+        -36.143303,
+        -35.42913,
+        -34.523575,
+        -33.469524,
+        -32.303444,
+        -31.0562,
+        -29.753801,
+        -28.41804,
+        -27.067059,
+        -25.71585,
+        -24.376696,
+        -23.059534,
+        -21.772308,
+        -20.52125,
+        -19.31113,
+        -18.145489,
+        -17.026817,
+        -15.956734,
+        -14.93612,
+        -13.965252,
+        -13.043904,
+        -12.171444,
+        -11.34691,
+        -10.569083,
+        -9.836539,
+        -9.147704,
+        -8.500893,
+        -7.894345,
+        -7.326255,
+        -6.794796,
+        -6.2981415,
+        -5.83448,
+        -5.402029,
+        -4.9990478,
+        -4.6238437,
+        -4.2747793,
+        -3.9502778,
+        -3.648825,
+        -3.3689728,
+        -3.10934,
+        -2.8686128,
+        -2.645544,
+        -2.438953,
+        -2.2477236,
+        -2.070803,
+        -1.9071996,
+        -1.7559812,
+        -1.616272,
+        -1.4872509,
+        -1.3681489,
+        -1.2582467,
+        -1.1568717,
+        -1.0633963,
+        -0.9772352,
+        -0.89784265,
+        -0.8247107,
+        -0.7573669,
+        -0.69537175,
+        -0.6383172,
+        -0.5858244,
+        -0.5375417,
+        -0.49314323,
+        -0.45232698,
+        -0.41481322,
+        -0.38034305,
+        -0.3486769,
+        -0.31959325,
+        -0.29288736,
+        -0.26837006,
+        -0.24586667,
+        -0.2252159,
+        -0.20626894,
+        -0.18888852,
+        -0.17294809,
+        -0.15833096,
+        -0.14492963,
+        -0.13264509,
+        -0.121386126,
+        -0.11106881,
+        -0.101615876,
+        -0.092956245,
+        -0.085024536,
+        -0.07776062,
+        -0.07110924,
+        -0.06501959,
+        -0.059444997
+      ]
+    },
+    {
+      "name": "stable",
+      "type": "boolean",
+      "data_points": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "parameters",
+      "type": "springParameters",
+      "data_points": [
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100,
+          "dampingRatio": 1
+        }
+      ]
+    }
+  ]
+}

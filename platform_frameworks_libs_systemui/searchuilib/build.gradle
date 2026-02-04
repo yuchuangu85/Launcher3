@@ -1,0 +1,11 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace "com.android.app.search"
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            kotlin.srcDirs = ['src']
+        }
+    }
+}

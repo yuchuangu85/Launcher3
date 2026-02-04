@@ -1,0 +1,54 @@
+{
+  "frame_ids": [
+    0,
+    10,
+    20
+  ],
+  "features": [
+    {
+      "name": "displacement",
+      "type": "float",
+      "data_points": [
+        10,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "velocity",
+      "type": "float",
+      "data_points": [
+        -10,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "stable",
+      "type": "boolean",
+      "data_points": [
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "parameters",
+      "type": "springParameters",
+      "data_points": [
+        {
+          "stiffness": 100000,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100000,
+          "dampingRatio": 1
+        },
+        {
+          "stiffness": 100000,
+          "dampingRatio": 1
+        }
+      ]
+    }
+  ]
+}

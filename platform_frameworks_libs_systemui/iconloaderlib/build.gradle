@@ -1,0 +1,22 @@
+plugins {
+    id 'com.android.library'
+}
+
+// Lawnchair-TODO-Postmerge: AOSP now uses kts build scripts for this
+android {
+    namespace "com.android.launcher3.icons"
+    sourceSets {
+        main {
+            java.srcDirs = ['src', 'src_full_lib']
+            kotlin.srcDirs = ['src']
+            res.srcDirs = ['res']
+        }
+    }
+}
+
+addFrameworkJar('framework-16.jar')
+
+dependencies {
+    implementation libs.androidx.palette.ktx
+    compileOnly projects.flags
+}

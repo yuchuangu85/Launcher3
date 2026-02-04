@@ -1,0 +1,50 @@
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+android {
+    namespace = "com.android.mechanics"
+    testNamespace = "com.android.mechanics.tests"
+
+    defaultConfig {
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src', 'compose']
+            kotlin.srcDirs = ['src', 'compose']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    tasks.lint.enabled = false
+
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+}
+
+addFrameworkJar('framework-16.jar')
+
+dependencies {
+    implementation libs.kotlin.stdlib.jdk7
+    implementation libs.androidx.core.animation
+    implementation libs.androidx.core.ktx
+
+    // Compose dependencies for compose source files
+    implementation platform(libs.compose.bom)
+    implementation libs.compose.ui
+    implementation libs.compose.ui.util
+    implementation libs.compose.ui.graphics
+    implementation libs.compose.runtime.livedata
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.compose.material3
+}
