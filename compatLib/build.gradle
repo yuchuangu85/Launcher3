@@ -1,0 +1,20 @@
+plugins {
+    alias(libs.plugins.android.library)
+}
+
+android {
+    buildToolsVersion "36.1.0"
+    namespace "app.lawnchair.compatlib"
+
+    buildFeatures {
+        aidl true
+    }
+
+    sourceSets {
+        main {
+            aidl.srcDirs = ['src/main/java']
+        }
+    }
+}
+
+addFrameworkJar('framework-15.jar')
