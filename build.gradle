@@ -1,3 +1,6 @@
+import com.android.build.gradle.api.AndroidBasePlugin
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -12,17 +15,128 @@ plugins {
     alias(libs.plugins.google.protobuf)
 }
 
+allprojects {
+    plugins.withType(AndroidBasePlugin).configureEach {
+        android {
+            buildToolsVersion "36.1.0"
+            compileSdk {
+                version = release(36) {
+                    minorApiLevel = 1
+                }
+            }
+            defaultConfig {
+                minSdk = 26
+                targetSdk = 36
+                vectorDrawables.useSupportLibrary = true
+            }
+            lint {
+                abortOnError true
+                checkReleaseBuilds false
+            }
+            compileOptions {
+                sourceCompatibility = libs.versions.jdkRelease.get()
+                targetCompatibility = libs.versions.jdkRelease.get()
+            }
+        }
+        dependencies {
+            implementation libs.androidx.core.ktx
+            implementation libs.androidx.core.animation
+        }
+    }
+
+    plugins.withId('com.google.protobuf') {
+        protobuf {
+            // Configure the protoc executable
+            protoc {
+                artifact = libs.protobuf.protoc.get().toString()
+            }
+            generateProtoTasks {
+                all().configureEach { task ->
+                    task.builtins {
+                        remove java
+                        java {
+                            option "lite"
+                        }
+                    }
+                }
+            }
+        }
+        dependencies {
+            implementation libs.protobuf.javalite
+        }
+    }
+
+    plugins.withType(JavaBasePlugin).configureEach {
+        java {
+            sourceCompatibility = libs.versions.jdkRelease.get()
+            targetCompatibility = libs.versions.jdkRelease.get()
+        }
+    }
+
+    tasks.withType(KotlinCompile).configureEach {
+        compilerOptions {
+            jvmDefault = JvmDefaultMode.ENABLE
+            jvmTarget = JvmTarget.fromTarget(libs.versions.jdkRelease.get())
+        }
+    }
+
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            // Fix duplicate class kotlinx.android.parcel.* found in these 2 dependencies.
+            if (requested.module == libs.kotlin.androidExtensionRuntime.get().module) {
+                useTarget(libs.kotlin.parcelizeRuntime)
+            }
+        }
+    }
+
+    ext {
+        FRAMEWORK_PREBUILTS_DIR = "$rootDir/prebuilts/libs"
+
+        addFrameworkJar = { String name ->
+            def frameworkJar = new File(FRAMEWORK_PREBUILTS_DIR, name)
+            if (!frameworkJar.exists()) {
+                throw new IllegalArgumentException("Framework jar path ${frameworkJar.path} doesn't exist")
+            }
+            gradle.projectsEvaluated {
+                tasks.withType(JavaCompile).configureEach {
+                    // Make sure the frameworkJar is always first in the classpath.
+                    classpath = files(frameworkJar, classpath)
+                }
+                tasks.withType(KotlinCompile).configureEach {
+                    // Make sure the frameworkJar is always first in the classpath.
+                    libraries.setFrom files(frameworkJar, libraries)
+                }
+            }
+            dependencies {
+                compileOnly files(frameworkJar)
+            }
+        }
+
+        compileOnlyCommonJars = {
+            dependencies {
+                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-core-16.jar')
+                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-statsd-16.jar')
+                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'WindowManager-Shell-16.jar')
+
+                compileOnly projects.compatLib
+                compileOnly projects.compatLib.compatLibVQ
+                compileOnly projects.compatLib.compatLibVR
+                compileOnly projects.compatLib.compatLibVS
+                compileOnly projects.compatLib.compatLibVT
+                compileOnly projects.compatLib.compatLibVU
+                compileOnly projects.compatLib.compatLibVV
+                compileOnly projects.compatLib.compatLibVBaklava
+            }
+        }
+    }
+}
+
 final String ANDROID_TOP = "${rootDir}"
 final String FRAMEWORK_PREBUILTS_DIR = "${ANDROID_TOP}/prebuilts/libs/"
 
 android {
-    compileSdk 36
-
     namespace = 'com.android.launcher3'
-
     defaultConfig {
-        minSdk 33
-        targetSdk 36
         versionCode 1
         versionName "1.0"
 
@@ -36,6 +150,24 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            def channel = variant.productFlavors.last().name
+            outputFileName = "Lawnchair.${variant.versionName}.$channel.${variant.buildType.name}.apk"
+        }
+    }
+
+    androidResources {
+        generateLocaleConfig true
+    }
+
+    buildFeatures {
+        aidl true
+        buildConfig true
+        resValues true
+    }
+
     buildTypes {
         debug {
             minifyEnabled false
@@ -74,13 +206,6 @@ android {
             dimension "recents"
         }
     }
-
-    // Disable release builds for now
-//    android.variantFilter { variant ->
-//        if (variant.buildType.name.endsWith('release')) {
-//            variant.setIgnore(true)
-//        }
-//    }
 
     androidComponents {
         beforeVariants(
@@ -149,65 +274,6 @@ android {
             manifest.srcFile "quickstep/AndroidManifest.xml"
         }
     }
-
-    buildFeatures {
-        buildConfig = true
-    }
-
-}
-
-// kapt 块已移除，项目使用 ksp 进行注解处理
-
-allprojects {
-    ext {
-        daggerVersion = '2.56.2'
-        addFrameworkJar = { String name ->
-            def frameworkJar = new File(FRAMEWORK_PREBUILTS_DIR, name)
-            if (!frameworkJar.exists()) {
-                throw new IllegalArgumentException("Framework jar path ${frameworkJar.path} doesn't exist")
-            }
-            gradle.projectsEvaluated {
-                tasks.withType(JavaCompile).configureEach {
-                    classpath = files(frameworkJar, classpath)
-                }
-                tasks.withType(KotlinCompile).configureEach {
-                    libraries.from(files(frameworkJar))
-                }
-            }
-            dependencies {
-                compileOnly files(frameworkJar)
-            }
-        }
-
-        compileOnlyCommonJars = {
-            dependencies {
-                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-core.jar')
-                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-statsd.jar')
-            }
-        }
-    }
-
-    plugins.withId('com.google.protobuf') {
-        protobuf {
-            // Configure the protoc executable
-            protoc {
-                artifact = libs.protobuf.protoc.get().toString()
-            }
-            generateProtoTasks {
-                all().configureEach { task ->
-                    task.builtins {
-                        remove java
-                        java {
-                            option "lite"
-                        }
-                    }
-                }
-            }
-        }
-        dependencies {
-            implementation libs.protobuf.javalite
-        }
-    }
 }
 
 dependencies {
@@ -227,67 +293,69 @@ dependencies {
     implementation libs.protobuf.javalite
 
     api libs.lottie
-    implementation libs.dagger
+//    implementation libs.dagger
+//    ksp libs.dagger.compiler
     ksp libs.dagger.compiler
+    implementation libs.dagger.hilt.android
+    ksp libs.dagger.hilt.compiler
 
     testImplementation libs.junit
     androidTestImplementation libs.mockito.core
     androidTestImplementation libs.dexmaker
     androidTestImplementation libs.dexmaker.mockito
     androidTestImplementation libs.runner
-    androidTestImplementation libs.rules
+    androidTestImplementation libs.androidx.test.rules
     androidTestImplementation libs.uiautomator.v18
     androidTestImplementation libs.annotation
 }
 
-dependencies {
-    implementation project(':IconLoader')
-    implementation project(':Animation')
-    implementation project(':Shared')
-    implementation project(':msdl')
-    implementation project(':flags')
-    implementation project(':WMShared')
+ksp {
+    arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
 }
 
 dependencies {
-    // Recents lib dependency
-    withQuickstepImplementation fileTree(dir: "${FRAMEWORK_PREBUILTS_DIR}", include: 'sysui_shared.jar')
-    // Required for AOSP to compile. This is already included in the sysui_shared.jar
-    withoutQuickstepImplementation fileTree(dir: "${FRAMEWORK_PREBUILTS_DIR}", include: 'plugin_core.jar')
+    implementation projects.iconloaderlib
+    implementation projects.searchuilib
+    implementation projects.animationlib
+    implementation projects.msdllib
+    implementation projects.contextualeducationlib
+    implementation projects.viewcapturelib
+    implementation projects.displaylib
+    implementation projects.mechanics
 
-    l3goImplementation files('prebuilts/libs/libandroid_browser_helper.jar')
-//    withQuickstepImplementation files('prebuilts/libs/SettingsLibCollapsingToolbarBaseActivity.jar')
-    withQuickstepImplementation files('prebuilts/libs/SystemUISharedLib.jar')
-    withQuickstepImplementation files('prebuilts/libs/SystemUISharedLib_kotlin.jar')
-    withQuickstepImplementation files('prebuilts/libs/SystemUI-shared-utils_kotlin.jar')
-    withQuickstepImplementation files('prebuilts/libs/SystemUIUnfoldLib.jar')
-    withQuickstepImplementation files('prebuilts/libs/SystemUIUnfoldLib_kotlin.jar')
-    implementation files('prebuilts/libs/SystemUI-statsd.jar')
-    withQuickstepImplementation files('prebuilts/libs/contextualeducationlib.jar')
-//    withQuickstepImplementation files('prebuilts/libs/com_android_wm_shell_flags.jar')
-    withQuickstepImplementation files('prebuilts/libs/WindowManager-Shell-shared.jar')
-    withQuickstepImplementation files('prebuilts/libs/WindowManager-Shell-shared_kotlin.jar')
-//    withQuickstepImplementation files('prebuilts/libs/com_android_systemui_shared_flags.jar')
-//    withQuickstepImplementation files('prebuilts/libs/com_android_systemui_flags.jar')
-    implementation files('prebuilts/libs/am_flags_lib.jar')
-    implementation files('prebuilts/libs/com_android_window_flags.jar')
-    implementation files('prebuilts/libs/com_android_systemui_flags.jar')
-    implementation files('prebuilts/libs/com_android_systemui_shared_flags.jar')
-    implementation files('prebuilts/libs/com_android_wm_shell_flags.jar')
-    implementation files('prebuilts/libs/PlatformAnimationLib.jar')
-    implementation files('prebuilts/libs/PlatformAnimationLib_kotlin.jar')
-    implementation files('prebuilts/libs/PluginAnnotationLib.jar')
-    implementation files('prebuilts/libs/PluginAnnotationLib_kotlin.jar')
-    implementation files('prebuilts/libs/PluginCoreLib.jar')
-    implementation files('prebuilts/libs/PluginCoreLib_kotlin.jar')
-    withQuickstepImplementation files('prebuilts/libs/com_android_window_flags.jar')
-    implementation files('prebuilts/libs/view_capture_proto.jar')
-//    implementation files('prebuilts/libs/tracinglib-platform.jar')
-    implementation files('prebuilts/libs/tracinglib-platform.jar')
-    implementation files('prebuilts/libs/view_capture.jar')
-    implementation files('prebuilts/libs/view_capture_kotlin.jar')
-    releaseImplementation files('prebuilts/libs/aconfig-annotations-lib.jar')
-    compileOnly files('prebuilts/libs/framework-16.jar')
+    // Recents lib dependency
+    withQuickstepCompileOnly projects.hiddenApi
+    withQuickstepImplementation projects.shared
+    withQuickstepImplementation projects.animation
+    withQuickstepImplementation projects.unfold
+    withQuickstepImplementation projects.log
+    withQuickstepCompileOnly projects.plugin
+    withQuickstepImplementation projects.plugincore
+    withQuickstepCompileOnly projects.common
+    withQuickstepCompileOnly projects.utils
+
+    // QuickSwitch Compat
+    withQuickstepImplementation projects.compatLib
+    withQuickstepImplementation projects.compatLib.compatLibVQ
+    withQuickstepImplementation projects.compatLib.compatLibVR
+    withQuickstepImplementation projects.compatLib.compatLibVS
+    withQuickstepImplementation projects.compatLib.compatLibVT
+    withQuickstepImplementation projects.compatLib.compatLibVU
+    withQuickstepImplementation projects.compatLib.compatLibVV
+    withQuickstepImplementation projects.compatLib.compatLibVBaklava
+    withQuickstepImplementation projects.wmshell
+    withQuickstepImplementation projects.flags
+    withQuickstepImplementation projects.dagger
+    withQuickstepImplementation projects.concurrent
+    withQuickstepImplementation projects.modules.widgetpicker
+//    withQuickstepImplementation projects.compose
+
+}
+
+dependencies {
+    implementation fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-statsd-16.jar')
+    implementation fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'WindowManager-Shell-16.jar')
+    withQuickstepCompileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'framework-16.jar')
 }
 
 //def protocVersion = '4.33.1'//'3.8.0'

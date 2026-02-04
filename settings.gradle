@@ -39,23 +39,77 @@ dependencyResolutionManagement {
 }
 
 
-include ':IconLoader'
-project(':IconLoader').projectDir = new File(rootDir, 'iconloaderlib')
+enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-include ':Animation'
-project(':Animation').projectDir = new File(rootDir, 'animationlib')
+include ':iconloaderlib'
+project(':iconloaderlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/iconloaderlib')
 
-include ':Shared'
-project(':Shared').projectDir = new File(rootDir, 'shared')
+include ':searchuilib'
+project(':searchuilib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/searchuilib')
 
-include ':WMShared'
-project(':WMShared').projectDir = new File(rootDir, 'wm_shared')
+include ':animationlib'
+project(':animationlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/animationlib')
 
-include ':msdl'
-project(':msdl').projectDir = new File(rootDir, 'msdllib')
+include ':msdllib'
+project(':msdllib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/msdllib')
 
-include ':flags'
-project(':flags').projectDir = new File(rootDir, 'flagslib')
+include ':contextualeducationlib'
+project(':contextualeducationlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/contextualeducationlib')
 
-include ':systemUIPluginCore'
+include ':viewcapturelib'
+project(':viewcapturelib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/viewcapturelib')
+
+include ':displaylib'
+project(':displaylib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/displaylib')
+
+include ':mechanics'
+project(':mechanics').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/mechanics')
+
+include ':hidden-api'
+
+include ':shared'
+project(':shared').projectDir = new File(rootDir, 'systemUI/shared')
+
+include ':plugin'
+project(':plugin').projectDir = new File(rootDir, 'systemUI/plugin')
+
+include ':plugincore'
+project(':plugincore').projectDir = new File(rootDir, 'systemUI/plugin_core')
+
+include ':common'
+project(':common').projectDir = new File(rootDir, 'systemUI/common')
+
+include ':log'
+project(':log').projectDir = new File(rootDir, 'systemUI/log')
+
+include ':animation'
+project(':animation').projectDir = new File(rootDir, 'systemUI/animation')
+
+include ':unfold'
+project(':unfold').projectDir = new File(rootDir, 'systemUI/unfold')
+
+include ':utils'
+project(':utils').projectDir = new File(rootDir, 'systemUI/utils')
+
+//include ':flags'
+//project(':flags').projectDir = new File(rootDir, 'flagslib')
+
+include ':compatLib'
+include ':compatLib:compatLibVQ'
+include ':compatLib:compatLibVR'
+include ':compatLib:compatLibVS'
+include ':compatLib:compatLibVT'
+include ':compatLib:compatLibVU'
+include ':compatLib:compatLibVV'
+include ':compatLib:compatLibVBaklava'
+
+include ':baseline-profile'
+
 include ':androidx-lib'
+include ':flags'
+include ':wmshell'
+include ':dagger'
+include ':concurrent'
+//include ':compose'
+include ':modules:widgetpicker'

@@ -1,7 +1,10 @@
 [versions]
+jdkRelease = "21"
+
 agp = "9.0.0"
 kotlin = "2.3.0"
 appcompat = "1.7.1"
+androidx-lifecycle = "2.10.0"
 baselineprofile = "1.4.1"
 core = "1.17.0"
 annotation = "1.9.1"
@@ -25,7 +28,15 @@ material3Version = "1.4.0"
 mockitoCore = "5.21.0"
 navigation = "2.9.1"
 
+mockito = "5.14.2"
+truth = "1.4.5"
+
+testRules = "1.7.0"
+testRunner = "1.7.0"
+
 protobuf = "4.33.4"
+
+guava = "33.5.0-android"
 
 coil = "3.3.0"
 kotlinx-serialization = "1.10.0"
@@ -68,36 +79,84 @@ maven-plugin-api = "3.9.11"
 richeditor-compose = "1.0.0-beta02"
 uiautomatorV18 = "2.1.3"
 window = "1.5.1"
+refine = "4.4.0"
 
 
 [libraries]
+# AndroidX
+androidx-activity-compose = "androidx.activity:activity-compose:1.12.2"
+androidx-benchmark-macro-junit4 = "androidx.benchmark:benchmark-macro-junit4:1.4.1"
+androidx-concurrent-futures = "androidx.concurrent:concurrent-futures:1.3.0"
+androidx-constraintlayout = "androidx.constraintlayout:constraintlayout:2.2.1"
+androidx-datastore-preferences = "androidx.datastore:datastore-preferences:1.2.0"
+androidx-espresso-core = "androidx.test.espresso:espresso-core:3.7.0"
+androidx-graphics-core = "androidx.graphics:graphics-core:1.0.4"
+androidx-graphics-path = "androidx.graphics:graphics-path:1.0.1"
+androidx-graphics-shapes = "androidx.graphics:graphics-shapes:1.1.0"
+androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-navigation-compose = "androidx.navigation:navigation-compose:2.9.6"
+androidx-slice-core = "androidx.slice:slice-core:1.1.0-alpha02"
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
 androidx-core-animation = { module = "androidx.core:core-animation", version.ref = "coreAnimation" }
 androidx-dynamicanimation = { module = "androidx.dynamicanimation:dynamicanimation", version.ref = "dynamicanimation" }
-androidx-graphics-shapes = { module = "androidx.graphics:graphics-shapes", version.ref = "graphicsShapes" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "junitVersion" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3Version" }
 androidx-preference = { module = "androidx.preference:preference", version.ref = "preference" }
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
-androidx-rules = { module = "androidx.test:rules", version.ref = "rulesVersion" }
+androidx-test-rules = { module = "androidx.test:rules", version.ref = "rulesVersion" }
 androidx-slice-builders = { module = "androidx.slice:slice-builders", version.ref = "sliceBuilders" }
 androidx-window = { module = "androidx.window:window", version.ref = "window" }
+androidx-palette-ktx = "androidx.palette:palette-ktx:1.0.0"
+androidx-preference-ktx = "androidx.preference:preference-ktx:1.2.1"
+androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
+androidx-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
 core = { module = "androidx.core:core", version.ref = "core" }
-dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
-dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
-dexmaker-mockito = { module = "com.google.dexmaker:dexmaker-mockito", version.ref = "dexmakerMockito" }
-dexmaker = { module = "com.google.dexmaker:dexmaker", version.ref = "dexmaker" }
-kotlin-stdlib-jdk7 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk7", version.ref = "kotlin" }
-kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
+# Compose
+compose-bom = "androidx.compose:compose-bom:2026.01.00"
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+compose-foundation-layout = { module = "androidx.compose.foundation:foundation-layout" }
+compose-material-icons = "androidx.compose.material:material-icons-extended:1.7.8"
+compose-material3 = "androidx.compose.material3:material3:1.5.0-alpha12"
+compose-material3-windowSizeClass = { module = "androidx.compose.material3:material3-window-size-class" }
+compose-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts" }
+compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-ui-util = { module = "androidx.compose.ui:ui-util" }
 compose-navigation = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation"}
 
+# Dagger & Hilt
+dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
+dagger-compiler = { group = "com.google.dagger", name = "dagger-compiler", version.ref = "dagger" }
+dagger-android-processor = { group = "com.google.dagger", name = "dagger-android-processor", version.ref = "dagger" }
+dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
+dagger-hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "dagger" }
+
+dexmaker-mockito = { module = "com.google.dexmaker:dexmaker-mockito", version.ref = "dexmakerMockito" }
+dexmaker = { module = "com.google.dexmaker:dexmaker", version.ref = "dexmaker" }
+
 coil = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coil" }
+# Kotlin
+kotlin-androidExtensionRuntime = { module = "org.jetbrains.kotlin:kotlin-android-extensions-runtime", version.ref = "kotlin" }
+kotlin-parcelizeRuntime = { module = "org.jetbrains.kotlin:kotlin-parcelize-runtime", version.ref = "kotlin" }
+kotlin-stdlib-jdk7 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk7", version.ref = "kotlin" }
+
+# KotlinX
+kotlinx-coroutines-android = "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+
 lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
@@ -105,9 +164,15 @@ mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore
 protobuf-protoc = { module = "com.google.protobuf:protoc", version.ref = "protobuf" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 
+google-guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 rules = { module = "com.android.support.test:rules", version.ref = "rules" }
 runner = { module = "com.android.support.test:runner", version.ref = "runner" }
+
+xdrop-fuzzywuzzy = "me.xdrop:fuzzywuzzy:1.4.0"
+errorprone-annotations = "com.google.errorprone:error_prone_annotations:2.46.0"
+composeRules = "io.nlopez.compose.rules:ktlint:0.5.3"
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
@@ -119,8 +184,20 @@ maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugi
 jacson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jacson-databind" }
 maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref = "maven-plugin-api" }
 
+rikka-annotation = { module = "dev.rikka.tools.refine:annotation", version.ref = "refine" }
+rikka-annotation-processor = { module = "dev.rikka.tools.refine:annotation-processor", version.ref = "refine" }
+rikka-refine-runtime = { group = "dev.rikka.tools.refine", name = "runtime", version.ref = "refine" }
+
+javax-inject = "javax.inject:javax.inject:1"
+
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 uiautomator-v18 = { module = "com.android.support.test.uiautomator:uiautomator-v18", version.ref = "uiautomatorV18" }
+# Testing (Merged)
+google-truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
+mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockito" }
+mockito-robolectric = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
+mockito-robolectric-bytebuddy = "net.bytebuddy:byte-buddy:1.18.4"
+mockito-robolectric-bytebuddy-agent = "net.bytebuddy:byte-buddy-agent:1.15.11"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
