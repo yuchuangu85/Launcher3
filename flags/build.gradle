@@ -4,27 +4,13 @@ plugins {
 
 android {
     namespace "com.android.launcher3.flags"
-
-    compileSdk 36
-
-    defaultConfig {
-        minSdkVersion 26
-        targetSdkVersion 36
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
     sourceSets {
         main {
             java.srcDirs = ['src']
+            kotlin.srcDirs = ['src']
         }
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_21
-        targetCompatibility JavaVersion.VERSION_21
     }
 }
 
-dependencies {
-    implementation(libs.core)
-    implementation(libs.annotation)
-}
+addFrameworkJar('framework-16.jar')
+compileOnlyCommonJars()

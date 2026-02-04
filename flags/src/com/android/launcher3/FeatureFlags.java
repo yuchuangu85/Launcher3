@@ -1,233 +1,426 @@
 package com.android.launcher3;
+
 /** @hide */
 public interface FeatureFlags {
 
 
-    boolean enableAddAppWidgetViaConfigActivityV2();
 
-    boolean enableAdditionalHomeAnimations();
-
-    boolean enableCategorizedWidgetSuggestions();
-
-    boolean enableCursorHoverStates();
-
-    boolean enableExpandingPauseWorkButton();
-
-    boolean enableFallbackOverviewInWindow();
-
-    boolean enableFirstScreenBroadcastArchivingExtras();
-
-    boolean enableFocusOutline();
-
-    boolean enableGeneratedPreviews();
-
-    boolean enableGridMigrationFix();
-
-    boolean enableGridOnlyOverview();
-
-    boolean enableHandleDelayedGestureCallbacks();
-
-    boolean enableHomeTransitionListener();
-
-    boolean enableLauncherBrMetricsFixed();
-
-    boolean enableNarrowGridRestore();
-
-    boolean enableOverviewIconMenu();
-
-    boolean enablePredictiveBackGesture();
-
-    boolean enablePrivateSpace();
-
-    boolean enablePrivateSpaceInstallShortcut();
-
-    boolean enableRebootUnlockAnimation();
-
-    boolean enableRecentsInTaskbar();
-
-    boolean enableRefactorTaskThumbnail();
-
-    boolean enableResponsiveWorkspace();
-
-    boolean enableScalingRevealHomeAnimation();
-
-    boolean enableShortcutDontSuggestApp();
-
-    boolean enableSmartspaceAsAWidget();
-
-    boolean enableSmartspaceRemovalToggle();
-
-    boolean enableSupportForArchiving();
-
-    boolean enableTabletTwoPanePickerV2();
-
-    boolean enableTaskbarCustomization();
-
-    boolean enableTaskbarNoRecreate();
-
-    boolean enableTaskbarPinning();
-
-    boolean enableTwoPaneLauncherSettings();
-
-    boolean enableTwolineAllapps();
-
-    boolean enableTwolineToggle();
-
-    boolean enableUnfoldStateAnimation();
-
-    boolean enableUnfoldedTwoPanePicker();
-
-    boolean enableWidgetTapToAdd();
-
-    boolean enableWorkspaceInflation();
-
-    boolean enabledFoldersInAllApps();
-
-    boolean floatingSearchBar();
-
-    boolean forceMonochromeAppIcons();
-
-    boolean privateSpaceAddFloatingMaskView();
-
-    boolean privateSpaceAnimation();
-
-    boolean privateSpaceAppInstallerButton();
-
-    boolean privateSpaceRestrictAccessibilityDrag();
-
-    boolean privateSpaceRestrictItemDrag();
-
-    boolean privateSpaceSysAppsSeparation();
-
-    boolean useActivityOverlay();
 
     boolean accessibilityScrollOnAllapps();
 
+
+
     boolean allAppsBlur();
+
+
 
     boolean allAppsSheetForHandheld();
 
-    boolean coordinateWorkspaceScale();
 
-    boolean enableActiveGestureProtoLog();
+
+    boolean enableAddAppWidgetViaConfigActivityV2();
+
+
 
     boolean enableAllAppsButtonInHotseat();
 
+
+
     boolean enableAltTabKqsFlatenning();
+
+
 
     boolean enableAltTabKqsOnConnectedDisplays();
 
+
+
+    boolean enableCategorizedWidgetSuggestions();
+
+
+
     boolean enableContainerReturnAnimations();
+
+
 
     boolean enableContrastTiles();
 
+
+
+    boolean enableCoroutineThreadingImprovements();
+
+
+
+    boolean enableCursorHoverStates();
+
+
+
     boolean enableDesktopExplodedView();
 
-    boolean enableDesktopTaskAlphaAnimation();
 
-    boolean enableDesktopWindowingCarouselDetach();
+
+    boolean enableDesktopMenuOnSecondaryDisplayBugfix();
+
+
 
     boolean enableDismissPredictionUndo();
 
+
+
+    boolean enableExpandingPauseWorkButton();
+
+
+
     boolean enableExpressiveDismissTaskMotion();
+
+
+
+    boolean enableExpressiveFolderExpansion();
+
+
+
+    boolean enableFallbackOverviewInWindow();
+
+
+
+    boolean enableFirstScreenBroadcastArchivingExtras();
+
+
+
+    boolean enableFocusOutline();
+
+
+
+    boolean enableGeneratedPreviews();
+
+
 
     boolean enableGestureNavHorizontalTouchSlop();
 
+
+
     boolean enableGestureNavOnConnectedDisplays();
+
+
+
+    boolean enableGridOnlyOverview();
+
+
 
     boolean enableGrowthNudge();
 
-    boolean enableHoverOfChildElementsInTaskview();
+
+
+    boolean enableHomeTransitionListener();
+
+
 
     boolean enableLargeDesktopWindowingTile();
 
+
+
+    boolean enableLauncherBrMetricsFixed();
+
+
+
     boolean enableLauncherIconShapes();
+
+
 
     boolean enableLauncherOverviewInWindow();
 
+
+
     boolean enableLauncherVisualRefresh();
+
+
+
+    boolean enableLongPressRemoveShortcut();
+
+
 
     boolean enableMouseInteractionChanges();
 
+
+
     boolean enableMultiInstanceMenuTaskbar();
+
+
+
+    boolean enableNarrowGridRestore();
+
+
 
     boolean enableOverviewBackgroundWallpaperBlur();
 
-    boolean enableOverviewCommandHelperTimeout();
+
 
     boolean enableOverviewDesktopTileWallpaperBackground();
 
+
+
+    boolean enableOverviewIconMenu();
+
+
+
     boolean enableOverviewOnConnectedDisplays();
 
-    boolean enablePinningAppWithContextMenu();
+
+
+    boolean enablePredictiveBackGesture();
+
+
+
+    boolean enablePrivateSpace();
+
+
+
+    boolean enablePrivateSpaceInstallShortcut();
+
+
+
+    boolean enableQsbOnHotseat();
+
+
+
+    boolean enableRebootUnlockAnimation();
+
+
+
+    boolean enableRecentsInTaskbar();
+
+
 
     boolean enableRecentsWindowProtoLog();
 
+
+
+    boolean enableRefactorDigitalWellbeingToast();
+
+
+
+    boolean enableRefactorTaskContentView();
+
+
+
+    boolean enableRefactorTaskThumbnail();
+
+
+
+    boolean enableResponsiveWorkspace();
+
+
+
+    boolean enableReversibleHomeActionCorner();
+
+
+
     boolean enableScalabilityForDesktopExperience();
 
-    boolean enableSeparateExternalDisplayTasks();
 
-    boolean enableShowEnabledShortcutsInAccessibilityMenu();
+
+    boolean enableScalingRevealHomeAnimation();
+
+
+
+    boolean enableSimultaneousOverviewTriggerOnExtendedDesktop();
+
+
 
     boolean enableStateManagerProtoLog();
 
+
+
     boolean enableStrictMode();
+
+
+
+    boolean enableSupportForArchiving();
+
+
+
+    boolean enableTabletTwoPanePickerV2();
+
+
 
     boolean enableTaskbarBehindShade();
 
+
+
+    boolean enableTaskbarCustomization();
+
+
+
     boolean enableTaskbarForDirectBoot();
+
+
+
+    boolean enableTaskbarNoRecreate();
+
+
+
+    boolean enableTaskbarPinning();
+
+
+
+    boolean enableTaskbarUiThread();
+
+
 
     boolean enableTieredWidgetsByDefaultInPicker();
 
-    boolean enableUseTopVisibleActivityForExcludeFromRecentTask();
+
+
+    boolean enableTwoPaneLauncherSettings();
+
+
+
+    boolean enableTwolineAllapps();
+
+
+
+    boolean enableTwolineToggle();
+
+
+
+    boolean enableUnfoldStateAnimation();
+
+
+
+    boolean enableWidgetPickerRefactor();
+
+
+
+    boolean enableWidgetTapToAdd();
+
+
+
+    boolean enableWorkspaceInflation();
+
+
+
+    boolean enabledFoldersInAllApps();
+
+
 
     boolean expressiveThemeInTaskbarAndNavigation();
 
-    boolean extendibleThemeManager();
+
+
+    boolean externalDataAccess();
+
+
+
+    boolean floatingSearchBar();
+
+
+
+    boolean forceMonochromeAppIcons();
+
+
 
     boolean gridMigrationRefactor();
 
+
+
     boolean gsfRes();
+
+
+
+    boolean homeScreenEditImprovements();
+
+
 
     boolean ignoreThreeFingerTrackpadForNavHandleLongPress();
 
+
+
     boolean letterFastScroller();
+
+
+
+    boolean modelRepository();
+
+
 
     boolean msdlFeedback();
 
-    boolean multilineSearchBar();
 
-    boolean navigateToChildPreference();
+
+    boolean nudgePill();
+
+
 
     boolean oneGridMountedMode();
 
+
+
     boolean oneGridRotationHandling();
+
+
 
     boolean oneGridSpecs();
 
+
+
     boolean predictiveBackToHomeBlur();
+
+
 
     boolean predictiveBackToHomePolish();
 
+
+
+    boolean privateSpaceAddFloatingMaskView();
+
+
+
+    boolean privateSpaceAnimation();
+
+
+
+    boolean privateSpaceRestrictAccessibilityDrag();
+
+
+
+    boolean privateSpaceRestrictItemDrag();
+
+
+
+    boolean privateSpaceSysAppsSeparation();
+
+
+
     boolean removeAppsRefreshOnRightClick();
 
-    boolean removeExcludeFromScreenMagnificationFlagUsage();
+
 
     boolean restoreArchivedAppIconsFromDb();
 
+
+
     boolean restoreArchivedShortcuts();
+
+
 
     boolean showTaskbarPinningPopupFromAnywhere();
 
+
+
     boolean syncAppLaunchWithTaskbarStash();
 
-    boolean taskbarOverflow();
+
 
     boolean taskbarQuietModeChangeSupport();
 
+
+
     boolean useNewIconForArchivedApps();
 
+
+
     boolean useSystemRadiusForAppWidgets();
+
+
 
     boolean workSchedulerInWorkProfile();
 }

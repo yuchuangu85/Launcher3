@@ -70,13 +70,13 @@ interface ExecutorsModule {
     @Binds
     @ThreadPool
     fun provideThreadPoolExecutor(
-      @ThreadPool listeningExecutorService: ListeningExecutorService
+        @ThreadPool listeningExecutorService: ListeningExecutorService
     ): Executor
 
     @Binds
     @ThreadPool
     fun provideThreadPoolExecutorService(
-      @ThreadPool listeningExecutorService: ListeningExecutorService
+        @ThreadPool listeningExecutorService: ListeningExecutorService
     ): ExecutorService
     // end unordered background executors
 
@@ -84,41 +84,41 @@ interface ExecutorsModule {
     @Binds
     @Background
     fun provideBackgroundExecutor(
-      @Background listeningExecutorService: ListeningExecutorService
+        @Background listeningExecutorService: ListeningExecutorService
     ): Executor
 
     @Binds
     @Background
     fun provideBackgroundExecutorService(
-      @Background listeningExecutorService: ListeningExecutorService
+        @Background listeningExecutorService: ListeningExecutorService
     ): ExecutorService
 
     @Binds
     @LightweightBackground(LightweightBackgroundPriority.UI)
     fun provideUiLightweightBackgroundExecutor(
-      @LightweightBackground(LightweightBackgroundPriority.UI)
-      listeningExecutorService: ListeningExecutorService
+        @LightweightBackground(LightweightBackgroundPriority.UI)
+        listeningExecutorService: ListeningExecutorService
     ): Executor
 
     @Binds
     @LightweightBackground(LightweightBackgroundPriority.UI)
     fun provideUiLightweightBackgroundExecutorService(
-      @LightweightBackground(LightweightBackgroundPriority.UI)
-      listeningExecutorService: ListeningExecutorService
+        @LightweightBackground(LightweightBackgroundPriority.UI)
+        listeningExecutorService: ListeningExecutorService
     ): ExecutorService
 
     @Binds
     @LightweightBackground(LightweightBackgroundPriority.DATA)
     fun provideDataLightweightBackgroundExecutor(
-      @LightweightBackground(LightweightBackgroundPriority.DATA)
-      listeningExecutorService: ListeningExecutorService
+        @LightweightBackground(LightweightBackgroundPriority.DATA)
+        listeningExecutorService: ListeningExecutorService
     ): Executor
 
     @Binds
     @LightweightBackground(LightweightBackgroundPriority.DATA)
     fun provideDataLightweightBackgroundExecutorService(
-      @LightweightBackground(LightweightBackgroundPriority.DATA)
-      listeningExecutorService: ListeningExecutorService
+        @LightweightBackground(LightweightBackgroundPriority.DATA)
+        listeningExecutorService: ListeningExecutorService
     ): ExecutorService
     // end ordered background executors
 
@@ -126,13 +126,13 @@ interface ExecutorsModule {
     @Binds
     @Ui
     fun provideUiExecutor(
-      @Ui listeningExecutorService: ListeningExecutorService
+        @Ui listeningExecutorService: ListeningExecutorService
     ): Executor
 
     @Binds
     @Ui
     fun provideUiExecutorService(
-      @Ui listeningExecutorService: ListeningExecutorService
+        @Ui listeningExecutorService: ListeningExecutorService
     ): ExecutorService
     // end UI executors
 
