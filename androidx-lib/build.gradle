@@ -25,7 +25,7 @@ dependencies {
     implementation libs.core
     implementation libs.annotation
     androidTestImplementation libs.androidx.junit
-    androidTestImplementation libs.androidx.rules
+    androidTestImplementation libs.androidx.test.rules
 }
 
 //addFrameworkJar('framework-15.jar')
