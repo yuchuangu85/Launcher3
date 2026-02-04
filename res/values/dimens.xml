@@ -279,6 +279,9 @@
     <dimen name="widget_picker_education_tip_max_width">308dp</dimen>
     <dimen name="widget_picker_education_tip_min_margin">4dp</dimen>
 
+    <color name="suw_all_set_expressive_theme_color">#ECDFE5</color>
+    <color name="suw_all_set_scrim">#40000000</color>
+
     <!-- Padding applied to shortcut previews -->
     <dimen name="shortcut_preview_padding_left">0dp</dimen>
     <dimen name="shortcut_preview_padding_right">0dp</dimen>

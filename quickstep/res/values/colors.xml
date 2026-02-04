@@ -94,4 +94,9 @@
 
     <!-- Turn on work apps button -->
     <color name="work_turn_on_stroke">@color/materialColorPrimary</color>
+
+    <color name="nudge_pill_color1">#4285F4</color>
+    <color name="nudge_pill_color2">#7430E2</color>
+    <color name="nudge_pill_color3">#2A7EC8</color>
+    <color name="nudge_pill_color4">#2DB8BD</color>
 </resources>

@@ -337,4 +337,30 @@
         <item name="widgetsTheme">@style/WidgetContainerTheme</item>
         <item name="pageIndicatorDotColor">@color/page_indicator_dot_color_light</item>
     </style>
+
+    <style name="TextAppearance.Nudge.Title" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:fontFamily">google-sans</item>
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <style name="TextAppearance.Nudge.Subtext" parent="android:TextAppearance.Material.Body1">
+        <item name="android:layout_marginTop">16dp</item>
+        <item name="android:fontFamily">google-sans-text</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Nudge.Button.Primary" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/button_nudge_colored</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:minHeight">36dp</item>
+    </style>
+
+    <style name="Nudge.Button.Secondary" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/button_nudge_colored</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:minHeight">36dp</item>
+    </style>
 </resources>

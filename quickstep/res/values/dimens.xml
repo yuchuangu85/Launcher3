@@ -31,6 +31,10 @@
 
     <dimen name="overview_minimum_next_prev_size">50dp</dimen>
 
+    <!--  Overflown Apps Container View  -->
+    <!--  The padding of the container view and the space between the child app icons -->
+    <dimen name="overflown_apps_container_spacing">8dp</dimen>
+
     <!--  Overview Task Views  -->
     <!--  The thumbnail uses up to this much of the total screen height/width in Overview -->
     <item name="overview_max_scale" format="float" type="dimen">0.7</item>
@@ -86,7 +90,11 @@
     <dimen name="task_thumbnail_header_margin_edge">18dp</dimen>
     <dimen name="task_thumbnail_header_margin_between_views">9dp</dimen>
     <dimen name="task_thumbnail_header_icon_size">18dp</dimen>
+    <dimen name="task_header_close_button_size">20dp</dimen>
     <dimen name="task_thumbnail_header_round_corner_radius">16dp</dimen>
+    <dimen name="task_thumbnail_header_padding_top_bottom">6dp</dimen>
+    <dimen name="task_thumbnail_header_padding_start_end">12dp</dimen>
+    <dimen name="task_thumbnail_header_close_button_hit_rect_size">32dp</dimen>
 
     <!--  How much a task being dragged for dismissal can undershoot the origin when dragged back to its start position.  -->
     <dimen name="task_dismiss_max_undershoot">25dp</dimen>
@@ -94,10 +102,14 @@
     <dimen name="task_icon_cache_default_icon_size">72dp</dimen>
     <item name="overview_modal_max_scale" format="float" type="dimen">1.1</item>
 
+    <!-- The length of the fading edge (gradient) of the task header title -->
+    <dimen name="task_header_title_fading_edge_length">28dp</dimen>
+
     <!-- Overrideable in overlay that provides the Overview Actions. -->
     <dimen name="overview_actions_top_margin">24dp</dimen>
     <dimen name="overview_actions_height">48dp</dimen>
     <dimen name="overview_actions_button_spacing">36dp</dimen>
+    <dimen name="overview_actions_button_radius">28dp</dimen>
 
     <!-- These speeds are in dp/s -->
     <dimen name="max_task_dismiss_drag_velocity">2.25dp</dimen>
@@ -280,6 +292,9 @@
     <dimen name="allset_page_padding_horizontal">40dp</dimen>
     <dimen name="allset_page_allset_text_size">36sp</dimen>
     <dimen name="allset_page_swipe_up_text_size">14sp</dimen>
+    <dimen name="allset_page_swipe_up_text_size_expressive">16sp</dimen>
+    <dimen name="allset_hint_margin_bottom">24dp</dimen>
+    <dimen name="allset_page_expressive_padding_horizontal">40dp</dimen>
 
     <dimen name="allset_title_margin_top">24dp</dimen>
     <dimen name="allset_title_icon_margin_top">32dp</dimen>
@@ -353,6 +368,7 @@
     <dimen name="taskbar_stashed_small_screen">108dp</dimen>
     <dimen name="taskbar_unstash_input_area">316dp</dimen>
     <dimen name="taskbar_stashed_handle_height">4dp</dimen>
+    <dimen name="taskbar_nudge_glow_radius_percent">200%</dimen>
     <dimen name="taskbar_stashed_screen_edge_hover_deadzone_height">10dp</dimen>
     <dimen name="taskbar_stashed_below_hover_deadzone_height">1dp</dimen>
     <dimen name="taskbar_edu_horizontal_margin">112dp</dimen>
@@ -439,6 +455,12 @@
 
     <!-- Taskbar Multi Instance Menu -->
     <dimen name="taskbar_multi_instance_menu_min_padding_from_screen_edge">8dp</dimen>
+
+    <dimen name="task_dismiss_button_width">24dp</dimen>
+    <dimen name="task_dismiss_button_padding">4dp</dimen>
+    <dimen name="task_dismiss_button_margin">4dp</dimen>
+
+
 
     <!--- Floating Ime Inset height-->
     <dimen name="floating_ime_inset_height">60dp</dimen>
@@ -541,6 +563,23 @@
 
     <!-- Digital Wellbeing -->
     <dimen name="digital_wellbeing_toast_height">48dp</dimen>
+
+    <!-- Nudge -->
+    <dimen name="nudge_elevation">14dp</dimen>
+    <dimen name="nudge_horizontal_margin">32dp</dimen>
+    <dimen name="nudge_vertical_margin">24dp</dimen>
+
+    <dimen name="nudge_width">428dp</dimen>
+    <dimen name="nudge_paddingBottom">16dp</dimen>
+    <dimen name="nudge_content_elements_spacing">8dp</dimen>
+    <dimen name="nudge_buttons_margin_top">36dp</dimen>
+    <dimen name="nudge_buttons_spacing">8dp</dimen>
+    <dimen name="nudge_button_horizontal_padding">6dp</dimen>
+    <dimen name="nudge_button_vertical_padding">12dp</dimen>
+    <dimen name="nudge_enter_y_delta">20dp</dimen>
+    <dimen name="nudge_exit_y_delta">-10dp</dimen>
+
+    <dimen name="nudge_default_position_side_spacing">16dp</dimen>
 
     <dimen name="settingslib_preferred_minimum_touch_target">48dp</dimen>
     <dimen name="desktop_windowing_freeform_rounded_corner_radius">16dp</dimen>
