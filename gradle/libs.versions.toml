@@ -84,7 +84,7 @@ refine = "4.4.0"
 
 [libraries]
 # AndroidX
-androidx-activity-compose = "androidx.activity:activity-compose:1.12.2"
+androidx-activity-compose = "androidx.activity:activity-compose:1.12.3"
 androidx-benchmark-macro-junit4 = "androidx.benchmark:benchmark-macro-junit4:1.4.1"
 androidx-concurrent-futures = "androidx.concurrent:concurrent-futures:1.3.0"
 androidx-constraintlayout = "androidx.constraintlayout:constraintlayout:2.2.1"
@@ -95,7 +95,7 @@ androidx-graphics-path = "androidx.graphics:graphics-path:1.0.1"
 androidx-graphics-shapes = "androidx.graphics:graphics-shapes:1.1.0"
 androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
-androidx-navigation-compose = "androidx.navigation:navigation-compose:2.9.6"
+androidx-navigation-compose = "androidx.navigation:navigation-compose:2.9.7"
 androidx-slice-core = "androidx.slice:slice-core:1.1.0-alpha02"
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -117,11 +117,11 @@ annotation = { module = "androidx.annotation:annotation", version.ref = "annotat
 core = { module = "androidx.core:core", version.ref = "core" }
 
 # Compose
-compose-bom = "androidx.compose:compose-bom:2026.01.00"
+compose-bom = "androidx.compose:compose-bom:2026.01.01"
 compose-foundation = { module = "androidx.compose.foundation:foundation" }
 compose-foundation-layout = { module = "androidx.compose.foundation:foundation-layout" }
 compose-material-icons = "androidx.compose.material:material-icons-extended:1.7.8"
-compose-material3 = "androidx.compose.material3:material3:1.5.0-alpha12"
+compose-material3 = "androidx.compose.material3:material3:1.5.0-alpha13"
 compose-material3-windowSizeClass = { module = "androidx.compose.material3:material3-window-size-class" }
 compose-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata" }
 compose-ui = { module = "androidx.compose.ui:ui" }
@@ -166,13 +166,15 @@ protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.
 
 google-guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 
+leakcanary-android = "com.squareup.leakcanary:leakcanary-android:2.14"
+
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 rules = { module = "com.android.support.test:rules", version.ref = "rules" }
 runner = { module = "com.android.support.test:runner", version.ref = "runner" }
 
 xdrop-fuzzywuzzy = "me.xdrop:fuzzywuzzy:1.4.0"
 errorprone-annotations = "com.google.errorprone:error_prone_annotations:2.46.0"
-composeRules = "io.nlopez.compose.rules:ktlint:0.5.3"
+composeRules = "io.nlopez.compose.rules:ktlint:0.5.6"
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
@@ -197,7 +199,7 @@ google-truth = { group = "com.google.truth", name = "truth", version.ref = "trut
 mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockito" }
 mockito-robolectric = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 mockito-robolectric-bytebuddy = "net.bytebuddy:byte-buddy:1.18.4"
-mockito-robolectric-bytebuddy-agent = "net.bytebuddy:byte-buddy-agent:1.15.11"
+mockito-robolectric-bytebuddy-agent = "net.bytebuddy:byte-buddy-agent:1.18.4"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

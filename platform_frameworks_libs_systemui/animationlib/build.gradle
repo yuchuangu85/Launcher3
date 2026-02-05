@@ -10,13 +10,13 @@ android {
     sourceSets {
         main {
             java.srcDirs = ['src']
-            kotlin.srcDirs = ['src']
+            kotlin.directories.add('src')
             res.srcDirs = ['res']
             manifest.srcFile 'AndroidManifest.xml'
         }
         androidTest {
             java.srcDirs = ["tests/src", "tests/robolectric/src"]
-            kotlin.srcDirs = ["tests/src", "tests/robolectric/src"]
+            kotlin.directories.addAll("tests/src", "tests/robolectric/src")
             manifest.srcFile 'tests/AndroidManifest.xml'
         }
     }
@@ -33,7 +33,6 @@ android {
 addFrameworkJar('framework-16.jar')
 
 dependencies {
-    implementation libs.kotlin.stdlib.jdk7
     implementation libs.androidx.core.animation
     implementation libs.androidx.core.ktx
 //    androidTestImplementation libs.robolectric

@@ -10,7 +10,7 @@ android {
     sourceSets {
         main {
             java.srcDirs = ['src']
-            kotlin.srcDirs = ['src']
+            kotlin.directories.add('src')
             manifest.srcFile 'AndroidManifest.xml'
         }
 //        androidTest {
@@ -30,7 +30,6 @@ android {
 addFrameworkJar('framework-16.jar')
 
 dependencies {
-    implementation libs.kotlin.stdlib.jdk7
     implementation libs.androidx.core.animation
     implementation libs.androidx.core.ktx
 }

@@ -4,16 +4,6 @@ plugins {
 
 android {
     namespace "androidx.dynamicanimation.animation"
-
-    compileSdk 36
-
-    defaultConfig {
-        minSdkVersion 26
-        targetSdkVersion 36
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-
     sourceSets {
         main {
             java.srcDirs = ['src']
@@ -21,12 +11,5 @@ android {
     }
 }
 
-dependencies {
-    implementation libs.core
-    implementation libs.annotation
-    androidTestImplementation libs.androidx.junit
-    androidTestImplementation libs.androidx.test.rules
-}
-
-//addFrameworkJar('framework-15.jar')
-//compileOnlyCommonJars()
+addFrameworkJar('framework-16.jar')
+compileOnlyCommonJars()

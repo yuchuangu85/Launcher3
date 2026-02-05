@@ -299,6 +299,8 @@ dependencies {
     implementation libs.dagger.hilt.android
     ksp libs.dagger.hilt.compiler
 
+    debugImplementation libs.leakcanary.android
+
     testImplementation libs.junit
     androidTestImplementation libs.mockito.core
     androidTestImplementation libs.dexmaker

@@ -16,7 +16,7 @@ android {
     sourceSets {
         main {
             java.srcDirs = ['src', 'compose']
-            kotlin.srcDirs = ['src', 'compose']
+            kotlin.directories.addAll('src', 'compose')
             manifest.srcFile 'AndroidManifest.xml'
         }
     }
@@ -35,7 +35,6 @@ android {
 addFrameworkJar('framework-16.jar')
 
 dependencies {
-    implementation libs.kotlin.stdlib.jdk7
     implementation libs.androidx.core.animation
     implementation libs.androidx.core.ktx
 
