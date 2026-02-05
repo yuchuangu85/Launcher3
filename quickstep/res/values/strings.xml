@@ -32,6 +32,8 @@
     <string name="recent_task_option_external_display">Move to external display</string>
     <!-- Title and content description for an option to close the app [CHAR LIMIT=30] -->
     <string name="recent_task_option_close">Close</string>
+    <!-- Title and content description for an option to remove the task [CHAR LIMIT=30] -->
+    <string name="recent_task_option_remove_task">Clear</string>
 
     <!-- Title and content description for Desktop tile in Recents screen that contains apps opened inside desktop windowing mode [CHAR LIMIT=NONE] -->
     <string name="recent_task_desktop">Desktop</string>
@@ -225,6 +227,8 @@
     <string name="default_device_name">device</string>
     <!-- String linking to navigation settings on "All Set" page [CHAR LIMIT=NONE] -->
     <string name="allset_navigation_settings"><annotation id="link">System navigation settings</annotation></string>
+    <!-- String linking to navigation settings on "All Set" page [CHAR LIMIT=NONE] -->
+    <string name="allset_navigation_settings_expressive"><annotation id="link">Choose how to navigate</annotation></string>
 
     <!-- ******* Overview ******* -->
     <!-- Label for a button that causes the current overview app to be shared. [CHAR_LIMIT=40] -->
@@ -386,4 +390,5 @@
     <string name="pin_to_taskbar">Pin to taskbar</string>
     <!-- Label for unpinning an item from the taskbar. [CHAR_LIMIT=20] -->
     <string name="unpin_from_taskbar">Unpin from taskbar</string>
+    <string name="nudge_a11y_image">Nudge image</string>
 </resources>

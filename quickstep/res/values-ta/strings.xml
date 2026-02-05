@@ -24,6 +24,7 @@
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"டெஸ்க்டாப்"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"வெளிப்புற டிஸ்ப்ளேவிற்கு நகர்த்துதல்"</string>
     <string name="recent_task_option_close" msgid="942942499021777264">"மூடு"</string>
+    <string name="recent_task_option_remove_task" msgid="803559928027541555">"அழிக்கும்"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"டெஸ்க்டாப்"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"சமீபத்தியவை எதுவுமில்லை"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"ஆப்ஸ் உபயோக அமைப்புகள்"</string>
@@ -93,6 +94,7 @@
     <string name="allset_description_generic" msgid="5385500062202019855">"உங்கள் <xliff:g id="DEVICE">%1$s</xliff:g> உங்களுக்காகத் தயாராக இருக்கிறது"</string>
     <string name="default_device_name" msgid="6660656727127422487">"சாதனம்"</string>
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"சிஸ்டம் வழிசெலுத்தல் அமைப்புகள்"</annotation></string>
+    <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"வழிசெலுத்துவதற்கான வழிமுறையைத் தேர்வுசெய்யுங்கள்"</annotation></string>
     <string name="action_share" msgid="2648470652637092375">"பகிர்"</string>
     <string name="action_screenshot" msgid="8171125848358142917">"ஸ்கிரீன்ஷாட்"</string>
     <string name="action_split" msgid="2098009717623550676">"பிரி"</string>
@@ -163,4 +165,5 @@
     <string name="header_close_icon_description" msgid="5400033616675911319">"மூடுவதற்கான பட்டன்"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"செயல்பட்டியில் பின் செய்"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"செயல்பட்டியிலிருந்து அகற்று"</string>
+    <string name="nudge_a11y_image" msgid="117910310515857252">"படம் குறித்து நினைவூட்டும்"</string>
 </resources>

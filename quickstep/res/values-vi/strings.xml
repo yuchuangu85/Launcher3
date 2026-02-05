@@ -24,6 +24,7 @@
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Máy tính"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Chuyển sang màn hình ngoài"</string>
     <string name="recent_task_option_close" msgid="942942499021777264">"Đóng"</string>
+    <string name="recent_task_option_remove_task" msgid="803559928027541555">"Xoá"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"Máy tính"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"Không có mục gần đây nào"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"Cài đặt mức sử dụng ứng dụng"</string>
@@ -93,6 +94,7 @@
     <string name="allset_description_generic" msgid="5385500062202019855">"Bạn có thể bắt đầu sử dụng <xliff:g id="DEVICE">%1$s</xliff:g>"</string>
     <string name="default_device_name" msgid="6660656727127422487">"thiết bị"</string>
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Cài đặt cách thao tác trên hệ thống"</annotation></string>
+    <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"Chọn cách thao tác"</annotation></string>
     <string name="action_share" msgid="2648470652637092375">"Chia sẻ"</string>
     <string name="action_screenshot" msgid="8171125848358142917">"Chụp ảnh màn hình"</string>
     <string name="action_split" msgid="2098009717623550676">"Chia đôi màn hình"</string>
@@ -163,4 +165,5 @@
     <string name="header_close_icon_description" msgid="5400033616675911319">"Nút đóng"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"Ghim vào thanh tác vụ"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"Bỏ ghim khỏi thanh tác vụ"</string>
+    <string name="nudge_a11y_image" msgid="117910310515857252">"Dịch chuyển hình ảnh"</string>
 </resources>

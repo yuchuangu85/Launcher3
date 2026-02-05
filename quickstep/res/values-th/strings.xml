@@ -24,6 +24,7 @@
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"เดสก์ท็อป"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"ย้ายไปยังจอแสดงผลภายนอก"</string>
     <string name="recent_task_option_close" msgid="942942499021777264">"ปิด"</string>
+    <string name="recent_task_option_remove_task" msgid="803559928027541555">"ล้าง"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"เดสก์ท็อป"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"ไม่มีรายการล่าสุด"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"การตั้งค่าการใช้แอป"</string>
@@ -163,4 +164,5 @@
     <string name="header_close_icon_description" msgid="5400033616675911319">"ปุ่มปิด"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"ปักหมุดไปยังแถบงาน"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"เลิกปักหมุดจากแถบงาน"</string>
+    <string name="nudge_a11y_image" msgid="117910310515857252">"กระตุ้นเตือนเกี่ยวกับรูปภาพ"</string>
 </resources>
