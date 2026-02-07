@@ -40,7 +40,7 @@
     <string name="app_pair_needs_unfold" msgid="4588897528143807002">"Vik upp enheten för att använda de här apparna som ska användas tillsammans"</string>
     <string name="app_pair_not_available" msgid="3556767440808032031">"App-paret är inte tillgängligt"</string>
     <string name="long_press_widget_to_add" msgid="3587712543577675817">"Tryck länge för att flytta en widget."</string>
-    <string name="long_accessible_way_to_add" msgid="2733588281439571974">"Tryck snabbt två gånger och håll kvar för att flytta en widget eller använda anpassade åtgärder."</string>
+    <string name="long_accessible_way_to_add" msgid="2733588281439571974">"Dubbeltryck och håll kvar för att flytta en widget eller använda anpassade åtgärder."</string>
     <string name="widget_picker_widget_options_button_description" msgid="4770099264476852363">"Fler alternativ"</string>
     <string name="widget_picker_show_all_widgets_menu_item_title" msgid="9023638224586908119">"Visa alla widgetar"</string>
     <string name="widget_dims_format" msgid="2370757736025621599">"%1$d × %2$d"</string>
@@ -86,7 +86,7 @@
     <string name="all_apps_list_label" msgid="5106226764073070906">"Applista"</string>
     <string name="notifications_header" msgid="1404149926117359025">"Aviseringar"</string>
     <string name="long_press_shortcut_to_add" msgid="5405328730817637737">"Tryck länge för att flytta en genväg."</string>
-    <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"Tryck snabbt två gånger och håll kvar för att flytta en genväg eller använda anpassade åtgärder."</string>
+    <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"Dubbeltryck och håll kvar för att flytta en genväg eller använda anpassade åtgärder."</string>
     <string name="out_of_space" msgid="6455557115204099579">"Det finns inte plats på den här startskärmen"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"Favoritfältet är fullt"</string>
     <string name="all_apps_button_label" msgid="8130441508702294465">"Applista"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Tryck för att slutföra konfigureringen"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Det här är en systemapp som inte kan avinstalleras."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Redigera namn"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Sidnumrera till vänster"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Sidnumrera till höger"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> har inaktiverats"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} har # avisering}other{{app_name} har # aviseringar}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Sidan %1$d av %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Tillåt rotering av startskärmen"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"När telefonen vrids"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Liggande"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Ställ in telefonen på liggande läge"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Ställ in liggande läge på startskärmen"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Aviseringsprickar"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"På"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Av"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Lås"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Överföring av privat rum"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Installera"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Lägg till"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Installera appar i privat rum"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Lägg till filer och annat i det privata utrymmet"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Cirkel"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Fyrkantig kaka"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Sjukantig kaka"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Båge"</string>
 </resources>

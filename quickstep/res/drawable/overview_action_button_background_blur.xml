@@ -18,7 +18,7 @@
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="@dimen/overview_actions_button_radius" />
-            <solid android:color="@*android:color/surface_effect_1" />
+            <solid android:color="@color/surface_effect_1" />
         </shape>
     </item>
 </ripple>

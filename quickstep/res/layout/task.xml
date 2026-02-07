@@ -29,8 +29,7 @@
     launcher:hoverBorderColor="@color/materialColorPrimary">
 
     <ViewStub
-        android:id="@+id/snapshot"
-        android:inflatedId="@id/snapshot"
+        android:id="@+id/task_content_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
@@ -52,6 +51,9 @@
         android:layout_height="wrap_content"
         android:layout_width="wrap_content" />
 
-    <include layout="@layout/digital_wellbeing_toast"
-        android:id="@+id/digital_wellbeing_toast"/>
+    <ViewStub
+        android:id="@+id/digital_wellbeing_toast"
+        android:inflatedId="@id/digital_wellbeing_toast"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/digital_wellbeing_toast_height" />
 </com.android.quickstep.views.TaskView>

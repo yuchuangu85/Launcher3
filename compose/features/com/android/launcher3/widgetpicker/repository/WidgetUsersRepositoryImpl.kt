@@ -18,6 +18,7 @@ package com.android.launcher3.widgetpicker.repository
 
 import android.content.Context
 import android.os.UserHandle
+import android.os.UserManager
 import com.android.launcher3.concurrent.annotations.BackgroundContext
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.model.StringCache
@@ -27,8 +28,6 @@ import com.android.launcher3.widgetpicker.data.repository.WidgetUsersRepository
 import com.android.launcher3.widgetpicker.shared.model.WidgetUserProfile
 import com.android.launcher3.widgetpicker.shared.model.WidgetUserProfileType
 import com.android.launcher3.widgetpicker.shared.model.WidgetUserProfiles
-import javax.inject.Inject
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -39,37 +38,39 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
 
 /**
- * An implementation of [WidgetUsersRepository] that provides user profile info to widget picker by
- * looking up the [UserCache].
+ * An implementation of [WidgetUsersRepository] that provides user profile info to widget picker
+ * by looking up the [UserCache].
  */
-class WidgetUsersRepositoryImpl
-@Inject
-constructor(
+class WidgetUsersRepositoryImpl @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val userCache: UserCache,
-    @BackgroundContext private val backgroundContext: CoroutineContext,
+    @BackgroundContext
+    private val backgroundContext: CoroutineContext
 ) : WidgetUsersRepository {
-    private var stringCache: StringCache = StringCache.EMPTY
+    private val userManagerService = appContext.getSystemService(UserManager::class.java)
+    private var stringCache: StringCache = StringCache()
     private var closableUseChangeListener: SafeCloseable? = null
     private val _userProfiles = MutableStateFlow<WidgetUserProfiles?>(null)
     private var workProfileUser: UserHandle? = null
-    private var backgroundScope =
-        CoroutineScope(
-            SupervisorJob() +
+    private var backgroundScope = CoroutineScope(
+        SupervisorJob() +
                 backgroundContext +
                 CoroutineName("widgetUsersRepositoryBackgroundWork")
-        )
+    )
 
     override fun initialize() {
         backgroundScope.launch {
-            stringCache = StringCache.fromContext(appContext)
+            stringCache.loadStrings(appContext)
             maybeUpdate(changedUser = null)
 
             closableUseChangeListener?.close()
-            closableUseChangeListener =
-                userCache.addUserEventListener { userHandle, _ -> maybeUpdate(userHandle) }
+            closableUseChangeListener = userCache.addUserEventListener { userHandle, _ ->
+                maybeUpdate(userHandle)
+            }
         }
     }
 
@@ -87,32 +88,36 @@ constructor(
     }
 
     private fun maybeUpdate(changedUser: UserHandle?) {
+        check(userManagerService != null)
 
-        workProfileUser = userCache.userProfiles.firstOrNull { userCache.getUserInfo(it).isWork }
+        workProfileUser =
+            userCache.userProfiles.firstOrNull { userCache.getUserInfo(it).isWork }
         val needsUpdate = changedUser == null || changedUser == workProfileUser
 
         if (needsUpdate) {
             val isUserQuiet =
-                workProfileUser?.let { userCache.userManagerState.isUserQuiet(it) } ?: false
+                workProfileUser?.let {
+                    userManagerService.isQuietModeEnabled(
+                        workProfileUser
+                    )
+                } ?: false
 
             _userProfiles.update {
                 WidgetUserProfiles(
-                    personal =
+                    personal = WidgetUserProfile(
+                        type = WidgetUserProfileType.PERSONAL,
+                        label = stringCache.widgetsPersonalTab,
+                        paused = false,
+                        pausedProfileMessage = null,
+                    ),
+                    work = workProfileUser?.let {
                         WidgetUserProfile(
-                            type = WidgetUserProfileType.PERSONAL,
-                            label = stringCache.widgetsPersonalTab ?: "",
-                            paused = false,
-                            pausedProfileMessage = null,
-                        ),
-                    work =
-                        workProfileUser?.let {
-                            WidgetUserProfile(
-                                type = WidgetUserProfileType.WORK,
-                                label = stringCache.widgetsWorkTab ?: "",
-                                paused = isUserQuiet,
-                                pausedProfileMessage = stringCache.workProfilePausedTitle,
-                            )
-                        },
+                            type = WidgetUserProfileType.WORK,
+                            label = stringCache.widgetsWorkTab,
+                            paused = isUserQuiet,
+                            pausedProfileMessage = stringCache.workProfilePausedTitle,
+                        )
+                    }
                 )
             }
         }

@@ -24,14 +24,15 @@ import static org.junit.Assume.assumeTrue;
 
 import android.content.Intent;
 import android.platform.test.annotations.PlatinumTest;
+import android.view.View;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.tapl.AllApps;
-import com.android.launcher3.ui.AbstractLauncherUiTest;
-import com.android.launcher3.ui.PortraitLandscapeRunner.PortraitLandscape;
+import com.android.launcher3.util.ui.AbstractLauncherUiTest;
+import com.android.launcher3.util.ui.PortraitLandscapeRunner.PortraitLandscape;
 
 import org.junit.Test;
 
@@ -39,7 +40,7 @@ import org.junit.Test;
  * Test that we can open and close the all apps in multiple situations.
  * The test runs in Out of process (Oop) and in process.
  */
-public class TaplOpenCloseAllAppsTest extends AbstractLauncherUiTest<Launcher> {
+public class TaplOpenCloseAllAppsTest extends AbstractLauncherUiTest<Launcher, View> {
 
     public static final String READ_DEVICE_CONFIG_PERMISSION =
             "android.permission.READ_DEVICE_CONFIG";

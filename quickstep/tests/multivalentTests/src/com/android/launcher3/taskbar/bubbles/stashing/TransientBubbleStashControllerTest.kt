@@ -38,6 +38,7 @@ import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.Bubb
 import com.android.launcher3.util.MultiValueAlpha
 import com.android.wm.shell.shared.animation.PhysicsAnimator
 import com.android.wm.shell.shared.animation.PhysicsAnimatorTestUtils
+import com.android.wm.shell.shared.bubbles.BubbleBarLocation
 import com.google.common.collect.Range
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -375,7 +376,7 @@ class TransientBubbleStashControllerTest {
             )
         }
 
-        verify(bubbleBarViewController).setExpanded(true, true)
+        verify(bubbleBarViewController).animateExpanded(true, true)
     }
 
     @Test
@@ -392,7 +393,7 @@ class TransientBubbleStashControllerTest {
             )
         }
 
-        verify(bubbleBarViewController).setExpanded(true, false)
+        verify(bubbleBarViewController).animateExpanded(true, false)
     }
 
     @Test
@@ -409,7 +410,7 @@ class TransientBubbleStashControllerTest {
             )
         }
 
-        verify(bubbleBarViewController, never()).setExpanded(any(), any())
+        verify(bubbleBarViewController, never()).animateExpanded(any(), any())
     }
 
     @Test
@@ -556,8 +557,28 @@ class TransientBubbleStashControllerTest {
             bubbleBarView = BubbleBarView(context)
             bubbleBarView.layoutParams =
                 FrameLayout.LayoutParams(BUBBLE_BAR_WIDTH, BUBBLE_BAR_HEIGHT)
+            bubbleBarView.setController(
+                object : BubbleBarView.Controller {
+                    override fun getBubbleBarTranslationY(): Float = 0f
+
+                    override fun onBubbleBarTouched() {}
+
+                    override fun expandBubbleBar() {}
+
+                    override fun dismissBubbleBar() {}
+
+                    override fun updateBubbleBarLocation(
+                        location: BubbleBarLocation?,
+                        source: Int,
+                    ) {}
+
+                    override fun setIsDragging(dragging: Boolean) {}
+
+                    override fun onBubbleBarExpandedStateChanged(expanded: Boolean) {}
+                }
+            )
             bubbleView = BubbleView(context)
-            bubbleBarView.addBubble(bubbleView)
+            bubbleBarView.addBubble(bubbleView, false)
             bubbleBarView.layout(0, 0, BUBBLE_BAR_WIDTH, BUBBLE_BAR_HEIGHT)
         }
     }

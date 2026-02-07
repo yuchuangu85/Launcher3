@@ -69,7 +69,6 @@ public class PromiseIconUiTest extends BaseLauncherActivityTest<Launcher> {
     @Before
     public void setUp() throws Exception {
         loadLauncherSync();
-        goToState(LauncherState.NORMAL);
         mSessionId = -1;
     }
 
@@ -149,7 +148,7 @@ public class PromiseIconUiTest extends BaseLauncherActivityTest<Launcher> {
         // Verify promise icon is added to all apps view. The icon may not be added to the
         // workspace even if there might be no icon present for archived app. But icon will
         // always be in all apps view. In case an icon is not added, an exception would be thrown.
-        goToState(LauncherState.ALL_APPS);
+        getLauncherActivity().goToState(LauncherState.ALL_APPS);
 
         // Wait for the promise icon to be added.
         waitForLauncherCondition(

@@ -469,7 +469,7 @@ public class TaskThumbnailViewDeprecated extends View implements ViewPool.Reusab
             int currentRotation = mTaskView.getOrientedState().getRecentsActivityRotation();
             boolean isRtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
             mPreviewPositionHelper.updateThumbnailMatrix(mPreviewRect, mThumbnailData,
-                    getMeasuredWidth(), getMeasuredHeight(), dp.isTablet, currentRotation, isRtl);
+                    getMeasuredWidth(), getMeasuredHeight(), dp.getDeviceProperties().isTablet(), currentRotation, isRtl);
 
             mBitmapShader.setLocalMatrix(mPreviewPositionHelper.getMatrix());
             mPaint.setShader(mBitmapShader);

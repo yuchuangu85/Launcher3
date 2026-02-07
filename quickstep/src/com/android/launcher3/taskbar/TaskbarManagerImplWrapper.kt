@@ -239,10 +239,6 @@ class TaskbarManagerImplWrapper(private val impl: TaskbarManagerImpl) : TaskbarM
         return impl.createLauncherStartFromSuwAnim(duration)
     }
 
-    override fun shouldForceAllSetFallbackAnimation(): Boolean {
-        return impl.shouldForceAllSetFallbackAnimation()
-    }
-
     override fun getCurrentActivityContext(): TaskbarActivityContext? {
         // Thread safe
         return impl.currentActivityContext

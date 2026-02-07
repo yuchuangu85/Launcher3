@@ -16,6 +16,7 @@
 package com.android.launcher3.util;
 
 import static android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK;
+import static android.os.VibrationEffect.createOneShot;
 import static android.os.VibrationEffect.createPredefined;
 import static android.provider.Settings.System.HAPTIC_FEEDBACK_ENABLED;
 
@@ -38,6 +39,8 @@ import com.android.launcher3.dagger.LauncherBaseAppComponent;
 
 import javax.inject.Inject;
 
+import com.android.launcher3.Utilities;
+
 /**
  * Wrapper around {@link Vibrator} to easily perform haptic feedback where necessary.
  */
@@ -53,7 +56,7 @@ public class VibratorWrapper {
             .build();
 
     public static final VibrationEffect EFFECT_CLICK =
-            createPredefined(VibrationEffect.EFFECT_CLICK);
+        Utilities.ATLEAST_Q ? createPredefined(VibrationEffect.EFFECT_CLICK) : createOneShot(1000L, VibrationEffect.DEFAULT_AMPLITUDE);
     @VisibleForTesting
     static final Uri HAPTIC_FEEDBACK_URI = Settings.System.getUriFor(HAPTIC_FEEDBACK_ENABLED);
 
@@ -126,7 +129,7 @@ public class VibratorWrapper {
 
     /** Indicates that Taskbar has been invoked. */
     public void vibrateForTaskbarUnstash() {
-        if (mVibrator.areAllPrimitivesSupported(PRIMITIVE_LOW_TICK)) {
+        if (Utilities.ATLEAST_S && mVibrator.areAllPrimitivesSupported(PRIMITIVE_LOW_TICK)) {
             VibrationEffect primitiveLowTickEffect = VibrationEffect
                     .startComposition()
                     .addPrimitive(PRIMITIVE_LOW_TICK, LOW_TICK_SCALE)

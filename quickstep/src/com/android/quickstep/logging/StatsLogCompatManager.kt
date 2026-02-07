@@ -65,10 +65,6 @@ import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIV
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_LOCK_ANIMATION_END
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_UNLOCK_ANIMATION_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_UNLOCK_ANIMATION_END
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_BEGIN
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_END
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_BEGIN
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_END
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORKSPACE_SNAPSHOT
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_UTILITY_VIEW_EXPAND_ANIMATION_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_UTILITY_VIEW_EXPAND_ANIMATION_END
@@ -266,22 +262,6 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 LAUNCHER_WORK_UTILITY_VIEW_SHRINK_ANIMATION_END ->
                     InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_WORK_UTILITY_VIEW_SHRINK)
 
-                LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_BEGIN ->
-                    InteractionJankMonitorWrapper.begin(
-                        view,
-                        Cuj.CUJ_LAUNCHER_WIDGET_PICKER_OPEN,
-                    )
-                LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_END ->
-                    InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_WIDGET_PICKER_OPEN)
-
-                LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_BEGIN ->
-                    InteractionJankMonitorWrapper.begin(
-                        view,
-                        Cuj.CUJ_LAUNCHER_WIDGET_PICKER_APP_EXPAND,
-                    )
-                LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_END ->
-                    InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_WIDGET_PICKER_APP_EXPAND)
-
                 else -> {}
             }
         }
@@ -347,6 +327,8 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
             val cardinality = mCardinality ?: getCardinality(atomInfo)
 
             val features = mFeatures ?: getFeatures(atomInfo)
+
+            if (!Utilities.ATLEAST_R) return
 
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_EVENT,
@@ -450,6 +432,8 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 Log.d(LATENCY_TAG, "InstanceId=$mInstanceId $name=${mLatencyInMillis}ms")
             }
 
+            if (!Utilities.ATLEAST_R) return
+
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_LATENCY,
                 event.id, // event_id
@@ -512,6 +496,8 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 )
             }
 
+            if (!Utilities.ATLEAST_R) return
+
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_IMPRESSION_EVENT_V2,
                 event.id, // event_id
@@ -568,6 +554,9 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
             if (Utilities.isRunningInTestHarness()) {
                 return
             }
+
+            if (!Utilities.ATLEAST_R) return
+
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_SNAPSHOT,
                 LAUNCHER_WORKSPACE_SNAPSHOT.id, /* event_id */

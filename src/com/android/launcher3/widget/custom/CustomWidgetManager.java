@@ -16,7 +16,6 @@
 
 package com.android.launcher3.widget.custom;
 
-import static com.android.launcher3.Flags.enableSmartspaceAsAWidget;
 import static com.android.launcher3.model.data.LauncherAppWidgetInfo.CUSTOM_WIDGET_ID;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.CLS_CUSTOM_WIDGET_PREFIX;
@@ -27,13 +26,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Parcel;
 import android.os.Process;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.launcher3.R;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
@@ -46,7 +43,6 @@ import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.systemui.plugins.CustomWidgetPlugin;
 import com.android.systemui.plugins.PluginListener;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -90,22 +86,6 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
         mCustomWidgets = new ArrayList<>();
 
         pluginManager.addPluginListener(this, CustomWidgetPlugin.class, true);
-        if (enableSmartspaceAsAWidget()) {
-            for (String s: context.getResources()
-                    .getStringArray(R.array.custom_widget_providers)) {
-                try {
-                    Class<?> cls = Class.forName(s);
-                    CustomWidgetPlugin plugin = (CustomWidgetPlugin)
-                            cls.getDeclaredConstructor(Context.class).newInstance(context);
-                    MAIN_EXECUTOR.execute(() -> onPluginConnected(plugin, context));
-                } catch (ClassNotFoundException | InstantiationException
-                         | IllegalAccessException
-                         | ClassCastException | NoSuchMethodException
-                         | InvocationTargetException e) {
-                    Log.e(TAG, "Exception found when trying to add custom widgets: " + e);
-                }
-            }
-        }
         tracker.addCloseable(() -> pluginManager.removePluginListener(this));
     }
 

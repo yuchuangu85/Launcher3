@@ -44,7 +44,6 @@ import com.android.launcher3.R;
 import com.android.launcher3.anim.AnimatorListeners;
 import com.android.launcher3.taskbar.BarsLocationAnimatorHelper;
 import com.android.launcher3.taskbar.bubbles.animation.BubbleAnimator;
-import com.android.launcher3.util.DisplayController;
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation;
 
 import java.io.PrintWriter;
@@ -146,7 +145,8 @@ public class BubbleBarView extends FrameLayout {
 
     // An animator that represents the expansion state of the bubble bar, where 0 corresponds to the
     // collapsed state and 1 to the fully expanded state.
-    private ValueAnimator mWidthAnimator = createExpansionAnimator(/* expanding = */ false);
+    @Nullable
+    private ValueAnimator mWidthAnimator;
 
     @Nullable
     private ValueAnimator mDismissAnimator = null;
@@ -652,13 +652,15 @@ public class BubbleBarView extends FrameLayout {
         }
     }
 
-    /**
-     * Get bubble bar top coordinate on screen when bar is resting
-     */
-    public int getRestingTopPositionOnScreen() {
-        int displayHeight = DisplayController.INSTANCE.get(getContext()).getInfo().currentSize.y;
+    /** Get the distance between the bubble bar top coordinate and the bottom of the screen */
+    public int getTopToScreenBottom() {
+        // the bottom of the bubble bar is aligned with the bottom of the screen. the distance
+        // between the top of the bubble bar and the bottom of the screen is the height of the
+        // bubble bar minus the y translation. since the bubble bar is always above the bottom of
+        // the screen, the translation is negative and the overall result is a positive value that
+        // represents the distance
         int bubbleBarHeight = getBubbleBarBounds().height();
-        return displayHeight - bubbleBarHeight + (int) mController.getBubbleBarTranslationY();
+        return bubbleBarHeight - (int) mController.getBubbleBarTranslationY();
     }
 
     /** Returns the bounds with translation that may have been applied. */
@@ -715,8 +717,8 @@ public class BubbleBarView extends FrameLayout {
     }
 
     /** Add a new bubble to the bubble bar without updating the selected bubble. */
-    public void addBubble(BubbleView bubble) {
-        addBubble(bubble, /* bubbleToSelect = */ null);
+    public void addBubble(BubbleView bubble, boolean suppressAnimation) {
+        addBubble(bubble, /* bubbleToSelect = */ null, suppressAnimation);
     }
 
     /**
@@ -725,12 +727,13 @@ public class BubbleBarView extends FrameLayout {
      * @param bubble         bubble to add
      * @param bubbleToSelect if {@code null}, then selected bubble does not change
      */
-    public void addBubble(BubbleView bubble, @Nullable BubbleView bubbleToSelect) {
+    public void addBubble(BubbleView bubble, @Nullable BubbleView bubbleToSelect,
+            boolean suppressAnimation) {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams((int) mIconSize, (int) mIconSize,
                 Gravity.LEFT);
         final int index = bubble.isOverflow() ? getChildCount() : 0;
 
-        if (isExpanded()) {
+        if (isExpanded() && !suppressAnimation) {
             // if we're expanded scale the new bubble in
             bubble.setScaleX(0f);
             bubble.setScaleY(0f);
@@ -1008,7 +1011,12 @@ public class BubbleBarView extends FrameLayout {
      * on the expanded state.
      */
     private void updateBubblesLayoutProperties(BubbleBarLocation bubbleBarLocation) {
-        final float widthState = (float) mWidthAnimator.getAnimatedValue();
+        final float widthState;
+        if (mWidthAnimator == null) {
+            widthState = mIsBarExpanded ? 1f : 0f;
+        } else {
+            widthState = (float) mWidthAnimator.getAnimatedValue();
+        }
         final float currentWidth = getWidth();
         final float expandedWidth = expandedWidth();
         final float collapsedWidth = collapsedWidth();
@@ -1045,7 +1053,7 @@ public class BubbleBarView extends FrameLayout {
             bv.setZ(fullElevationForChild * elevationState);
 
             // only update the dot and badge scale if we're expanding or collapsing
-            if (mWidthAnimator.isRunning()) {
+            if (mWidthAnimator != null && mWidthAnimator.isRunning()) {
                 // The dot for the selected bubble scales in the opposite direction of the expansion
                 // animation.
                 bv.showDotIfNeeded(bv == mSelectedBubbleView ? 1 - widthState : widthState);
@@ -1161,7 +1169,7 @@ public class BubbleBarView extends FrameLayout {
      * Reorders the views to match the provided list.
      */
     public void reorder(List<BubbleView> viewOrder) {
-        if (isExpanded() || mWidthAnimator.isRunning()) {
+        if (isExpanded() || (mWidthAnimator != null && mWidthAnimator.isRunning())) {
             mReorderRunnable = () -> doReorder(viewOrder);
         } else {
             doReorder(viewOrder);
@@ -1192,7 +1200,7 @@ public class BubbleBarView extends FrameLayout {
         mUpdateSelectedBubbleAfterCollapse = updateSelectedBubbleAfterCollapse;
     }
 
-    void setController(Controller controller) {
+    public void setController(Controller controller) {
         mController = controller;
     }
 
@@ -1310,19 +1318,37 @@ public class BubbleBarView extends FrameLayout {
     }
 
     /**
-     * Sets whether the bubble bar is expanded or collapsed.
+     * Update bubble bar expanded state.
      */
     public void setExpanded(boolean isBarExpanded) {
-        if (mIsBarExpanded != isBarExpanded) {
-            mIsBarExpanded = isBarExpanded;
-            updateArrowForSelected(/* shouldAnimate= */ false);
-            setOrUnsetClickListener();
+        setExpandedInternal(isBarExpanded, false);
+    }
+
+    /**
+     * Update bubble bar expanded state with animation.
+     * <p>
+     * Also triggers a talkback announcement for accessibility.
+     */
+    public void animateExpanded(boolean isBarExpanded) {
+        setExpandedInternal(isBarExpanded, true);
+    }
+
+    private void setExpandedInternal(boolean isBarExpanded, boolean animate) {
+        if (mIsBarExpanded == isBarExpanded) return;
+        mIsBarExpanded = isBarExpanded;
+        updateArrowForSelected(/* shouldAnimate= */ false);
+        setOrUnsetClickListener();
+        if (animate) {
             mWidthAnimator = createExpansionAnimator(isBarExpanded);
             mWidthAnimator.start();
-            updateBubbleAccessibilityStates();
             announceExpandedStateChange();
+        } else {
+            onExpandedChanged();
         }
+        updateBubbleAccessibilityStates();
+        mController.onBubbleBarExpandedStateChanged(mIsBarExpanded);
     }
+
 
     /**
      * Returns whether the bubble bar is expanded.
@@ -1335,7 +1361,7 @@ public class BubbleBarView extends FrameLayout {
      * Returns whether the bubble bar is expanding.
      */
     public boolean isExpanding() {
-        return mWidthAnimator.isRunning() && mIsBarExpanded;
+        return mWidthAnimator != null && mWidthAnimator.isRunning() && mIsBarExpanded;
     }
 
     /**
@@ -1584,31 +1610,33 @@ public class BubbleBarView extends FrameLayout {
         animator.setInterpolator(Interpolators.EMPHASIZED);
         addAnimationCallBacks(animator,
                 /* onStart= */ () -> mBubbleBarBackground.showArrow(true),
-                /* onEnd= */ () -> {
-                    mBubbleBarBackground.showArrow(mIsBarExpanded);
-                    if (!mIsBarExpanded && mReorderRunnable != null) {
-                        mReorderRunnable.run();
-                        mReorderRunnable = null;
-                    }
-                    // If the bar was just collapsed and the overflow was the last bubble that was
-                    // selected, set the first bubble as selected.
-                    if (!mIsBarExpanded && mUpdateSelectedBubbleAfterCollapse != null
-                            && mSelectedBubbleView != null
-                            && mSelectedBubbleView.getBubble() instanceof BubbleBarOverflow) {
-                        BubbleView firstBubble = (BubbleView) getChildAt(0);
-                        mUpdateSelectedBubbleAfterCollapse.accept(firstBubble.getBubble().getKey());
-                    }
-                    // If the bar was just expanded, remove the dot from the selected bubble.
-                    if (mIsBarExpanded && mSelectedBubbleView != null) {
-                        mSelectedBubbleView.markSeen();
-                    }
-                    updateLayoutParams();
-                },
+                /* onEnd= */ this::onExpandedChanged,
                 /* onUpdate= */ anim -> {
                     updateBubblesLayoutProperties(mBubbleBarLocation);
                     invalidate();
                 });
         return animator;
+    }
+
+    private void onExpandedChanged() {
+        mBubbleBarBackground.showArrow(mIsBarExpanded);
+        if (!mIsBarExpanded && mReorderRunnable != null) {
+            mReorderRunnable.run();
+            mReorderRunnable = null;
+        }
+        // If the bar was just collapsed and the overflow was the last bubble that was
+        // selected, set the first bubble as selected.
+        if (!mIsBarExpanded && mUpdateSelectedBubbleAfterCollapse != null
+                && mSelectedBubbleView != null
+                && mSelectedBubbleView.getBubble() instanceof BubbleBarOverflow) {
+            BubbleView firstBubble = (BubbleView) getChildAt(0);
+            mUpdateSelectedBubbleAfterCollapse.accept(firstBubble.getBubble().getKey());
+        }
+        // If the bar was just expanded, remove the dot from the selected bubble.
+        if (mIsBarExpanded && mSelectedBubbleView != null) {
+            mSelectedBubbleView.markSeen();
+        }
+        updateLayoutParams();
     }
 
     /**
@@ -1644,7 +1672,7 @@ public class BubbleBarView extends FrameLayout {
     }
 
     /** Interface for BubbleBarView to communicate with its controller. */
-    interface Controller {
+    public interface Controller {
 
         /** Returns the translation Y that the bubble bar should have. */
         float getBubbleBarTranslationY();
@@ -1664,5 +1692,8 @@ public class BubbleBarView extends FrameLayout {
 
         /** Notifies the controller that bubble bar is being dragged */
         void setIsDragging(boolean dragging);
+
+        /** Notifies the controller that bubble bar expanded state changed */
+        void onBubbleBarExpandedStateChanged(boolean expanded);
     }
 }

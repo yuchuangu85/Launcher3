@@ -71,7 +71,7 @@ import javax.inject.Inject;
 public final class WellbeingModel implements SafeCloseable {
     private static final String TAG = "WellbeingModel";
     private static final int[] RETRY_TIMES_MS = {5000, 15000, 30000};
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     // Welbeing contract
     private static final String PATH_ACTIONS = "actions";
@@ -181,7 +181,7 @@ public final class WellbeingModel implements SafeCloseable {
         // Work profile apps are not recognized by digital wellbeing.
         if (userId != UserHandle.myUserId()) {
             if (DEBUG || mIsInTest) {
-                Log.d(TAG, "getShortcutForApp [" + packageName + "]: not current user");
+                Log.w(TAG, "getShortcutForApp [" + packageName + "]: not current user");
             }
             return null;
         }
@@ -191,12 +191,12 @@ public final class WellbeingModel implements SafeCloseable {
             final RemoteAction action = actionId != null ? mActionIdMap.get(actionId) : null;
             if (action == null) {
                 if (DEBUG || mIsInTest) {
-                    Log.d(TAG, "getShortcutForApp [" + packageName + "]: no action");
+                    Log.w(TAG, "getShortcutForApp [" + packageName + "]: no action");
                 }
                 return null;
             }
             if (DEBUG || mIsInTest) {
-                Log.d(TAG,
+                Log.w(TAG,
                         "getShortcutForApp [" + packageName + "]: action: '" + action.getTitle()
                                 + "'");
             }

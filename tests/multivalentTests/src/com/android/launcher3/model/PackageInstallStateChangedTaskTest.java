@@ -20,6 +20,8 @@ import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY2;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY3;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_PACKAGE;
+import static com.android.launcher3.util.ModelTestExtensions.getBgDataModel;
+import static com.android.launcher3.util.ModelTestExtensions.nonPredictedItemCount;
 import static com.android.launcher3.util.TestUtil.runOnExecutorSync;
 
 import static org.junit.Assert.assertEquals;
@@ -27,16 +29,21 @@ import static org.junit.Assert.assertEquals;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.launcher3.LauncherAppState;
+import com.android.launcher3.LauncherModel;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.LauncherLayoutBuilder;
-import com.android.launcher3.util.LauncherModelHelper;
+import com.android.launcher3.util.ModelTestExtensions;
+import com.android.launcher3.util.SandboxApplication;
+import com.android.launcher3.util.rule.InstallerSessionRule;
+import com.android.launcher3.util.rule.LayoutProviderRule;
 
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -50,14 +57,16 @@ public class PackageInstallStateChangedTaskTest {
     private static final String PENDING_APP_1 = TEST_PACKAGE + ".pending1";
     private static final String PENDING_APP_2 = TEST_PACKAGE + ".pending2";
 
-    private LauncherModelHelper mModelHelper;
+    @Rule public SandboxApplication mContext = new SandboxApplication();
+    @Rule public LayoutProviderRule mLayoutProvider = new LayoutProviderRule(mContext);
+    @Rule public InstallerSessionRule mInstallerSessionRule = new InstallerSessionRule();
+
     private IntSet mDownloadingApps;
 
     @Before
     public void setup() throws Exception {
-        mModelHelper = new LauncherModelHelper();
-        mModelHelper.createInstallerSession(PENDING_APP_1);
-        mModelHelper.createInstallerSession(PENDING_APP_2);
+        mInstallerSessionRule.createInstallerSession(PENDING_APP_1);
+        mInstallerSessionRule.createInstallerSession(PENDING_APP_2);
 
         LauncherLayoutBuilder builder = new LauncherLayoutBuilder()
                 .atWorkspace(0, 0, 1).putApp(TEST_PACKAGE, TEST_ACTIVITY)               // 1
@@ -74,14 +83,9 @@ public class PackageInstallStateChangedTaskTest {
                 .atWorkspace(0, 0, 10).putApp(PENDING_APP_2, TEST_ACTIVITY3);           // 10
 
         mDownloadingApps = IntSet.wrap(4, 5, 6, 7, 8, 9, 10);
-        mModelHelper.setupDefaultLayoutProvider(builder);
-        mModelHelper.loadModelSync();
-        assertEquals(10, mModelHelper.getBgDataModel().itemsIdMap.size());
-    }
-
-    @After
-    public void tearDown() {
-        mModelHelper.destroy();
+        mLayoutProvider.setupDefaultLayoutProvider(builder);
+        ModelTestExtensions.INSTANCE.loadModelSync(getModel());
+        assertEquals(10, nonPredictedItemCount(getBgDataModel(getModel()).itemsIdMap));
     }
 
     private PackageInstallStateChangedTask newTask(String pkg, int progress) {
@@ -95,7 +99,7 @@ public class PackageInstallStateChangedTaskTest {
     public void testSessionUpdate_ignore_installed() {
         // Run on model executor so that no other task runs in the middle.
         runOnExecutorSync(MODEL_EXECUTOR, () -> {
-            mModelHelper.getModel().enqueueModelUpdateTask(newTask(TEST_PACKAGE, 30));
+            getModel().enqueueModelUpdateTask(newTask(TEST_PACKAGE, 30));
 
             // No shortcuts were updated
             verifyProgressUpdate(0);
@@ -106,7 +110,7 @@ public class PackageInstallStateChangedTaskTest {
     public void testSessionUpdate_shortcuts_updated() {
         // Run on model executor so that no other task runs in the middle.
         runOnExecutorSync(MODEL_EXECUTOR, () -> {
-            mModelHelper.getModel().enqueueModelUpdateTask(newTask(PENDING_APP_1, 30));
+            getModel().enqueueModelUpdateTask(newTask(PENDING_APP_1, 30));
 
             verifyProgressUpdate(30, 4, 5, 6, 7);
         });
@@ -116,7 +120,7 @@ public class PackageInstallStateChangedTaskTest {
     public void testSessionUpdate_widgets_updated() {
         // Run on model executor so that no other task runs in the middle.
         runOnExecutorSync(MODEL_EXECUTOR, () -> {
-            mModelHelper.getModel().enqueueModelUpdateTask(newTask(PENDING_APP_2, 30));
+            getModel().enqueueModelUpdateTask(newTask(PENDING_APP_2, 30));
 
             verifyProgressUpdate(30, 8, 9, 10);
         });
@@ -124,7 +128,8 @@ public class PackageInstallStateChangedTaskTest {
 
     private void verifyProgressUpdate(int progress, int... idsUpdated) {
         IntSet updates = IntSet.wrap(idsUpdated);
-        for (ItemInfo info : mModelHelper.getBgDataModel().itemsIdMap) {
+        for (ItemInfo info : getBgDataModel(getModel()).itemsIdMap) {
+            if (info.id < 0) continue;
             int expectedProgress = updates.contains(info.id) ? progress
                     : (mDownloadingApps.contains(info.id) ? 0 : 100);
             if (info instanceof WorkspaceItemInfo wi) {
@@ -133,5 +138,9 @@ public class PackageInstallStateChangedTaskTest {
                 assertEquals(expectedProgress, ((LauncherAppWidgetInfo) info).installProgress);
             }
         }
+    }
+
+    private LauncherModel getModel() {
+        return LauncherAppState.getInstance(mContext).getModel();
     }
 }

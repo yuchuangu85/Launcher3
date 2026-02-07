@@ -37,9 +37,9 @@ import android.widget.LinearLayout
 import androidx.annotation.VisibleForTesting
 import androidx.core.util.component1
 import androidx.core.util.component2
+import androidx.core.view.marginStart
 import androidx.core.view.updateLayoutParams
 import com.android.launcher3.DeviceProfile
-import com.android.launcher3.Flags
 import com.android.launcher3.LauncherAnimUtils
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -48,15 +48,16 @@ import com.android.launcher3.touch.PagedOrientationHandler.ChildBounds
 import com.android.launcher3.touch.PagedOrientationHandler.Float2DAction
 import com.android.launcher3.touch.PagedOrientationHandler.Int2DAction
 import com.android.launcher3.touch.SingleAxisSwipeDetector
+import com.android.launcher3.util.OverviewReleaseFlags.enableOverviewIconMenu
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_UNDEFINED
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_TYPE_MAIN
-import com.android.launcher3.util.SplitConfigurationOptions.SplitBounds
 import com.android.launcher3.util.SplitConfigurationOptions.SplitPositionOption
 import com.android.launcher3.util.SplitConfigurationOptions.StagePosition
 import com.android.launcher3.views.BaseDragLayer
 import com.android.quickstep.views.IconAppChipView
+import com.android.wm.shell.shared.split.SplitBounds
 import kotlin.math.max
 
 open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
@@ -83,9 +84,9 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
     override fun fixBoundsForHomeAnimStartRect(outStartRect: RectF, deviceProfile: DeviceProfile) {
         // We don't need to check the "top" value here because the startRect is in the orientation
         // of the app, not of the fixed portrait launcher.
-        if (outStartRect.left > deviceProfile.heightPx) {
+        if (outStartRect.left > deviceProfile.deviceProperties.heightPx) {
             outStartRect.offsetTo(0f, outStartRect.top)
-        } else if (outStartRect.left < -deviceProfile.heightPx) {
+        } else if (outStartRect.left < -deviceProfile.deviceProperties.heightPx) {
             outStartRect.offsetTo(0f, outStartRect.top)
         }
     }
@@ -117,6 +118,8 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
     override fun getPrimarySize(view: View): Int = view.height
 
     override fun getPrimarySize(rect: RectF): Float = rect.height()
+
+    override fun getSecondarySize(rect: RectF): Float = rect.width()
 
     override fun getStart(rect: RectF): Float = rect.top
 
@@ -180,7 +183,12 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         deviceProfile: DeviceProfile,
         taskInsetMargin: Float,
         taskViewIcon: View,
-    ): Float = thumbnailView.measuredWidth + x - taskInsetMargin
+    ): Float =
+        if (enableOverviewIconMenu()) {
+            x + (taskViewIcon as IconAppChipView).menuToCollapsedChipGap
+        } else {
+            thumbnailView.measuredWidth + x - taskInsetMargin
+        }
 
     override fun getTaskMenuY(
         y: Float,
@@ -190,6 +198,11 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         taskInsetMargin: Float,
         taskViewIcon: View,
     ): Float {
+        if (enableOverviewIconMenu()) {
+            val marginStart = (taskViewIcon as IconAppChipView).backgroundMarginTopStart
+            return if (taskMenuView.isLayoutRtl) y - marginStart else y + marginStart
+        }
+
         val layoutParams = taskMenuView.layoutParams as BaseDragLayer.LayoutParams
         var taskMenuY = y + taskInsetMargin
 
@@ -200,13 +213,19 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         return taskMenuY
     }
 
+    override fun getAppChipMenuMarginX(appChipView: IconAppChipView, isRtl: Boolean): Int =
+        appChipView.menuToCollapsedChipGap
+
+    override fun getAppChipMenuMarginY(appChipView: IconAppChipView, isRtl: Boolean): Int =
+        if (isRtl) appChipView.backgroundMarginTopStart else -appChipView.backgroundMarginTopStart
+
     override fun getTaskMenuWidth(
         thumbnailView: View,
         deviceProfile: DeviceProfile,
         @StagePosition stagePosition: Int,
     ): Int =
         when {
-            Flags.enableOverviewIconMenu() ->
+            enableOverviewIconMenu() ->
                 thumbnailView.resources.getDimensionPixelSize(
                     R.dimen.task_thumbnail_icon_menu_expanded_width
                 )
@@ -261,7 +280,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
                 if (isGroupedTaskView) {
                     snapshotViewHeight
                 } else {
-                    taskViewHeight - deviceProfile.overviewTaskThumbnailTopMarginPx
+                    taskViewHeight - deviceProfile.overviewProfile.taskThumbnailTopMarginPx
                 }
         }
     }
@@ -275,7 +294,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         desiredTaskId: Int,
         banner: View,
     ): Pair<Float, Float> {
-        val snapshotParams = thumbnailViews[0].layoutParams as FrameLayout.LayoutParams
+        val snapshotParams = thumbnailViews[0].layoutParams as ViewGroup.MarginLayoutParams
         val translationX = banner.height.toFloat()
         val translationY: Float
         if (splitBounds == null) {
@@ -319,6 +338,22 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
     override fun getTaskLaunchLength(secondaryDimension: Int, taskThumbnailBounds: Rect): Int =
         taskThumbnailBounds.left
 
+    override fun extendRectForPrimaryTranslation(rect: Rect, translation: Int) {
+        if (translation < 0) {
+            rect.top += translation
+        } else {
+            rect.bottom += translation
+        }
+    }
+
+    override fun extendRectForSecondaryTranslation(rect: Rect, translation: Int) {
+        if (translation < 0) {
+            rect.left += translation
+        } else {
+            rect.right += translation
+        }
+    }
+
     /* -------------------- */
 
     override fun getChildBounds(
@@ -359,15 +394,15 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
     ) {
         // In fake land/seascape, the placeholder always needs to go to the "top" of the device,
         // which is the same bounds as 0 rotation.
-        val width = dp.widthPx
+        val width = dp.deviceProperties.widthPx
         val insetSizeAdjustment = getPlaceholderSizeAdjustment(dp)
         out.set(0, 0, width, placeholderHeight + insetSizeAdjustment)
         out.inset(placeholderInset, 0)
 
         // Adjust the top to account for content off screen. This will help to animate the view in
         // with rounded corners.
-        val screenWidth = dp.widthPx
-        val screenHeight = dp.heightPx
+        val screenWidth = dp.deviceProperties.widthPx
+        val screenHeight = dp.deviceProperties.heightPx
         val totalHeight =
             (1.0f * screenHeight / 2 * (screenWidth - 2 * placeholderInset) / screenWidth).toInt()
         out.top -= totalHeight - placeholderHeight
@@ -432,8 +467,8 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         out2: Rect,
     ) {
         // In fake land/seascape, the window bounds are always top and bottom half
-        val screenHeight = dp.heightPx
-        val screenWidth = dp.widthPx
+        val screenHeight = dp.deviceProperties.heightPx
+        val screenWidth = dp.deviceProperties.widthPx
         out1.set(0, 0, screenWidth, screenHeight / 2 - splitDividerSize)
         out2.set(0, screenHeight / 2 + splitDividerSize, screenWidth, screenHeight)
     }
@@ -472,12 +507,12 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         val secondaryParams = secondarySnapshot.layoutParams as FrameLayout.LayoutParams
 
         // Swap the margins that are set in TaskView#setRecentsOrientedState()
-        secondaryParams.topMargin = dp.overviewTaskThumbnailTopMarginPx
+        secondaryParams.topMargin = dp.overviewProfile.taskThumbnailTopMarginPx
         primaryParams.topMargin = 0
 
         // Measure and layout the thumbnails bottom up, since the primary is on the visual left
         // (portrait bottom) and secondary is on the right (portrait top)
-        val spaceAboveSnapshot = dp.overviewTaskThumbnailTopMarginPx
+        val spaceAboveSnapshot = dp.overviewProfile.taskThumbnailTopMarginPx
         val totalThumbnailHeight = parentHeight - spaceAboveSnapshot
         val dividerBar = getDividerBarSize(totalThumbnailHeight, splitBoundsConfig)
 
@@ -503,7 +538,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         parentWidth: Int,
         parentHeight: Int,
     ): Pair<Point, Point> {
-        val spaceAboveSnapshot = dp.overviewTaskThumbnailTopMarginPx
+        val spaceAboveSnapshot = dp.overviewProfile.taskThumbnailTopMarginPx
         val totalThumbnailHeight = parentHeight - spaceAboveSnapshot
         val dividerBar = getDividerBarSize(totalThumbnailHeight, splitBoundsConfig)
 
@@ -588,7 +623,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         inSplitSelection: Boolean,
         oneIconHiddenDueToSmallWidth: Boolean,
     ) {
-        val spaceAboveSnapshot = deviceProfile.overviewTaskThumbnailTopMarginPx
+        val spaceAboveSnapshot = deviceProfile.overviewProfile.taskThumbnailTopMarginPx
         val totalThumbnailHeight = groupedTaskViewHeight - spaceAboveSnapshot
         val dividerBar: Int = getDividerBarSize(totalThumbnailHeight, splitConfig)
 
@@ -598,7 +633,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
                 primarySnapshotHeight,
                 totalThumbnailHeight,
                 isRtl,
-                deviceProfile.overviewTaskMarginPx,
+                deviceProfile.overviewProfile.taskMarginPx,
                 dividerBar,
                 oneIconHiddenDueToSmallWidth,
             )
@@ -659,7 +694,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
         dividerSize: Int,
         oneIconHiddenDueToSmallWidth: Boolean,
     ): SplitIconPositions {
-        return if (Flags.enableOverviewIconMenu()) {
+        return if (enableOverviewIconMenu()) {
             if (isRtl) {
                 SplitIconPositions(-(totalThumbnailHeight - primarySnapshotHeight), 0)
             } else {
@@ -695,7 +730,7 @@ open class LandscapePagedViewHandler : RecentsPagedOrientationHandler {
     open fun updateSplitIconsPosition(iconView: View, translationY: Int, isRtl: Boolean) {
         val layoutParams = iconView.layoutParams as FrameLayout.LayoutParams
 
-        if (Flags.enableOverviewIconMenu()) {
+        if (enableOverviewIconMenu()) {
             val appChipView = iconView as IconAppChipView
             layoutParams.gravity =
                 if (isRtl) Gravity.BOTTOM or Gravity.START else Gravity.TOP or Gravity.END

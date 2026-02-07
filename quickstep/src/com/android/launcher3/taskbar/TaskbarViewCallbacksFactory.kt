@@ -18,15 +18,14 @@ package com.android.launcher3.taskbar
 
 import android.app.contextualsearch.ContextualSearchManager.ENTRYPOINT_LONG_PRESS_META
 import android.content.Context
-import com.android.launcher3.R
+import com.android.launcher3.dagger.LauncherComponentProvider
 import com.android.launcher3.logging.StatsLogManager
-import com.android.launcher3.util.ResourceBasedOverride
-import com.android.launcher3.util.ResourceBasedOverride.Overrides
 import com.android.quickstep.TopTaskTracker
 import com.android.quickstep.util.ContextualSearchInvoker
+import javax.inject.Inject
 
 /** Creates [TaskbarViewCallbacks] instances. */
-open class TaskbarViewCallbacksFactory : ResourceBasedOverride {
+open class TaskbarViewCallbacksFactory @Inject constructor() {
 
     open fun create(
         activity: TaskbarActivityContext,
@@ -43,7 +42,7 @@ open class TaskbarViewCallbacksFactory : ResourceBasedOverride {
                     val runningPackage =
                         TopTaskTracker.INSTANCE[activity].getCachedTopTask(
                                 /* filterOnlyVisibleRecents */ true,
-                                activity.display.displayId,
+                                activity.displayId,
                             )
                             .getPackageName()
                     activity.statsLogManager
@@ -65,11 +64,7 @@ open class TaskbarViewCallbacksFactory : ResourceBasedOverride {
     companion object {
         @JvmStatic
         fun newInstance(context: Context): TaskbarViewCallbacksFactory {
-            return Overrides.getObject(
-                TaskbarViewCallbacksFactory::class.java,
-                context,
-                R.string.taskbar_view_callbacks_factory_class,
-            )
+            return LauncherComponentProvider.get(context).getTaskbarViewCallbacksFactory()
         }
     }
 }

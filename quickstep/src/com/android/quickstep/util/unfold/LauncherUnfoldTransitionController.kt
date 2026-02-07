@@ -56,7 +56,7 @@ class LauncherUnfoldTransitionController(
     }
 
     override fun onDeviceProfileChanged(dp: DeviceProfile) {
-        if (isTablet != null && dp.isTablet != isTablet) {
+        if (isTablet != null && dp.getDeviceProperties().isTablet != isTablet) {
             // We should preemptively start the animation only if:
             // - We changed to the unfolded screen
             // - SystemUI IPC connection is alive, so we won't end up in a situation that we won't
@@ -66,20 +66,24 @@ class LauncherUnfoldTransitionController(
             //   if Launcher was not open during unfold, in this case we receive the configuration
             //   change only after we went back to home screen and we don't want to start the
             //   animation in this case.
-            if (dp.isTablet && progressProvider.isActive && !hasUnfoldTransitionStarted) {
+            if (
+                dp.getDeviceProperties().isTablet &&
+                    progressProvider.isActive &&
+                    !hasUnfoldTransitionStarted
+            ) {
                 // Preemptively start the unfold animation to make sure that we have drawn
                 // the first frame of the animation before the screen gets unblocked
                 onTransitionStarted()
                 Trace.beginAsyncSection("$TAG#startedPreemptively", 0)
                 timeoutAlarm.setAlarm(PREEMPTIVE_UNFOLD_TIMEOUT_MS)
             }
-            if (!dp.isTablet) {
+            if (!dp.getDeviceProperties().isTablet) {
                 // Reset unfold transition status when folded
                 hasUnfoldTransitionStarted = false
             }
         }
 
-        isTablet = dp.isTablet
+        isTablet = dp.getDeviceProperties().isTablet
     }
 
     override fun onTransitionStarted() {

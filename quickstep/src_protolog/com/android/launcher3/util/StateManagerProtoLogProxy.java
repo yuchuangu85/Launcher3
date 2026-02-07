@@ -62,6 +62,12 @@ public class StateManagerProtoLogProxy {
         ProtoLog.d(LAUNCHER_STATE_MANAGER, "StateManager.onStateTransitionEnd: state: %s", state);
     }
 
+    public static void logOnRepeatStateSetAborted(@NonNull Object state) {
+        if (!ENABLE_STATE_MANAGER_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
+        ProtoLog.d(LAUNCHER_STATE_MANAGER,
+                "StateManager.onRepeatStateSetAborted: state: %s", state);
+    }
+
     public static void logCancelAnimation(boolean animationOngoing, @NonNull String trace) {
         if (!ENABLE_STATE_MANAGER_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
         ProtoLog.d(LAUNCHER_STATE_MANAGER,

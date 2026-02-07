@@ -15,17 +15,24 @@
 ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ** See the License for the specific language governing permissions and
 ** limitations under the License.
+**
+** Modifications copyright 2021, Lawnchair
 */
 -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.launcher3">
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-sdk android:targetSdkVersion="33" android:minSdkVersion="26"
+        tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk.client"/>
+    
     <!--
     Manifest entries specific to Launcher3. This is merged with AndroidManifest-common.xml.
     Refer comments around specific entries on how to extend individual components.
     -->
 
     <application
+        android:name="app.lawnchair.LawnchairApp"
         android:backupAgent="com.android.launcher3.LauncherBackupAgent"
         android:fullBackupOnly="true"
         android:fullBackupContent="@xml/backupscheme"
@@ -42,7 +49,7 @@
         attributes and intent filters the same
         -->
         <activity
-            android:name="com.android.launcher3.uioverrides.QuickstepLauncher"
+            android:name="app.lawnchair.LawnchairLauncher"
             android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
@@ -62,10 +69,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.MONKEY"/>
                 <category android:name="android.intent.category.LAUNCHER_APP" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <meta-data
                 android:name="com.android.launcher3.grid.control"
-                android:value="${packageName}.grid_control" />
+                android:value="${applicationId}.grid_control" />
         </activity>
 
     </application>

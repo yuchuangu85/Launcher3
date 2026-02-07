@@ -79,7 +79,7 @@ public interface BaseState<T> {
      * For this state, whether fullscreen and desktop quickswitch carousel are detached.
      */
     default boolean detachDesktopCarousel() {
-        return true;
+        return false;
     }
 
     /**

@@ -18,8 +18,10 @@ package com.android.launcher3.model
 import android.graphics.Rect
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
+import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.util.ModelTestExtensions.bgDataModel
 import com.google.common.truth.Truth.assertThat
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,18 +36,9 @@ class WorkspaceItemSpaceFinderTest : AbstractWorkspaceModelTest() {
         super.setup()
     }
 
-    @After
-    override fun tearDown() {
-        super.tearDown()
-    }
-
     private fun findSpace(spanX: Int, spanY: Int): NewItemSpace =
-        WorkspaceItemSpaceFinder(
-                mModelHelper.bgDataModel,
-                mAppState.invariantDeviceProfile,
-                mModelHelper.model,
-            )
-            .findSpaceForItem(mExistingScreens, mNewScreens, spanX, spanY)
+        WorkspaceItemSpaceFinder(model.bgDataModel, mAppState.invariantDeviceProfile, model)
+            .findSpaceForItem(mExistingScreens, mNewScreens, mAddedWorkspaceItems, spanX, spanY)
             .let { NewItemSpace.fromIntArray(it) }
 
     private fun assertRegionVacant(newItemSpace: NewItemSpace, spanX: Int, spanY: Int) {
@@ -74,6 +67,37 @@ class WorkspaceItemSpaceFinderTest : AbstractWorkspaceModelTest() {
 
         assertThat(spaceFound.screenId).isEqualTo(1)
         assertRegionVacant(spaceFound, 1, 1)
+    }
+
+    @Test
+    fun workspaceItemsAddedButNotYetCommittedToDbShouldBeTakenIntoAccountInFindSpaceForItem() {
+        setupWorkspacesWithSpaces(
+            // 3x2 space on screen 0, but it should be skipped
+            screen0 = listOf(Rect(2, 0, 5, 2)),
+            screen1 = listOf(Rect(2, 2, 4, 4)), // 2x2 space
+        )
+        val itemInfo = ItemInfo()
+        itemInfo.cellX = 2
+        itemInfo.cellY = 2
+        itemInfo.screenId = 1
+        itemInfo.container = CONTAINER_DESKTOP
+        mAddedWorkspaceItems.add(itemInfo)
+
+        val itemInfo2 = ItemInfo()
+        itemInfo2.cellX = 3
+        itemInfo2.cellY = 2
+        itemInfo2.screenId = 1
+        itemInfo2.container = CONTAINER_DESKTOP
+        mAddedWorkspaceItems.add(itemInfo2)
+
+        val spaceFound = findSpace(1, 1)
+
+        assertThat(spaceFound.screenId).isEqualTo(1)
+        assertThat(spaceFound.cellX).isEqualTo(2)
+        assertThat(spaceFound.cellY).isEqualTo(3)
+        assertRegionVacant(spaceFound, 1, 1)
+
+        mAddedWorkspaceItems.clear()
     }
 
     @Test

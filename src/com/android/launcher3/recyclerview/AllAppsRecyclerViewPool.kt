@@ -67,7 +67,7 @@ class AllAppsRecyclerViewPool<T> : RecycledViewPool() where T : Context, T : Act
         }
 
         if (activeRv.layoutManager == null) {
-            if (BuildConfig.IS_STUDIO_BUILD) {
+            if (false) {
                 throw IllegalStateException(NULL_LAYOUT_MANAGER_ERROR_STRING)
             } else {
                 Log.e(TAG, NULL_LAYOUT_MANAGER_ERROR_STRING)

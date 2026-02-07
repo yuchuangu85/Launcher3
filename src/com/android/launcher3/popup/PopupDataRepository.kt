@@ -16,9 +16,9 @@
 
 package com.android.launcher3.popup
 
-import android.view.View
+import android.content.Intent
 import com.android.launcher3.model.data.ItemInfo
-import com.android.launcher3.views.ActivityContext
+import java.util.stream.Stream
 
 /**
  * Enum for the category of popup we have, as we handle different categories of shortcuts
@@ -33,7 +33,7 @@ enum class PopupCategory {
 data class PopupData(
     val iconResId: Int,
     val labelResId: Int,
-    val popupAction: (context: ActivityContext, itemInfo: ItemInfo, view: View) -> Unit,
+    val intent: Intent,
     val category: PopupCategory,
 )
 
@@ -43,13 +43,25 @@ interface PopupDataRepository {
      * @return a map where we the key is the type of poppable and the value is a stream of popup
      *   data belonging to that type.
      */
-    fun getAllPopupData(): Map<Int, List<PopupData>>
+    fun getAllPopupData(): Map<PoppableType, Stream<PopupData>>
 
     /**
-     * Get the popup data for a specific item.
-     *
-     * @param itemInfo is linked to a popupData list specific to it.
-     * @return a list of popup data belonging to that item.
+     * @param type of PoppableType is what we use to filter shortcuts to only show the ones for that
+     *   type of shortcut (e.g: only show long press shortcuts that belong to Folder type).
+     * @return a stream of popup data belonging to that type.
      */
-    fun getPopupDataByItemInfo(itemInfo: ItemInfo): List<PopupData>?
+    fun getPopupDataByType(type: PoppableType): Stream<PopupData>
+
+    /** Factory for creating a popup data repository */
+    companion object PopupDataRepositoryFactory {
+        /**
+         * Creates a popup data repository.
+         *
+         * @param itemInfo is all the items for which we want to aggregate their popup data.
+         * @return a new PopupDataRepository.
+         */
+        fun createRepository(vararg itemInfo: ItemInfo): PopupDataRepository {
+            return TODO("Provide the return value")
+        }
+    }
 }

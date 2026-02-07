@@ -18,6 +18,7 @@ package com.android.launcher3.folder;
 
 import static com.android.app.animation.Interpolators.ACCELERATE_DECELERATE;
 import static com.android.app.animation.Interpolators.EMPHASIZED_DECELERATE;
+import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.ICON_OVERLAP_FACTOR;
 import static com.android.launcher3.icons.GraphicsUtils.setColorAlphaBound;
 
 import android.animation.Animator;
@@ -43,6 +44,8 @@ import android.view.animation.Interpolator;
 
 import androidx.annotation.VisibleForTesting;
 
+import androidx.core.graphics.ColorUtils;
+
 import com.android.launcher3.CellLayout;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.R;
@@ -51,9 +54,16 @@ import com.android.launcher3.graphics.ShapeDelegate;
 import com.android.launcher3.graphics.ThemeManager;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+
+import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.theme.color.ColorOption;
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.util.LawnchairUtilsKt;
 
 /**
- * This object represents a FolderIcon preview background. It stores drawing / measurement
+ * This object represents a FolderIcon preview background. It stores drawing /
+ * measurement
  * information, handles drawing, and animation (accept state <--> rest state).
  */
 public class PreviewBackground extends DelegatedCellDrawing {
@@ -61,10 +71,13 @@ public class PreviewBackground extends DelegatedCellDrawing {
     private static final boolean DRAW_SHADOW = false;
     private static final boolean DRAW_STROKE = false;
 
-    @VisibleForTesting protected static final int CONSUMPTION_ANIMATION_DURATION = 100;
+    @VisibleForTesting
+    protected static final int CONSUMPTION_ANIMATION_DURATION = 100;
 
-    @VisibleForTesting protected static final float HOVER_SCALE = 1.1f;
-    @VisibleForTesting protected static final int HOVER_ANIMATION_DURATION = 300;
+    @VisibleForTesting
+    protected static final float HOVER_SCALE = 1.1f;
+    @VisibleForTesting
+    protected static final int HOVER_ANIMATION_DURATION = 300;
 
     private final Context mContext;
     private final PorterDuffXfermode mShadowPorterDuffXfermode
@@ -91,53 +104,59 @@ public class PreviewBackground extends DelegatedCellDrawing {
 
     private CellLayout mDrawingDelegate;
 
-    // When the PreviewBackground is drawn under an icon (for creating a folder) the border
+    // When the PreviewBackground is drawn under an icon (for creating a folder) the
+    // border
     // should not occlude the icon
     public boolean isClipping = true;
 
     // Drawing / animation configurations
-    @VisibleForTesting protected static final float ACCEPT_SCALE_FACTOR = 1.20f;
+    @VisibleForTesting
+    protected static final float ACCEPT_SCALE_FACTOR = 1.20f;
 
     // Expressed on a scale from 0 to 255.
     private static final int BG_OPACITY = 255;
     private static final int MAX_BG_OPACITY = 255;
     private static final int SHADOW_OPACITY = 40;
 
-    @VisibleForTesting protected ValueAnimator mScaleAnimator;
+    @VisibleForTesting
+    protected ValueAnimator mScaleAnimator;
     private ObjectAnimator mStrokeAlphaAnimator;
     private ObjectAnimator mShadowAnimator;
 
-    @VisibleForTesting protected boolean mIsAccepting;
-    @VisibleForTesting protected boolean mIsHovered;
-    @VisibleForTesting protected boolean mIsHoveredOrAnimating;
+    @VisibleForTesting
+    protected boolean mIsAccepting;
+    @VisibleForTesting
+    protected boolean mIsHovered;
+    @VisibleForTesting
+    protected boolean mIsHoveredOrAnimating;
 
-    private static final Property<PreviewBackground, Integer> STROKE_ALPHA =
-            new Property<PreviewBackground, Integer>(Integer.class, "strokeAlpha") {
-                @Override
-                public Integer get(PreviewBackground previewBackground) {
-                    return previewBackground.mStrokeAlpha;
-                }
+    private static final Property<PreviewBackground, Integer> STROKE_ALPHA = new Property<PreviewBackground, Integer>(
+            Integer.class, "strokeAlpha") {
+        @Override
+        public Integer get(PreviewBackground previewBackground) {
+            return previewBackground.mStrokeAlpha;
+        }
 
-                @Override
-                public void set(PreviewBackground previewBackground, Integer alpha) {
-                    previewBackground.mStrokeAlpha = alpha;
-                    previewBackground.invalidate();
-                }
-            };
+        @Override
+        public void set(PreviewBackground previewBackground, Integer alpha) {
+            previewBackground.mStrokeAlpha = alpha;
+            previewBackground.invalidate();
+        }
+    };
 
-    private static final Property<PreviewBackground, Integer> SHADOW_ALPHA =
-            new Property<PreviewBackground, Integer>(Integer.class, "shadowAlpha") {
-                @Override
-                public Integer get(PreviewBackground previewBackground) {
-                    return previewBackground.mShadowAlpha;
-                }
+    private static final Property<PreviewBackground, Integer> SHADOW_ALPHA = new Property<PreviewBackground, Integer>(
+            Integer.class, "shadowAlpha") {
+        @Override
+        public Integer get(PreviewBackground previewBackground) {
+            return previewBackground.mShadowAlpha;
+        }
 
-                @Override
-                public void set(PreviewBackground previewBackground, Integer alpha) {
-                    previewBackground.mShadowAlpha = alpha;
-                    previewBackground.invalidate();
-                }
-            };
+        @Override
+        public void set(PreviewBackground previewBackground, Integer alpha) {
+            previewBackground.mShadowAlpha = alpha;
+            previewBackground.invalidate();
+        }
+    };
 
     public PreviewBackground(Context context) {
         mContext = context;
@@ -165,13 +184,24 @@ public class PreviewBackground extends DelegatedCellDrawing {
     }
 
     public void setup(Context context, ActivityContext activity, View invalidateDelegate,
-                      int availableSpaceX, int topPadding) {
+            int availableSpaceX, int topPadding) {
         mInvalidateDelegate = invalidateDelegate;
 
+        PreferenceManager2 preferenceManager2 = PreferenceManager2.INSTANCE.get(context);
+
+        // Load folder color
+        ColorOption colorOption = PreferenceExtensionsKt.firstBlocking(preferenceManager2.getFolderColor());
+        int folderColor = colorOption.getColorPreferenceEntry().getLightColor().invoke(context);
+
         TypedArray ta = context.getTheme().obtainStyledAttributes(R.styleable.FolderIconPreview);
-        mDotColor = Themes.getAttrColor(context, R.attr.notificationDotColor);
-        mStrokeColor = ta.getColor(R.styleable.FolderIconPreview_folderIconBorderColor, 0);
-        mBgColor = ta.getColor(R.styleable.FolderIconPreview_folderPreviewColor, 0);
+        mDotColor = ColorTokens.FolderDotColor.resolveColor(context);
+        mStrokeColor = ColorTokens.FolderIconBorderColor.resolveColor(context);
+        if (folderColor != 0) {
+            mBgColor = folderColor;
+        } else {
+            mBgColor = ColorTokens.FolderPreviewColor.resolveColor(context);
+        }
+        mBgColor = ColorUtils.setAlphaComponent(mBgColor, LawnchairUtilsKt.getFolderPreviewAlpha(context));
         ta.recycle();
 
         DeviceProfile grid = activity.getDeviceProfile();
@@ -188,8 +218,8 @@ public class PreviewBackground extends DelegatedCellDrawing {
             float shadowRadius = radius + mStrokeWidth;
             int shadowColor = Color.argb(SHADOW_OPACITY, 0, 0, 0);
             mShadowShader = new RadialGradient(0, 0, 1,
-                    new int[]{shadowColor, Color.TRANSPARENT},
-                    new float[]{radius / shadowRadius, 1},
+                    new int[] { shadowColor, Color.TRANSPARENT },
+                    new float[] { radius / shadowRadius, 1 },
                     Shader.TileMode.CLAMP);
         }
 
@@ -221,8 +251,10 @@ public class PreviewBackground extends DelegatedCellDrawing {
     }
 
     /**
-     * Returns the progress of the scale animation to accept state, where 0 means the scale is at
-     * 1f and 1 means the scale is at ACCEPT_SCALE_FACTOR. Returns 0 when scaled due to hover.
+     * Returns the progress of the scale animation to accept state, where 0 means
+     * the scale is at
+     * 1f and 1 means the scale is at ACCEPT_SCALE_FACTOR. Returns 0 when scaled due
+     * to hover.
      */
     float getAcceptScaleProgress() {
         return mIsHoveredOrAnimating ? 0 : (mScale - 1f) / (ACCEPT_SCALE_FACTOR - 1f);
@@ -372,7 +404,7 @@ public class PreviewBackground extends DelegatedCellDrawing {
 
     public Path getClipPath() {
         mPath.reset();
-        float radius = getScaledRadius() * ClippedFolderIconLayoutRule.getIconOverlapFactor();
+        float radius = getScaledRadius() * ICON_OVERLAP_FACTOR;
         // Find the difference in radius so that the clip path remains centered.
         float radiusDifference = radius - getRadius();
         float offsetX = basePreviewOffsetX - radiusDifference;
@@ -414,8 +446,7 @@ public class PreviewBackground extends DelegatedCellDrawing {
 
         final float startScale = mScale;
         final float endScale = isAccepting ? ACCEPT_SCALE_FACTOR : (isHovered ? HOVER_SCALE : 1f);
-        Interpolator interpolator =
-                isAccepting != mIsAccepting ? ACCELERATE_DECELERATE : EMPHASIZED_DECELERATE;
+        Interpolator interpolator = isAccepting != mIsAccepting ? ACCELERATE_DECELERATE : EMPHASIZED_DECELERATE;
         int duration = isAccepting != mIsAccepting ? CONSUMPTION_ANIMATION_DURATION
                 : HOVER_ANIMATION_DURATION;
         mIsAccepting = isAccepting;
@@ -427,7 +458,6 @@ public class PreviewBackground extends DelegatedCellDrawing {
             mIsHoveredOrAnimating = mIsHovered;
             return;
         }
-
 
         mScaleAnimator = ValueAnimator.ofFloat(0f, 1.0f);
         mScaleAnimator.addUpdateListener(animation -> {

@@ -16,14 +16,7 @@
 
 package com.android.launcher3.widgetpicker
 
-import android.os.Build
 import android.os.Bundle
-import android.window.OnBackAnimationCallback
-import android.window.OnBackInvokedDispatcher
-import androidx.activity.OnBackPressedDispatcher
-import androidx.activity.OnBackPressedDispatcherOwner
-import androidx.activity.setViewTreeOnBackPressedDispatcherOwner
-import androidx.lifecycle.LifecycleOwner
 import com.android.launcher3.BaseActivity
 import com.android.launcher3.Flags
 import com.android.launcher3.R
@@ -36,8 +29,7 @@ import com.android.launcher3.util.ScreenOnTracker
  * Activity that shows widget picker UI; shows content only if `enableWidgetPickerRefactor` flag is
  * on and compose is available.
  */
-open class WidgetPickerActivity :
-    BaseActivity(), OnBackPressedDispatcherOwner, OnBackAnimationCallback, LifecycleOwner {
+open class WidgetPickerActivity : BaseActivity() {
     private var _dragLayer: SimpleDragLayer<WidgetPickerActivity>? = null
     protected var widgetPickerConfig: WidgetPickerConfig = WidgetPickerConfig()
 
@@ -57,32 +49,9 @@ open class WidgetPickerActivity :
         _dragLayer = findViewById(R.id.drag_layer)
         checkNotNull(_dragLayer).recreateControllers()
 
-        checkNotNull(window)
-            .decorView
-            .setViewTreeOnBackPressedDispatcherOwner(onBackPressedDispatcherOwner = this)
-
         if (Flags.enableWidgetPickerRefactor() && isComposeAvailable()) {
             component.widgetPickerComposeWrapper.showAllWidgets(this, widgetPickerConfig)
         }
-    }
-
-    override val onBackPressedDispatcher: OnBackPressedDispatcher
-        get() =
-            OnBackPressedDispatcher().apply {
-                if (Build.VERSION.SDK_INT >= 33) {
-                    setOnBackInvokedDispatcher(onBackInvokedDispatcher)
-                }
-            }
-
-    override fun registerBackDispatcher() {
-        onBackInvokedDispatcher.registerOnBackInvokedCallback(
-            OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-            this,
-        )
-    }
-
-    override fun onBackInvoked() {
-        finish()
     }
 
     private fun onScreenOnChange(on: Boolean) {

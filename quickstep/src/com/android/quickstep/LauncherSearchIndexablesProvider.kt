@@ -29,6 +29,7 @@ import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.InvariantDeviceProfile.TYPE_TABLET
 import com.android.launcher3.R
+import com.android.launcher3.model.DeviceGridState
 import java.io.IOException
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
@@ -69,7 +70,7 @@ class LauncherSearchIndexablesProvider : SearchIndexablesProvider() {
     }
 
     fun isDeviceTablet(): Boolean {
-        return InvariantDeviceProfile.INSTANCE.get(context).deviceType == TYPE_TABLET
+        return DeviceGridState(context).deviceType == TYPE_TABLET
     }
 
     override fun queryRawData(projection: Array<String>) =

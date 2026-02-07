@@ -25,6 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.icons.LauncherIcons;
+import com.android.launcher3.icons.cache.CacheLookupFlag;
 
 /**
  * Class representing one request for an icon to be queried in a sql database.
@@ -39,28 +40,28 @@ public class IconRequestInfo<T extends ItemInfoWithIcon> {
     @NonNull public final T itemInfo;
     @Nullable public final LauncherActivityInfo launcherActivityInfo;
     @Nullable public final byte[] iconBlob;
-    public final boolean useLowResIcon;
+    public final CacheLookupFlag lookupFlag;
 
     public IconRequestInfo(
             @NonNull T itemInfo,
             @Nullable LauncherActivityInfo launcherActivityInfo,
-            boolean useLowResIcon) {
+            CacheLookupFlag lookupFlag) {
         this(
                 itemInfo,
                 launcherActivityInfo,
                 /* iconBlob= */ null,
-                useLowResIcon);
+                lookupFlag);
     }
 
     public IconRequestInfo(
             @NonNull T itemInfo,
             @Nullable LauncherActivityInfo launcherActivityInfo,
             @Nullable byte[] iconBlob,
-            boolean useLowResIcon) {
+            CacheLookupFlag lookupFlag) {
         this.itemInfo = itemInfo;
         this.launcherActivityInfo = launcherActivityInfo;
         this.iconBlob = iconBlob;
-        this.useLowResIcon = useLowResIcon;
+        this.lookupFlag = lookupFlag;
     }
 
     /**

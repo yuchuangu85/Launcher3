@@ -101,4 +101,8 @@
     <!-- View tag key used to store SpringAnimation data. -->
     <item type="id" name="spring_animation_tag" />
 
+    <!-- LC: Fix build issues -->
+    <item type="id" name="left_indicator_arrow"/>
+    <item type="id" name="right_indicator_arrow"/>
+
 </resources>

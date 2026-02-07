@@ -24,8 +24,8 @@ import java.util.Objects
  * tasks list. Note that desktops can be empty with no tasks in them. The [deskId], [displayId]
  * makes sense only when the multiple desks feature is enabled.
  */
-class DesktopTask(val deskId: Int, val displayId: Int, tasks: List<Task>) :
-    GroupTask(tasks, TaskViewType.DESKTOP) {
+class DesktopTask(val deskId: Int, desktopDisplayId: Int, tasks: List<Task>) :
+    GroupTask(tasks, desktopDisplayId, TaskViewType.DESKTOP) {
 
     override fun copy() = DesktopTask(deskId, displayId, tasks)
 

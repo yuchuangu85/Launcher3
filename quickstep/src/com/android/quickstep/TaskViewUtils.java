@@ -23,7 +23,7 @@ import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.app.animation.Interpolators.TOUCH_RESPONSE;
 import static com.android.app.animation.Interpolators.clampToProgress;
 import static com.android.launcher3.Flags.enableDesktopExplodedView;
-import static com.android.launcher3.Flags.enableGridOnlyOverview;
+import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
 import static com.android.launcher3.LauncherAnimUtils.VIEW_ALPHA;
 import static com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_X;
 import static com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_Y;
@@ -199,7 +199,7 @@ public final class TaskViewUtils {
         } else {
             boolean forDesktop = taskView instanceof DesktopTaskView;
             RemoteTargetGluer gluer = new RemoteTargetGluer(taskView.getContext(),
-                    recentsView.getSizeStrategy(), targets, forDesktop);
+                    recentsView.getContainerInterface(), targets, forDesktop);
             if (forDesktop) {
                 remoteTargetHandles = gluer.assignTargetsForDesktop(targets, transitionInfo);
                 if (enableDesktopExplodedView()) {
@@ -226,11 +226,11 @@ public final class TaskViewUtils {
 
         T container = RecentsViewContainer.containerFromContext(context);
         DeviceProfile dp = container.getDeviceProfile();
-        boolean showAsGrid = dp.isTablet;
+        boolean showAsGrid = dp.getDeviceProperties().isTablet();
         boolean parallaxCenterAndAdjacentTask =
                 !showAsGrid && taskIndex != recentsView.getCurrentPage();
-        int taskRectTranslationPrimary = recentsView.getScrollOffset(taskIndex);
-        int taskRectTranslationSecondary = showAsGrid ? (int) taskView.getGridTranslationY() : 0;
+        int scrollOffset = recentsView.getScrollOffset(taskIndex);
+        int gridTranslationY = showAsGrid ? (int) taskView.getGridTranslationY() : 0;
 
         RemoteTargetHandle[] topMostSimulators = null;
 
@@ -244,15 +244,15 @@ public final class TaskViewUtils {
                 // be stale. Use the display value instead.
                 int displayRotation = DisplayController.INSTANCE.get(context).getInfo().rotation;
                 tvsLocal.getOrientationState().update(displayRotation, displayRotation);
+                tvsLocal.calculateTaskSize();
 
                 tvsLocal.fullScreenProgress.value = 0;
                 tvsLocal.recentsViewScale.value = 1;
                 if (!enableGridOnlyOverview()) {
                     tvsLocal.setIsGridTask(taskView.isGridTask());
                 }
-                tvsLocal.getOrientationState().getOrientationHandler().set(tvsLocal,
-                        TaskViewSimulator::setTaskRectTranslation, taskRectTranslationPrimary,
-                        taskRectTranslationSecondary);
+                tvsLocal.recentsViewScroll.value = scrollOffset;
+                tvsLocal.taskSecondaryTranslation.value = gridTranslationY;
 
                 if (taskView instanceof DesktopTaskView) {
                     targetHandle.getTransformParams().setTargetAlpha(1f);
@@ -433,7 +433,7 @@ public final class TaskViewUtils {
         out.addListener(new AnimationSuccessListener() {
             @Override
             public void onAnimationStart(Animator animation) {
-                recentsView.setDrawBelowRecents(false, remoteTargetHandles);
+                recentsView.setDrawAboveRecents(remoteTargetHandles);
             }
 
             @Override
@@ -686,9 +686,11 @@ public final class TaskViewUtils {
                             // We may have notified launcher is not visible so that taskbar can
                             // stash immediately. Now that the animation is over, we can update
                             // that launcher is still visible.
-                            TaskbarUIController controller = recentsView.getSizeStrategy()
+                            TaskbarUIController controller = recentsView.getContainerInterface()
                                     .getTaskbarController();
-                            if (controller != null) {
+                            // If we're launching the desktop tile in Overview, no need to change
+                            // the launcher visibility and taskbar visibility below.
+                            if (controller != null && !(v instanceof DesktopTaskView)) {
                                 boolean launcherVisible = true;
                                 for (RemoteAnimationTarget target : appTargets) {
                                     launcherVisible &= target.isTranslucent;

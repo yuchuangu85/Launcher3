@@ -23,12 +23,12 @@
     <string name="recent_task_option_freeform" msgid="48863056265284071">"Voľný režim"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Počítač"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Presunúť na externú obrazovku"</string>
-    <string name="recent_task_option_close" msgid="942942499021777264">"Zavrieť"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"Vymazať"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"Počítač"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"Žiadne nedávne položky"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"Nastavenia využívania aplikácie"</string>
     <string name="recents_clear_all" msgid="5328176793634888831">"Vymazať všetko"</string>
+    <string name="add_desk_button_content_description" msgid="5866025518368823735">"Pridať novú plochu"</string>
     <string name="accessibility_recent_apps" msgid="4058661986695117371">"Nedávne aplikácie"</string>
     <string name="task_contents_description_with_remaining_time" msgid="4479688746574672685">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, <xliff:g id="REMAINING_TIME">%2$s</xliff:g>"</string>
     <string name="shorter_duration_less_than_one_minute" msgid="4722015666335015336">"Menej ako 1 minúta"</string>
@@ -92,9 +92,16 @@
     <string name="allset_hint" msgid="459504134589971527">"Potiahnutím nahor prejdete na plochu"</string>
     <string name="allset_button_hint" msgid="2395219947744706291">"Na plochu prejdete klepnutím na tlačidlo plochy"</string>
     <string name="allset_description_generic" msgid="5385500062202019855">"Môžete <xliff:g id="DEVICE">%1$s</xliff:g> začať používať"</string>
-    <string name="default_device_name" msgid="6660656727127422487">"zariadenie"</string>
+    <string name="allset_description_fallback" msgid="2488751930355201578">"Zariadenie môžete začať používať"</string>
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Nastavenia navigácie systémom"</annotation></string>
+    <string name="allset_title_expressive" msgid="474399969304146994">"Vaše zariadenie <xliff:g id="DEVICE">%1$s</xliff:g> je \npripravené."</string>
+    <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"Vaše zariadenie je \npripravené."</string>
+    <string name="allset_subtitle_expressive" msgid="419688197551192358">"Užite si svoj nový <xliff:g id="DEVICE">%1$s</xliff:g>!"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"Vyberte spôsob prechádzania"</annotation></string>
+    <string name="allset_hint_expressive" msgid="756856423510976261">"Potiahnite nahor"</string>
+    <string name="allset_button_hint_expressive" msgid="667643693410494225">"Klepnite na tlačidlo plochy"</string>
+    <string name="allset_device_type_tablet" msgid="2173392009787325894">"tablet"</string>
+    <string name="allset_device_type_phone" msgid="6842334562074507337">"telefón"</string>
     <string name="action_share" msgid="2648470652637092375">"Zdieľať"</string>
     <string name="action_screenshot" msgid="8171125848358142917">"Snímka obrazovky"</string>
     <string name="action_split" msgid="2098009717623550676">"Rozdeliť"</string>
@@ -106,20 +113,21 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"Na použitie rozd. obrazovky vyberte inú aplikáciu"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"Aplikácia alebo vaša organizácia túto akciu nepovoľuje"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"Miniaplikácie nie sú momentálne podporované, vyberte inú aplikáciu"</string>
-    <string name="skip_tutorial_dialog_title" msgid="2725643161260038458">"Chcete preskočiť návod na navigáciu?"</string>
-    <string name="skip_tutorial_dialog_subtitle" msgid="544063326241955662">"Tento návod nájdete v aplikácii <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="gesture_tutorial_action_button_label_cancel" msgid="3809842569351264108">"Zrušiť"</string>
-    <string name="gesture_tutorial_action_button_label_skip" msgid="394452764989751960">"Preskočiť"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"Otočiť obrazovku"</string>
+    <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"Animácia zobrazujúca, ako sa panel aplikácií zobrazí z dolnej časti obrazovky a automaticky skryje, keď ho nepoužívate"</string>
+    <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"Animácia znázorňujúca, ako pripnúť panel aplikácií pomocou prepínača, aby bol stále viditeľný v dolnej časti obrazovky"</string>
+    <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"Animácia znázorňujúca, ako vytvoriť rozdelenú obrazovku presunutím aplikácie z panela aplikácií nad otvorenú aplikáciu"</string>
+    <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"Animácia znázorňujúca, ako získať prístup k navrhovaným aplikáciám v zariadení"</string>
+    <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"Animácia znázorňujúca, ako vyhľadať určitú položku na obrazovke pridržaním akčného klávesa a výberom oblasti, v ktorej sa daná položka nachádza"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"Panel vzdelávacích aplikácií"</string>
-    <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"Ak chcete použiť dve aplikácie naraz, presuňte aplikáciu nabok"</string>
+    <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"Ak chcete používať dve aplikácie naraz, presuňte aplikáciu nabok"</string>
     <string name="taskbar_edu_stashing" msgid="5645461372669217294">"Panel aplikácií zobrazíte pomalým potiahnutím nahor"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"Získavajte návrhy aplikácií na základe svojich zvykov"</string>
-    <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Dlhým stlačením rozdeľovača pripnete panel aplikácií"</string>
+    <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Dlhým stlačením rozdeľovača panel aplikácií pripnete"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"Panel aplikácií vám ponúka ďalšie možnosti"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"Vždy zobrazovať panel aplikácií"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"Ak chcete, aby sa panel aplikácií vždy zobrazoval v dolnej časti obrazovky, pridržte rozdeľovač"</string>
-    <string name="taskbar_search_edu_title" msgid="5569194922234364530">"Ak chcete vyhľadávať, čo je na obrazovke, pridržte akčný kláves"</string>
+    <string name="taskbar_search_edu_title" msgid="5569194922234364530">"Pridržaním akčného klávesu môžete vyhľadávať, čo je na obrazovke"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"Táto služba používa na účely vyhľadávania vybranú časť obrazovky. Uplatňujú sa <xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>pravidlá ochrany súkromia<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g> a <xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>zmluvné podmienky<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g> spoločnosti Google."</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"Zavrieť"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"Hotovo"</string>
@@ -138,7 +146,7 @@
     <string name="always_show_taskbar" msgid="3608801276107751229">"Zobrazovať panel aplikácií"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"Zmeniť režim navigácie"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"Rozdeľovač panela aplikácií"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="7960342079198820179">"Rozšírená ponuka panela aplikácií"</string>
+    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"Iné nedávne aplikácie"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"Presunúť hore alebo doľava"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"Presunúť dole alebo doprava"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"Otvoriť aplikáciu ako bublinu"</string>
@@ -159,11 +167,13 @@
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"Zavrieť všetko"</string>
     <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"rozbaliť <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
     <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"zbaliť <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
-    <string name="search_gesture_feature_title" msgid="1294044108313175306">"Vyhľadávanie krúžením"</string>
+    <string name="search_gesture_feature_title" msgid="1294044108313175306">"Hľadanie krúžkovaním"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"Ikona aplikácie"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"Názov aplikácie"</string>
     <string name="header_close_icon_description" msgid="5400033616675911319">"Tlačidlo Zavrieť"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"Pripnúť na panel"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"Odopnúť z panela"</string>
+    <string name="nudge_a11y_title" msgid="2126529303123687912">"Posunúť"</string>
+    <string name="nudge_a11y_close" msgid="4513937143817625570">"Zavrieť"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"Posunúť obrázok"</string>
 </resources>

@@ -18,9 +18,6 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-    <!-- Application name -->
-    <string name="derived_app_name" translatable="false">Quickstep</string>
-
     <!-- Options for recent tasks -->
     <!-- Title for an option to keep an app pinned to the screen until it is unpinned -->
     <string name="recent_task_option_pin">Pin</string>
@@ -30,8 +27,6 @@
     <string name="recent_task_option_desktop">Desktop</string>
     <!-- Title and content description for an option to move app to external display. -->
     <string name="recent_task_option_external_display">Move to external display</string>
-    <!-- Title and content description for an option to close the app [CHAR LIMIT=30] -->
-    <string name="recent_task_option_close">Close</string>
     <!-- Title and content description for an option to remove the task [CHAR LIMIT=30] -->
     <string name="recent_task_option_remove_task">Clear</string>
 
@@ -49,6 +44,9 @@
 
     <!-- Recents: Title of a button that goes back from displaying tasks filtered by package name to displaying all tasks [CHAR LIMIT=30] -->
     <string name="recents_back" translatable="false">Back</string>
+
+    <!-- Content description for the add desk button inside recents [CHAR_LIMIT=none] -->
+    <string name="add_desk_button_content_description">Add new desk</string>
 
     <!-- Accessibility title for the list of recent apps [CHAR_LIMIT=none] -->
     <string name="accessibility_recent_apps">Recent apps</string>
@@ -221,14 +219,28 @@
     <string name="allset_hint">Swipe up to go home</string>
     <!-- Hint string at the bottom of "All Set" page for button navigation [CHAR LIMIT=NONE] -->
     <string name="allset_button_hint">Tap the home button to go to your home screen</string>
-    <!-- Description of "All Set" page on the user's device [CHAR LIMIT=NONE] -->
+    <!-- Description of "All Set" page on the user's device when their device name is provided [CHAR LIMIT=NONE] -->
     <string name="allset_description_generic">You\u2019re ready to start using your <xliff:g id="device" example="Pixel 6">%1$s</xliff:g></string>
-    <!-- A default device name to use in the description of the "All Set" page [CHAR LIMIT=NONE] -->
-    <string name="default_device_name">device</string>
+    <!-- Description of "All Set" page on the user's device when no device name is provided [CHAR LIMIT=NONE] -->
+    <string name="allset_description_fallback">You\u2019re ready to start using your device</string>
     <!-- String linking to navigation settings on "All Set" page [CHAR LIMIT=NONE] -->
     <string name="allset_navigation_settings"><annotation id="link">System navigation settings</annotation></string>
+    <!-- New Title of "All Set" page [CHAR LIMIT=NONE] -->
+    <string name="allset_title_expressive">Your <xliff:g id="device" example="Pixel 9">%1$s</xliff:g> is \nready!</string>
+    <!-- Description of "All Set" page on the user's device when no device name is provided [CHAR LIMIT=NONE] -->
+    <string name="allset_title_expressive_fallback">Your device is \nready!</string>
+    <!-- New subtitle of "All Set" page [CHAR LIMIT=NONE] -->
+    <string name="allset_subtitle_expressive">Enjoy your new <xliff:g id="device" example="phone">%1$s</xliff:g>!</string>
     <!-- String linking to navigation settings on "All Set" page [CHAR LIMIT=NONE] -->
     <string name="allset_navigation_settings_expressive"><annotation id="link">Choose how to navigate</annotation></string>
+    <!-- Hint string at the bottom of "All Set" page [CHAR LIMIT=NONE] -->
+    <string name="allset_hint_expressive">Swipe up</string>
+    <!-- Hint string at the bottom of "All Set" page for button navigation [CHAR LIMIT=NONE] -->
+    <string name="allset_button_hint_expressive">Tap the home button</string>
+    <!-- String representing device type of a Tablet [CHAR LIMIT=30] -->
+    <string name="allset_device_type_tablet">tablet</string>
+    <!-- String representing device type of a Phone [CHAR LIMIT=30] -->
+    <string name="allset_device_type_phone">phone</string>
 
     <!-- ******* Overview ******* -->
     <!-- Label for a button that causes the current overview app to be shared. [CHAR_LIMIT=40] -->
@@ -250,20 +262,21 @@
     <string name="blocked_by_policy">This action isn\'t allowed by the app or your organization</string>
     <string name="split_widgets_not_supported">Widgets not currently supported, please select another app</string>
 
-    <!-- ******* Skip tutorial dialog ******* -->
-    <!-- Title for the dialog that allows the user to skip the gesture navigation tutorial. [CHAR_LIMIT=40] -->
-    <string name="skip_tutorial_dialog_title">Skip navigation tutorial?</string>
-    <!-- Subtitle for the dialog that allows the user to skip the gesture navigation tutorial. This directs the user to where they can find the gesture tutorial again. [CHAR_LIMIT=100] -->
-    <string name="skip_tutorial_dialog_subtitle">You can find this later in the <xliff:g id="name">%1$s</xliff:g> app</string>
-    <!-- Button text shown on a button on the tutorial skip dialog to return to the tutorial. [CHAR LIMIT=14] -->
-    <string name="gesture_tutorial_action_button_label_cancel">Cancel</string>
-    <!-- Button text shown on a button on the tutorial skip dialog to exit the tutorial. [CHAR LIMIT=14] -->
-    <string name="gesture_tutorial_action_button_label_skip">Skip</string>
 
     <!-- Accessibility label for the rotation suggestion button -->
     <string name="accessibility_rotate_button">Rotate screen</string>
 
     <!-- ******* Taskbar Edu ******* -->
+    <!-- Text description to describe Taskbar education animation for Taskbar autohide functionality. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_edu_swipe_animation_description">Animation showing how the taskbar comes into view from the bottom of the screen, and automatically hides when not in use</string>
+    <!-- Text description to describe Taskbar education animation for Taskbar pinning functionality. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_edu_pinning_animation_description">Animation showing how to pin your taskbar using a toggle, so the taskbar remains permanently visible at the bottom of the screen</string>
+    <!-- Text description to describe Taskbar education animation for split screen functionality. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_edu_split_screen_animation_description">Animation showing how to create a split screen, by dragging and dropping an app from the taskbar above an open app</string>
+    <!-- Text description to describe Taskbar education animation for app suggestion functionality. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_edu_suggested_app_animation_description">Animation showing how to access suggested apps on your device</string>
+    <!-- Text description to describe Taskbar education animation for app suggestion functionality. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_edu_suggested_search_animation_description">Animation showing how to search for an item on screen, by touching and holding the action key and selecting the area the item is in</string>
     <!-- Accessibility title for the Taskbar education window. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_edu_a11y_title">Taskbar education</string>
     <!-- Text in dialog that lets a user know how they can use the Taskbar to use multiple apps at once on their device. [CHAR_LIMIT=60] -->
@@ -319,7 +332,7 @@
     <!-- Accessibility title for the Taskbar vertical divider icon. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_divider_a11y_title">Taskbar Divider</string>
     <!-- Accessibility title for the Taskbar Overflow icon. [CHAR_LIMIT=NONE] -->
-    <string name="taskbar_overflow_a11y_title">Taskbar Overflow</string>
+    <string name="taskbar_overflow_a11y_title">Other recent apps</string>
 
 
     <!-- Label for moving drop target to the top or left side of the screen, depending on orientation (from the Taskbar only). -->
@@ -390,5 +403,11 @@
     <string name="pin_to_taskbar">Pin to taskbar</string>
     <!-- Label for unpinning an item from the taskbar. [CHAR_LIMIT=20] -->
     <string name="unpin_from_taskbar">Unpin from taskbar</string>
+
+    <!-- ******* Growth Framework Nudge ******* -->
+    <!-- Accessibility title for the nudge window. [CHAR_LIMIT=NONE] -->
+    <string name="nudge_a11y_title">Nudge</string>
+    <!-- Accessibility announcement for closing the nudge window. [CHAR_LIMIT=16] -->
+    <string name="nudge_a11y_close">Close</string>
     <string name="nudge_a11y_image">Nudge image</string>
 </resources>

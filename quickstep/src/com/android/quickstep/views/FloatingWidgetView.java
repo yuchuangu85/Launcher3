@@ -50,7 +50,6 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         OnGlobalLayoutListener, FloatingView {
     private static final Matrix sTmpMatrix = new Matrix();
 
-    private final QuickstepLauncher mLauncher;
     private final ListenerView mListenerView;
     private final FloatingWidgetBackgroundView mBackgroundView;
     private final RectF mBackgroundOffset = new RectF();
@@ -81,7 +80,6 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
 
     public FloatingWidgetView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        mLauncher = QuickstepLauncher.getLauncher(context);
         mListenerView = new ListenerView(context, attrs);
         mBackgroundView = new FloatingWidgetBackgroundView(context, attrs, defStyleAttr);
         addView(mBackgroundView);
@@ -155,7 +153,8 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         }
     }
 
-    private void init(DragLayer dragLayer, LauncherAppWidgetHostView originalView,
+    private void init(QuickstepLauncher launcher, DragLayer dragLayer,
+            LauncherAppWidgetHostView originalView,
             RectF widgetBackgroundPosition, Size windowSize, float windowCornerRadius,
             boolean appTargetIsTranslucent, int fallbackBackgroundColor) {
         mAppWidgetView = originalView;
@@ -163,7 +162,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         mAppWidgetView.beginDeferringUpdates();
         mBackgroundPosition = widgetBackgroundPosition;
         mAppTargetIsTranslucent = appTargetIsTranslucent;
-        mEndRunnable = () -> finish(dragLayer);
+        mEndRunnable = () -> finish(launcher, dragLayer);
 
         mAppWidgetBackgroundView = RoundedCornerEnforcement.findBackground(mAppWidgetView);
         if (mAppWidgetBackgroundView == null) {
@@ -271,7 +270,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         return positionsChanged;
     }
 
-    private void finish(DragLayer dragLayer) {
+    private void finish(QuickstepLauncher launcher, DragLayer dragLayer) {
         mAppWidgetView.setAlpha(1f);
         GhostView.removeGhost(mAppWidgetView);
         ((ViewGroup) dragLayer.getParent()).removeView(this);
@@ -280,7 +279,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         // Removing GhostView must occur before ending deferrals. See b/190818220
         mAppWidgetView.endDeferringUpdates();
         recycle();
-        mLauncher.getViewCache().recycleView(R.layout.floating_widget_view, this);
+        launcher.getViewCache().recycleView(R.layout.floating_widget_view, this);
     }
 
     public float getInitialCornerRadius() {
@@ -323,7 +322,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
                 launcher.getViewCache().getView(R.layout.floating_widget_view, launcher, parent);
         floatingView.recycle();
 
-        floatingView.init(dragLayer, originalView, widgetBackgroundPosition, windowSize,
+        floatingView.init(launcher, dragLayer, originalView, widgetBackgroundPosition, windowSize,
                 windowCornerRadius, appTargetsAreTranslucent, fallbackBackgroundColor);
         parent.addView(floatingView);
         return floatingView;

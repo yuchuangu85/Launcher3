@@ -18,6 +18,7 @@ package com.android.launcher3.taskbar;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ShortcutInfo;
+import android.graphics.Point;
 import android.os.UserHandle;
 import android.view.LayoutInflater;
 
@@ -32,11 +33,27 @@ import com.android.quickstep.SystemUiProxy;
 public abstract class BaseTaskbarContext extends BaseContext
         implements SystemShortcut.BubbleActivityStarter {
 
+    private final int mDisplayId;
+    private final boolean mIsPrimaryDisplay;
     protected final LayoutInflater mLayoutInflater;
 
-    public BaseTaskbarContext(Context windowContext, boolean isPrimaryDisplay) {
+    public BaseTaskbarContext(Context windowContext, int displayId, boolean isPrimaryDisplay) {
         super(windowContext, Themes.getActivityThemeRes(windowContext));
+        mDisplayId = displayId;
+        mIsPrimaryDisplay = isPrimaryDisplay;
         mLayoutInflater = LayoutInflater.from(this).cloneInContext(this);
+    }
+
+    @Override
+    public int getDisplayId() {
+        return mDisplayId;
+    }
+
+    /**
+     * Returns whether the taskbar is displayed on primary or external display.
+     */
+    public final boolean isPrimaryDisplay() {
+        return mIsPrimaryDisplay;
     }
 
     /**
@@ -57,9 +74,16 @@ public abstract class BaseTaskbarContext extends BaseContext
     public abstract NavigationMode getNavigationMode();
 
     /**
-     * Returns whether the taskbar is in desktop mode.
+     * Returns whether the taskbar is in desktop mode. Implies that some desktop tasks are currently
+     * visible.
      */
     public abstract boolean isInDesktopMode();
+
+    /**
+     * Returns whether the taskbar is showing desktop tasks, which may happen even outside desktop
+     * mode on freeform displays.
+     */
+    public abstract boolean isTaskbarShowingDesktopTasks();
 
     /**
      * Returns whether the taskbar is forced to be pinned when home is visible.
@@ -73,9 +97,20 @@ public abstract class BaseTaskbarContext extends BaseContext
     public abstract  boolean showDesktopTaskbarForFreeformDisplay();
 
     /**
-     * Returns whether the taskbar is displayed on primary or external display.
+     * Returns screen size.
      */
-    public abstract boolean isPrimaryDisplay();
+    public abstract Point getScreenSize();
+
+    /**
+     * Returns display height.
+     */
+    public abstract int getDisplayHeight();
+
+    /**
+     * Notifies the context that the configuration has changed.
+     */
+    public abstract void notifyConfigChanged();
+
 
     @Override
     public final LayoutInflater getLayoutInflater() {

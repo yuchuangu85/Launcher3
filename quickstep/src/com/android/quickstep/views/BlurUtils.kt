@@ -22,42 +22,48 @@ import com.android.quickstep.RemoteTargetGluer.RemoteTargetHandle
 /** Applies blur either behind launcher surface or live tile app. */
 class BlurUtils(private val recentsView: RecentsView<*, *>) {
 
-    fun setDrawLiveTileBelowRecents(drawBelowRecents: Boolean) {
-        val liveTileRemoteTargetHandles =
-            if (
-                recentsView.remoteTargetHandles != null &&
-                    recentsView.recentsAnimationController != null
-            )
-                recentsView.remoteTargetHandles
-            else null
-        setDrawBelowRecents(drawBelowRecents, liveTileRemoteTargetHandles)
+    private fun getLiveTileRemoteTargetHandles() =
+        if (
+            recentsView.remoteTargetHandles != null &&
+                recentsView.recentsAnimationController != null
+        )
+            recentsView.remoteTargetHandles
+        else null
+
+    private fun Array<RemoteTargetHandle>.setDrawBelowRecents(drawBelowRecents: Boolean) {
+        forEach { it.taskViewSimulator.drawsBelowRecents = drawBelowRecents }
     }
 
     /**
-     * Set surface in [remoteTargetHandles] to be above or below Recents layer, and update the base
-     * layer to apply blur to in BaseDepthController.
+     * Controls if live tile should be above or below Recents layer, and update the base layer to
+     * apply blur to in BaseDepthController.
      */
-    fun setDrawBelowRecents(
-        drawBelowRecents: Boolean,
-        remoteTargetHandles: Array<RemoteTargetHandle>? = null,
-    ) {
-        remoteTargetHandles?.forEach { it.taskViewSimulator.setDrawsBelowRecents(drawBelowRecents) }
-        if (enableOverviewBackgroundWallpaperBlur()) {
-            recentsView.depthController?.setBaseSurfaceOverride(
-                // Blurs behind launcher layer.
-                if (!drawBelowRecents || remoteTargetHandles == null) {
-                    null
-                } else {
-                    // Blurs behind live tile. blur will be applied behind window
-                    // which farthest from user in case of desktop and split apps.
-                    remoteTargetHandles
-                        .maxByOrNull { it.transformParams.targetSet.firstAppTarget.leash.layerId }
-                        ?.transformParams
-                        ?.targetSet
-                        ?.firstAppTarget
-                        ?.leash
-                }
-            )
-        }
+    fun setDrawLiveTileBelowRecents(drawBelowRecents: Boolean) {
+        getLiveTileRemoteTargetHandles()?.setDrawBelowRecents(drawBelowRecents)
+        updateBlurLayer()
+    }
+
+    /**
+     * Set surface in [remoteTargetHandles] to be above Recents layer, and update the base layer to
+     * apply blur to in BaseDepthController.
+     */
+    fun setDrawAboveRecents(remoteTargetHandles: Array<RemoteTargetHandle>) {
+        remoteTargetHandles.setDrawBelowRecents(false)
+        updateBlurLayer(drawingAboveRecents = true)
+    }
+
+    private fun updateBlurLayer(drawingAboveRecents: Boolean = false) {
+        if (!enableOverviewBackgroundWallpaperBlur()) return
+        // Blurs behind lowest live tile surface that's below recents or Launcher if there
+        // are none.
+        recentsView.depthController?.setBaseSurfaceOverride(
+            getLiveTileRemoteTargetHandles()
+                ?.asSequence()
+                ?.filter { it.taskViewSimulator.drawsBelowRecents }
+                ?.flatMap { it.transformParams.targetSet.apps.asIterable() }
+                ?.map { it.leash }
+                ?.maxByOrNull { it.layerId },
+            /* applyOnDraw= */ drawingAboveRecents,
+        )
     }
 }

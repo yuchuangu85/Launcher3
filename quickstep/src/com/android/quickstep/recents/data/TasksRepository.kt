@@ -18,6 +18,8 @@ package com.android.quickstep.recents.data
 
 import android.graphics.drawable.Drawable
 import android.util.Log
+import android.util.SparseArray
+import androidx.core.util.valueIterator
 import com.android.launcher3.util.coroutines.DispatcherProvider
 import com.android.quickstep.recents.data.TaskVisualsChangedDelegate.TaskIconChangedCallback
 import com.android.quickstep.recents.data.TaskVisualsChangedDelegate.TaskThumbnailChangedCallback
@@ -46,33 +48,36 @@ class TasksRepository(
     private val dispatcherProvider: DispatcherProvider,
 ) : RecentTasksRepository {
     private val tasks = MutableStateFlow(MapForStateFlow<Int, Task>(emptyMap()))
+    private var visibleTaskIdsPerDisplay = SparseArray<Set<Int>>()
     private val taskRequests = HashMap<Int, Pair<Task.TaskKey, Job>>()
 
-    override fun getAllTaskData(forceRefresh: Boolean): Flow<List<Task>> {
+    override fun getAllTaskData(displayId: Int, forceRefresh: Boolean): Flow<List<Task>> {
+        if (!visibleTaskIdsPerDisplay.contains(displayId)) {
+            visibleTaskIdsPerDisplay.put(displayId, emptySet())
+        }
         if (forceRefresh) {
             recentsModel.getTasks { newTaskList ->
                 val recentTasks =
-                    newTaskList
-                        .flatMap { groupTask -> groupTask.tasks }
-                        .associateBy { it.key.id }
-                        .also { newTaskMap ->
-                            // Clean tasks that are not in the latest group tasks list.
-                            val tasksNoLongerVisible = tasks.value.keys.subtract(newTaskMap.keys)
-                            removeTasks(tasksNoLongerVisible)
-                        }
+                    newTaskList.flatMap { groupTask -> groupTask.tasks }.associateBy { it.key.id }
                 Log.d(
                     TAG,
                     "getAllTaskData: oldTasks ${tasks.value.keys}, newTasks: ${recentTasks.keys}",
                 )
-                tasks.value = MapForStateFlow(recentTasks)
+                tasks.update { oldTaskList ->
+                    // Copy retrieved visuals to new Task objects
+                    recentTasks.forEach { (taskId, task) ->
+                        task.thumbnail = oldTaskList[taskId]?.thumbnail
+                        task.icon = oldTaskList[taskId]?.icon
+                        task.title = oldTaskList[taskId]?.title
+                        task.titleDescription = oldTaskList[taskId]?.titleDescription
+                    }
+                    MapForStateFlow(recentTasks)
+                }
 
-                // Request data for tasks to prevent stale data.
-                // This will prevent thumbnail and icon from being replaced and null due to
-                // race condition. The new request will hit the cache and return immediately.
-                taskRequests.keys.forEach(::requestTaskData)
+                updateTaskRequests()
             }
         }
-        return tasks.map { it.values.toList() }
+        return tasks.map { it.values.filter { it.key.displayId == displayId }.toList() }
     }
 
     override fun getTaskDataById(taskId: Int) = tasks.map { it[taskId] }
@@ -82,30 +87,45 @@ class TasksRepository(
 
     override fun getCurrentThumbnailById(taskId: Int) = tasks.value[taskId]?.thumbnail
 
-    override fun setVisibleTasks(visibleTaskIdList: Set<Int>) {
-        val tasksNoLongerVisible = taskRequests.keys.subtract(visibleTaskIdList)
-        val newlyVisibleTasks = visibleTaskIdList.subtract(taskRequests.keys)
-        if (tasksNoLongerVisible.isNotEmpty() || newlyVisibleTasks.isNotEmpty()) {
+    override fun setVisibleTasks(displayId: Int, visibleTaskIdList: Set<Int>) {
+        if (visibleTaskIdList.isEmpty()) {
+            visibleTaskIdsPerDisplay.remove(displayId)
+        } else {
+            visibleTaskIdsPerDisplay.put(displayId, visibleTaskIdList)
+        }
+        updateTaskRequests()
+    }
+
+    @Synchronized
+    private fun updateTaskRequests() {
+        val allVisibleTaskIds =
+            visibleTaskIdsPerDisplay.valueIterator().asSequence().flatMap { it }.toSet()
+        val requestsNeeded = allVisibleTaskIds.intersect(tasks.value.keys)
+
+        val taskRequestIds = taskRequests.keys
+        val requestsNoLongerNeeded = taskRequestIds.subtract(requestsNeeded)
+        val newlyRequestedTasks = requestsNeeded.subtract(taskRequestIds)
+        if (requestsNoLongerNeeded.isNotEmpty() || newlyRequestedTasks.isNotEmpty()) {
             Log.d(
                 TAG,
-                "setVisibleTasks to: $visibleTaskIdList, " +
-                    "removed: $tasksNoLongerVisible, added: $newlyVisibleTasks",
+                "updateTaskRequests to: $requestsNeeded, " +
+                    "removed: $requestsNoLongerNeeded, added: $newlyRequestedTasks",
             )
         }
 
         // Remove tasks are no longer visible
-        removeTasks(tasksNoLongerVisible)
+        removeTasks(requestsNoLongerNeeded)
         // Add new tasks to be requested
-        newlyVisibleTasks.forEach { taskId -> requestTaskData(taskId) }
+        newlyRequestedTasks.forEach { taskId -> requestTaskData(taskId) }
     }
 
     private fun requestTaskData(taskId: Int) {
         val task = tasks.value[taskId] ?: return
+        Log.i(TAG, "requestTaskData: $taskId")
         taskRequests[taskId] =
             Pair(
                 task.key,
-                recentsCoroutineScope.launch(dispatcherProvider.background) {
-                    Log.i(TAG, "requestTaskData: $taskId")
+                recentsCoroutineScope.launch(dispatcherProvider.lightweightBackground) {
                     val thumbnailFetchDeferred = async { fetchThumbnail(task) }
                     val iconFetchDeferred = async { fetchIcon(task) }
                     awaitAll(thumbnailFetchDeferred, iconFetchDeferred)
@@ -117,33 +137,35 @@ class TasksRepository(
         if (tasksToRemove.isEmpty()) return
 
         Log.i(TAG, "removeTasks: $tasksToRemove")
-        tasksToRemove.forEach { taskId ->
-            val request = taskRequests.remove(taskId) ?: return
-            val (taskKey, job) = request
-            job.cancel()
+        tasks.update { currentTasks ->
+            tasksToRemove.forEach { taskId ->
+                val request = taskRequests.remove(taskId) ?: return@forEach
+                val (taskKey, job) = request
+                job.cancel()
 
-            // un-registering callbacks
-            taskVisualsChangedDelegate.unregisterTaskIconChangedCallback(taskKey)
-            taskVisualsChangedDelegate.unregisterTaskThumbnailChangedCallback(taskKey)
+                // un-registering callbacks
+                taskVisualsChangedDelegate.unregisterTaskIconChangedCallback(taskKey)
+                taskVisualsChangedDelegate.unregisterTaskThumbnailChangedCallback(taskKey)
 
-            // Clearing Task to reduce memory footprint
-            tasks.value[taskId]?.apply {
-                thumbnail = null
-                icon = null
-                title = null
-                titleDescription = null
+                // Clearing Task to reduce memory footprint
+                currentTasks[taskId]?.apply {
+                    thumbnail = null
+                    icon = null
+                    title = null
+                    titleDescription = null
+                }
             }
+            MapForStateFlow(currentTasks)
         }
-        tasks.update { oldValue -> MapForStateFlow(oldValue) }
     }
 
     private suspend fun fetchIcon(task: Task) {
-        updateIcon(task.key.id, getIconFromDataSource(task)) // Fetch icon from cache
+        updateIcon(task.key.id, getIconFromDataSource(task))
         taskVisualsChangedDelegate.registerTaskIconChangedCallback(
             task.key,
             object : TaskIconChangedCallback {
                 override fun onTaskIconChanged() {
-                    recentsCoroutineScope.launch(dispatcherProvider.background) {
+                    recentsCoroutineScope.launch(dispatcherProvider.lightweightBackground) {
                         updateIcon(task.key.id, getIconFromDataSource(task))
                     }
                 }
@@ -171,7 +193,7 @@ class TasksRepository(
                             (isCurrentThumbnailLowRes && highResEnabled)
                     if (!isRequestedResHigherThanCurrent) return
 
-                    recentsCoroutineScope.launch(dispatcherProvider.background) {
+                    recentsCoroutineScope.launch(dispatcherProvider.lightweightBackground) {
                         updateThumbnail(task.key.id, getThumbnailFromDataSource(task))
                     }
                 }
@@ -180,24 +202,30 @@ class TasksRepository(
     }
 
     private fun updateIcon(taskId: Int, iconData: IconData) {
-        val task = tasks.value[taskId] ?: return
-        task.icon = iconData.icon
-        task.titleDescription = iconData.contentDescription
-        task.title = iconData.title
-        tasks.update { oldValue -> MapForStateFlow(oldValue + (taskId to task)) }
+        tasks.update { currentTasks ->
+            currentTasks[taskId]?.apply {
+                icon = iconData.icon
+                titleDescription = iconData.contentDescription
+                title = iconData.title
+            }
+            MapForStateFlow(currentTasks)
+        }
     }
 
     private fun updateThumbnail(taskId: Int, thumbnail: ThumbnailData?) {
-        val task = tasks.value[taskId] ?: return
-        task.thumbnail = thumbnail
-        tasks.update { oldValue -> MapForStateFlow(oldValue + (taskId to task)) }
+        tasks.update { currentTasks ->
+            currentTasks[taskId]?.thumbnail = thumbnail
+            MapForStateFlow(currentTasks)
+        }
     }
 
     private suspend fun getThumbnailFromDataSource(task: Task) =
-        withContext(dispatcherProvider.background) { taskThumbnailDataSource.getThumbnail(task) }
+        withContext(dispatcherProvider.lightweightBackground) {
+            taskThumbnailDataSource.getThumbnail(task)
+        }
 
     private suspend fun getIconFromDataSource(task: Task) =
-        withContext(dispatcherProvider.background) {
+        withContext(dispatcherProvider.lightweightBackground) {
             val iconCacheEntry = taskIconDataSource.getIcon(task)
             IconData(iconCacheEntry.icon, iconCacheEntry.contentDescription, iconCacheEntry.title)
         }

@@ -28,6 +28,7 @@ import static com.android.launcher3.allapps.AllAppsTransitionController.ALL_APPS
 import static com.android.launcher3.anim.AnimatorListeners.forSuccessCallback;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME_GESTURE;
 import static com.android.launcher3.util.NavigationMode.THREE_BUTTONS;
+import static com.android.launcher3.util.ScrollableLayoutManager.PREDICTIVE_BACK_MIN_SCALE;
 import static com.android.systemui.shared.system.ActivityManagerWrapper.CLOSE_SYSTEM_WINDOWS_REASON_RECENTS;
 
 import android.animation.AnimatorSet;
@@ -44,7 +45,6 @@ import com.android.launcher3.allapps.AllAppsTransitionController;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
-import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.touch.SingleAxisSwipeDetector;
 import com.android.launcher3.util.DisplayController;
@@ -136,7 +136,7 @@ public class NavBarToHomeTouchController implements TouchController,
     }
 
     private float getShiftRange() {
-        return mLauncher.getDeviceProfile().heightPx;
+        return mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx();
     }
 
     @Override
@@ -157,10 +157,16 @@ public class NavBarToHomeTouchController implements TouchController,
             AbstractFloatingView.closeOpenContainer(mLauncher, AbstractFloatingView.TYPE_TASK_MENU);
         } else if (mStartState == ALL_APPS) {
             AllAppsTransitionController allAppsController = mLauncher.getAllAppsController();
-            builder.setFloat(allAppsController, ALL_APPS_PULL_BACK_TRANSLATION,
-                    -mPullbackDistance, PULLBACK_INTERPOLATOR);
-            builder.setFloat(allAppsController, ALL_APPS_PULL_BACK_ALPHA,
-                    0.5f, PULLBACK_INTERPOLATOR);
+            if (mLauncher.getDeviceProfile().shouldShowAllAppsOnSheet()) {
+                allAppsController.setShouldScaleHeader(true);
+                builder.addAnimatedFloat(allAppsController.getAllAppScale(), 1f,
+                        PREDICTIVE_BACK_MIN_SCALE, PULLBACK_INTERPOLATOR);
+            } else {
+                builder.setFloat(allAppsController, ALL_APPS_PULL_BACK_TRANSLATION,
+                        -mPullbackDistance, PULLBACK_INTERPOLATOR);
+                builder.setFloat(allAppsController, ALL_APPS_PULL_BACK_ALPHA,
+                        0.5f, PULLBACK_INTERPOLATOR);
+            }
         }
         AbstractFloatingView topView = AbstractFloatingView.getTopOpenView(mLauncher);
         if (topView != null) {

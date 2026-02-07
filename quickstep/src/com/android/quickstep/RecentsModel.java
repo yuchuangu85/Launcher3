@@ -17,7 +17,7 @@ package com.android.quickstep;
 
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
 
-import static com.android.launcher3.Flags.enableGridOnlyOverview;
+import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
 import static com.android.launcher3.Flags.enableRefactorTaskThumbnail;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.quickstep.TaskUtils.checkCurrentOrManagedUserId;
@@ -43,7 +43,6 @@ import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.graphics.ThemeManager;
 import com.android.launcher3.graphics.ThemeManager.ThemeChangeListener;
 import com.android.launcher3.icons.IconProvider;
-import com.android.launcher3.statehandlers.DesktopVisibilityController;
 import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DaggerSingletonTracker;
 import com.android.launcher3.util.DisplayController;
@@ -70,10 +69,14 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import javax.inject.Inject;
+
+import app.lawnchair.LawnchairApp;
+import app.lawnchair.compat.LawnchairQuickstepCompat;
 
 /**
  * Singleton class to load and manage recents model.
@@ -93,6 +96,17 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
 
     private final ConcurrentLinkedQueue<TaskVisualsChangeListener> mThumbnailChangeListeners =
             new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<RecentTasksChangedListener> mRecentTasksChangedListeners =
+            new ConcurrentLinkedQueue<>();
+    private final RecentTasksChangedListener mRecentTasksListObserver =
+            new RecentTasksChangedListener() {
+                @Override
+                public void onRecentTasksChanged() {
+                    mRecentTasksChangedListeners.forEach(
+                            RecentTasksChangedListener::onRecentTasksChanged);
+                }
+            };
+
     private final Context mContext;
     private final RecentTasksList mTaskList;
     private final TaskIconCache mIconCache;
@@ -105,14 +119,12 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
             DisplayController displayController,
             LockedUserState lockedUserState,
             Lazy<ThemeManager> themeManagerLazy,
-            DesktopVisibilityController desktopVisibilityController,
             DaggerSingletonTracker tracker
             ) {
         // Lazily inject the ThemeManager and access themeManager once the device is
         // unlocked. See b/393248495 for details.
         this(context, new IconProvider(context), systemUiProxy, topTaskTracker,
-                displayController, lockedUserState, themeManagerLazy, desktopVisibilityController,
-                tracker);
+                displayController, lockedUserState, themeManagerLazy, tracker);
     }
 
     @SuppressLint("VisibleForTests")
@@ -123,7 +135,6 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
             DisplayController displayController,
             LockedUserState lockedUserState,
             Lazy<ThemeManager> themeManagerLazy,
-            DesktopVisibilityController desktopVisibilityController,
             DaggerSingletonTracker tracker) {
         this(context,
                 new RecentTasksList(
@@ -131,7 +142,7 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
                         MAIN_EXECUTOR,
                         context.getSystemService(KeyguardManager.class),
                         systemUiProxy,
-                        topTaskTracker, desktopVisibilityController, tracker),
+                        topTaskTracker, tracker),
                 new TaskIconCache(context, RECENTS_MODEL_EXECUTOR, iconProvider, displayController),
                 new TaskThumbnailCache(context, RECENTS_MODEL_EXECUTOR),
                 iconProvider,
@@ -153,6 +164,7 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
             DaggerSingletonTracker tracker) {
         mContext = context;
         mTaskList = taskList;
+        mTaskList.registerRecentTasksChangedListener(mRecentTasksListObserver);
         mIconCache = iconCache;
         mIconCache.registerTaskVisualsChangeListener(this);
         mThumbnailCache = thumbnailCache;
@@ -171,7 +183,9 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
             tracker.addCloseable(() -> context.unregisterComponentCallbacks(componentCallbacks));
         }
 
-        taskStackChangeListeners.registerTaskStackListener(this);
+        if (LawnchairApp.isRecentsEnabled()) {
+            TaskStackChangeListeners.getInstance().registerTaskStackListener(this);
+        }
         SafeCloseable iconChangeCloseable = iconProvider.registerIconChangeListener(
                 this::onAppIconChanged, MAIN_EXECUTOR.getHandler());
 
@@ -179,7 +193,10 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
         lockedUserState.runOnUserUnlocked(unlockCallback);
 
         tracker.addCloseable(() -> {
-            taskStackChangeListeners.unregisterTaskStackListener(this);
+            if (LawnchairApp.isRecentsEnabled()) {
+                TaskStackChangeListeners.getInstance().unregisterTaskStackListener(this);
+                mTaskList.unregisterRecentTasksChangedListener();
+            }
             iconChangeCloseable.close();
             mIconCache.removeTaskVisualsChangeListener();
             if (lockedUserState.isUserUnlocked()) {
@@ -215,14 +232,28 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
     /**
      * Fetches the list of recent tasks, based on a filter
      *
+     * @param filter   Returns true if a GroupTask should be included into the list passed into
+     *                 callback.
      * @param callback The callback to receive the task plan once its complete or null. This is
-     *                always called on the UI thread.
+     *                 always called on the UI thread.
+     * @return the request id associated with this call.
+     */
+    public int getTasks(Predicate<GroupTask> filter, @Nullable Consumer<List<GroupTask>> callback) {
+        return mTaskList.getTasks(false /* loadKeysOnly */, callback, filter);
+    }
+
+    /**
+     * Fetches the list of recent tasks, based on a filter
+     *
+     * @param callback The callback to receive the task plan and request ID once its complete or
+     *                 null. This is always called on the UI thread.
      * @param filter  Returns true if a GroupTask should be included into the list passed into
      *                callback.
      * @return the request id associated with this call.
      */
-    public int getTasks(@Nullable Consumer<List<GroupTask>> callback, Predicate<GroupTask> filter) {
-        return mTaskList.getTasks(false /* loadKeysOnly */, callback, filter);
+    public int getTasks(
+            @Nullable BiConsumer<List<GroupTask>, Integer> callback, Predicate<GroupTask> filter) {
+        return mTaskList.getTasks(/* loadKeysOnly= */ false, callback, filter);
     }
 
     /**
@@ -276,7 +307,7 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
 
         // Keep the cache up to date with the latest thumbnails
         ActivityManager.RunningTaskInfo runningTask =
-                ActivityManagerWrapper.getInstance().getRunningTask();
+                LawnchairQuickstepCompat.getActivityManagerCompat().getRunningTask(true);
         int runningTaskId = runningTask != null ? runningTask.id : -1;
         mTaskList.getTaskKeys(mThumbnailCache.getCacheSize(), taskGroups -> {
             for (GroupTask group : taskGroups) {
@@ -382,14 +413,14 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
      * Registers a listener for recent tasks
      */
     public void registerRecentTasksChangedListener(RecentTasksChangedListener listener) {
-        mTaskList.registerRecentTasksChangedListener(listener);
+        mRecentTasksChangedListeners.add(listener);
     }
 
     /**
      * Removes the previously registered running tasks listener
      */
-    public void unregisterRecentTasksChangedListener() {
-        mTaskList.unregisterRecentTasksChangedListener();
+    public void unregisterRecentTasksChangedListener(RecentTasksChangedListener listener) {
+        mRecentTasksChangedListeners.remove(listener);
     }
 
     /**

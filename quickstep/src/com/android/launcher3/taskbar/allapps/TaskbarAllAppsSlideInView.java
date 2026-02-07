@@ -15,11 +15,14 @@
  */
 package com.android.launcher3.taskbar.allapps;
 
+import static android.os.Trace.TRACE_TAG_APP;
+
 import static com.android.app.animation.Interpolators.DECELERATED_EASE;
 import static com.android.app.animation.Interpolators.EMPHASIZED;
 import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.launcher3.touch.AllAppsSwipeController.ALL_APPS_FADE_MANUAL;
 import static com.android.launcher3.touch.AllAppsSwipeController.SCRIM_FADE_MANUAL;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import android.animation.Animator;
 import android.content.Context;
@@ -27,19 +30,26 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Trace;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.CrossWindowBlurListeners;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewRootImpl;
 import android.view.animation.Interpolator;
 import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.Nullable;
 
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.util.LawnchairUtilsKt;
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Flags;
 import com.android.launcher3.Insettable;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatorListeners;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.taskbar.allapps.TaskbarAllAppsViewController.TaskbarAllAppsCallbacks;
@@ -47,11 +57,16 @@ import com.android.launcher3.taskbar.overlay.TaskbarOverlayContext;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.AbstractSlideInView;
 
+import java.util.function.Consumer;
+
 /** Wrapper for taskbar all apps with slide-in behavior. */
 public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverlayContext>
         implements Insettable, DeviceProfile.OnDeviceProfileChangeListener {
+    private static final String TAG = "TaskbarAllAppsSlideInView";
+
     private final Handler mHandler;
     private final int mMaxBlurRadius;
+    private final Consumer<Boolean> mWindowBlurListener = blursEnabled -> invalidate();
 
     private TaskbarAllAppsContainerView mAppsView;
     private float mShiftRange;
@@ -102,6 +117,16 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
     }
 
     private void showOnFullyAttachedToWindow(boolean animate) {
+        if (mActivityContext.isAllAppsBackgroundBlurEnabled()) {
+            ViewRootImpl overlayVri = mActivityContext.getRootView().getViewRootImpl();
+            if (overlayVri == null) {
+                Log.w(TAG, "overlayVRI is null, cannot notifyRendererOfExpensiveFrame()");
+            } else {
+                Trace.instantForTrack(TRACE_TAG_APP, TAG, "notifyRendererForGpuLoadUp");
+                overlayVri.notifyRendererForGpuLoadUp("opening taskbar all apps");
+                overlayVri.notifyRendererOfExpensiveFrame();
+            }
+        }
         mAllAppsCallbacks.onAllAppsTransitionStart(true);
         if (!animate) {
             mAllAppsCallbacks.onAllAppsTransitionEnd(true);
@@ -125,7 +150,7 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
     protected void onOpenCloseAnimationPending(PendingAnimation animation) {
         final boolean isOpening = mToTranslationShift == TRANSLATION_SHIFT_OPENED;
 
-        if (mActivityContext.getDeviceProfile().isPhone) {
+        if (mActivityContext.getDeviceProfile().getDeviceProperties().isPhone()) {
             final Interpolator allAppsFadeInterpolator =
                     isOpening ? ALL_APPS_FADE_MANUAL : Interpolators.reverse(ALL_APPS_FADE_MANUAL);
             animation.setViewAlpha(mAppsView, 1 - mToTranslationShift, allAppsFadeInterpolator);
@@ -146,7 +171,7 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
 
     @Override
     protected Interpolator getScrimInterpolator() {
-        if (mActivityContext.getDeviceProfile().isTablet) {
+        if (mActivityContext.getDeviceProfile().getDeviceProperties().isTablet()) {
             return super.getScrimInterpolator();
         }
         return mToTranslationShift == TRANSLATION_SHIFT_OPENED
@@ -191,7 +216,7 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
     protected void onFinishInflate() {
         super.onFinishInflate();
         mAppsView = findViewById(R.id.apps_view);
-        if (mActivityContext.getDeviceProfile().isPhone) {
+        if (mActivityContext.getDeviceProfile().getDeviceProperties().isPhone()) {
             mAppsView.setAlpha(0);
         }
         mContent = mAppsView;
@@ -209,11 +234,13 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
         mActivityContext.addOnDeviceProfileChangeListener(this);
         mAppsView.getAppsRecyclerViewContainer().setOutlineProvider(mViewOutlineProvider);
         mAppsView.getAppsRecyclerViewContainer().setClipToOutline(true);
+        if (!Utilities.ATLEAST_U) return;
         OnBackInvokedDispatcher dispatcher = findOnBackInvokedDispatcher();
         if (dispatcher != null) {
             dispatcher.registerOnBackInvokedCallback(
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT, this);
         }
+        CrossWindowBlurListeners.getInstance().addListener(MAIN_EXECUTOR, mWindowBlurListener);
     }
 
     @Override
@@ -222,10 +249,12 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
         mActivityContext.removeOnDeviceProfileChangeListener(this);
         mAppsView.getAppsRecyclerViewContainer().setOutlineProvider(null);
         mAppsView.getAppsRecyclerViewContainer().setClipToOutline(false);
+        if (!Utilities.ATLEAST_U) return;
         OnBackInvokedDispatcher dispatcher = findOnBackInvokedDispatcher();
         if (dispatcher != null) {
             dispatcher.unregisterOnBackInvokedCallback(this);
         }
+        CrossWindowBlurListeners.getInstance().removeListener(mWindowBlurListener);
     }
 
     @Override
@@ -250,12 +279,14 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
     @Override
     protected int getScrimColor(Context context) {
         if (!mActivityContext.getDeviceProfile().shouldShowAllAppsOnSheet()) {
-            return Themes.getAttrColor(context, R.attr.allAppsScrimColor);
+            // Always use an opaque scrim if there's no sheet.
+            // Lawnchair-TODO-Colour: Check R.color.materialColorSurfaceDim
+            return context.getResources().getColor(R.color.materialColorSurfaceDim);
+        } else if (!Flags.allAppsBlur()) {
+            // If there's a sheet but no blur, use the old scrim color.
+            return ColorTokens.WidgetsPickerScrim.resolveColor(context);
         }
-        if (Flags.allAppsBlur()) {
-            return Themes.getAttrColor(context, R.attr.allAppsScrimColorOverBlur);
-        }
-        return context.getResources().getColor(R.color.widgets_picker_scrim);
+        return LawnchairUtilsKt.getAllAppsScrimColor(context);
     }
 
     @Override

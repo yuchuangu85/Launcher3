@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Аягына чейин тууралоо үчүн басып коюңуз"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Бул системдик колдонмо жана аны чечкенге болбойт."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Аталышын түзөтүү"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Мурунку бетке өтүү"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Кийинки бетке өтүү"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> өчүрүлгөн"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name}, # билдирмеси бар}other{{app_name}, # билдирмеси бар}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$d ичинен %1$d барак"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Башкы экранды бурууга уруксат берүү"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Телефон бурулганда"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Туурасынан"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Телефонду туурасынан коюңуз"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Башкы экранды туурасынан коюңуз"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Билдирмелер белгилери"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Күйүк"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Өчүк"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Кулпулоо"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Жеке чөйрөгө өтүү"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Орнотуу"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Кошуу"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Колдонмолорду Жеке мейкиндикке орнотуe"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Жеке мейкиндикке файлдарды жана башкаларды кошуу"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Тегерек"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Чарчы"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 тараптуу печенье"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 тараптуу печенье"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Арка"</string>
 </resources>

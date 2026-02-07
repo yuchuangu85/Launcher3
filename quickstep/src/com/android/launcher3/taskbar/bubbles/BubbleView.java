@@ -40,6 +40,12 @@ import com.android.wm.shell.shared.animation.Interpolators;
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation;
 import com.android.wm.shell.shared.bubbles.BubbleInfo;
 
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.theme.color.ColorOption;
+
+import java.util.EnumSet;
+
 // TODO: (b/276978250) This is will be similar to WMShell's BadgedImageView, it'd be nice to share.
 
 /**
@@ -87,6 +93,8 @@ public class BubbleView extends ConstraintLayout {
     @Nullable
     private BubbleBarBubbleIconsFactory mIconFactory = null;
 
+    PreferenceManager2 preferenceManager2;
+
     public BubbleView(Context context) {
         this(context, null);
     }
@@ -108,6 +116,8 @@ public class BubbleView extends ConstraintLayout {
         LayoutInflater.from(context).inflate(R.layout.bubble_view, this);
         mBubbleIcon = findViewById(R.id.icon_view);
         mAppIcon = findViewById(R.id.app_icon_view);
+
+        preferenceManager2 = PreferenceManager2.INSTANCE.get(context);
 
         mDrawParams = new DotRenderer.DrawParams();
 
@@ -252,7 +262,13 @@ public class BubbleView extends ConstraintLayout {
             mAppIcon.setVisibility(GONE);
         }
         mDotColor = bubble.getDotColor();
-        mDotRenderer = new DotRenderer(mBubbleSize, bubble.getDotPath(), DEFAULT_PATH_SIZE);
+        ColorOption dotColorOption = PreferenceExtensionsKt.firstBlocking(preferenceManager2.getNotificationDotColor());
+        int dotColor = dotColorOption.getColorPreferenceEntry().getLightColor().invoke(getContext());
+        ColorOption counterColorOption = PreferenceExtensionsKt
+                .firstBlocking(preferenceManager2.getNotificationDotTextColor());
+        int countColor = counterColorOption.getColorPreferenceEntry().getLightColor().invoke(getContext());
+        mDotRenderer = new DotRenderer(mBubbleSize, bubble.getDotPath(), DEFAULT_PATH_SIZE, false, null, dotColor,
+                countColor);
         String contentDesc = bubble.getInfo().getTitle();
         if (TextUtils.isEmpty(contentDesc)) {
             contentDesc = getResources().getString(R.string.bubble_bar_bubble_fallback_description);

@@ -23,34 +23,38 @@ import com.android.launcher3.Item
 import com.android.launcher3.LauncherPrefChangeListener
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.backedUpItem
+import com.android.launcher3.concurrent.annotations.Ui
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.graphics.ShapeDelegate.Companion.pickBestShape
 import com.android.launcher3.icons.IconThemeController
 import com.android.launcher3.icons.mono.MonoIconThemeController
+import com.android.launcher3.shapes.IconShapeModel.Companion.DEFAULT_ICON_RADIUS
 import com.android.launcher3.shapes.ShapesProvider
 import com.android.launcher3.util.DaggerSingletonObject
 import com.android.launcher3.util.DaggerSingletonTracker
-import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.LooperExecutor
 import com.android.launcher3.util.SimpleBroadcastReceiver
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executor
 import javax.inject.Inject
 
 /** Centralized class for managing Launcher icon theming */
 @LauncherAppSingleton
-class ThemeManager
+open class ThemeManager
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
+    @Ui private val uiExecutor: LooperExecutor,
     private val prefs: LauncherPrefs,
     private val iconControllerFactory: IconControllerFactory,
     lifecycle: DaggerSingletonTracker,
 ) {
 
     /** Representation of the current icon state */
-    var iconState = parseIconState(null)
-        private set
+    open var iconState = parseIconState(null)
+        protected set
 
     var isMonoThemeEnabled
         set(value) = prefs.put(THEMED_ICONS, value)
@@ -68,10 +72,11 @@ constructor(
     val folderShape
         get() = iconState.folderShape
 
-    private val listeners = CopyOnWriteArrayList<ThemeChangeListener>()
+    protected val listeners = CopyOnWriteArrayList<ThemeChangeListener>()
 
     init {
-        val receiver = SimpleBroadcastReceiver(context, MAIN_EXECUTOR) { verifyIconState() }
+        val receiver = SimpleBroadcastReceiver(
+            context, uiExecutor) { verifyIconState() }
         receiver.registerPkgActions("android", ACTION_OVERLAY_CHANGED)
 
         val keys = (iconControllerFactory.prefKeys + PREF_ICON_SHAPE)
@@ -88,7 +93,7 @@ constructor(
         }
     }
 
-    private fun verifyIconState() {
+    protected open fun verifyIconState() {
         val newState = parseIconState(iconState)
         if (newState == iconState) return
         iconState = newState
@@ -100,7 +105,7 @@ constructor(
 
     fun removeChangeListener(listener: ThemeChangeListener) = listeners.remove(listener)
 
-    private fun parseIconState(oldState: IconState?): IconState {
+    protected open fun parseIconState(oldState: IconState?): IconState {
         val shapeModel =
             prefs.get(PREF_ICON_SHAPE).let { shapeOverride ->
                 ShapesProvider.iconShapes.firstOrNull { it.key == shapeOverride }
@@ -116,33 +121,34 @@ constructor(
             if (oldState != null && oldState.iconMask == iconMask) oldState.iconShape
             else pickBestShape(iconMask)
 
-        val folderShapeMask = shapeModel?.folderPathString ?: iconMask
+        val folderRadius = shapeModel?.folderRadiusRatio ?: 1f
         val folderShape =
-            when {
-                oldState != null && oldState.folderShapeMask == folderShapeMask ->
-                    oldState.folderShape
-                folderShapeMask == iconMask || folderShapeMask.isEmpty() -> iconShape
-                else -> pickBestShape(folderShapeMask)
+            if (oldState != null && oldState.folderRadius == folderRadius) {
+                oldState.folderShape
+            } else if (folderRadius == 1f) {
+                ShapeDelegate.Circle()
+            } else {
+                ShapeDelegate.RoundedSquare(folderRadius)
             }
 
         return IconState(
             iconMask = iconMask,
-            folderShapeMask = folderShapeMask,
+            folderRadius = folderRadius,
             themeController = iconControllerFactory.createThemeController(),
-            iconScale = shapeModel?.iconScale ?: 1f,
             iconShape = iconShape,
             folderShape = folderShape,
+            shapeRadius = shapeModel?.shapeRadius ?: DEFAULT_ICON_RADIUS,
         )
     }
 
     data class IconState(
         val iconMask: String,
-        val folderShapeMask: String,
+        val folderRadius: Float,
         val themeController: IconThemeController?,
         val themeCode: String = themeController?.themeID ?: "no-theme",
-        val iconScale: Float = 1f,
         val iconShape: ShapeDelegate,
         val folderShape: ShapeDelegate,
+        val shapeRadius: Float,
     ) {
         fun toUniqueId() = "${iconMask.hashCode()},$themeCode"
     }
@@ -171,10 +177,10 @@ constructor(
         @JvmField val PREF_ICON_SHAPE = backedUpItem(KEY_ICON_SHAPE, "", EncryptionType.ENCRYPTED)
 
         private const val ACTION_OVERLAY_CHANGED = "android.intent.action.OVERLAY_CHANGED"
-        private val CONFIG_ICON_MASK_RES_ID: Int =
+        val CONFIG_ICON_MASK_RES_ID: Int =
             Resources.getSystem().getIdentifier("config_icon_mask", "string", "android")
 
         // Use a constant to allow equality check in verifyIconState
-        private val MONO_THEME_CONTROLLER = MonoIconThemeController()
+        private val MONO_THEME_CONTROLLER = MonoIconThemeController(shouldForceThemeIcon = true)
     }
 }

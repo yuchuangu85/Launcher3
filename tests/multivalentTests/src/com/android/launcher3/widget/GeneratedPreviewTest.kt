@@ -17,13 +17,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import com.android.launcher3.Flags.FLAG_ENABLE_GENERATED_PREVIEWS
+import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.R
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.model.WidgetItem
 import com.android.launcher3.util.ActivityContextWrapper
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
+import com.android.launcher3.util.SandboxApplication
 import com.android.launcher3.util.TestUtil
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
@@ -52,22 +53,23 @@ class GeneratedPreviewTest {
             resources.getIdentifier("test_layout_appwidget_blue", "layout", packageName)
         }
 
-    private lateinit var context: SandboxModelContext
+    @get:Rule val context = SandboxApplication()
     private lateinit var uiContext: Context
     private lateinit var generatedPreview: RemoteViews
     private lateinit var widgetCell: WidgetCell
     private lateinit var appWidgetProviderInfo: LauncherAppWidgetProviderInfo
     private lateinit var widgetItem: WidgetItem
+    private lateinit var idp: InvariantDeviceProfile
 
     @Mock lateinit var iconCache: IconCache
 
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
-        context = SandboxModelContext()
         generatedPreview = RemoteViews(context.packageName, generatedPreviewLayout)
         uiContext =
             ActivityContextWrapper(ContextThemeWrapper(context, R.style.WidgetContainerTheme))
+        idp = InvariantDeviceProfile.INSTANCE[uiContext]
         widgetCell =
             LayoutInflater.from(uiContext).inflate(R.layout.widget_cell, null) as WidgetCell
         appWidgetProviderInfo =
@@ -99,7 +101,6 @@ class GeneratedPreviewTest {
 
     private fun createWidgetItem() {
         Executors.MODEL_EXECUTOR.submit {
-                val idp = context.appComponent.idp
                 widgetItem = WidgetItem(appWidgetProviderInfo, idp, iconCache, context)
             }
             .get()
@@ -109,13 +110,17 @@ class GeneratedPreviewTest {
     fun widgetItem_hasGeneratedPreview_noPreview() {
         appWidgetProviderInfo.generatedPreviewCategories = 0
         createWidgetItem()
-        val preview = DatabaseWidgetPreviewLoader(uiContext).generatePreviewInfoBg(widgetItem, 1, 1)
+        val preview =
+            DatabaseWidgetPreviewLoader(uiContext, idp.getDeviceProfile(uiContext))
+                .generatePreviewInfoBg(widgetItem, 1, 1)
         assertThat(preview.remoteViews).isNull()
     }
 
     @Test
     fun widgetItem_getGeneratedPreview() {
-        val preview = DatabaseWidgetPreviewLoader(uiContext).generatePreviewInfoBg(widgetItem, 1, 1)
+        val preview =
+            DatabaseWidgetPreviewLoader(uiContext, idp.getDeviceProfile(uiContext))
+                .generatePreviewInfoBg(widgetItem, 1, 1)
         assertThat(preview.remoteViews).isEqualTo(generatedPreview)
     }
 

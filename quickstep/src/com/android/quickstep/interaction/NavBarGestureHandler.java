@@ -41,6 +41,7 @@ import com.android.launcher3.util.VibratorWrapper;
 import com.android.quickstep.util.MotionPauseDetector;
 import com.android.quickstep.util.NavBarPosition;
 import com.android.quickstep.util.TriggerSwipeUpTouchTracker;
+import app.lawnchair.util.LawnchairUtilsKt;
 
 /** Utility class to handle Home gesture. */
 public class NavBarGestureHandler implements OnTouchListener,
@@ -60,7 +61,7 @@ public class NavBarGestureHandler implements OnTouchListener,
 
     NavBarGestureHandler(Context context, DeviceProfile deviceProfile) {
         mContext = context;
-        mDisplaySize.set(deviceProfile.widthPx, deviceProfile.heightPx);
+        mDisplaySize.set(deviceProfile.getDeviceProperties().getWidthPx(), deviceProfile.getDeviceProperties().getHeightPx());
         mSwipeUpTouchTracker = new TriggerSwipeUpTouchTracker(
                 context,
                 /* disableHorizontalSwipe= */ true,
@@ -71,8 +72,7 @@ public class NavBarGestureHandler implements OnTouchListener,
         mMotionPauseDetector = new MotionPauseDetector(context);
 
         final Resources resources = context.getResources();
-        mBottomGestureHeight =
-                ResourceUtils.getNavbarSize(ResourceUtils.NAVBAR_BOTTOM_GESTURE_SIZE, resources);
+        mBottomGestureHeight = ResourceUtils.getNavbarSize(ResourceUtils.NAVBAR_BOTTOM_GESTURE_SIZE, resources);
     }
 
     void registerNavBarGestureAttemptCallback(NavBarGestureAttemptCallback callback) {
@@ -90,10 +90,12 @@ public class NavBarGestureHandler implements OnTouchListener,
         }
         if (mTouchCameFromNavBar) {
             mGestureCallback.onNavBarGestureAttempted(wasFling
-                    ? HOME_GESTURE_COMPLETED : OVERVIEW_GESTURE_COMPLETED, finalVelocity);
+                    ? HOME_GESTURE_COMPLETED
+                    : OVERVIEW_GESTURE_COMPLETED, finalVelocity);
         } else {
             mGestureCallback.onNavBarGestureAttempted(wasFling
-                    ? HOME_NOT_STARTED_TOO_FAR_FROM_EDGE : OVERVIEW_NOT_STARTED_TOO_FAR_FROM_EDGE,
+                    ? HOME_NOT_STARTED_TOO_FAR_FROM_EDGE
+                    : OVERVIEW_NOT_STARTED_TOO_FAR_FROM_EDGE,
                     finalVelocity);
         }
     }
@@ -164,7 +166,7 @@ public class NavBarGestureHandler implements OnTouchListener,
         OVERVIEW_GESTURE_COMPLETED,
         HOME_NOT_STARTED_TOO_FAR_FROM_EDGE,
         OVERVIEW_NOT_STARTED_TOO_FAR_FROM_EDGE,
-        HOME_OR_OVERVIEW_NOT_STARTED_WRONG_SWIPE_DIRECTION,  // Side swipe on nav bar.
+        HOME_OR_OVERVIEW_NOT_STARTED_WRONG_SWIPE_DIRECTION, // Side swipe on nav bar.
         HOME_OR_OVERVIEW_CANCELLED,
     }
 
@@ -174,9 +176,14 @@ public class NavBarGestureHandler implements OnTouchListener,
         void onNavBarGestureAttempted(NavBarGestureResult result, PointF finalVelocity);
 
         /** Called when a motion stops or resumes */
-        default void onMotionPaused(boolean isPaused) {}
+        default void onMotionPaused(boolean isPaused) {
+        }
 
-        /** Indicates how far a touch originating in the nav bar has moved from the nav bar. */
-        default void setNavBarGestureProgress(@Nullable Float displacement) {}
+        /**
+         * Indicates how far a touch originating in the nav bar has moved from the nav
+         * bar.
+         */
+        default void setNavBarGestureProgress(@Nullable Float displacement) {
+        }
     }
 }

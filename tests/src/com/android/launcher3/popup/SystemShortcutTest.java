@@ -72,8 +72,8 @@ import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.AllModulesForTest;
 import com.android.launcher3.util.ComponentKey;
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext;
 import com.android.launcher3.util.LauncherMultivalentJUnit;
+import com.android.launcher3.util.SandboxApplication;
 import com.android.launcher3.util.TestSandboxModelContextWrapper;
 import com.android.launcher3.util.TestUtil;
 import com.android.launcher3.util.UserIconInfo;
@@ -81,7 +81,9 @@ import com.android.launcher3.views.Snackbar;
 import com.android.launcher3.widget.picker.model.WidgetPickerDataProvider;
 import com.android.launcher3.widget.picker.model.data.WidgetPickerData;
 
-import org.junit.After;
+import dagger.BindsInstance;
+import dagger.Component;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -91,19 +93,17 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import dagger.BindsInstance;
-import dagger.Component;
-
 @SmallTest
 @RunWith(LauncherMultivalentJUnit.class)
 public class SystemShortcutTest {
     @Rule public final SetFlagsRule mSetFlagsRule = new SetFlagsRule(DEVICE_DEFAULT);
+    @Rule public final SandboxApplication mSandboxContext = new SandboxApplication();
+
     private static final UserHandle PRIVATE_HANDLE = new UserHandle(11);
     private static final UserHandle MAIN_HANDLE = Process.myUserHandle();
     private View mView;
     private ItemInfo mItemInfo;
     private TestSandboxModelContextWrapper mTestContext;
-    private final SandboxModelContext mSandboxContext = new SandboxModelContext();
     private PrivateProfileManager mPrivateProfileManager;
     private WidgetPickerDataProvider mWidgetPickerDataProvider;
     private AppInfo mAppInfo;
@@ -145,11 +145,6 @@ public class SystemShortcutTest {
 
         mWidgetPickerDataProvider = mTestContext.getWidgetPickerDataProvider();
         spyOn(mWidgetPickerDataProvider);
-    }
-
-    @After
-    public void tearDown() {
-        mSandboxContext.onDestroy();
     }
 
     @Test

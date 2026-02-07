@@ -17,7 +17,7 @@
 package com.android.quickstep
 
 import android.content.Context
-import com.android.launcher3.R
+import com.android.wm.shell.R
 
 // DesktopTaskView thumbnail's corner radius is independent of fullscreenProgress.
 open class DesktopFullscreenDrawParams
@@ -27,7 +27,7 @@ constructor(context: Context, cornerRadiusProvider: (Context) -> Float = ::compu
     companion object {
         // computeCornerRadius is used as cornerRadiusProvider, so
         // QuickStepContract::getWindowCornerRadius can be mocked properly.
-        private fun computeCornerRadius(context: Context): Float =
+        fun computeCornerRadius(context: Context): Float =
             context.resources.getDimension(R.dimen.desktop_windowing_freeform_rounded_corner_radius)
     }
 }

@@ -220,7 +220,7 @@ public class QuickstepAtomicAnimationFactory extends
         } else if (fromState == NORMAL && toState == ALL_APPS) {
             AllAppsSwipeController.applyNormalToAllAppsAnimConfig(mContainer, config);
         } else if (fromState == OVERVIEW && toState == OVERVIEW_SPLIT_SELECT) {
-            SplitAnimationTimings timings = mContainer.getDeviceProfile().isTablet
+            SplitAnimationTimings timings = mContainer.getDeviceProfile().getDeviceProperties().isTablet()
                     ? SplitAnimationTimings.TABLET_OVERVIEW_TO_SPLIT
                     : SplitAnimationTimings.PHONE_OVERVIEW_TO_SPLIT;
             config.setInterpolator(ANIM_OVERVIEW_ACTIONS_FADE, clampToProgress(LINEAR,

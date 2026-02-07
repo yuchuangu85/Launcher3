@@ -96,7 +96,7 @@ public class AddItemActivity extends BaseActivity
 
     private static final int SHADOW_SIZE = 10;
 
-    private static final int REQUEST_BIND_APPWIDGET = 1;
+    private static final int REQUEST_BIND_APPWIDGET = 11;
     private static final String STATE_EXTRA_WIDGET_ID = "state.widget.id";
 
     private final PointF mLastTouchPos = new PointF();

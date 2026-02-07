@@ -84,7 +84,7 @@ public class DeviceLockedInputConsumer implements InputConsumer,
             getFlagForIndex(1, "STATE_HANDLER_INVALIDATED");
 
     private final Context mContext;
-    private final RotationTouchHelper mRotationTouchHelper;
+    private final  RotationTouchHelper mRotationTouchHelper;
     private final TaskAnimationManager mTaskAnimationManager;
     private final GestureState mGestureState;
     private final float mTouchSlopSquared;
@@ -113,7 +113,8 @@ public class DeviceLockedInputConsumer implements InputConsumer,
             RecentsAnimationDeviceState deviceState,
             TaskAnimationManager taskAnimationManager,
             GestureState gestureState,
-            InputMonitorCompat inputMonitorCompat) {
+            InputMonitorCompat inputMonitorCompat,
+            RotationTouchHelper rotationTouchHelper) {
         mContext = context;
         mTaskAnimationManager = taskAnimationManager;
         mGestureState = gestureState;
@@ -122,7 +123,7 @@ public class DeviceLockedInputConsumer implements InputConsumer,
         mInputMonitorCompat = inputMonitorCompat;
         mMaxTranslationY = context.getResources().getDimensionPixelSize(
                 R.dimen.device_locked_y_offset);
-        mRotationTouchHelper = RotationTouchHelper.INSTANCE.get(mContext);
+        mRotationTouchHelper = rotationTouchHelper;
 
         // Do not use DeviceProfile as the user data might be locked
         mDisplaySize = DisplayController.INSTANCE.get(context).getInfo().currentSize;

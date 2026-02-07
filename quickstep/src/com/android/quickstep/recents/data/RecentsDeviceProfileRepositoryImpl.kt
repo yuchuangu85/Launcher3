@@ -29,7 +29,7 @@ class RecentsDeviceProfileRepositoryImpl(private val container: RecentsViewConta
     override fun getRecentsDeviceProfile() =
         with(container.deviceProfile) {
             RecentsDeviceProfile(
-                isLargeScreen = isTablet,
+                isLargeScreen = deviceProperties.isTablet,
                 canEnterDesktopMode = DesktopModeStatus.canEnterDesktopMode(container.asContext()),
             )
         }

@@ -45,6 +45,8 @@ public class FallbackSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase<
         return new FallbackSwipeHandler(
                 mContext,
                 mTaskAnimationManager,
+                mDeviceState,
+                mRotationTouchHelper,
                 mGestureState,
                 touchTimeMs,
                 continuingLastGesture,
@@ -62,5 +64,11 @@ public class FallbackSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase<
     @Override
     protected FallbackRecentsView<RecentsActivity> getRecentsView() {
         return mRecentsView;
+    }
+
+    @NonNull
+    @Override
+    protected RecentsState getBaseState() {
+        return RecentsState.BG_LAUNCHER;
     }
 }

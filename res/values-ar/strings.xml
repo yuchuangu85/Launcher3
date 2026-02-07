@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"انقر لإكمال الإعداد."</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"هذا تطبيق نظام وتتعذر إزالته."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"تعديل الاسم"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"الترقيم على اليسار"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"الترقيم على اليمين"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"تم إيقاف <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{هناك إشعار واحد في التطبيق {app_name}.}zero{هناك # إشعار في التطبيق {app_name}.}two{هناك إشعارَان في التطبيق {app_name}.}few{هناك # إشعارات في التطبيق {app_name}.}many{هناك # إشعارًا في التطبيق {app_name}.}other{هناك # إشعار في التطبيق {app_name}.}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"‏الصفحة %1$d من %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"السماح بتدوير الشاشة الرئيسية"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"عند تدوير الهاتف"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"الوضع الأفقي"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ضبط الهاتف على الوضع الأفقي"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"ضبط الشاشة الرئيسية على الوضع الأفقي"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"نقاط الإشعارات"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"الإعداد مفعّل"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"غير مفعّل"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"قفل"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"النقل إلى المساحة الخاصة"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"تثبيت"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"إضافة"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"تثبيت التطبيقات في المساحة الخاصّة"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"إضافة ملفات والمزيد إلى \"المساحة الخاصّة\""</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"دائرة"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"مربّع"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"كعكة رباعية الجوانب"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"كعكة سباعية الجوانب"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"قوس"</string>
 </resources>

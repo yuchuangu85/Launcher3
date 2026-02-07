@@ -16,7 +16,7 @@
 
 package com.android.launcher3.shortcuts;
 
-import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
 
 import android.content.ComponentName;
 import android.content.Context;

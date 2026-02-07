@@ -16,6 +16,7 @@
 
 package com.android.launcher3.model.data;
 
+import static com.android.launcher3.icons.BitmapInfo.FLAG_NO_BADGE;
 import static com.android.launcher3.icons.BitmapInfo.FLAG_THEMED;
 
 import android.content.Context;
@@ -35,6 +36,8 @@ import com.android.launcher3.icons.cache.CacheLookupFlag;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.util.ApiWrapper;
+
+import app.lawnchair.preferences.PreferenceManager;
 
 /**
  * Represents an ItemInfo which also holds an icon.
@@ -319,20 +322,21 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
      * Returns a FastBitmapDrawable with the icon.
      */
     public FastBitmapDrawable newIcon(Context context) {
-        return newIcon(context, 0);
+        var shouldTheme = PreferenceManager.getInstance(context).getThemedIcons().get();
+        return newIcon(context, shouldTheme ? BitmapInfo.FLAG_THEMED : BitmapInfo.FLAG_NO_BADGE);
     }
 
     /**
      * Returns a FastBitmapDrawable with the icon and context theme applied
      */
     public FastBitmapDrawable newIcon(Context context, @DrawableCreationFlags int creationFlags) {
-        ThemeManager themeManager = ThemeManager.INSTANCE.get(context);
-        if (!themeManager.isIconThemeEnabled()) {
+        var shouldTheme = PreferenceManager.getInstance(context).getThemedIcons().get();
+        if (!shouldTheme) {
             creationFlags &= ~FLAG_THEMED;
         }
         FastBitmapDrawable drawable = bitmap.newIcon(
                 context, creationFlags, Utilities.getIconShapeOrNull(context));
-        drawable.setIsDisabled(isDisabled());
+        drawable.setDisabled(isDisabled());
         return drawable;
     }
 

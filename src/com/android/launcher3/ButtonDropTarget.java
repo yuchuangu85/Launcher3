@@ -19,6 +19,7 @@ package com.android.launcher3;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -42,9 +43,13 @@ import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.util.MSDLPlayerWrapper;
+import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
 
 import com.google.android.msdl.data.model.MSDLToken;
+
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.theme.drawable.DrawableTokens;
 
 /**
  * Implements a DropTarget.
@@ -112,6 +117,17 @@ public abstract class ButtonDropTarget extends TextView
         super.onFinishInflate();
         mText = getText();
         setContentDescription(mText);
+        setBackground(DrawableTokens.DropTargetBackground.resolve(getContext()));
+        setTextColor();
+    }
+
+    private void setTextColor() {
+        int normalColor = ColorTokens.WorkspaceAccentColor.resolveColor(getContext());
+        int selectedColor = ColorTokens.DropTargetHoverTextColor.resolveColor(getContext());
+        setTextColor(new ColorStateList(
+                new int[][] { new int[] { -android.R.attr.state_selected },
+                        new int[] { android.R.attr.state_selected } },
+                new int[] { normalColor, selectedColor }));
     }
 
     protected void updateText(int resId) {
@@ -224,7 +240,10 @@ public abstract class ButtonDropTarget extends TextView
 
     protected abstract boolean supportsDrop(ItemInfo info);
 
-    public abstract boolean supportsAccessibilityDrop(ItemInfo info, View view);
+    /**
+     * Returns the accessibility action that {@link ButtonDropTarget} supports for the itemInfo.
+     */
+    public abstract int getSupportedAccessibilityAction(ItemInfo info, View view);
 
     @Override
     public boolean isDropEnabled() {
@@ -276,14 +295,16 @@ public abstract class ButtonDropTarget extends TextView
     @Override
     public void prepareAccessibilityDrop() { }
 
-    public abstract void onAccessibilityDrop(View view, ItemInfo item);
+    /** Performs a drop in case of accessibility services with the provided action for the item. */
+    public abstract void onAccessibilityDrop(View view, ItemInfo item, int action);
 
     public abstract void completeDrop(DragObject d);
 
     @Override
     public void getHitRectRelativeToDragLayer(android.graphics.Rect outRect) {
         super.getHitRect(outRect);
-        outRect.bottom += mActivityContext.getDeviceProfile().dropTargetDragPaddingPx;
+        outRect.bottom +=
+                mActivityContext.getDeviceProfile().getDropTargetProfile().getDragPaddingPx();
 
         sTempCords[0] = sTempCords[1] = 0;
         mActivityContext.getDragLayer().getDescendantCoordRelativeToSelf(this, sTempCords);

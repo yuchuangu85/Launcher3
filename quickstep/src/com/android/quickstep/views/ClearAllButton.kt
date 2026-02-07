@@ -31,8 +31,14 @@ import com.android.quickstep.util.BorderAnimator.Companion.createSimpleBorderAni
 import kotlin.math.abs
 import kotlin.math.min
 
-class ClearAllButton @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
-    Button(context, attrs) {
+class ClearAllButton
+@JvmOverloads
+constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0,
+    defStyleRes: Int = 0,
+) : Button(context, attrs, defStyleAttr, defStyleRes) {
 
     private val clearAllButtonAlpha =
         object : MultiValueAlpha(this, Alpha.entries.size) {

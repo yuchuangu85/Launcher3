@@ -49,11 +49,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private var allAppsTouchTriggered = false
     private var allAppsTouchRunnable: Runnable? = null
     private var allAppsButtonTouchDelayMs: Long = ViewConfiguration.getLongPressTimeout().toLong()
+    private var isTaskbarInMinimalState = false
     private lateinit var taskbarViewCallbacks: TaskbarViewCallbacks
 
     override val spaceNeeded: Int
         get() {
-            return dpToPx(activityContext.taskbarSpecsEvaluator.taskbarIconSize.size.toFloat())
+            return dpToPx(
+                activityContext.taskbarSpecsEvaluator.taskbarIconSize.size.toFloat(),
+                activityContext,
+            )
         }
 
     init {
@@ -70,7 +74,12 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         backgroundTintList = ColorStateList.valueOf(TRANSPARENT)
         setIconDrawable(drawable)
         if (!activityContext.isTransientTaskbar) {
-            setPadding(dpToPx(activityContext.taskbarSpecsEvaluator.taskbarIconPadding.toFloat()))
+            setPadding(
+                dpToPx(
+                    (activityContext.taskbarSpecsEvaluator.taskbarIconPadding).toFloat(),
+                    activityContext,
+                )
+            )
         }
         setForegroundTint(activityContext.getColor(R.color.all_apps_button_color))
     }
@@ -102,34 +111,39 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             return getAllAppsButtonForExpressiveTheme()
         }
         val shouldSelectTransientIcon =
-            isTransientTaskbar || (enableTaskbarPinning() && !activityContext.isThreeButtonNav)
+            isTransientTaskbar ||
+                (enableTaskbarPinning() &&
+                    activityContext.taskbarFeatureEvaluator.supportsTransitionToTransientTaskbar)
         return if (shouldSelectTransientIcon) R.drawable.ic_transient_taskbar_all_apps_search_button
         else R.drawable.ic_taskbar_all_apps_search_button
     }
 
     @DrawableRes
     private fun getAllAppsButtonForExpressiveTheme(): Int {
-        return R.drawable.ic_taskbar_all_apps_search_button_expressive_theme
-    }
-
-    @DimenRes
-    fun getAllAppsButtonTranslationXOffsetForExpressiveTheme(isTransientTaskbar: Boolean): Int {
-        return if (isTransientTaskbar) {
-            R.dimen.transient_taskbar_all_apps_button_translation_x_offset_for_expressive_theme
+        return if (isTaskbarInMinimalState) {
+            R.drawable.ic_taskbar_minimal_state_all_apps_search_button_expressive_theme
         } else {
-            R.dimen.taskbar_all_apps_search_button_translation_x_offset_for_expressive_theme
+            R.drawable.ic_taskbar_all_apps_search_button_expressive_theme
         }
     }
 
     @DimenRes
     fun getAllAppsButtonTranslationXOffset(isTransientTaskbar: Boolean): Int {
         if (Flags.enableGsf()) {
-            return getAllAppsButtonTranslationXOffsetForExpressiveTheme(isTransientTaskbar)
+            return R.dimen.taskbar_all_apps_search_button_translation_x_offset_for_expressive_theme
         }
         return if (isTransientTaskbar) {
             R.dimen.transient_taskbar_all_apps_button_translation_x_offset
         } else {
             R.dimen.taskbar_all_apps_search_button_translation_x_offset
+        }
+    }
+
+    /** Taskbar minimal state is that taskbar does not host anything other than all apps button. */
+    fun updateTaskbarMinimalState(isInMinimalState: Boolean) {
+        if (isTaskbarInMinimalState != isInMinimalState) {
+            isTaskbarInMinimalState = isInMinimalState
+            setUpIcon()
         }
     }
 

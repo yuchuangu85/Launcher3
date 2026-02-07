@@ -15,20 +15,23 @@
  */
 package com.android.launcher3.model;
 
-import static com.android.launcher3.Utilities.SHOULD_SHOW_FIRST_PAGE_WIDGET;
 import static com.android.launcher3.WorkspaceLayoutManager.FIRST_SCREEN_ID;
 
+import android.content.Context;
 import android.util.LongSparseArray;
 
+import app.lawnchair.preferences2.PreferenceManager2;
+import com.android.launcher3.BuildConfig;
+import com.android.launcher3.BuildConfigs;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherModel;
 import com.android.launcher3.LauncherSettings;
-import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.util.GridOccupancy;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.IntSet;
 
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import java.util.ArrayList;
 
 import javax.inject.Inject;
@@ -43,7 +46,7 @@ public class WorkspaceItemSpaceFinder {
     private LauncherModel mModel;
 
     @Inject
-    WorkspaceItemSpaceFinder(
+    public WorkspaceItemSpaceFinder(
             BgDataModel dataModel, InvariantDeviceProfile idp, LauncherModel model) {
         mDataModel = dataModel;
         mIDP = idp;
@@ -55,8 +58,8 @@ public class WorkspaceItemSpaceFinder {
      *
      * @return screenId and the coordinates for the item in an int array of size 3.
      */
-    public int[] findSpaceForItem(
-            IntArray workspaceScreens, IntArray addedWorkspaceScreensFinal, int spanX, int spanY) {
+    public int[] findSpaceForItem(IntArray workspaceScreens, IntArray addedWorkspaceScreensFinal,
+            ArrayList<ItemInfo> addItemsFinal, int spanX, int spanY, Context context) {
         LongSparseArray<ArrayList<ItemInfo>> screenItems = new LongSparseArray<>();
 
         // Use sBgItemsIdMap as all the items are already loaded.
@@ -73,6 +76,18 @@ public class WorkspaceItemSpaceFinder {
             }
         }
 
+        // Add items that are due to be added to the database from AddWorkspaceItemsTask#execute.
+        for (ItemInfo info : addItemsFinal) {
+            if (info.container == LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                ArrayList<ItemInfo> items = screenItems.get(info.screenId);
+                if (items == null) {
+                    items = new ArrayList<>();
+                    screenItems.put(info.screenId, items);
+                }
+                items.add(info);
+            }
+        }
+
         // Find appropriate space for the item.
         int screenId = 0;
         int[] coordinates = new int[2];
@@ -81,8 +96,9 @@ public class WorkspaceItemSpaceFinder {
         int screenCount = workspaceScreens.size();
         // First check the preferred screen.
         IntSet screensToExclude = new IntSet();
-        if (FeatureFlags.QSB_ON_FIRST_SCREEN
-                && !SHOULD_SHOW_FIRST_PAGE_WIDGET) {
+        
+        boolean smartspaceEnabled = PreferenceExtensionsKt.firstBlocking(PreferenceManager2.INSTANCE.get(context).getEnableSmartspace());
+        if (smartspaceEnabled) {
             screensToExclude.add(FIRST_SCREEN_ID);
         }
 

@@ -465,16 +465,17 @@ public final class Workspace extends Home {
             launcher.waitUntilLauncherObjectGone(DROP_BAR_RES_ID);
 
             final BySelector installerAlert = By.text(Pattern.compile(
-                    "Do you want to uninstall this app\\?",
-                    Pattern.DOTALL | Pattern.MULTILINE));
+                    ".*uninstall this app\\?",
+                    Pattern.DOTALL | Pattern.MULTILINE | Pattern.CASE_INSENSITIVE));
             final UiDevice device = launcher.getDevice();
             assertTrue("uninstall alert is not shown", device.wait(
                     Until.hasObject(installerAlert), LauncherInstrumentation.WAIT_TIME_MS));
-            final UiObject2 ok = device.findObject(By.text("OK"));
-            assertNotNull("OK button is not shown", ok);
-            launcher.clickObject(ok);
-            assertTrue("Uninstall alert is not dismissed after clicking OK", device.wait(
-                    Until.gone(installerAlert), LauncherInstrumentation.WAIT_TIME_MS));
+            final UiObject2 confirm = device.findObject(By.text(Pattern.compile(
+                    "OK|Uninstall", Pattern.CASE_INSENSITIVE)));
+            assertNotNull("Confirm button is not shown", confirm);
+            launcher.clickObject(confirm);
+            assertTrue("Uninstall alert is not dismissed after clicking confirm button",
+                    device.wait(Until.gone(installerAlert), LauncherInstrumentation.WAIT_TIME_MS));
 
             try (LauncherInstrumentation.Closable c1 = launcher.addContextLayer(
                     "uninstalled app by dragging to the drop bar")) {

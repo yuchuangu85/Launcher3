@@ -16,9 +16,12 @@
 
 package com.android.launcher3.allapps;
 
+import static com.android.launcher3.Utilities.ATLEAST_P;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 
 import android.content.Context;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.UserHandle;
 import android.os.UserManager;
 
@@ -87,7 +90,9 @@ public abstract class UserProfileManager {
      */
     private void setQuietModeSafely(boolean enable, UserHandle userHandle, Context context) {
         try {
-            mUserManager.requestQuietModeEnabled(enable, userHandle);
+            if (ATLEAST_P) {
+                mUserManager.requestQuietModeEnabled(enable, userHandle);
+            }
         } catch (SecurityException ex) {
             ApiWrapper.INSTANCE.get(context).assignDefaultHomeRole(context);
         }

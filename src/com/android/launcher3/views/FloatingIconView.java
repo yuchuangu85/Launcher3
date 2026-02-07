@@ -18,7 +18,6 @@ package com.android.launcher3.views;
 import static android.view.Gravity.LEFT;
 
 import static com.android.app.animation.Interpolators.LINEAR;
-import static com.android.launcher3.Flags.enableAdditionalHomeAnimations;
 import static com.android.launcher3.Utilities.getFullDrawable;
 import static com.android.launcher3.Utilities.mapToRange;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
@@ -149,7 +148,7 @@ public class FloatingIconView extends FrameLayout implements
      * Positions this view to match the size and location of {@code rect}.
      */
     public void update(float alpha, RectF rect, float progress, float shapeProgressStart,
-            float cornerRadius, boolean isOpening) {
+                       float cornerRadius, boolean isOpening) {
         update(alpha, rect, progress, shapeProgressStart, cornerRadius, isOpening, 0);
     }
 
@@ -164,13 +163,12 @@ public class FloatingIconView extends FrameLayout implements
      * @param taskViewDrawAlpha the drawn {@link com.android.quickstep.views.TaskView} alpha
      */
     public void update(float alpha, RectF rect, float progress, float shapeProgressStart,
-            float cornerRadius, boolean isOpening, int taskViewDrawAlpha) {
+                       float cornerRadius, boolean isOpening, int taskViewDrawAlpha) {
         // The non-running task home animation has some very funky first few frames because this
         // FIV hasn't fully laid out. During those frames, hide this FIV and continue drawing the
         // TaskView directly while transforming it in the place of this FIV. However, if we fade
         // the TaskView at all, we need to display this FIV regardless.
-        setAlpha(!enableAdditionalHomeAnimations() || isLaidOut() || taskViewDrawAlpha < 255
-                ? alpha : 0f);
+        setAlpha(isLaidOut() || taskViewDrawAlpha < 255 ? alpha : 0f);
         mClipIconView.update(rect, progress, shapeProgressStart, cornerRadius, isOpening, this,
                 mLauncher.getDeviceProfile(), taskViewDrawAlpha);
 
@@ -228,20 +226,20 @@ public class FloatingIconView extends FrameLayout implements
         // Position the floating view exactly on top of the original
         lp.topMargin = Math.round(pos.top);
         if (mIsRtl) {
-            lp.setMarginStart(Math.round(mLauncher.getDeviceProfile().widthPx - pos.right));
+            lp.setMarginStart(Math.round(mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() - pos.right));
         } else {
             lp.setMarginStart(Math.round(pos.left));
         }
         // Set the properties here already to make sure they are available when running the first
         // animation frame.
         int left = mIsRtl
-                ? mLauncher.getDeviceProfile().widthPx - lp.getMarginStart() - lp.width
+                ? mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() - lp.getMarginStart() - lp.width
                 : lp.leftMargin;
         layout(left, lp.topMargin, left + lp.width, lp.topMargin + lp.height);
     }
 
     private static void getLocationBoundsForView(Launcher launcher, View v, boolean isOpening,
-            RectF outRect) {
+                                                 RectF outRect) {
         getLocationBoundsForView(launcher, v, isOpening, outRect, new Rect());
     }
 
@@ -251,7 +249,7 @@ public class FloatingIconView extends FrameLayout implements
      * - For BubbleTextView, we return the icon bounds.
      */
     public static void getLocationBoundsForView(Launcher launcher, View v, boolean isOpening,
-            RectF outRect, Rect outViewBounds) {
+                                                RectF outRect, Rect outViewBounds) {
         boolean ignoreTransform = !isOpening;
         if (v instanceof DeepShortcutView dsv) {
             v = dsv.getIconView();
@@ -295,7 +293,7 @@ public class FloatingIconView extends FrameLayout implements
     @WorkerThread
     @SuppressWarnings("WrongThread")
     private static void getIconResult(Launcher l, View originalView, ItemInfo info, RectF pos,
-            @Nullable Drawable btvIcon, IconLoadResult outIconLoadResult) {
+                                      @Nullable Drawable btvIcon, IconLoadResult outIconLoadResult) {
         Drawable drawable;
         boolean supportsAdaptiveIcons = !info.isDisabled(); // Use original icon for disabled icons.
 
@@ -360,7 +358,7 @@ public class FloatingIconView extends FrameLayout implements
      */
     @UiThread
     private void setIcon(@Nullable Drawable drawable, @Nullable Drawable badge,
-            @Nullable Supplier<Drawable> btvIcon, int iconOffset) {
+                         @Nullable Supplier<Drawable> btvIcon, int iconOffset) {
         final DeviceProfile dp = mLauncher.getDeviceProfile();
         final InsettableFrameLayout.LayoutParams lp =
                 (InsettableFrameLayout.LayoutParams) getLayoutParams();
@@ -372,8 +370,8 @@ public class FloatingIconView extends FrameLayout implements
 
             mFinalDrawableBounds.set(0, 0, originalWidth, originalHeight);
 
-            float aspectRatio = mLauncher.getDeviceProfile().aspectRatio;
-            if (dp.isLandscape) {
+            float aspectRatio = mLauncher.getDeviceProfile().getDeviceProperties().getAspectRatio();
+            if (dp.getDeviceProperties().isLandscape()) {
                 lp.width = (int) Math.max(lp.width, lp.height * aspectRatio);
             } else {
                 lp.height = (int) Math.max(lp.height, lp.width * aspectRatio);
@@ -612,8 +610,8 @@ public class FloatingIconView extends FrameLayout implements
      * @param isOpening True if this view replaces the icon for app open animation.
      */
     public static FloatingIconView getFloatingIconView(Launcher launcher, View originalView,
-            @Nullable View visibilitySyncView, @Nullable View fadeOutView, boolean hideOriginal,
-            RectF positionOut, boolean isOpening) {
+                                                       @Nullable View visibilitySyncView, @Nullable View fadeOutView, boolean hideOriginal,
+                                                       RectF positionOut, boolean isOpening) {
         final DragLayer dragLayer = launcher.getDragLayer();
         ViewGroup parent = (ViewGroup) dragLayer.getParent();
         FloatingIconView view = launcher.getViewCache().getView(R.layout.floating_icon_view,

@@ -24,7 +24,7 @@ import com.android.launcher3.popup.SystemShortcut
 import com.android.quickstep.views.RecentsView
 import com.android.quickstep.views.RecentsViewContainer
 import com.android.quickstep.views.TaskContainer
-import com.android.window.flags.Flags
+import com.android.window.flags2.Flags
 import com.android.wm.shell.shared.desktopmode.DesktopModeCompatPolicy
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus
 
@@ -75,12 +75,11 @@ class ExternalDisplaySystemShortcut(
 
                         !Flags.moveToExternalDisplayShortcut() -> null
 
-                        desktopModeCompatPolicy.isTopActivityExemptFromDesktopWindowing(
+                        desktopModeCompatPolicy.shouldDisableDesktopEntryPoints(
                             taskKey.baseActivity?.packageName,
                             taskKey.numActivities,
                             taskKey.isTopActivityNoDisplay,
                             taskKey.isActivityStackTransparent,
-                            taskKey.userId,
                         ) -> null
 
                         else -> {

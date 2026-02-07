@@ -154,7 +154,9 @@ public class SplitInstructionsView extends LinearLayout {
         });
 
         // Set accessibility title, will be announced by a11y tools.
-        instructionTextView.setAccessibilityPaneTitle(instructionTextView.getText());
+        if (Utilities.ATLEAST_P) {
+            instructionTextView.setAccessibilityPaneTitle(instructionTextView.getText());
+        }
     }
 
     private void exitSplitSelection() {

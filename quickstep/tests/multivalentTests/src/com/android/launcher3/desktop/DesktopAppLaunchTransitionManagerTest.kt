@@ -25,10 +25,13 @@ import android.platform.test.flag.junit.SetFlagsRule
 import android.view.WindowManager.TRANSIT_OPEN
 import android.view.WindowManager.TRANSIT_TO_FRONT
 import android.window.TransitionFilter
+import android.window.TransitionFilter.CONTAINER_ORDER_ANY
+import android.window.TransitionFilter.CONTAINER_ORDER_TOP
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.quickstep.SystemUiProxy
-import com.android.window.flags.Flags.FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX
+import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_APP_LAUNCH_BUGFIX
+import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -77,7 +80,8 @@ class DesktopAppLaunchTransitionManagerTest {
 
     @Test
     @EnableFlags(FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX)
-    fun registerTransitions_usesCorrectFilter() {
+    @DisableFlags(FLAG_ENABLE_DESKTOP_APP_LAUNCH_BUGFIX)
+    fun registerTransitions_usesCorrectFilter_flagDisabled() {
         transitionManager.registerTransitions()
         val filterArgumentCaptor = argumentCaptor<TransitionFilter>()
 
@@ -92,5 +96,29 @@ class DesktopAppLaunchTransitionManagerTest {
         assertThat(launchRequirement.mModes).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
         assertThat(launchRequirement.mActivityType).isEqualTo(ACTIVITY_TYPE_STANDARD)
         assertThat(launchRequirement.mWindowingMode).isEqualTo(WINDOWING_MODE_FREEFORM)
+        assertThat(launchRequirement.mOrder).isEqualTo(CONTAINER_ORDER_TOP)
+    }
+
+    @Test
+    @EnableFlags(
+        FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX,
+        FLAG_ENABLE_DESKTOP_APP_LAUNCH_BUGFIX,
+    )
+    fun registerTransitions_usesCorrectFilter_flagEnabled() {
+        transitionManager.registerTransitions()
+        val filterArgumentCaptor = argumentCaptor<TransitionFilter>()
+
+        verify(systemUiProxy, times(1))
+            .registerRemoteTransition(any(), filterArgumentCaptor.capture())
+
+        assertThat(filterArgumentCaptor.lastValue).isNotNull()
+        assertThat(filterArgumentCaptor.lastValue.mTypeSet)
+            .isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
+        assertThat(filterArgumentCaptor.lastValue.mRequirements).hasLength(1)
+        val launchRequirement = filterArgumentCaptor.lastValue.mRequirements!![0]
+        assertThat(launchRequirement.mModes).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
+        assertThat(launchRequirement.mActivityType).isEqualTo(ACTIVITY_TYPE_STANDARD)
+        assertThat(launchRequirement.mWindowingMode).isEqualTo(WINDOWING_MODE_FREEFORM)
+        assertThat(launchRequirement.mOrder).isEqualTo(CONTAINER_ORDER_ANY)
     }
 }

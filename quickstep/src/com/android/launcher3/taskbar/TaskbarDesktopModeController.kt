@@ -16,18 +16,20 @@
 
 package com.android.launcher3.taskbar
 
-import android.content.Context
 import com.android.launcher3.statehandlers.DesktopVisibilityController
 import com.android.launcher3.statehandlers.DesktopVisibilityController.TaskbarDesktopModeListener
 import com.android.launcher3.taskbar.TaskbarBackgroundRenderer.Companion.MAX_ROUNDNESS
 
 /** Handles Taskbar in Desktop Windowing mode. */
 class TaskbarDesktopModeController(
-    private val context: Context,
+    private val taskbarActivityContext: TaskbarActivityContext,
     private val desktopVisibilityController: DesktopVisibilityController,
 ) : TaskbarDesktopModeListener {
     private lateinit var taskbarControllers: TaskbarControllers
     private lateinit var taskbarSharedState: TaskbarSharedState
+
+    val isLauncherAnimationRunning: Boolean
+        get() = desktopVisibilityController.launcherAnimationRunning
 
     fun init(controllers: TaskbarControllers, sharedState: TaskbarSharedState) {
         taskbarControllers = controllers
@@ -48,10 +50,13 @@ class TaskbarDesktopModeController(
     }
 
     fun shouldShowDesktopTasksInTaskbar(): Boolean {
-        val activityContext = taskbarControllers.taskbarActivityContext
-        return isInDesktopMode(context.displayId) ||
-            activityContext.showDesktopTaskbarForFreeformDisplay() ||
-            (activityContext.showLockedTaskbarOnHome() &&
+        return shouldShowDesktopTasksInTaskbar(taskbarActivityContext.displayId)
+    }
+
+    fun shouldShowDesktopTasksInTaskbar(displayId: Int): Boolean {
+        return isInDesktopMode(displayId) ||
+            taskbarActivityContext.showDesktopTaskbarForFreeformDisplay() ||
+            (taskbarActivityContext.showLockedTaskbarOnHome() &&
                 taskbarControllers.taskbarStashController.isOnHome)
     }
 

@@ -24,6 +24,8 @@ import com.android.app.animation.Interpolators
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING
 import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING_IN_DESKTOP_MODE
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DESKTOP_MODE_TASKBAR_PINNED
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DESKTOP_MODE_TASKBAR_UNPINNED
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASKBAR_DIVIDER_MENU_CLOSE
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASKBAR_DIVIDER_MENU_OPEN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASKBAR_PINNED
@@ -56,16 +58,26 @@ class TaskbarPinningController(private val context: TaskbarActivityContext) :
                 if (!didPreferenceChange) {
                     return
                 }
-                val shouldPinTaskbar =
-                    if (
-                        controllers.taskbarDesktopModeController.isInDesktopModeAndNotInOverview(
-                            context.displayId
-                        )
-                    ) {
+
+                if (
+                    controllers.taskbarDesktopModeController.shouldShowDesktopTasksInTaskbar(
+                        context.displayId
+                    )
+                ) {
+                    val shouldPinDesktopTaskbar =
                         !launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)
-                    } else {
-                        !launcherPrefs.get(TASKBAR_PINNING)
-                    }
+                    val logEvent =
+                        if (shouldPinDesktopTaskbar) {
+                            LAUNCHER_DESKTOP_MODE_TASKBAR_PINNED
+                        } else {
+                            LAUNCHER_DESKTOP_MODE_TASKBAR_UNPINNED
+                        }
+                    statsLogManager.logger().log(logEvent)
+                    launcherPrefs.put(TASKBAR_PINNING_IN_DESKTOP_MODE, shouldPinDesktopTaskbar)
+                    return
+                }
+
+                val shouldPinTaskbar = !launcherPrefs.get(TASKBAR_PINNING)
 
                 val animateToValue =
                     if (shouldPinTaskbar) {

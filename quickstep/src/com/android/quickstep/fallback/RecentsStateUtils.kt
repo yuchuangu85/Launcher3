@@ -30,4 +30,15 @@ fun RecentsState.toLauncherState(): LauncherState {
     }
 }
 
+fun LauncherState.hasEquivalentRecentsState(): Boolean {
+    return when (this) {
+        LauncherState.OVERVIEW,
+        LauncherState.OVERVIEW_MODAL_TASK,
+        LauncherState.BACKGROUND_APP,
+        LauncherState.NORMAL,
+        LauncherState.OVERVIEW_SPLIT_SELECT -> true
+        else -> false
+    }
+}
+
 fun RecentsState.toLauncherStateOrdinal(): Int = toLauncherState().ordinal

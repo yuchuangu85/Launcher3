@@ -26,12 +26,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.WindowInsets;
+import android.view.WindowInsets.Type;
 import android.widget.ScrollView;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.dragndrop.AddItemActivity;
 import com.android.launcher3.views.AbstractSlideInView;
+
+import app.lawnchair.theme.color.tokens.ColorTokens;
 
 /**
  * Bottom sheet for the pin widget.
@@ -101,7 +105,7 @@ public class AddItemWidgetsBottomSheet extends AbstractSlideInView<AddItemActivi
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         DeviceProfile deviceProfile = mActivityContext.getDeviceProfile();
         int widthUsed;
-        if (deviceProfile.isTablet) {
+        if (deviceProfile.getDeviceProperties().isTablet()) {
             int margin = deviceProfile.allAppsLeftRightMargin;
             widthUsed = Math.max(2 * margin, 2 * (mInsets.left + mInsets.right));
         } else if (mInsets.bottom > 0) {
@@ -113,7 +117,8 @@ public class AddItemWidgetsBottomSheet extends AbstractSlideInView<AddItemActivi
         }
 
         measureChildWithMargins(mContent, widthMeasureSpec,
-                widthUsed, heightMeasureSpec, deviceProfile.bottomSheetTopPadding);
+                widthUsed, heightMeasureSpec,
+                deviceProfile.getBottomSheetProfile().getBottomSheetTopPadding());
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec),
                 MeasureSpec.getSize(heightMeasureSpec));
     }
@@ -145,38 +150,41 @@ public class AddItemWidgetsBottomSheet extends AbstractSlideInView<AddItemActivi
 
     @Override
     protected int getScrimColor(Context context) {
-        // Don't add a scrim when using the standalone picker activity. The background dimming is
-        // handled by applying dimBackground in the activity theme, so the scrim doesn't slide in
-        // with the window.
-        return -1;
+        return ColorTokens.WidgetsPickerScrim.resolveColor(context);
     }
 
     @SuppressLint("NewApi") // Already added API check.
     @Override
     public WindowInsets onApplyWindowInsets(View view, WindowInsets windowInsets) {
-        Insets insets = windowInsets.getInsets(WindowInsets.Type.systemBars());
-        mInsets.set(insets.left, insets.top, insets.right, insets.bottom);
-        mContent.setPadding(mContent.getPaddingStart(), mContent.getPaddingTop(),
-                mContent.getPaddingEnd(), mInsets.bottom);
-
+        Insets insets;
+        if (Utilities.ATLEAST_R) {
+            insets = windowInsets.getInsets(Type.systemBars());
+            mInsets.set(insets.left, insets.top, insets.right, insets.bottom);
+            mContent.setPadding(mContent.getPaddingStart(), mContent.getPaddingTop(),
+                    mContent.getPaddingEnd(), mInsets.bottom);
+        } else {
+            mInsets.set(windowInsets.getSystemWindowInsetLeft(),
+                windowInsets.getSystemWindowInsetTop(),
+                windowInsets.getSystemWindowInsetRight(),
+                windowInsets.getSystemWindowInsetBottom());
+        }
         int contentHorizontalMarginInPx = getResources().getDimensionPixelSize(
-                R.dimen.widget_list_horizontal_margin);
+            R.dimen.widget_list_horizontal_margin);
         if (contentHorizontalMarginInPx != mContentHorizontalMarginInPx) {
             setContentHorizontalMargin(findViewById(R.id.widget_appName),
-                    contentHorizontalMarginInPx);
+                contentHorizontalMarginInPx);
             setContentHorizontalMargin(findViewById(R.id.widget_drag_instruction),
-                    contentHorizontalMarginInPx);
+                contentHorizontalMarginInPx);
             setContentHorizontalMargin(findViewById(R.id.widget_cell), contentHorizontalMarginInPx);
             setContentHorizontalMargin(findViewById(R.id.actions_container),
-                    contentHorizontalMarginInPx);
+                contentHorizontalMarginInPx);
             mContentHorizontalMarginInPx = contentHorizontalMarginInPx;
         }
         return windowInsets;
     }
 
     private static void setContentHorizontalMargin(View view, int contentHorizontalMargin) {
-        ViewGroup.MarginLayoutParams layoutParams =
-                ((ViewGroup.MarginLayoutParams) view.getLayoutParams());
+        ViewGroup.MarginLayoutParams layoutParams = ((ViewGroup.MarginLayoutParams) view.getLayoutParams());
         layoutParams.setMarginStart(contentHorizontalMargin);
         layoutParams.setMarginEnd(contentHorizontalMargin);
     }

@@ -21,12 +21,14 @@ import android.os.Looper
 import android.os.Process
 import android.os.Process.THREAD_PRIORITY_FOREGROUND
 import androidx.annotation.IntDef
-import java.util.concurrent.AbstractExecutorService
+
+import com.google.common.util.concurrent.AbstractListeningExecutorService
+
 import java.util.concurrent.TimeUnit
 import kotlin.annotation.AnnotationRetention.SOURCE
 
-/** Extension of [AbstractExecutorService] which executed on a provided looper. */
-class LooperExecutor(looper: Looper, private val defaultPriority: Int) : AbstractExecutorService() {
+/** Extension of [AbstractListeningExecutorService] which executed on a provided looper. */
+class LooperExecutor(looper: Looper, private val defaultPriority: Int) : AbstractListeningExecutorService() {
     val handler: Handler = Handler(looper)
 
     @JvmOverloads

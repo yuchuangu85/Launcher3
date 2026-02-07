@@ -16,7 +16,6 @@
 package com.android.launcher3.model
 
 import android.content.ContentValues
-import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
@@ -34,10 +33,11 @@ import com.android.launcher3.LauncherSettings.Favorites.*
 import com.android.launcher3.model.GridSizeMigrationDBController.DbReader
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.provider.LauncherDbUtils
-import com.android.launcher3.util.LauncherModelHelper
+import com.android.launcher3.util.SandboxApplication
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -46,8 +46,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class GridSizeMigrationTest {
 
-    private lateinit var modelHelper: LauncherModelHelper
-    private lateinit var context: Context
+    @get:Rule val context = SandboxApplication().withModelDependency()
+
     private lateinit var idp: InvariantDeviceProfile
     private lateinit var dbHelper: DatabaseHelper
     private lateinit var db: SQLiteDatabase
@@ -64,8 +64,6 @@ class GridSizeMigrationTest {
 
     @Before
     fun setUp() {
-        modelHelper = LauncherModelHelper()
-        context = modelHelper.sandboxContext
         dbHelper =
             DatabaseHelper(
                 context,
@@ -83,7 +81,6 @@ class GridSizeMigrationTest {
     @After
     fun tearDown() {
         db.close()
-        modelHelper.destroy()
     }
 
     @Test

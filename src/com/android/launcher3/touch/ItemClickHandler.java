@@ -15,8 +15,13 @@
  */
 package com.android.launcher3.touch;
 
+import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
+
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_BIND_PENDING_APPWIDGET;
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_RECONFIGURE_APPWIDGET;
+import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
+import static com.android.launcher3.Utilities.ATLEAST_BAKLAVA;
+import static com.android.launcher3.allapps.AlphabeticalAppsList.PRIVATE_SPACE_PACKAGE;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_FOLDER_OPEN;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_INSTALL_APP_BUTTON_TAP;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_BY_PUBLISHER;
@@ -72,6 +77,7 @@ import com.android.launcher3.widget.WidgetAddFlowHandler;
 import com.android.launcher3.widget.WidgetManagerHelper;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -155,7 +161,7 @@ public class ItemClickHandler {
         if (!isApp1Launchable || !isApp2Launchable) {
             // App pair is unlaunchable due to screen size.
             boolean isFoldable = InvariantDeviceProfile.INSTANCE.get(launcher)
-                    .supportedProfiles.stream().anyMatch(dp -> dp.isTwoPanels);
+                    .supportedProfiles.stream().anyMatch(dp -> dp.getDeviceProperties().isTwoPanels());
             Toast.makeText(launcher, isFoldable
                             ? R.string.app_pair_needs_unfold
                             : R.string.app_pair_unlaunchable_at_screen_size,
@@ -390,6 +396,28 @@ public class ItemClickHandler {
                         launcher.getAppsView().getPrivateProfileManager().getProfileUser());
                 launcher.getStatsLogManager().logger().log(
                         LAUNCHER_PRIVATE_SPACE_INSTALL_APP_BUTTON_TAP);
+            }
+        }
+
+        boolean enableMovingContentIntoPrivateSpace = false;
+        if (ATLEAST_BAKLAVA) {
+            try {
+                /* LC-Note: Some devices (Android 16 QPR) doesn't have or expose this flag to user.
+                 * Let's assume no, because (the flags) enableMovingContentIntoPrivateSpace seems
+                 * to be False for R8 by default.
+                 * */
+                enableMovingContentIntoPrivateSpace = enableMovingContentIntoPrivateSpace();
+            } catch (NoClassDefFoundError | NoSuchMethodError e) {
+                enableMovingContentIntoPrivateSpace = false;
+            }
+        }
+        if (enableMovingContentIntoPrivateSpace &&
+                Objects.equals(item.getTargetPackage(), PRIVATE_SPACE_PACKAGE)
+                && item.itemType != ITEM_TYPE_DEEP_SHORTCUT) {
+            // Only show the popup menu when clicking on the icon itself.
+            if (v instanceof BubbleTextView btv) {
+                btv.startLongPressAction();
+                return;
             }
         }
         if (intent == null) {

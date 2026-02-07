@@ -21,6 +21,7 @@ import android.view.WindowInsets;
 
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.statemanager.StateManager;
 
 /**
@@ -42,7 +43,7 @@ public class LauncherAllAppsContainerView extends ActivityAllAppsContainerView<L
 
     @Override
     protected int computeNavBarScrimHeight(WindowInsets insets) {
-        return insets.getTappableElementInsets().bottom;
+        return Utilities.ATLEAST_Q ? insets.getTappableElementInsets().bottom : insets.getStableInsetBottom();
     }
 
     @Override
@@ -99,7 +100,7 @@ public class LauncherAllAppsContainerView extends ActivityAllAppsContainerView<L
 
         // Special case to not expand the search bar when exiting All Apps on phones.
         if (stateManager.getCurrentStableState() == LauncherState.ALL_APPS
-                && mActivityContext.getDeviceProfile().isPhone) {
+                && mActivityContext.getDeviceProfile().getDeviceProperties().isPhone()) {
             return LauncherState.ALL_APPS.getFloatingSearchBarRestingMarginStart(mActivityContext);
         }
 
@@ -121,7 +122,7 @@ public class LauncherAllAppsContainerView extends ActivityAllAppsContainerView<L
 
         // Special case to not expand the search bar when exiting All Apps on phones.
         if (stateManager.getCurrentStableState() == LauncherState.ALL_APPS
-                && mActivityContext.getDeviceProfile().isPhone) {
+                && mActivityContext.getDeviceProfile().getDeviceProperties().isPhone()) {
             return LauncherState.ALL_APPS.getFloatingSearchBarRestingMarginEnd(mActivityContext);
         }
 

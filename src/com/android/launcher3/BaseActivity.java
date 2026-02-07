@@ -29,11 +29,14 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.View;
 import android.window.OnBackInvokedDispatcher;
 
+import androidx.activity.ComponentActivity;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -43,6 +46,8 @@ import androidx.savedstate.SavedStateRegistry;
 import androidx.savedstate.SavedStateRegistryController;
 
 import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener;
+import com.android.launcher3.dagger.ActivityContextComponent;
+import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.testing.TestLogging;
@@ -73,7 +78,8 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
         DisplayInfoChangeListener {
 
     private static final String TAG = "BaseActivity";
-    static final boolean DEBUG = false;
+    // TODO(b/406230491): Trun DEBUG back to false once done with investigation.
+    static final boolean DEBUG = true;
 
     public static final int INVISIBLE_BY_STATE_HANDLER = 1 << 0;
     public static final int INVISIBLE_BY_APP_TRANSITIONS = 1 << 1;
@@ -107,6 +113,9 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
             SavedStateRegistryController.create(this);
     private final LifecycleRegistry mLifecycleRegistry = new LifecycleRegistry(this);
     private final WeakCleanupSet mCleanupSet = new WeakCleanupSet(this);
+    
+    // Keep a reference to the helper to manually dispatch events on older APIs
+    private final LifecycleHelper mLifecycleHelper;
 
     protected DeviceProfile mDeviceProfile;
     protected SystemUiController mSystemUiController;
@@ -188,10 +197,14 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
 
     private ActionMode mCurrentActionMode;
 
+    private ActivityContextComponent mActivityComponent;
+
     public BaseActivity() {
         mSavedStateRegistryController.performAttach();
-        registerActivityLifecycleCallbacks(
-                new LifecycleHelper(this, mSavedStateRegistryController, mLifecycleRegistry));
+        mLifecycleHelper = new LifecycleHelper(this, mSavedStateRegistryController, mLifecycleRegistry);
+        if (Utilities.ATLEAST_Q) {
+            registerActivityLifecycleCallbacks(mLifecycleHelper);
+        }
     }
 
     @Override
@@ -207,6 +220,15 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     @Override
     public List<OnDeviceProfileChangeListener> getOnDeviceProfileChangeListeners() {
         return mDPChangeListeners;
+    }
+
+    @Override
+    public ActivityContextComponent getActivityComponent() {
+        if (mActivityComponent == null) {
+            mActivityComponent = (ActivityContextComponent) LauncherComponentProvider.get(this)
+                    .getActivityContextComponentBuilder().activityContext(this).build();
+        }
+        return mActivityComponent;
     }
 
     /**
@@ -239,6 +261,9 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivityCreated(this, savedInstanceState);
+        }
         registerBackDispatcher();
         DisplayController.INSTANCE.get(this).addChangeListener(this);
     }
@@ -247,6 +272,9 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     protected void onStart() {
         addActivityFlags(ACTIVITY_STATE_STARTED);
         super.onStart();
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivityStarted(this);
+        }
         mEventCallbacks[EVENT_STARTED].executeAllAndClear();
     }
 
@@ -254,6 +282,9 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     protected void onResume() {
         setResumed();
         super.onResume();
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivityResumed(this);
+        }
         mEventCallbacks[EVENT_RESUMED].executeAllAndClear();
     }
 
@@ -276,6 +307,9 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
         removeActivityFlags(ACTIVITY_STATE_STARTED | ACTIVITY_STATE_USER_ACTIVE);
         mForceInvisible = 0;
         super.onStop();
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivityStopped(this);
+        }
         mEventCallbacks[EVENT_STOPPED].executeAllAndClear();
 
 
@@ -287,6 +321,9 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivityDestroyed(this);
+        }
         mEventCallbacks[EVENT_DESTROYED].executeAllAndClear();
         DisplayController.INSTANCE.get(this).removeChangeListener(this);
     }
@@ -295,12 +332,23 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     protected void onPause() {
         setPaused();
         super.onPause();
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivityPaused(this);
+        }
 
         // Reset the overridden sysui flags used for the task-swipe launch animation, we do this
         // here instead of at the end of the animation because the start of the new activity does
         // not happen immediately, which would cause us to reset to launcher's sysui flags and then
         // back to the new app (causing a flash)
         getSystemUiController().updateUiState(UI_STATE_FULLSCREEN_TASK, 0);
+    }
+    
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (Utilities.ATLEAST_Q) {
+            mLifecycleHelper.onActivitySaveInstanceState(this, outState);
+        }
     }
 
     @Override

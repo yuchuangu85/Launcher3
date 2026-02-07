@@ -28,6 +28,7 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.ArraySet;
 import android.view.RemoteAnimationTarget;
+import android.view.SurfaceControl;
 import android.window.TransitionInfo;
 
 import androidx.annotation.BinderThread;
@@ -36,8 +37,9 @@ import androidx.annotation.UiThread;
 
 import com.android.launcher3.Utilities;
 import com.android.launcher3.util.Preconditions;
-import com.android.quickstep.fallback.window.RecentsWindowFlags;
+import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.util.ActiveGestureProtoLogProxy;
+import com.android.quickstep.views.RecentsViewContainer;
 import com.android.systemui.shared.recents.model.ThumbnailData;
 import com.android.systemui.shared.system.RecentsAnimationControllerCompat;
 
@@ -47,6 +49,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 
+import app.lawnchair.compat.LawnchairQuickstepCompat;
+
 /**
  * Wrapper around {@link com.android.systemui.shared.system.RecentsAnimationListener} which
  * delegates callbacks to multiple listeners on the main thread
@@ -55,15 +59,15 @@ public class RecentsAnimationCallbacks implements
         com.android.systemui.shared.system.RecentsAnimationListener {
 
     private final Set<RecentsAnimationListener> mListeners = new ArraySet<>();
-    private final SystemUiProxy mSystemUiProxy;
+    private final RecentsViewContainer mContainer;
 
     // TODO(141886704): Remove these references when they are no longer needed
     private RecentsAnimationController mController;
 
     private boolean mCancelled;
 
-    public RecentsAnimationCallbacks(SystemUiProxy systemUiProxy) {
-        mSystemUiProxy = systemUiProxy;
+    public RecentsAnimationCallbacks(RecentsViewContainer container) {
+        mContainer = container;
     }
 
     @UiThread
@@ -99,6 +103,18 @@ public class RecentsAnimationCallbacks implements
                 homeContentInsets, minimizedHomeBounds, extras, /* transitionInfo= */ null);
     }
 
+    // Introduced in NothingOS 2.5.5, needed in 2.6
+    @BinderThread
+    public final void onAnimationStart(RecentsAnimationControllerCompat controller,
+            TransitionInfo transitionInfo, SurfaceControl.Transaction transaction,
+            RemoteAnimationTarget[] apps, RemoteAnimationTarget[] wallpapers,
+            Rect homeContentInsets, Rect minimizedHomeBounds) {
+        if (transaction != null) {
+            transaction.apply();
+        }
+//        onAnimationStart(controller, apps, wallpapers, homeContentInsets, minimizedHomeBounds);
+    }
+
     // Called only in R+ platform
     @BinderThread
     public final void onAnimationStart(RecentsAnimationControllerCompat animationController,
@@ -113,7 +129,7 @@ public class RecentsAnimationCallbacks implements
         boolean isOpeningHome = Arrays.stream(appTargets).filter(app -> app.mode == MODE_OPENING
                         && app.windowConfiguration.getActivityType() == ACTIVITY_TYPE_HOME)
                 .count() > 0;
-        if (appCount == 0 && (!RecentsWindowFlags.Companion.getEnableOverviewInWindow()
+        if (appCount == 0 && (!(mContainer instanceof RecentsWindowManager)
                 || isOpeningHome)) {
             ActiveGestureProtoLogProxy.logOnRecentsAnimationStartCancelled();
             // Edge case, if there are no closing app targets, then Launcher has nothing to handle

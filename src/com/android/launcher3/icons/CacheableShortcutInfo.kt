@@ -24,7 +24,6 @@ import android.content.pm.ShortcutInfo
 import android.graphics.drawable.Drawable
 import android.os.UserHandle
 import android.util.Log
-import com.android.launcher3.BuildConfig
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.icons.BaseIconFactory.IconOptions
 import com.android.launcher3.icons.cache.BaseIconCache
@@ -52,7 +51,7 @@ class CacheableShortcutInfo(val shortcutInfo: ShortcutInfo, val appInfo: Applica
          */
         @JvmStatic
         fun getIcon(context: Context, shortcutInfo: ShortcutInfo, density: Int): Drawable? {
-            if (!BuildConfig.WIDGETS_ENABLED) {
+            if (!true) {
                 return null
             }
             try {

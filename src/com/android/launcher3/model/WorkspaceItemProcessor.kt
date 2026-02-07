@@ -16,7 +16,6 @@
 package com.android.launcher3.model
 
 import android.annotation.SuppressLint
-import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -28,10 +27,14 @@ import android.graphics.Point
 import android.text.TextUtils
 import android.util.Log
 import android.util.LongSparseArray
+import android.util.SparseArray
 import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger.RestoreError
+import com.android.launcher3.folder.Folder
+import com.android.launcher3.folder.FolderGridOrganizer.createFolderGridOrganizer
+import com.android.launcher3.Utilities
 import com.android.launcher3.icons.CacheableShortcutInfo
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.icons.cache.CacheLookupFlag.Companion.DEFAULT_LOOKUP_FLAG
@@ -40,6 +43,7 @@ import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.IconRequestInfo
+import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.ItemInfoWithIcon
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
@@ -49,7 +53,8 @@ import com.android.launcher3.shortcuts.ShortcutKey
 import com.android.launcher3.shortcuts.ShortcutRequest
 import com.android.launcher3.util.ApiWrapper
 import com.android.launcher3.util.ApplicationInfoWrapper
-import com.android.launcher3.util.ComponentKey
+import com.android.launcher3.util.IntArray
+import com.android.launcher3.util.IntSparseArrayMap
 import com.android.launcher3.util.PackageManagerHelper
 import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo
@@ -75,8 +80,6 @@ class WorkspaceItemProcessor(
     private val idp: InvariantDeviceProfile,
     private val iconCache: IconCache,
     private val isSafeMode: Boolean,
-    private val bgDataModel: BgDataModel,
-    private val widgetProvidersMap: MutableMap<ComponentKey, AppWidgetProviderInfo?>,
     private val installingPkgs: HashMap<PackageUserKey, PackageInstaller.SessionInfo>,
     private val isSdCardReady: Boolean,
     private val widgetInflater: WidgetInflater,
@@ -85,6 +88,8 @@ class WorkspaceItemProcessor(
     private val unlockedUsers: LongSparseArray<Boolean>,
     private val allDeepShortcuts: MutableList<CacheableShortcutInfo>,
 ) {
+
+    private val loadedItems = IntSparseArrayMap<ItemInfo>()
 
     private val tempPackageKey = PackageUserKey(null, null)
 
@@ -169,7 +174,14 @@ class WorkspaceItemProcessor(
             // If the apk is present and the shortcut points to a specific component.
 
             // If the component is already present
-            if (launcherApps.isActivityEnabled(cn, c.user)) {
+            val isActivityEnabled =
+                try {
+                    launcherApps.isActivityEnabled(cn, c.user)
+                } catch (exception: Exception) {
+                    FileLog.w(TAG, "Error checking activity enabled for component:$cn", exception)
+                    false
+                }
+            if (isActivityEnabled) {
                 // no special handling necessary for this item
                 c.markRestored()
             } else {
@@ -197,9 +209,8 @@ class WorkspaceItemProcessor(
             intent.`package` = targetPkg
         }
 
-        // TODO(gyc)
         val isPreArchivedShortcut =
-            true/*Flags.restoreArchivedShortcuts()*/ &&
+            Flags.restoreArchivedShortcuts() &&
                 appInfoWrapper.isArchived() &&
                 c.itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT &&
                 c.restoreFlag != 0
@@ -376,30 +387,34 @@ class WorkspaceItemProcessor(
                     pmHelper,
                 )
             }
-            if (
-                (c.restoreFlag != 0 ||
-                    Flags.enableSupportForArchiving() &&
-                        activityInfo != null &&
-                        activityInfo.applicationInfo.isArchived) && !TextUtils.isEmpty(targetPkg)
-            ) {
-                tempPackageKey.update(targetPkg, c.user)
-                val si = installingPkgs[tempPackageKey]
-                if (si == null) {
-                    info.runtimeStatusFlags =
-                        info.runtimeStatusFlags and
-                            ItemInfoWithIcon.FLAG_INSTALL_SESSION_ACTIVE.inv()
-                } else if (
-                    activityInfo == null ||
-                        (Flags.enableSupportForArchiving() &&
-                            activityInfo.applicationInfo.isArchived)
+            try {
+                if (
+                    Utilities.ATLEAST_V && (c.restoreFlag != 0 ||
+                            Flags.enableSupportForArchiving() &&
+                            activityInfo != null &&
+                            activityInfo.applicationInfo.isArchived) && !TextUtils.isEmpty(targetPkg)
                 ) {
-                    // For archived apps, include progress info in case there is
-                    // a pending install session post restart of device.
-                    val installProgress = (si.getProgress() * 100).toInt()
-                    info.setProgressLevel(installProgress, PackageInstallInfo.STATUS_INSTALLING)
+                    tempPackageKey.update(targetPkg, c.user)
+                    val si = installingPkgs[tempPackageKey]
+                    if (si == null) {
+                        info.runtimeStatusFlags =
+                            info.runtimeStatusFlags and
+                                    ItemInfoWithIcon.FLAG_INSTALL_SESSION_ACTIVE.inv()
+                    } else if (
+                        activityInfo == null ||
+                        (Flags.enableSupportForArchiving() &&
+                                activityInfo.applicationInfo.isArchived)
+                    ) {
+                        // For archived apps, include progress info in case there is
+                        // a pending install session post restart of device.
+                        val installProgress = (si.getProgress() * 100).toInt()
+                        info.setProgressLevel(installProgress, PackageInstallInfo.STATUS_INSTALLING)
+                    }
                 }
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error loading icon", t)
             }
-            c.checkAndAddItem(info, bgDataModel, memoryLogger)
+            c.checkAndAddItem(info, loadedItems, memoryLogger)
         } else {
             throw RuntimeException("Unexpected null WorkspaceItemInfo")
         }
@@ -431,7 +446,7 @@ class WorkspaceItemProcessor(
      * stored in the BgDataModel.
      */
     private fun processFolderOrAppPair() {
-        var collection = c.findOrMakeFolder(c.id, bgDataModel)
+        var collection = c.findOrMakeFolder(c.id, loadedItems)
         // If we generated a placeholder Folder before this point, it may need to be replaced with
         // an app pair.
         if (c.itemType == Favorites.ITEM_TYPE_APP_PAIR && collection is FolderInfo) {
@@ -454,7 +469,7 @@ class WorkspaceItemProcessor(
         }
 
         c.markRestored()
-        c.checkAndAddItem(collection, bgDataModel, memoryLogger)
+        c.checkAndAddItem(collection, loadedItems, memoryLogger)
     }
 
     /**
@@ -585,7 +600,6 @@ class WorkspaceItemProcessor(
                 .commit()
         }
         if (lapi != null) {
-            widgetProvidersMap[ComponentKey(lapi.provider, lapi.user)] = inflationResult.widgetInfo
             if (appWidgetInfo.spanX < lapi.minSpanX || appWidgetInfo.spanY < lapi.minSpanY) {
                 FileLog.d(
                     TAG,
@@ -597,7 +611,75 @@ class WorkspaceItemProcessor(
                 logWidgetInfo(idp, lapi)
             }
         }
-        c.checkAndAddItem(appWidgetInfo, bgDataModel, memoryLogger)
+        c.checkAndAddItem(appWidgetInfo, loadedItems, memoryLogger)
+    }
+
+    /**
+     * After all items have been processed and added to the BgDataModel, this method can correctly
+     * rank items inside folders and load the correct miniature preview icons to be shown when the
+     * folder is collapsed.
+     */
+    private fun processFolderItems() {
+        // Sort the folder items, update ranks, and make sure all preview items are high res.
+        val verifiers = idp.supportedProfiles.map { createFolderGridOrganizer(it) }
+        for (itemInfo in loadedItems) {
+            if (itemInfo !is FolderInfo) {
+                continue
+            }
+
+            itemInfo.getContents().sortWith(Folder.ITEM_POS_COMPARATOR)
+            verifiers.forEach { it.setFolderInfo(itemInfo) }
+
+            // Update ranks here to ensure there are no gaps caused by removed folder items.
+            // Ranks are the source of truth for folder items, so cellX and cellY can be
+            // ignored for now. Database will be updated once user manually modifies folder.
+            itemInfo.getContents().forEachIndexed { rank, info ->
+                info.rank = rank
+                if (
+                    info is WorkspaceItemInfo &&
+                        info.matchingLookupFlag.isVisuallyLessThan(Favorites.DESKTOP_ICON_FLAG) &&
+                        info.itemType == Favorites.ITEM_TYPE_APPLICATION &&
+                        verifiers.any { it.isItemInPreview(info.rank) }
+                ) {
+                    iconCache.getTitleAndIcon(info, Favorites.DESKTOP_ICON_FLAG)
+                }
+            }
+        }
+    }
+
+    private fun removeItems(ids: IntArray?) = ids?.forEach { loadedItems.remove(it) }
+
+    /**
+     * Applies any queued update data update tasks and data sanity checks and returns the final set
+     * of workspace data. This includes:
+     * 1) Loading any additional model data, not coming from the DB
+     * 2) Sanity checks on folder and app pair: removing empty and single item folders, and sorting
+     *    contents
+     * 3) Committing any persistent modifications and deletions to the storage
+     */
+    fun finalizeData(
+        delegate: ModelDelegate,
+        modelDbController: ModelDbController,
+    ): SparseArray<ItemInfo> {
+        delegate.loadAndAddExtraModelItems(loadedItems)
+        delegate.markActive()
+
+        // Remove dead items
+        val itemsDeleted = c.commitDeleted()
+
+        processFolderItems()
+        // After all items have been processed and added to the BgDataModel, this method
+        // requests high-res icons for the items that are part of an app pair.
+        loadedItems.forEach { if (it is AppPairInfo) it.fetchHiResIconsIfNeeded(iconCache) }
+        c.commitRestoredItems()
+        if (itemsDeleted) {
+            // Remove any empty folder
+            removeItems(modelDbController.deleteEmptyFolders())
+        }
+        // Cleans up app pairs if they don't have the right number of member apps (2).
+        removeItems(modelDbController.deleteBadAppPairs())
+        removeItems(modelDbController.deleteUnparentedApps())
+        return loadedItems
     }
 
     companion object {
@@ -612,8 +694,8 @@ class WorkspaceItemProcessor(
                 deviceProfile.getCellSize(cellSize)
                 FileLog.d(
                     TAG,
-                    "DeviceProfile available width: ${deviceProfile.availableWidthPx}," +
-                        " available height: ${deviceProfile.availableHeightPx}," +
+                    "DeviceProfile available width: ${deviceProfile.deviceProperties.availableWidthPx}," +
+                        " available height: ${deviceProfile.deviceProperties.availableHeightPx}," +
                         " cellLayoutBorderSpacePx Horizontal: ${deviceProfile.cellLayoutBorderSpacePx.x}," +
                         " cellLayoutBorderSpacePx Vertical: ${deviceProfile.cellLayoutBorderSpacePx.y}," +
                         " cellSize: $cellSize",

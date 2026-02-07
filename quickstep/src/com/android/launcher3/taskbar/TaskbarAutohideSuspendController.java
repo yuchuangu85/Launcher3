@@ -27,8 +27,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.StringJoiner;
 
 /**
- * Normally Taskbar will auto-hide when entering immersive (fullscreen) apps. This controller allows
- * us to suspend that behavior in certain cases (e.g. opening a Folder or dragging an icon).
+ * Normally Taskbar will auto-hide when entering immersive (fullscreen) apps.
+ * This controller allows
+ * us to suspend that behavior in certain cases (e.g. opening a Folder or
+ * dragging an icon).
  */
 public class TaskbarAutohideSuspendController implements
         TaskbarControllers.LoggableTaskbarController {
@@ -51,6 +53,8 @@ public class TaskbarAutohideSuspendController implements
     public static final int FLAG_AUTOHIDE_SUSPEND_MULTI_INSTANCE_MENU_OPEN = 1 << 7;
     // User has taskbar overflow open.
     public static final int FLAG_AUTOHIDE_SUSPEND_TASKBAR_OVERFLOW = 1 << 8;
+    // Growth Framework nudge overlay is open above the Taskbar.
+    public static final int FLAG_AUTOHIDE_SUSPEND_GROWTH_NUDGE_OPEN = 1 << 9;
 
     @IntDef(flag = true, value = {
             FLAG_AUTOHIDE_SUSPEND_FULLSCREEN,
@@ -62,9 +66,11 @@ public class TaskbarAutohideSuspendController implements
             FLAG_AUTOHIDE_SUSPEND_HOVERING_ICONS,
             FLAG_AUTOHIDE_SUSPEND_MULTI_INSTANCE_MENU_OPEN,
             FLAG_AUTOHIDE_SUSPEND_TASKBAR_OVERFLOW,
+            FLAG_AUTOHIDE_SUSPEND_GROWTH_NUDGE_OPEN,
     })
     @Retention(RetentionPolicy.SOURCE)
-    public @interface AutohideSuspendFlag {}
+    public @interface AutohideSuspendFlag {
+    }
 
     private final TaskbarActivityContext mActivity;
     private final SystemUiProxy mSystemUiProxy;
@@ -81,7 +87,8 @@ public class TaskbarAutohideSuspendController implements
     }
 
     /**
-     * Adds or removes the given flag, then notifies system UI proxy whether to suspend auto-hide.
+     * Adds or removes the given flag, then notifies system UI proxy whether to
+     * suspend auto-hide.
      */
     public void updateFlag(@AutohideSuspendFlag int flag, boolean enabled) {
         int flagsBefore = mAutohideSuspendFlags;
@@ -108,7 +115,8 @@ public class TaskbarAutohideSuspendController implements
     }
 
     /**
-     * Returns whether Transient Taskbar should avoid auto-stashing in Launcher(Overview).
+     * Returns whether Transient Taskbar should avoid auto-stashing in
+     * Launcher(Overview).
      */
     public boolean isSuspendedForTransientTaskbarInLauncher() {
         return (mAutohideSuspendFlags & FLAG_AUTOHIDE_SUSPEND_IN_LAUNCHER) != 0;
@@ -143,6 +151,8 @@ public class TaskbarAutohideSuspendController implements
                 "FLAG_AUTOHIDE_SUSPEND_MULTI_INSTANCE_MENU_OPEN");
         appendFlag(str, flags, FLAG_AUTOHIDE_SUSPEND_TASKBAR_OVERFLOW,
                 "FLAG_AUTOHIDE_SUSPEND_TASKBAR_OVERFLOW");
+        appendFlag(str, flags, FLAG_AUTOHIDE_SUSPEND_GROWTH_NUDGE_OPEN,
+                "FLAG_AUTOHIDE_SUSPEND_GROWTH_NUDGE_OPEN");
         return str.toString();
     }
 }

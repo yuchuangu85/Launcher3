@@ -32,10 +32,12 @@ import java.util.List;
  * The expected stages of a keyboard transition are:
  * <p>
  * <ul>
- *   <li>PREPARING: Keyboard insets haven't changed yet, but are about to.</li>
- *   <li>STARTED: Keyboard insets have temporarily changed to the end state, but not drawn.</li>
- *   <li>PROGRESSING: At least one frame of the animation has been drawn.</li>
- *   <li>FINISHED: Keyboard has reached its end state, and animation is complete.</li>
+ * <li>PREPARING: Keyboard insets haven't changed yet, but are about to.</li>
+ * <li>STARTED: Keyboard insets have temporarily changed to the end state, but
+ * not drawn.</li>
+ * <li>PROGRESSING: At least one frame of the animation has been drawn.</li>
+ * <li>FINISHED: Keyboard has reached its end state, and animation is
+ * complete.</li>
  * </ul>
  */
 @RequiresApi(api = Build.VERSION_CODES.R)
@@ -50,7 +52,8 @@ public class KeyboardInsetAnimationCallback extends WindowInsetsAnimation.Callba
     public enum KeyboardTranslationState {
         // We are not controlling the keyboard, and it may or may not be translating.
         SYSTEM,
-        // We are about to gain control of the keyboard, but the current state may be transient.
+        // We are about to gain control of the keyboard, but the current state may be
+        // transient.
         MANUAL_PREPARED,
         // We are manually translating the keyboard.
         MANUAL_ONGOING
@@ -74,9 +77,11 @@ public class KeyboardInsetAnimationCallback extends WindowInsetsAnimation.Callba
     @Override
     public WindowInsetsAnimation.Bounds onStart(WindowInsetsAnimation animation,
             WindowInsetsAnimation.Bounds bounds) {
-        // Final insets have temporarily been applied, so store the current translation as final.
+        // Final insets have temporarily been applied, so store the current translation
+        // as final.
         mTerminalTranslation = mView.getTranslationY();
-        // Reset the translation in case the view is drawn before onProgress gets called.
+        // Reset the translation in case the view is drawn before onProgress gets
+        // called.
         mView.setTranslationY(mInitialTranslation);
         mKeyboardTranslationState = KeyboardTranslationState.MANUAL_ONGOING;
         if (mView instanceof KeyboardInsetListener) {
@@ -100,7 +105,7 @@ public class KeyboardInsetAnimationCallback extends WindowInsetsAnimation.Callba
         } else {
             // Manually controlled animation: Set translation to keyboard height.
             int translationY = -windowInsets.getInsets(WindowInsets.Type.ime()).bottom;
-            if (mView.getParent() instanceof View) {
+            if (translationY < 0 && mView.getParent() instanceof View) {
                 // Offset any translation of the parent (e.g. All Apps parallax).
                 translationY -= ((View) mView.getParent()).getTranslationY();
             }
@@ -136,7 +141,8 @@ public class KeyboardInsetAnimationCallback extends WindowInsetsAnimation.Callba
          *
          * @param alpha the current IME alpha
          */
-        default void onKeyboardAlphaChanged(float alpha) {}
+        default void onKeyboardAlphaChanged(float alpha) {
+        }
 
         /**
          * Called from {@link KeyboardInsetAnimationCallback#onEnd}

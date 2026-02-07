@@ -15,7 +15,7 @@
  */
 package com.android.quickstep.util;
 
-import static com.android.systemui.shared.system.QuickStepContract.supportsRoundedCornersOnWindows;
+import static app.lawnchair.util.LawnchairUtilsKt.supportsRoundedCornersOnWindows;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -27,7 +27,7 @@ public class TaskCornerRadius {
 
     public static float get(Context context) {
         Resources resources = context.getResources();
-        if (!supportsRoundedCornersOnWindows(resources)) {
+        if (!supportsRoundedCornersOnWindows(context)) {
             return resources.getDimension(R.dimen.task_corner_radius_small);
         }
 

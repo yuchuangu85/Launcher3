@@ -87,8 +87,6 @@
         @android:color/system_accent1_0</color>
     <color name="widget_picker_suggestions_icon_color_light">
         @android:color/system_accent1_600</color>
-    <color name="widget_picker_search_text_color_light">
-        @android:color/system_neutral2_700</color>
     <color name="widget_picker_tab_background_selected_light">
         @android:color/system_accent1_600</color>
     <color name="widget_picker_tab_background_unselected_light">

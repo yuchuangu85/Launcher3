@@ -42,7 +42,7 @@
             android:orientation="vertical" >
 
             <TextView
-                style="@style/TextHeadline"
+                style="@style/WidgetsTitle"
                 android:id="@+id/widget_appName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

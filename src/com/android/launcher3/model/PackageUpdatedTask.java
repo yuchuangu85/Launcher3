@@ -16,10 +16,9 @@
 package com.android.launcher3.model;
 
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_QUIET_MODE_ENABLED;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
-import static com.android.launcher3.model.ModelUtils.WIDGET_FILTER;
+import static com.android.launcher3.model.data.AppsListData.FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED;
+import static com.android.launcher3.model.data.AppsListData.FLAG_QUIET_MODE_ENABLED;
+import static com.android.launcher3.model.data.AppsListData.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_ARCHIVED;
 import static com.android.launcher3.model.data.LauncherAppWidgetInfo.FLAG_PROVIDER_NOT_READY;
 import static com.android.launcher3.model.data.WorkspaceItemInfo.FLAG_AUTOINSTALL_ICON;
@@ -30,6 +29,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
+import android.content.pm.PackageManager;
 import android.content.pm.ShortcutInfo;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -40,6 +40,7 @@ import androidx.annotation.NonNull;
 import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherModel.ModelUpdateTask;
 import com.android.launcher3.LauncherSettings.Favorites;
+import com.android.launcher3.R;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.logging.FileLog;
@@ -50,6 +51,7 @@ import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.shortcuts.ShortcutRequest;
 import com.android.launcher3.util.ApiWrapper;
+import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.FlagOp;
 import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.ItemInfoMatcher;
@@ -57,7 +59,6 @@ import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.util.SafeCloseable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,6 +67,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import app.lawnchair.deck.LawndeckManager;
+import app.lawnchair.preferences.PreferenceManager;
+import app.lawnchair.preferences2.PreferenceManager2;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 /**
  * Handles updates due to changes in package manager (app installed/updated/removed)
@@ -117,6 +123,8 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                 : ItemInfoMatcher.ofPackages(packageSet, mUser);
         final HashSet<ComponentName> removedComponents = new HashSet<>();
         final HashMap<String, List<LauncherActivityInfo>> activitiesLists = new HashMap<>();
+        final PackageManagerHelper packageManagerHelper = new PackageManagerHelper(context);
+
         if (DEBUG) {
             Log.d(TAG, "Package updated: mOp=" + getOpString()
                     + " packages=" + Arrays.toString(packages)
@@ -159,6 +167,26 @@ public class PackageUpdatedTask implements ModelUpdateTask {
             case OP_REMOVE: {
                 for (int i = 0; i < packageCount; i++) {
                     iconCache.removeIconsForPkg(packages[i], mUser);
+                    PreferenceManager pm = PreferenceManager.getInstance(context);
+                    if (packages[i].equals(pm.getIconPackPackage().get())) {
+                        pm.getIconPackPackage().set("");
+                    }
+                    if (packages[i].equals(pm.getThemedIconPackPackage().get())) {
+                        pm.getThemedIconPackPackage().set("");
+                    }
+                    final boolean isThemedIconsAvailable = context.getPackageManager()
+                            .queryIntentActivityOptions(
+                                    new ComponentName(context.getApplicationInfo().packageName,
+                                            context.getApplicationInfo().className),
+                                    null,
+                                    new Intent(context.getResources().getString(R.string.icon_packs_intent_name)),
+                                    PackageManager.GET_RESOLVED_FILTER)
+                            .stream().map(it -> it.activityInfo.packageName)
+                            .noneMatch(it -> new ApplicationInfoWrapper(context, it, mUser)
+                                .isInstalled());
+                    if (isThemedIconsAvailable) {
+                        pm.getThemedIcons().set(false);
+                    }
                 }
                 // Fall through
             }
@@ -212,12 +240,12 @@ public class PackageUpdatedTask implements ModelUpdateTask {
 
         // Update shortcut infos
         if (mOp == OP_ADD || flagOp != FlagOp.NO_OP) {
-            final ArrayList<ItemInfo> updatedWorkspaceItems = new ArrayList<>();
+            final List<ItemInfo> updatedItems;
 
             // For system apps, package manager send OP_UPDATE when an app is enabled.
             final boolean isNewApkAvailable = mOp == OP_ADD || mOp == OP_UPDATE;
             synchronized (dataModel) {
-                dataModel.forAllWorkspaceItemInfos(mUser, itemInfo -> {
+                updatedItems = dataModel.updateAndCollectWorkspaceItemInfos(mUser, itemInfo -> {
 
                     boolean infoUpdated = false;
                     boolean shortcutUpdated = false;
@@ -229,7 +257,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                         if (itemInfo.hasStatusFlag(WorkspaceItemInfo.FLAG_SUPPORTS_WEB_UI)) {
                             forceKeepShortcuts.add(itemInfo.id);
                             if (mOp == OP_REMOVE) {
-                                return;
+                                return false;
                             }
                         }
 
@@ -286,7 +314,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                                                 + ", status=" + itemInfo.status
                                                 + ", isArchived=" + itemInfo.isArchived());
                                     }
-                                    return;
+                                    return false;
                                 }
                             } else if (!isTargetValid) {
                                 removedShortcuts.add(itemInfo.id);
@@ -297,7 +325,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                                             + " package=" + itemInfo.getTargetPackage()
                                             + " status=" + itemInfo.status);
                                 }
-                                return;
+                                return false;
                             } else {
                                 itemInfo.status = WorkspaceItemInfo.DEFAULT;
                                 infoUpdated = true;
@@ -321,14 +349,19 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                                     PackageInstallInfo.STATUS_INSTALLED_DOWNLOADING);
                             // In case an app is archived, we need to make sure that archived state
                             // in WorkspaceItemInfo is refreshed.
-                            if (Flags.enableSupportForArchiving() && !activities.isEmpty()) {
+                            try {
+                                if (Flags.enableSupportForArchiving() && !activities.isEmpty()) {
                                 boolean newArchivalState = activities.get(0)
                                         .getActivityInfo().isArchived;
                                 if (newArchivalState != itemInfo.isArchived()) {
                                     itemInfo.runtimeStatusFlags ^= FLAG_ARCHIVED;
-                                    infoUpdated = true;
+                                        infoUpdated = true;
+                                    }
                                 }
+                            } catch (Throwable t) {
+                                // LC-Ignored
                             }
+
                             if (itemInfo.itemType == Favorites.ITEM_TYPE_APPLICATION) {
                                 if (activities != null && !activities.isEmpty()) {
                                     itemInfo.setNonResizeable(ApiWrapper.INSTANCE.get(context)
@@ -347,36 +380,30 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                         }
                     }
 
-                    if (infoUpdated || shortcutUpdated) {
-                        updatedWorkspaceItems.add(itemInfo);
-                    }
                     if (infoUpdated && itemInfo.id != ItemInfo.NO_ID) {
                         taskController.getModelWriter().updateItemInDatabase(itemInfo);
                     }
+                    return infoUpdated || shortcutUpdated;
+                }, widget -> {
+                    if (widget.hasRestoreFlag(FLAG_PROVIDER_NOT_READY)
+                            && packageSet.contains(widget.providerName.getPackageName())) {
+                        widget.restoreStatus &=
+                                ~FLAG_PROVIDER_NOT_READY
+                                        & ~LauncherAppWidgetInfo.FLAG_RESTORE_STARTED;
+
+                        // adding this flag ensures that launcher shows 'click to setup'
+                        // if the widget has a config activity. In case there is no config
+                        // activity, it will be marked as 'restored' during bind.
+                        widget.restoreStatus |= LauncherAppWidgetInfo.FLAG_UI_NOT_READY;
+                        widget.installProgress = 100;
+                        taskController.getModelWriter().updateItemInDatabase(widget);
+                        return true;
+                    }
+                    return false;
                 });
-
-                dataModel.itemsIdMap.stream()
-                        .filter(WIDGET_FILTER)
-                        .filter(item -> mUser.equals(item.user))
-                        .map(item -> (LauncherAppWidgetInfo) item)
-                        .filter(widget -> widget.hasRestoreFlag(FLAG_PROVIDER_NOT_READY)
-                                && packageSet.contains(widget.providerName.getPackageName()))
-                        .forEach(widgetInfo -> {
-                            widgetInfo.restoreStatus &=
-                                    ~FLAG_PROVIDER_NOT_READY
-                                            & ~LauncherAppWidgetInfo.FLAG_RESTORE_STARTED;
-
-                            // adding this flag ensures that launcher shows 'click to setup'
-                            // if the widget has a config activity. In case there is no config
-                            // activity, it will be marked as 'restored' during bind.
-                            widgetInfo.restoreStatus |= LauncherAppWidgetInfo.FLAG_UI_NOT_READY;
-                            widgetInfo.installProgress = 100;
-                            updatedWorkspaceItems.add(widgetInfo);
-                            taskController.getModelWriter().updateItemInDatabase(widgetInfo);
-                        });
             }
 
-            taskController.bindUpdatedWorkspaceItems(updatedWorkspaceItems);
+            taskController.bindUpdatedWorkspaceItems(updatedItems);
             if (!removedShortcuts.isEmpty()) {
                 taskController.deleteAndBindComponentsRemoved(
                         ItemInfoMatcher.ofItemIds(removedShortcuts),
@@ -434,6 +461,16 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                 dataModel.widgetsModel.update(new PackageUserKey(packages[i], mUser));
             }
             taskController.bindUpdatedWidgets(dataModel);
+            
+            // If deck layout is enabled, add newly installed apps to workspace with categorization
+            PreferenceManager2 pref2 = PreferenceManager2.INSTANCE.get(context);
+            if (PreferenceExtensionsKt.firstBlocking(pref2.getDeckLayout())) {
+                LawndeckManager deckManager = new LawndeckManager(context);
+                ModelWriter modelWriter = taskController.getModelWriter();
+                for (int i = 0; i < packageCount; i++) {
+                    deckManager.addNewlyInstalledApp(packages[i], mUser, modelWriter, dataModel);
+                }
+            }
         }
     }
 

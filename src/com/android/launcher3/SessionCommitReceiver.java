@@ -32,6 +32,11 @@ import com.android.launcher3.model.ItemInstallQueue;
 import com.android.launcher3.pm.InstallSessionHelper;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.Executors;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+
+import app.lawnchair.preferences2.PreferenceManager2;
+
+import java.util.Locale;
 
 import java.util.Locale;
 
@@ -62,6 +67,11 @@ public class SessionCommitReceiver extends BroadcastReceiver {
         if (!PackageInstaller.ACTION_SESSION_COMMITTED.equals(intent.getAction())
                 || info == null || user == null) {
             // Invalid intent.
+            return;
+        }
+
+        if (info.getSessionId() == -1) {
+            FileLog.d(LOG, "Session id for " + info.getAppPackageName() + " is -1");
             return;
         }
 
@@ -101,8 +111,10 @@ public class SessionCommitReceiver extends BroadcastReceiver {
      * - Home Settings preference to add App Icons on Home Screen is set as disabled
      */
     public static boolean isEnabled(Context context, UserHandle user) {
-        if (Flags.privateSpaceRestrictItemDrag() && user != null
-                && UserCache.getInstance(context).getUserInfo(user).isPrivate()) {
+        if (Flags.privateSpaceRestrictItemDrag() 
+            && PreferenceExtensionsKt.firstBlocking(PreferenceManager2.getInstance(context).getLockHomeScreen())
+            && user != null
+            && UserCache.getInstance(context).getUserInfo(user).isPrivate()) {
             return false;
         }
         return LauncherPrefs.getPrefs(context).getBoolean(ADD_ICON_PREFERENCE_KEY, true);

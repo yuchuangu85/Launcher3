@@ -63,7 +63,7 @@ private constructor(
         const val DEFAULT_BORDER_COLOR = Color.WHITE
         private const val DEFAULT_APPEARANCE_ANIMATION_DURATION_MS = 300L
         private const val DEFAULT_DISAPPEARANCE_ANIMATION_DURATION_MS = 133L
-        private val DEFAULT_INTERPOLATOR = Interpolators.EMPHASIZED_DECELERATE
+        val DEFAULT_INTERPOLATOR = Interpolators.EMPHASIZED_DECELERATE
 
         /**
          * Creates a BorderAnimator that simply draws the border outside the bound of the target

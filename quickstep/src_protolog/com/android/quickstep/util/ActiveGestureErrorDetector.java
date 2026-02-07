@@ -36,11 +36,12 @@ public class ActiveGestureErrorDetector {
         SET_END_TARGET_NEW_TASK, SET_END_TARGET_ALL_APPS, ON_SETTLED_ON_END_TARGET,
         ON_START_RECENTS_ANIMATION, ON_FINISH_RECENTS_ANIMATION, ON_CANCEL_RECENTS_ANIMATION,
         START_RECENTS_ANIMATION, FINISH_RECENTS_ANIMATION, CANCEL_RECENTS_ANIMATION,
-        SET_ON_PAGE_TRANSITION_END_CALLBACK, CANCEL_CURRENT_ANIMATION, CLEANUP_SCREENSHOT,
+        SET_ON_PAGE_TRANSITION_END_CALLBACK, CANCEL_CURRENT_ANIMATION,
         SCROLLER_ANIMATION_ABORTED, TASK_APPEARED, EXPECTING_TASK_APPEARED,
         FLAG_USING_OTHER_ACTIVITY_INPUT_CONSUMER, LAUNCHER_DESTROYED, RECENT_TASKS_MISSING,
         INVALID_VELOCITY_ON_SWIPE_UP, RECENTS_ANIMATION_START_PENDING,
         QUICK_SWITCH_FROM_HOME_FALLBACK, QUICK_SWITCH_FROM_HOME_FAILED, NAVIGATION_MODE_SWITCHED,
+        RECENTS_ANIMATION_START_TIMEOUT,
 
         /**
          * These GestureEvents are specifically associated to state flags that get set in
@@ -124,15 +125,6 @@ public class ActiveGestureErrorDetector {
                             prefix,
                             /* errorMessage= */ "cancelRecentsAnimation called "
                                     + "before/without startRecentsAnimation.",
-                            writer);
-                    break;
-                case CLEANUP_SCREENSHOT:
-                    errorDetected |= printErrorIfTrue(
-                            !encounteredEvents.contains(GestureEvent.STATE_SCREENSHOT_CAPTURED),
-                            prefix,
-                            /* errorMessage= */ "recents activity screenshot was "
-                                    + "cleaned up before/without STATE_SCREENSHOT_CAPTURED "
-                                    + "being set.",
                             writer);
                     break;
                 case SCROLLER_ANIMATION_ABORTED:
@@ -306,6 +298,13 @@ public class ActiveGestureErrorDetector {
                             /* errorMessage= */ "Navigation mode switched mid-gesture.",
                             writer);
                     break;
+                case RECENTS_ANIMATION_START_TIMEOUT:
+                    errorDetected |= printErrorIfTrue(
+                            true,
+                            prefix,
+                            /* errorMessage= */ "Recents animation start timed out.",
+                            writer);
+                    break;
                 case EXPECTING_TASK_APPEARED:
                 case MOTION_DOWN:
                 case SET_END_TARGET:
@@ -418,15 +417,6 @@ public class ActiveGestureErrorDetector {
                 prefix,
                 /* errorMessage= */ "AbsSwipeUpHandler.cancelCurrentAnimation "
                         + "wasn't called and STATE_HANDLER_INVALIDATED wasn't set.",
-                writer);
-
-        errorDetected |= printErrorIfTrue(
-                /* condition= */ encounteredEvents.contains(
-                        GestureEvent.STATE_RECENTS_ANIMATION_CANCELED)
-                        && !encounteredEvents.contains(GestureEvent.CLEANUP_SCREENSHOT),
-                prefix,
-                /* errorMessage= */ "STATE_RECENTS_ANIMATION_CANCELED was set but "
-                        + "the task screenshot wasn't cleaned up.",
                 writer);
 
         errorDetected |= printErrorIfTrue(

@@ -35,11 +35,13 @@ import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.util.BaseLauncherActivityTest;
+import com.android.launcher3.util.rule.ScreenRecordRule;
 import com.android.quickstep.views.DigitalWellBeingToast;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.TaskContainer;
 import com.android.quickstep.views.TaskView;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -48,6 +50,10 @@ import java.time.Duration;
 @LargeTest
 @RunWith(AndroidJUnit4.class)
 public class DigitalWellBeingToastTest extends BaseLauncherActivityTest<QuickstepLauncher> {
+
+    @Rule
+    public ScreenRecordRule mScreenRecordRule = new ScreenRecordRule();
+
 
     public final String calculatorPackage =
             resolveSystemAppInfo(Intent.CATEGORY_APP_CALCULATOR).packageName;
@@ -71,6 +77,10 @@ public class DigitalWellBeingToastTest extends BaseLauncherActivityTest<Quickste
                                             .setPackage(targetContext().getPackageName()),
                                     PendingIntent.FLAG_MUTABLE)));
 
+            // b/324261526 when removing BaseLauncherActivityTest we should be able to tell test
+            // by test test if they should start the activity from the start or wait, and that
+            // should get rid of this.
+            getLauncherActivity().close();
             loadLauncherSync();
             final DigitalWellBeingToast toast = getToast();
 
@@ -81,7 +91,7 @@ public class DigitalWellBeingToastTest extends BaseLauncherActivityTest<Quickste
             runWithShellPermission(
                     () -> usageStatsManager.unregisterAppUsageLimitObserver(observerId));
 
-            goToState(LauncherState.NORMAL);
+            getLauncherActivity().goToState(LauncherState.NORMAL);
             assertFalse("Toast is visible", getToast().getHasLimit());
         } finally {
             runWithShellPermission(
@@ -90,10 +100,13 @@ public class DigitalWellBeingToastTest extends BaseLauncherActivityTest<Quickste
     }
 
     private DigitalWellBeingToast getToast() {
-        goToState(LauncherState.OVERVIEW);
-        final TaskView task = getOnceNotNull("No latest task", launcher -> getLatestTask(launcher));
+        getLauncherActivity().goToState(LauncherState.OVERVIEW);
+        final TaskView task = getLauncherActivity().getOnceNotNull(
+                "No latest task",
+                launcher -> getLatestTask(launcher)
+        );
 
-        return getFromLauncher(launcher -> {
+        return getLauncherActivity().getFromLauncher(launcher -> {
             TaskContainer taskContainer = task.getFirstTaskContainer();
             assertNotNull(taskContainer);
             assertTrue("Latest task is not Calculator", calculatorPackage.equals(

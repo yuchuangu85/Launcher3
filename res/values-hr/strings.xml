@@ -65,7 +65,7 @@
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Izbrišite tekst iz okvira za pretraživanje"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Widgeti i prečaci nisu dostupni"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Nema widgeta ili prečaca"</string>
-    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Osobni"</string>
+    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Osobno"</string>
     <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Posao"</string>
     <string name="widget_category_conversations" msgid="8894438636213590446">"Razgovori"</string>
     <string name="widget_category_note_taking" msgid="3469689394504266039">"Pisanje bilježaka"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Dodirnite da biste dovršili postavljanje"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Ovo je aplikacija sustava i ne može se ukloniti."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Uređivanje naziva"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Numeriranje stranica lijevo"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Numeriranje stranica desno"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Aplikacija <xliff:g id="APP_NAME">%1$s</xliff:g> onemogućena"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{Aplikacija {app_name} ima # obavijest}one{Aplikacija {app_name} ima # obavijest}few{Aplikacija {app_name} ima # obavijesti}other{Aplikacija {app_name} ima # obavijesti}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Stranica %1$d od %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Dopusti zakretanje početnog zaslona"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Kada se telefon zakrene"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Pejzažni način"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Telefon se postavlja u pejzažni način"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Postavite početni zaslon na pejzažni način"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Točke obavijesti"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Uključeno"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Isključeno"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Zaključavanje"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Prelazak na privatni prostor"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Instalirajte"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Dodaj"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instaliranje aplikacija u privatni prostor"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Dodajte datoteke i druge sadržaje u privatni prostor"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Krug"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Kolačić s četiri strane"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Kolačić sa sedam strana"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Luk"</string>
 </resources>

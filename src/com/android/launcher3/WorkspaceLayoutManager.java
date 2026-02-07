@@ -42,8 +42,6 @@ public interface WorkspaceLayoutManager {
 
     // The is the first screen. It is always present, even if its empty.
     int FIRST_SCREEN_ID = 0;
-    // This is the second page. On two panel home it is always present, even if its empty.
-    int SECOND_SCREEN_ID = 1;
 
     /**
      * At bind time, we use the rank (screenId) to compute x and y for hotseat items.
@@ -137,6 +135,10 @@ public interface WorkspaceLayoutManager {
 
         // Get the canonical child id to uniquely represent this view in this screen
         ItemInfo info = (ItemInfo) child.getTag();
+        if (info == null) {
+            Log.e(TAG, "Attempted to add null item to workspace");
+            return;
+        }
         int childId = info.getViewId();
 
         boolean markCellsAsOccupied = !(child instanceof Folder);

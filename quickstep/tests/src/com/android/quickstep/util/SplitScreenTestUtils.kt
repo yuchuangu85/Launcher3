@@ -20,7 +20,7 @@ import androidx.test.uiautomator.By
 import com.android.launcher3.tapl.LauncherInstrumentation
 import com.android.launcher3.tapl.Overview
 import com.android.launcher3.tapl.OverviewTask
-import com.android.launcher3.ui.AbstractLauncherUiTest
+import com.android.launcher3.util.ui.AbstractLauncherUiTest
 
 object SplitScreenTestUtils {
 

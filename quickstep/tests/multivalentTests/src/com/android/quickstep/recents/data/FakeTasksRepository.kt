@@ -17,24 +17,30 @@
 package com.android.quickstep.recents.data
 
 import android.graphics.drawable.Drawable
+import androidx.core.util.forEach
+import androidx.core.util.putAll
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
 class FakeTasksRepository : RecentTasksRepository {
     private var thumbnailDataMap: Map<Int, ThumbnailData> = emptyMap()
     private var taskIconDataMap: Map<Int, FakeIconData> = emptyMap()
     private var tasks: MutableStateFlow<List<Task>> = MutableStateFlow(emptyList())
-    private var visibleTasks: MutableStateFlow<Set<Int>> = MutableStateFlow(emptySet())
+    private var visibleTasks: MutableStateFlow<Map<Int, Set<Int>>> = MutableStateFlow(mapOf())
 
-    override fun getAllTaskData(forceRefresh: Boolean): Flow<List<Task>> = tasks
+    override fun getAllTaskData(displayId: Int, forceRefresh: Boolean): Flow<List<Task>> =
+        tasks.map { it.filter { it.key.displayId == displayId }.toList() }
 
     override fun getTaskDataById(taskId: Int): Flow<Task?> =
-        combine(getAllTaskData(), visibleTasks) { taskList, visibleTasks ->
-                taskList.filter { visibleTasks.contains(it.key.id) }
+        combine(tasks, visibleTasks) { taskList, visibleTasks ->
+                val allVisibleTasks = mutableSetOf<Int>()
+                visibleTasks.forEach { _, value -> allVisibleTasks.addAll(value) }
+                taskList.filter { allVisibleTasks.contains(it.key.id) }
             }
             .map { taskList ->
                 val task = taskList.firstOrNull { it.key.id == taskId } ?: return@map null
@@ -52,8 +58,13 @@ class FakeTasksRepository : RecentTasksRepository {
     override fun getCurrentThumbnailById(taskId: Int): ThumbnailData? =
         tasks.value.firstOrNull { it.key.id == taskId }?.thumbnail
 
-    override fun setVisibleTasks(visibleTaskIdList: Set<Int>) {
-        visibleTasks.value = visibleTaskIdList
+    override fun setVisibleTasks(displayId: Int, visibleTaskIdList: Set<Int>) {
+        visibleTasks.update {
+            val newVisibleTasks = mutableMapOf<Int, Set<Int>>()
+            newVisibleTasks.putAll(it)
+            newVisibleTasks[displayId] = visibleTaskIdList
+            newVisibleTasks
+        }
         tasks.value =
             tasks.value.map {
                 it.apply {

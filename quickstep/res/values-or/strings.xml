@@ -23,12 +23,12 @@
     <string name="recent_task_option_freeform" msgid="48863056265284071">"ଫ୍ରିଫର୍ମ"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"ଡେସ୍କଟପ"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"ଏକ୍ସଟର୍ନଲ ଡିସପ୍ଲେକୁ ମୁଭ କରନ୍ତୁ"</string>
-    <string name="recent_task_option_close" msgid="942942499021777264">"ବନ୍ଦ କରନ୍ତୁ"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"ଖାଲି କରନ୍ତୁ"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"ଡେସ୍କଟପ"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"ବର୍ତ୍ତମାନର କୌଣସି ଆଇଟମ ନାହିଁ"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"ଆପ ବ୍ୟବହାର ସେଟିଂସ"</string>
     <string name="recents_clear_all" msgid="5328176793634888831">"ସବୁ ଖାଲି କରନ୍ତୁ"</string>
+    <string name="add_desk_button_content_description" msgid="5866025518368823735">"ନୂଆ ଡେସ୍କ ଯୋଗ କରନ୍ତୁ"</string>
     <string name="accessibility_recent_apps" msgid="4058661986695117371">"ବର୍ତ୍ତମାନର ଆପ୍‌"</string>
     <string name="task_contents_description_with_remaining_time" msgid="4479688746574672685">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g> <xliff:g id="REMAINING_TIME">%2$s</xliff:g>"</string>
     <string name="shorter_duration_less_than_one_minute" msgid="4722015666335015336">"&lt; 1 ମିନିଟ୍"</string>
@@ -92,9 +92,16 @@
     <string name="allset_hint" msgid="459504134589971527">"ହୋମକୁ ଯିବା ପାଇଁ ଉପରକୁ ସ୍ୱାଇପ କରନ୍ତୁ"</string>
     <string name="allset_button_hint" msgid="2395219947744706291">"ଆପଣଙ୍କ ହୋମ ସ୍କ୍ରିନକୁ ଯିବା ପାଇଁ ହୋମ ବଟନରେ ଟାପ କରନ୍ତୁ"</string>
     <string name="allset_description_generic" msgid="5385500062202019855">"ଆପଣ ଆପଣଙ୍କ <xliff:g id="DEVICE">%1$s</xliff:g> ବ୍ୟବହାର କରିବା ଆରମ୍ଭ କରିବାକୁ ପ୍ରସ୍ତୁତ ଅଛନ୍ତି"</string>
-    <string name="default_device_name" msgid="6660656727127422487">"ଡିଭାଇସ"</string>
+    <string name="allset_description_fallback" msgid="2488751930355201578">"ଆପଣ ଆପଣଙ୍କ ଡିଭାଇସ ବ୍ୟବହାର କରିବା ଆରମ୍ଭ କରିବାକୁ ପ୍ରସ୍ତୁତ ଅଛନ୍ତି"</string>
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"ସିଷ୍ଟମ ନାଭିଗେସନ ସେଟିଂସ"</annotation></string>
+    <string name="allset_title_expressive" msgid="474399969304146994">"ଆପଣଙ୍କ <xliff:g id="DEVICE">%1$s</xliff:g> \nପ୍ରସ୍ତୁତ ଅଛି!"</string>
+    <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"ଆପଣଙ୍କ ଡିଭାଇସ \nପ୍ରସ୍ତୁତ ଅଛି!"</string>
+    <string name="allset_subtitle_expressive" msgid="419688197551192358">"ଆପଣଙ୍କ ନୂଆ <xliff:g id="DEVICE">%1$s</xliff:g>ର ମଜା ନିଅନ୍ତୁ!"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"କିପରି ନାଭିଗେଟ କରିବେ ତାହା ବାଛନ୍ତୁ"</annotation></string>
+    <string name="allset_hint_expressive" msgid="756856423510976261">"ଉପରକୁ ସ୍ୱାଇପ କରନ୍ତୁ"</string>
+    <string name="allset_button_hint_expressive" msgid="667643693410494225">"ହୋମ ବଟନରେ ଟାପ କରନ୍ତୁ"</string>
+    <string name="allset_device_type_tablet" msgid="2173392009787325894">"ଟାବଲେଟ"</string>
+    <string name="allset_device_type_phone" msgid="6842334562074507337">"ଫୋନ"</string>
     <string name="action_share" msgid="2648470652637092375">"ସେୟାର୍ କରନ୍ତୁ"</string>
     <string name="action_screenshot" msgid="8171125848358142917">"ସ୍କ୍ରିନସଟ୍"</string>
     <string name="action_split" msgid="2098009717623550676">"ସ୍ପ୍ଲିଟ୍"</string>
@@ -106,11 +113,12 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"ସ୍ପ୍ଲିଟ ସ୍କ୍ରିନ ବ୍ୟବହାର କରିବାକୁ ଅନ୍ୟ ଏକ ଆପ ବାଛନ୍ତୁ"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"ଆପ୍ କିମ୍ବା ଆପଣଙ୍କ ସଂସ୍ଥା ଦ୍ୱାରା ଏହି କାର୍ଯ୍ୟକୁ ଅନୁମତି ଦିଆଯାଇ ନାହିଁ"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"ୱିଜେଟଗୁଡ଼ିକ ବର୍ତ୍ତମାନ ସମର୍ଥିତ ନୁହେଁ, ଦୟାକରି ଅନ୍ୟ ଏକ ଆପ ଚୟନ କରନ୍ତୁ"</string>
-    <string name="skip_tutorial_dialog_title" msgid="2725643161260038458">"ନାଭିଗେସନ୍ ଟ୍ୟୁଟୋରିଆଲକୁ ବାଦ୍ ଦେବେ?"</string>
-    <string name="skip_tutorial_dialog_subtitle" msgid="544063326241955662">"ଆପଣ ପରେ ଏହାକୁ <xliff:g id="NAME">%1$s</xliff:g> ଆପରେ ପାଇପାରିବେ"</string>
-    <string name="gesture_tutorial_action_button_label_cancel" msgid="3809842569351264108">"ବାତିଲ କରନ୍ତୁ"</string>
-    <string name="gesture_tutorial_action_button_label_skip" msgid="394452764989751960">"ବାଦ୍ ଦିଅନ୍ତୁ"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"ସ୍କ୍ରିନ ଘୂରାନ୍ତୁ"</string>
+    <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"ସ୍କ୍ରିନର ନିମ୍ନରୁ ଟାସ୍କବାର କିପରି ଦେଖାଯାଏ ଏବଂ ବ୍ୟବହାରରେ ନଥିବା ସମୟରେ ସ୍ୱତଃ ଲୁଚିଯାଏ ତାହା ଦେଖାଉଥିବା ଆନିମେସନ"</string>
+    <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"ଏକ ଟୋଗଲ ବ୍ୟବହାର କରି ଆପଣଙ୍କର ଟାସ୍କବାରକୁ କିପରି ପିନ କରିବେ ତାହା ଦେଖାଉଥିବା ଆନିମେସନ, ଫଳରେ ଟାସ୍କବାର ସ୍କ୍ରିନର ନିମ୍ନରେ ସ୍ଥାୟୀ ଭାବରେ ଦେଖାଯିବ"</string>
+    <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"ଏକ ଖୋଲା ଥିବା ଆପ ଉପରେ ଟାସ୍କବାରରୁ ଏକ ଆପ ଡ୍ରାଗ ଏବଂ ଡ୍ରପ କରି ଏକ ସ୍ପ୍ଲିଟ ସ୍କ୍ରିନ କିପରି ତିଆରି କରିବେ ତାହା ଦେଖାଉଥିବା ଆନିମେସନ"</string>
+    <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"ଆପଣଙ୍କ ଡିଭାଇସରେ ପ୍ରସ୍ତାବିତ ଆପ୍ସକୁ କିପରି ଆକ୍ସେସ କରିବେ ତାହା ଦେଖାଉଥିବା ଆନିମେସନ"</string>
+    <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"ଆକ୍ସନ କୀ\'କୁ ସ୍ପର୍ଶ କରି ଧରି ରଖି ଏବଂ ଆଇଟମ କେଉଁ ଏରିଆରେ ଅଛି ତାହା ଚୟନ କରି ସ୍କ୍ରିନରେ ଏକ ଆଇଟମ କିପରି ସର୍ଚ୍ଚ କରିବେ ତାହା ଦେଖାଉଥିବା ଆନିମେସନ"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"ଟାସ୍କବାର ଶିକ୍ଷା"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"ଥରକେ 2ଟି ଆପ୍ସ ବ୍ୟବହାର କରିବା ପାଇଁ ଏକ ଆପକୁ ପାର୍ଶ୍ୱକୁ ଡ୍ରାଗ କର"</string>
     <string name="taskbar_edu_stashing" msgid="5645461372669217294">"ଟାସ୍କବାର ଦେଖାଇବା ପାଇଁ ଉପରକୁ ଧୀରେ-ସ୍ୱାଇପ କରନ୍ତୁ"</string>
@@ -138,7 +146,7 @@
     <string name="always_show_taskbar" msgid="3608801276107751229">"ସର୍ବଦା ଟାସ୍କବାର ଦେଖାନ୍ତୁ"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"ନାଭିଗେସନ ମୋଡ ପରିବର୍ତ୍ତନ କରନ୍ତୁ"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"ଟାସ୍କବାର ଡିଭାଇଡର"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="7960342079198820179">"ଟାସ୍କବାର ଓଭରଫ୍ଲୋ"</string>
+    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"ଅନ୍ୟ ବର୍ତ୍ତମାନର ଆପ୍ସ"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"ଶୀର୍ଷ/ବାମକୁ ମୁଭ କରନ୍ତୁ"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"ନିମ୍ନ/ଡାହାଣକୁ ମୁଭ କରନ୍ତୁ"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"ଏକ ବବଲ ଭାବେ ଆପ ଖୋଲନ୍ତୁ"</string>
@@ -165,5 +173,7 @@
     <string name="header_close_icon_description" msgid="5400033616675911319">"\"ବନ୍ଦ କରନ୍ତୁ\" ବଟନ"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"ଟାସ୍କବାରରେ ପିନ କର"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"ଟାସ୍କବାରରୁ ଅନପିନ କର"</string>
+    <string name="nudge_a11y_title" msgid="2126529303123687912">"ନଜ"</string>
+    <string name="nudge_a11y_close" msgid="4513937143817625570">"ବନ୍ଦ କରନ୍ତୁ"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"ନଜ ଇମେଜ"</string>
 </resources>

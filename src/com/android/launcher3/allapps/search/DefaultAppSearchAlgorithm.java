@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
 
-    private static final int MAX_RESULTS_COUNT = 5;
+    protected static final int MAX_RESULTS_COUNT = 5;
 
     private final LauncherAppState mAppState;
     private final Handler mResultHandler;
@@ -85,13 +85,13 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
      * Filters {@link AppInfo}s matching specified query
      */
     @AnyThread
-    public static ArrayList<AdapterItem> getTitleMatchResult(List<AppInfo> apps, String query) {
-        // Do an intersection of the words in the query and each title, and filter out all the
+    private static ArrayList<AdapterItem> getTitleMatchResult(List<AppInfo> apps, String query) {
+        // Do an intersection of the words in the query and each title, and filter out
+        // all the
         // apps that don't match all of the words in the query.
         final String queryTextLower = query.toLowerCase();
         final ArrayList<AdapterItem> result = new ArrayList<>();
-        StringMatcherUtility.StringMatcher matcher =
-                StringMatcherUtility.StringMatcher.getInstance();
+        StringMatcherUtility.StringMatcher matcher = StringMatcherUtility.StringMatcher.getInstance();
 
         int resultCount = 0;
         int total = apps.size();

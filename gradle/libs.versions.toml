@@ -2,85 +2,39 @@
 jdkRelease = "21"
 
 agp = "9.0.0"
-kotlin = "2.3.0"
-appcompat = "1.7.1"
+kotlin = "2.3.10"
+androidx-room = "2.8.4"
 androidx-lifecycle = "2.10.0"
-baselineprofile = "1.4.1"
-core = "1.17.0"
-annotation = "1.9.1"
-coreAnimation = "1.0.0"
-dagger = "2.59"
-dexmaker = "1.2"
-dexmakerMockito = "1.2"
-dynamicanimation = "1.1.0"
-graphicsShapes = "1.1.0"
-junitVersion = "1.3.0"
+accompanist = "0.37.3"
+opto = "1.0.18"
+protobuf = "4.33.5"
+retrofit = "3.0.0"
+dagger = "2.59.1"
+libsu = "6.0.0"
+refine = "4.4.0"
 
-# https://github.com/Kotlin/kotlinx.coroutines
-kotlinx-coroutines = "1.10.2"
-
-# https://github.com/JetBrains/compose-multiplatform
-compose = "1.10.0"
-lifecycle = "2.9.1"
-lottie = "6.7.1"
-material = "1.13.0"
-material3Version = "1.4.0"
-mockitoCore = "5.21.0"
-navigation = "2.9.1"
-
-mockito = "5.14.2"
+guava = "33.5.0-android"
+junitVersion = "4.13.2"
+mockito = "5.21.0"
+mockitoKotlin = "6.2.3"
 truth = "1.4.5"
-
 testRules = "1.7.0"
 testRunner = "1.7.0"
 
-protobuf = "4.33.4"
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+androidx-baselineprofile = "androidx.baselineprofile:1.4.1"
 
-guava = "33.5.0-android"
-
-coil = "3.3.0"
-kotlinx-serialization = "1.10.0"
-kotlinx-datetime = "0.7.1"
-preference = "1.2.1"
-protobufJavalite = "4.33.4"
-recyclerview = "1.4.0"
-robolectric = "4.16.1"
-rulesVersion = "1.7.0"
-runner = "1.0.2"
-rules = "1.0.2"
-sliceBuilders = "1.0.0"
-
-junit = "4.13.2"
-
-# https://mvnrepository.com/artifact/com.igormaznitsa/meta-annotations
-meta-annotations = "1.1.3"
-# https://mvnrepository.com/artifact/com.igormaznitsa/meta-utils
-meta-utils = "1.1.3"
-# https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-commons-lang3 = "3.14.0"
-# https://mvnrepository.com/artifact/commons-io/commons-io
-commons-io = "2.15.1"
-# https://mvnrepository.com/artifact/org.apache.commons/commons-compress
-commons-compress = "1.26.1"
-# https://mvnrepository.com/artifact/org.json/json
-gson = "2.13.2"
-# https://mvnrepository.com/artifact/org.dom4j/dom4j
-dom4j = "2.1.4"
-# https://mvnrepository.com/artifact/org.json/json
-json = "20251224"
-# https://mvnrepository.com/artifact/org.apache.maven.plugin-tools/maven-plugin-annotations
-maven-plugin-annotations = "3.15.2"
-# https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-utils
-plexus-utils = "4.0.0"
-# https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-jacson-databind = "2.21.0"
-# https://mvnrepository.com/artifact/org.apache.maven/maven-plugin-api
-maven-plugin-api = "3.9.11"
-richeditor-compose = "1.0.0-beta02"
-uiautomatorV18 = "2.1.3"
-window = "1.5.1"
-refine = "4.4.0"
-
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+google-ksp = "com.google.devtools.ksp:2.3.4"
+google-protobuf = "com.google.protobuf:0.9.6"
+cash-licensee = "app.cash.licensee:1.14.1"
+rikka-refine = { id = "dev.rikka.tools.refine", version.ref = "refine" }
+diffplug-spotless = "com.diffplug.spotless:8.2.1"
 
 [libraries]
 # AndroidX
@@ -88,33 +42,27 @@ androidx-activity-compose = "androidx.activity:activity-compose:1.12.3"
 androidx-benchmark-macro-junit4 = "androidx.benchmark:benchmark-macro-junit4:1.4.1"
 androidx-concurrent-futures = "androidx.concurrent:concurrent-futures:1.3.0"
 androidx-constraintlayout = "androidx.constraintlayout:constraintlayout:2.2.1"
+androidx-core-animation = "androidx.core:core-animation:1.0.0"
+androidx-core-ktx = "androidx.core:core-ktx:1.17.0"
 androidx-datastore-preferences = "androidx.datastore:datastore-preferences:1.2.0"
+androidx-dynamicanimation = "androidx.dynamicanimation:dynamicanimation:1.1.0"
 androidx-espresso-core = "androidx.test.espresso:espresso-core:3.7.0"
 androidx-graphics-core = "androidx.graphics:graphics-core:1.0.4"
 androidx-graphics-path = "androidx.graphics:graphics-path:1.0.1"
 androidx-graphics-shapes = "androidx.graphics:graphics-shapes:1.1.0"
+androidx-junit = "androidx.test.ext:junit:1.3.0"
 androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-navigation-compose = "androidx.navigation:navigation-compose:2.9.7"
-androidx-slice-core = "androidx.slice:slice-core:1.1.0-alpha02"
-androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
-androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
-androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
-androidx-core-animation = { module = "androidx.core:core-animation", version.ref = "coreAnimation" }
-androidx-dynamicanimation = { module = "androidx.dynamicanimation:dynamicanimation", version.ref = "dynamicanimation" }
-androidx-junit = { module = "androidx.test.ext:junit", version.ref = "junitVersion" }
-androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3Version" }
-androidx-preference = { module = "androidx.preference:preference", version.ref = "preference" }
-androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
-androidx-test-rules = { module = "androidx.test:rules", version.ref = "rulesVersion" }
-androidx-slice-builders = { module = "androidx.slice:slice-builders", version.ref = "sliceBuilders" }
-androidx-window = { module = "androidx.window:window", version.ref = "window" }
 androidx-palette-ktx = "androidx.palette:palette-ktx:1.0.0"
 androidx-preference-ktx = "androidx.preference:preference-ktx:1.2.1"
 androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
+androidx-recyclerview = "androidx.recyclerview:recyclerview:1.4.0"
+androidx-slice-core = "androidx.slice:slice-core:1.1.0-alpha02"
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testRules" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 androidx-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
-annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
-core = { module = "androidx.core:core", version.ref = "core" }
+androidx-window = "androidx.window:window:1.5.1"
 
 # Compose
 compose-bom = "androidx.compose:compose-bom:2026.01.01"
@@ -132,7 +80,6 @@ compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-ui-util = { module = "androidx.compose.ui:ui-util" }
-compose-navigation = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation"}
 
 # Dagger & Hilt
 dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
@@ -141,83 +88,73 @@ dagger-android-processor = { group = "com.google.dagger", name = "dagger-android
 dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
 dagger-hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "dagger" }
 
-dexmaker-mockito = { module = "com.google.dexmaker:dexmaker-mockito", version.ref = "dexmakerMockito" }
-dexmaker = { module = "com.google.dexmaker:dexmaker", version.ref = "dexmaker" }
+# Accompanist
+accompanist-adaptive = { group = "com.google.accompanist", name = "accompanist-adaptive", version.ref = "accompanist" }
+accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
+accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 
-coil = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coil" }
-# Kotlin
-kotlin-androidExtensionRuntime = { module = "org.jetbrains.kotlin:kotlin-android-extensions-runtime", version.ref = "kotlin" }
-kotlin-parcelizeRuntime = { module = "org.jetbrains.kotlin:kotlin-parcelize-runtime", version.ref = "kotlin" }
-kotlin-stdlib-jdk7 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk7", version.ref = "kotlin" }
+# Opto
+opto-core = { group = "com.patrykmichalik.opto", name = "core", version.ref = "opto" }
+opto-compose = { group = "com.patrykmichalik.opto", name = "compose", version.ref = "opto" }
+opto-domain = { group = "com.patrykmichalik.opto", name = "domain", version.ref = "opto" }
+
+# Retrofit & OkHttp
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-kotlinx = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+okhttp = "com.squareup.okhttp3:okhttp:5.3.2"
+
+# Room
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "androidx-room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "androidx-room" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "androidx-room" }
 
 # KotlinX
 kotlinx-coroutines-android = "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
-kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
-
-lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
-material = { module = "com.google.android.material:material", version.ref = "material" }
-mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
+kotlinx-coroutines-test = "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2"
+kotlinx-serialization-json = "org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0"
 
 protobuf-protoc = { module = "com.google.protobuf:protoc", version.ref = "protobuf" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 
-google-guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+# Other
+android-desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.1.5"
+airbnb-lottie = "com.airbnb.android:lottie:6.7.1"
 
+# Lawnchair-TODO: Migrate it to the latest version once jitpack publishing is fixed
+# LC-Note: This specific commit is needed because of 16kb compatibility
+chickenhook-restrictionbypass = "com.github.ChickenHook:RestrictionBypass:c59bd6a680"
+coil-compose = "io.coil-kt:coil-compose:2.7.0"
+google-material = "com.google.android.material:material:1.13.0"
+hoko-blur = "io.github.hokofly:hoko-blur:1.5.5"
+javax-inject = "javax.inject:javax.inject:1"
+kdrag0n-colorkt = "dev.kdrag0n:colorkt:1.0.5"
 leakcanary-android = "com.squareup.leakcanary:leakcanary-android:2.14"
-
-robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
-rules = { module = "com.android.support.test:rules", version.ref = "rules" }
-runner = { module = "com.android.support.test:runner", version.ref = "runner" }
-
-xdrop-fuzzywuzzy = "me.xdrop:fuzzywuzzy:1.4.0"
-errorprone-annotations = "com.google.errorprone:error_prone_annotations:2.46.0"
-composeRules = "io.nlopez.compose.rules:ktlint:0.5.6"
-
-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
-commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
-commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
-dom4j = { module = "org.dom4j:dom4j", version.ref = "dom4j" }
-json = { module = "org.json:json", version.ref = "json" }
-maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugin-annotations", version.ref = "maven-plugin-annotations" }
-jacson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jacson-databind" }
-maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref = "maven-plugin-api" }
-
+libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
+libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
+material-motion-compose = "io.github.fornewid:material-motion-compose-core:2.0.1"
+reorderable = "sh.calvin.reorderable:reorderable:3.0.0"
 rikka-annotation = { module = "dev.rikka.tools.refine:annotation", version.ref = "refine" }
 rikka-annotation-processor = { module = "dev.rikka.tools.refine:annotation-processor", version.ref = "refine" }
 rikka-refine-runtime = { group = "dev.rikka.tools.refine", name = "runtime", version.ref = "refine" }
+smartspacer-sdk = "com.kieronquinn.smartspacer:sdk-client:1.1.2"
+xdrop-fuzzywuzzy = "me.xdrop:fuzzywuzzy:1.4.0"
+errorprone-annotations = "com.google.errorprone:error_prone_annotations:2.47.0"
+# Dummy to get renovate updates, the version is used in rootProject build.gradle with spotless.
+ktlint = "com.pinterest.ktlint:ktlint-cli:1.8.0"
+composeRules = "io.nlopez.compose.rules:ktlint:0.5.3"
+google-guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 
-javax-inject = "javax.inject:javax.inject:1"
-
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-uiautomator-v18 = { module = "com.android.support.test.uiautomator:uiautomator-v18", version.ref = "uiautomatorV18" }
 # Testing (Merged)
 google-truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
-mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockito" }
+junit = { group = "junit", name = "junit", version.ref = "junitVersion" }
+mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockitoKotlin" }
 mockito-robolectric = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 mockito-robolectric-bytebuddy = "net.bytebuddy:byte-buddy:1.18.4"
 mockito-robolectric-bytebuddy-agent = "net.bytebuddy:byte-buddy-agent:1.18.4"
 
-[plugins]
-android-application = { id = "com.android.application", version.ref = "agp" }
-android-library = { id = "com.android.library", version.ref = "agp" }
-android-test = { id = "com.android.test", version.ref = "agp" }
-androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
-
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-google-ksp = "com.google.devtools.ksp:2.3.4"
-google-protobuf = "com.google.protobuf:0.9.6"
-#cash-licensee = { id = "app.cash.licensee", version.ref = "licensee" }
-#rikka-refine = { id = "dev.rikka.tools.refine", version.ref = "refine" }
-#diffplug-spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-
-jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose" }
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin"}
-jetbrainsComposeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+[bundles]
+accompanist = ["accompanist-adaptive", "accompanist-drawablepainter", "accompanist-permissions"]
+graphics = ["androidx-graphics-core", "androidx-graphics-path", "androidx-graphics-shapes"]
+opto = ["opto-domain", "opto-core", "opto-compose"]
+retrofit = ["retrofit-core", "retrofit-converter-kotlinx", "okhttp"]
+room = ["room-runtime", "room-ktx"]

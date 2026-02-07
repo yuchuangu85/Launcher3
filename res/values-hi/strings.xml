@@ -89,7 +89,7 @@
     <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"किसी शॉर्टकट को एक से दूसरी जगह ले जाने के लिए, उस पर दो बार टैप करके दबाकर रखें या पसंद के मुताबिक कार्रवाइयां इस्तेमाल करें."</string>
     <string name="out_of_space" msgid="6455557115204099579">"इस होम स्क्रीन पर जगह खाली नहीं है"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"पसंदीदा ट्रे में और जगह नहीं है"</string>
-    <string name="all_apps_button_label" msgid="8130441508702294465">"ऐप्लिकेशन सूची"</string>
+    <string name="all_apps_button_label" msgid="8130441508702294465">"ऐप्लिकेशन की सूची"</string>
     <string name="all_apps_search_results" msgid="5889367432531296759">"खोज के नतीजे"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"निजी ऐप्लिकेशन की सूची"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"काम से जुड़े ऐप्लिकेशन की सूची"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"सेट अप पूरा करने के लिए टैप करें"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"यह एक सिस्टम ऐप्लिकेशन है और इसे अनइंस्टॉल नहीं किया जा सकता."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"नाम में बदलाव करें"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"पिछले पेज पर जाएं"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"अगले पेज पर जाएं"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> अक्षम है"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} से जुड़ी # सूचना है}one{{app_name} से जुड़ी # सूचना है}other{{app_name} से जुड़ी # सूचनाएं हैं}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"पेज %2$d में से %1$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"होम स्क्रीन घुमाने की अनुमति दें"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"फ़ोन घुुमाए जाने पर"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"लैंडस्केप मोड"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"फ़ोन को लैंडस्केप मोड में सेट करें"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"होम स्क्रीन को लैंडस्केप मोड में सेट करें"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"सूचनाएं बताने वाला डॉट"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"चालू है"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"चालू"</string>
@@ -213,9 +215,15 @@
     <string name="ps_container_settings" msgid="6059734123353320479">"प्राइवेट स्पेस सेटिंग"</string>
     <string name="ps_container_unlock_button_content_description" msgid="9181551784092204234">"प्राइवेट स्पेस को अनलॉक किया गया."</string>
     <string name="ps_container_lock_button_content_description" msgid="5961993384382649530">"प्राइवेट स्पेस को लॉक किया गया."</string>
-    <string name="ps_container_lock_title" msgid="2640257399982364682">"लॉक"</string>
+    <string name="ps_container_lock_title" msgid="2640257399982364682">"लॉक करें"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"प्राइवेट स्पेस की सेटिंग में बदलाव किया जा रहा है"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"इंस्टॉल करें"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"जोड़ें"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"प्राइवेट स्पेस में ऐप्लिकेशन इंस्टॉल करें"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"प्राइवेट स्पेस में फ़ाइलें और अन्य चीज़ें जोड़ें"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"गोलाकार आइकॉन"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"स्क्वेयर"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"चार किनारों वाली कुकी"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"सात किनारों वाली कुकी"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"आर्क"</string>
 </resources>

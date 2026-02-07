@@ -16,18 +16,16 @@
 
 package com.android.launcher3.model;
 
-import static com.android.launcher3.Flags.enableSmartspaceRemovalToggle;
+import static com.android.launcher3.BuildConfigs.QSB_ON_FIRST_SCREEN;
 import static com.android.launcher3.GridType.GRID_TYPE_NON_ONE_GRID;
 import static com.android.launcher3.GridType.GRID_TYPE_ONE_GRID;
 import static com.android.launcher3.InvariantDeviceProfile.TYPE_TABLET;
 import static com.android.launcher3.LauncherSettings.Favorites.TABLE_NAME;
 import static com.android.launcher3.LauncherSettings.Favorites.TMP_TABLE;
-import static com.android.launcher3.Utilities.SHOULD_SHOW_FIRST_PAGE_WIDGET;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ROW_SHIFT_GRID_MIGRATION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ROW_SHIFT_ONE_GRID_MIGRATION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_STANDARD_GRID_MIGRATION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_STANDARD_ONE_GRID_MIGRATION;
-import static com.android.launcher3.model.LoaderTask.SMARTSPACE_ON_HOME_SCREEN;
 import static com.android.launcher3.provider.LauncherDbUtils.copyTable;
 import static com.android.launcher3.provider.LauncherDbUtils.dropTable;
 import static com.android.launcher3.provider.LauncherDbUtils.shiftWorkspaceByXCells;
@@ -45,12 +43,11 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import app.lawnchair.preferences2.PreferenceManager2;
 import com.android.launcher3.Flags;
 import com.android.launcher3.InvariantDeviceProfile;
-import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.provider.LauncherDbUtils.SQLiteTransaction;
 import com.android.launcher3.util.GridOccupancy;
@@ -58,6 +55,7 @@ import com.android.launcher3.util.IntArray;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.launcher3.widget.WidgetManagerHelper;
 
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -283,7 +281,8 @@ public class GridSizeMigrationDBController {
                 Log.d(TAG, "Migrating " + screenId);
             }
             solveGridPlacement(helper, srcReader,
-                    destReader, screenId, trgX, trgY, workspaceToBeAdded, idsInUse);
+                    destReader, screenId, trgX, trgY, workspaceToBeAdded, idsInUse,
+                srcReader.mContext);
             if (workspaceToBeAdded.isEmpty()) {
                 break;
             }
@@ -295,7 +294,7 @@ public class GridSizeMigrationDBController {
         while (!workspaceToBeAdded.isEmpty()) {
             solveGridPlacement(helper, srcReader, destReader, screenId, trgX, trgY,
                     workspaceToBeAdded,
-                    srcWorkspaceItems.stream().map(entry -> entry.id).collect(Collectors.toList()));
+                    srcWorkspaceItems.stream().map(entry -> entry.id).collect(Collectors.toList()), srcReader.mContext);
             screenId++;
         }
 
@@ -398,15 +397,15 @@ public class GridSizeMigrationDBController {
     private static void solveGridPlacement(@NonNull final DatabaseHelper helper,
             @NonNull final DbReader srcReader, @NonNull final DbReader destReader,
             final int screenId, final int trgX, final int trgY,
-            @NonNull final List<DbEntry> sortedItemsToPlace, List<Integer> idsInUse) {
+            @NonNull final List<DbEntry> sortedItemsToPlace, List<Integer> idsInUse, Context context) {
+        PreferenceManager2 prefs2 = PreferenceManager2.INSTANCE.get(context);
+        
+        boolean smartspaceEnabled = PreferenceExtensionsKt.firstBlocking(prefs2.getEnableSmartspace());
+        
         final GridOccupancy occupied = new GridOccupancy(trgX, trgY);
         final Point trg = new Point(trgX, trgY);
-        final Point next = new Point(0, screenId == 0
-                && (FeatureFlags.QSB_ON_FIRST_SCREEN
-                && (!enableSmartspaceRemovalToggle() || LauncherPrefs.getPrefs(destReader.mContext)
-                .getBoolean(SMARTSPACE_ON_HOME_SCREEN, true))
-                && !SHOULD_SHOW_FIRST_PAGE_WIDGET)
-                ? 1 /* smartspace */ : 0);
+        final Point next = new Point(0,
+                screenId == 0 && smartspaceEnabled ? 1 /* smartspace */ : 0);
         List<DbEntry> existedEntries = destReader.mWorkspaceEntriesByScreenId.get(screenId);
         if (existedEntries != null) {
             for (DbEntry entry : existedEntries) {

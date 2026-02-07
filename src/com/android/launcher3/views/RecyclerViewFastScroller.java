@@ -58,6 +58,8 @@ import com.android.launcher3.util.Themes;
 import java.util.Collections;
 import java.util.List;
 
+import app.lawnchair.theme.color.tokens.ColorTokens;
+
 /**
  * The track and scrollbar that shows when you scroll the list.
  */
@@ -77,7 +79,7 @@ public class RecyclerViewFastScroller extends View {
     }
     private static final String TAG = "RecyclerViewFastScroller";
     private static final boolean DEBUG = false;
-    private static final int FASTSCROLL_THRESHOLD_MILLIS = 40;
+    private static final int FASTSCROLL_THRESHOLD_MILLIS = 10;
     private static final int SCROLL_DELTA_THRESHOLD_DP = 4;
 
     // Track is very narrow to target and correctly. This is especially the case if a user is
@@ -176,7 +178,7 @@ public class RecyclerViewFastScroller extends View {
 
         mFastScrollerLocation = FastScrollerLocation.UNKNOWN_SCROLLER;
         mTrackPaint = new Paint();
-        mTrackPaint.setColor(Themes.getAttrColor(context, android.R.attr.textColorPrimary));
+        mTrackPaint.setColor(ColorTokens.TextColorPrimary.resolveColor(getContext()));
         mTrackPaint.setAlpha(MAX_TRACK_ALPHA);
 
         mThumbColor = Themes.getColorAccent(context);
@@ -433,11 +435,13 @@ public class RecyclerViewFastScroller extends View {
         // swiping very close to the thumb area (not just within it's bound)
         // will also prevent back gesture
         SYSTEM_GESTURE_EXCLUSION_RECT.get(0).offset(mThumbDrawOffset.x, mThumbDrawOffset.y);
-        if (mSystemGestureInsets != null) {
-            SYSTEM_GESTURE_EXCLUSION_RECT.get(0).left =
+        if (Utilities.ATLEAST_Q) {
+            if (mSystemGestureInsets != null) {
+                SYSTEM_GESTURE_EXCLUSION_RECT.get(0).left =
                     SYSTEM_GESTURE_EXCLUSION_RECT.get(0).right - mSystemGestureInsets.right;
+            }
+            setSystemGestureExclusionRects(SYSTEM_GESTURE_EXCLUSION_RECT);
         }
-        setSystemGestureExclusionRects(SYSTEM_GESTURE_EXCLUSION_RECT);
         canvas.restoreToCount(saveCount);
     }
 
@@ -448,7 +452,11 @@ public class RecyclerViewFastScroller extends View {
 
     @Override
     public WindowInsets onApplyWindowInsets(WindowInsets insets) {
-        mSystemGestureInsets = insets.getSystemGestureInsets();
+        if (Utilities.ATLEAST_Q) {
+            mSystemGestureInsets = insets.getSystemGestureInsets();
+        } else {
+            mSystemGestureInsets = null;
+        }
         return super.onApplyWindowInsets(insets);
     }
 

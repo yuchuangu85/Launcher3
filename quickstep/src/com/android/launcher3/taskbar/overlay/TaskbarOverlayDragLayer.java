@@ -71,6 +71,7 @@ public class TaskbarOverlayDragLayer extends
 
     @Override
     public void recreateControllers() {
+        super.recreateControllers();
         List<TouchController> controllers = new ArrayList<>();
         controllers.add(mContainer.getDragController());
         controllers.addAll(mTouchControllers);

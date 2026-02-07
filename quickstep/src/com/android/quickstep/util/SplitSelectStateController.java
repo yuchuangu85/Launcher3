@@ -63,6 +63,7 @@ import android.window.IRemoteTransitionFinishedCallback;
 import android.window.RemoteTransition;
 import android.window.RemoteTransitionStub;
 import android.window.TransitionInfo;
+import android.window.WindowContainerTransaction;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -300,6 +301,10 @@ public class SplitSelectStateController {
     public boolean isInstanceOfComponent(@Nullable Task task, @NonNull ComponentKey componentKey) {
         // Exclude the task that is already staged
         if (task == null || task.key.id == mSplitSelectDataHolder.getInitialTaskId()) {
+            return false;
+        }
+        if (task.key.baseIntent.getComponent() == null) {
+            Log.w(TAG, "Task has null component.");
             return false;
         }
 
@@ -878,7 +883,8 @@ public class SplitSelectStateController {
          * @param taskBounds the bounds of the task, used for {@link FloatingTaskView} animation
          */
         public void enterSplitSelect(ActivityManager.RunningTaskInfo taskInfo,
-                int splitPosition, Rect taskBounds) {
+                int splitPosition, Rect taskBounds, boolean startRecents,
+                @Nullable WindowContainerTransaction withRecentsWct) {
             mTaskInfo = taskInfo;
             String packageName = mTaskInfo.realActivity.getPackageName();
             PackageManager pm = mLauncher.getApplicationContext().getPackageManager();
@@ -889,53 +895,72 @@ public class SplitSelectStateController {
             } catch (PackageManager.NameNotFoundException e) {
                 Log.w(TAG, "Package not found: " + packageName, e);
             }
-            RecentsAnimationCallbacks callbacks = new RecentsAnimationCallbacks(
-                    SystemUiProxy.INSTANCE.get(mLauncher.getApplicationContext()));
 
-            DesktopSplitRecentsAnimationListener listener =
-                    new DesktopSplitRecentsAnimationListener(splitPosition, taskBounds);
-
-            callbacks.addListener(listener);
-            UI_HELPER_EXECUTOR.execute(() -> {
-                // Transition from app to enter stage split in launcher with recents animation
-                final ActivityOptions options = ActivityOptions.makeBasic();
-                options.setPendingIntentBackgroundActivityStartMode(
-                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_ALWAYS);
-                options.setTransientLaunch();
-                SystemUiProxy.INSTANCE.get(mLauncher.getApplicationContext())
-                        .startRecentsActivity(
-                                mOverviewComponentObserver.getOverviewIntent(), options,
-                                callbacks, false /* useSyntheticRecentsTransition */);
-            });
+            final DesktopSplitRecentsAnimation animation = new DesktopSplitRecentsAnimation(
+                    splitPosition, taskBounds);
+            final Runnable updateTaskbarRunnable = () -> {
+                final LauncherTaskbarUIController c = mLauncher.getTaskbarUIController();
+                if (c != null) {
+                    c.updateTaskbarLauncherStateGoingHome();
+                }
+            };
+            if (startRecents) {
+                RecentsAnimationCallbacks callbacks = new RecentsAnimationCallbacks(mContainer);
+                callbacks.addListener(new RecentsAnimationCallbacks.RecentsAnimationListener() {
+                    @Override
+                    public void onRecentsAnimationStart(RecentsAnimationController controller,
+                            RecentsAnimationTargets targets,
+                            @Nullable TransitionInfo transitionInfo) {
+                        animation.start(() -> {
+                            controller.finish(
+                                    true /* toRecents */,
+                                    updateTaskbarRunnable,
+                                    false /* sendUserLeaveHint */);
+                        });
+                    }
+                });
+                UI_HELPER_EXECUTOR.execute(() -> {
+                    // Transition from app to enter stage split in launcher with recents animation
+                    final ActivityOptions options = ActivityOptions.makeBasic();
+                    options.setPendingIntentBackgroundActivityStartMode(
+                            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_ALWAYS);
+                    options.setTransientLaunch();
+                    SystemUiProxy.INSTANCE.get(mLauncher.getApplicationContext())
+                            .startRecentsActivity(
+                                    mOverviewComponentObserver.getOverviewIntent(), options,
+                                    callbacks, false /* useSyntheticRecentsTransition */,
+                                    withRecentsWct,
+                                    ExternalDisplaysKt.getSafeDisplayId(taskInfo));
+                });
+            } else {
+                animation.start(updateTaskbarRunnable);
+            }
         }
 
-        private class DesktopSplitRecentsAnimationListener implements
-                RecentsAnimationCallbacks.RecentsAnimationListener {
+        private class DesktopSplitRecentsAnimation {
             private final Rect mTempRect = new Rect();
             private final RectF mTaskBounds = new RectF();
             private final int mSplitPosition;
 
-            DesktopSplitRecentsAnimationListener(int splitPosition, Rect taskBounds) {
+            DesktopSplitRecentsAnimation(int splitPosition, Rect taskBounds) {
                 mSplitPosition = splitPosition;
                 mTaskBounds.set(taskBounds);
             }
 
-            @Override
-            public void onRecentsAnimationStart(RecentsAnimationController controller,
-                    RecentsAnimationTargets targets, TransitionInfo transitionInfo) {
-                StatsLogManager.LauncherEvent launcherDesktopSplitEvent =
+            void start(@NonNull Runnable onAnimationStart) {
+                final StatsLogManager.LauncherEvent launcherDesktopSplitEvent =
                         mSplitPosition == STAGE_POSITION_BOTTOM_OR_RIGHT ?
-                        LAUNCHER_DESKTOP_MODE_SPLIT_RIGHT_BOTTOM :
-                        LAUNCHER_DESKTOP_MODE_SPLIT_LEFT_TOP;
+                                LAUNCHER_DESKTOP_MODE_SPLIT_RIGHT_BOTTOM :
+                                LAUNCHER_DESKTOP_MODE_SPLIT_LEFT_TOP;
                 setInitialTaskSelect(mTaskInfo, mSplitPosition,
                         null, launcherDesktopSplitEvent);
 
-                RecentsView recentsView = mLauncher.getOverviewPanel();
+                final RecentsView recentsView = mLauncher.getOverviewPanel();
                 recentsView.getPagedOrientationHandler().getInitialSplitPlaceholderBounds(
                         mSplitPlaceholderSize, mSplitPlaceholderInset,
                         mLauncher.getDeviceProfile(), getActiveSplitStagePosition(), mTempRect);
 
-                PendingAnimation anim = new PendingAnimation(
+                final PendingAnimation anim = new PendingAnimation(
                         SplitAnimationTimings.TABLET_HOME_TO_SPLIT.getDuration());
                 final FloatingTaskView floatingTaskView = FloatingTaskView.getFloatingTaskView(
                         mLauncher, mLauncher.getDragLayer(),
@@ -953,17 +978,7 @@ public class SplitSelectStateController {
                 anim.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationStart(Animator animation) {
-                        controller.finish(
-                                true /* toRecents */,
-                                () -> {
-                                    LauncherTaskbarUIController controller =
-                                            mLauncher.getTaskbarUIController();
-                                    if (controller != null) {
-                                        controller.updateTaskbarLauncherStateGoingHome();
-                                    }
-
-                                },
-                                false /* sendUserLeaveHint */);
+                        onAnimationStart.run();
                     }
                     @Override
                     public void onAnimationEnd(Animator animation) {
@@ -1006,10 +1021,12 @@ public class SplitSelectStateController {
 
         @Override
         public boolean onRequestSplitSelect(ActivityManager.RunningTaskInfo taskInfo,
-                int splitPosition, Rect taskBounds) {
+                int splitPosition, Rect taskBounds, boolean startRecents,
+                @Nullable WindowContainerTransaction withRecentsWct) {
             MAIN_EXECUTOR.execute(() -> {
                 if (mController != null) {
-                    mController.enterSplitSelect(taskInfo, splitPosition, taskBounds);
+                    mController.enterSplitSelect(taskInfo, splitPosition, taskBounds,
+                            startRecents, withRecentsWct);
                 }
             });
             return true;

@@ -185,7 +185,7 @@ public class FirstScreenBroadcast {
      * is always modified on UI thread.
      */
     @AnyThread
-    private static List<WorkspaceItemInfo> cloneOnMainThread(ArrayList<WorkspaceItemInfo> list) {
+    private static List<WorkspaceItemInfo> cloneOnMainThread(List<WorkspaceItemInfo> list) {
         try {
             return MAIN_EXECUTOR.submit(() -> new ArrayList(list)).get();
         } catch (Exception e) {

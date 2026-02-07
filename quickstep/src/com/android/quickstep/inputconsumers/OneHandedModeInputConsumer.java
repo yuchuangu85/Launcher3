@@ -39,7 +39,8 @@ import com.android.systemui.shared.system.InputMonitorCompat;
 
 /**
  * Touch consumer for handling gesture event to launch one handed
- * One handed gestural in quickstep only active on NO_BUTTON, TWO_BUTTONS, and portrait mode
+ * One handed gestural in quickstep only active on NO_BUTTON, TWO_BUTTONS, and
+ * portrait mode
  */
 public class OneHandedModeInputConsumer extends DelegateInputConsumer {
 
@@ -102,12 +103,11 @@ public class OneHandedModeInputConsumer extends DelegateInputConsumer {
 
                 mLastPos.set(ev.getX(), ev.getY());
                 if (!mPassedSlop) {
-                    if (squaredHypot(mLastPos.x - mDownPos.x, mLastPos.y - mDownPos.y)
-                            > mSquaredSlop) {
+                    if (squaredHypot(mLastPos.x - mDownPos.x, mLastPos.y - mDownPos.y) > mSquaredSlop) {
                         if ((!mDeviceState.isOneHandedModeActive() && isValidStartAngle(
                                 mDownPos.x - mLastPos.x, mDownPos.y - mLastPos.y))
                                 || (mDeviceState.isOneHandedModeActive() && isValidExitAngle(
-                                mDownPos.x - mLastPos.x, mDownPos.y - mLastPos.y))) {
+                                        mDownPos.x - mLastPos.x, mDownPos.y - mLastPos.y))) {
                             // To avoid mis-trigger when motion not touch system gesture region.
                             mPassedSlop = isInSystemGestureRegion(mLastPos);
                             setActive(ev);

@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modifications copyright 2025, Lawnchair
  */
 package com.android.launcher3.graphics;
 
@@ -41,6 +43,10 @@ import com.android.launcher3.util.ScreenOnTracker;
 import com.android.launcher3.util.ScreenOnTracker.ScreenOnListener;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
+
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.util.ViewExtensionsKt;
 
 /**
  * View scrim which draws behind hotseat and workspace
@@ -86,7 +92,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
 
     private final View mRoot;
     private final StatefulContainer mContainer;
-    private final boolean mHideSysUiScrim;
+    private boolean mHideSysUiScrim;
     private boolean mSkipScrimAnimationForTest = false;
 
     private boolean mAnimateScrimOnNextDraw = false;
@@ -102,23 +108,37 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
         mBottomMaskHeight = ResourceUtils.pxFromDp(BOTTOM_MASK_HEIGHT_DP, dm);
         mHideSysUiScrim = Themes.getAttrBoolean(view.getContext(), R.attr.isWorkspaceDarkText);
 
-        mTopMaskBitmap = mHideSysUiScrim ? null : createDitheredAlphaMask(mTopMaskHeight,
-                new int[]{0x3DFFFFFF, 0x0AFFFFFF, 0x00FFFFFF},
-                new float[]{0f, 0.7f, 1f});
+        mTopMaskBitmap = mHideSysUiScrim ? null
+                : createDitheredAlphaMask(mTopMaskHeight,
+                        new int[] { 0x3DFFFFFF, 0x0AFFFFFF, 0x00FFFFFF },
+                        new float[] { 0f, 0.7f, 1f });
         mTopMaskPaint.setColor(0xFF222222);
-        mBottomMaskBitmap = mHideSysUiScrim ? null : createDitheredAlphaMask(mBottomMaskHeight,
-                new int[]{0x00FFFFFF, 0x2FFFFFFF},
-                new float[]{0f, 1f});
+        mBottomMaskBitmap = mHideSysUiScrim ? null
+                : createDitheredAlphaMask(mBottomMaskHeight,
+                        new int[] { 0x00FFFFFF, 0x2FFFFFFF },
+                        new float[] { 0f, 1f });
 
         if (!mHideSysUiScrim) {
             view.addOnAttachStateChangeListener(this);
         }
+
+        PreferenceManager2 preferenceManager2 = PreferenceManager2.getInstance(mRoot.getContext());
+        PreferenceExtensionsKt.onEach(
+                preferenceManager2.getShowTopShadow(),
+                ViewExtensionsKt.getViewAttachedScope(mRoot),
+                (showTopShadow) -> {
+                    mHideSysUiScrim = !showTopShadow;
+                    mRoot.invalidate();
+                    return null;
+                });
     }
 
     /**
      * Draw the top and bottom scrims
      */
     public void draw(Canvas canvas) {
+        if (canvas == null)
+            return;
         if (!mHideSysUiScrim) {
             if (mSysUiProgress.value <= 0) {
                 mAnimateScrimOnNextDraw = false;
@@ -136,10 +156,10 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
                 mAnimateScrimOnNextDraw = false;
             }
 
-            if (mDrawTopScrim) {
+            if (mDrawTopScrim && mTopMaskBitmap != null) {
                 canvas.drawBitmap(mTopMaskBitmap, null, mTopMaskRect, mTopMaskPaint);
             }
-            if (mDrawBottomScrim) {
+            if (mDrawBottomScrim && mBottomMaskBitmap != null) {
                 canvas.drawBitmap(mBottomMaskBitmap, null, mBottomMaskRect, mBottomMaskPaint);
             }
         }
@@ -169,7 +189,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     public void onInsetsChanged(Rect insets) {
         DeviceProfile dp = mContainer.getDeviceProfile();
         mDrawTopScrim = insets.top > 0;
-        mDrawBottomScrim = !dp.isVerticalBarLayout() && !dp.isGestureMode && !dp.isTaskbarPresent;
+        mDrawBottomScrim = !dp.isVerticalBarLayout() && !dp.getDeviceProperties().isGestureMode() && !dp.isTaskbarPresent;
     }
 
     @Override

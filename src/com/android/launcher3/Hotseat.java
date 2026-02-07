@@ -12,9 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modifications copyright 2025 Lawnchair
  */
 
 package com.android.launcher3;
+
+import static android.view.View.MeasureSpec.makeMeasureSpec;
 
 import static com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_X;
 import static com.android.launcher3.util.MultiTranslateDelegate.INDEX_BUBBLE_ADJUSTMENT_ANIM;
@@ -23,7 +27,12 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -38,16 +47,28 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.ShortcutAndWidgetContainer.TranslationProvider;
 import com.android.launcher3.celllayout.CellLayoutLayoutParams;
+import com.android.launcher3.taskbar.BlurredBitmapDrawable;
+
 import com.android.launcher3.util.HorizontalInsettableView;
 import com.android.launcher3.util.MultiPropertyFactory;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
 import com.android.launcher3.util.MultiTranslateDelegate;
 import com.android.launcher3.util.MultiValueAlpha;
 import com.android.launcher3.views.ActivityContext;
+import android.graphics.drawable.Drawable;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+
+import com.hoko.blur.HokoBlur;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.hotseat.DisabledHotseat;
+import app.lawnchair.hotseat.HotseatMode;
+import app.lawnchair.hotseat.LawnchairHotseat;
+import app.lawnchair.preferences.PreferenceManager;
+import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.theme.drawable.DrawableTokens;
 
 /**
  * View class that represents the bottom row of the home screen.
@@ -57,11 +78,12 @@ public class Hotseat extends CellLayout implements Insettable {
     public static final int ALPHA_CHANNEL_TASKBAR_ALIGNMENT = 0;
     public static final int ALPHA_CHANNEL_PREVIEW_RENDERER = 1;
     public static final int ALPHA_CHANNEL_TASKBAR_STASH = 2;
-    public static final int ALPHA_CHANNEL_CHANNELS_COUNT = 3;
+    public static final int ALPHA_CHANNEL_ASSISTANT_VISIBILITY = 3;
+    public static final int ALPHA_CHANNEL_CHANNELS_COUNT = 4;
 
     @Retention(RetentionPolicy.RUNTIME)
     @IntDef({ALPHA_CHANNEL_TASKBAR_ALIGNMENT, ALPHA_CHANNEL_PREVIEW_RENDERER,
-            ALPHA_CHANNEL_TASKBAR_STASH})
+            ALPHA_CHANNEL_TASKBAR_STASH, ALPHA_CHANNEL_ASSISTANT_VISIBILITY})
     public @interface HotseatQsbAlphaId {
     }
 
@@ -90,6 +112,9 @@ public class Hotseat extends CellLayout implements Insettable {
 
     private final View mQsb;
 
+    PreferenceManager2 preferenceManager2;
+    PreferenceManager preferenceManager;
+
     public Hotseat(Context context) {
         this(context, null);
     }
@@ -100,10 +125,36 @@ public class Hotseat extends CellLayout implements Insettable {
 
     public Hotseat(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        mQsb = LayoutInflater.from(context).inflate(R.layout.search_container_hotseat, this, false);
+
+        preferenceManager2 = PreferenceManager2.getInstance(context);
+        preferenceManager = PreferenceManager.getInstance(context);
+        HotseatMode hotseatMode = PreferenceExtensionsKt.firstBlocking(preferenceManager2.getHotseatMode());
+        var hotseatEnabled = PreferenceExtensionsKt.firstBlocking(preferenceManager2.isHotseatEnabled());
+
+        if (!hotseatEnabled) {
+            hotseatMode = DisabledHotseat.INSTANCE;
+        }
+
+        if (!hotseatMode.isAvailable(context)) {
+            // The current hotseat mode is not available,
+            // setting the hotseat mode to one that is always available
+            hotseatMode = LawnchairHotseat.INSTANCE;
+            PreferenceExtensionsKt.setBlocking(preferenceManager2.getHotseatMode(), hotseatMode);
+        }
+        int layoutId = hotseatMode.getLayoutResourceId();
+
+        if (Flags.enableQsbOnHotseat()) {
+            mQsb = LayoutInflater.from(context).inflate(R.layout.qsb_container_hotseat, this,
+                    false);
+        } else {
+            mQsb = LayoutInflater.from(context).inflate(layoutId, this,
+                    false);
+        }
+
         addView(mQsb);
         mIconsAlphaChannels = new MultiValueAlpha(getShortcutsAndWidgets(),
                 ALPHA_CHANNEL_CHANNELS_COUNT);
+        mIconsAlphaChannels.setUpdateVisibility(true);
         if (mQsb instanceof Reorderable qsbReorderable) {
             mQsbTranslationX = qsbReorderable.getTranslateDelegate()
                     .getTranslationX(MultiTranslateDelegate.INDEX_NAV_BAR_ANIM);
@@ -111,6 +162,27 @@ public class Hotseat extends CellLayout implements Insettable {
         mIconsTranslationXFactory = new MultiPropertyFactory<>(getShortcutsAndWidgets(),
                 VIEW_TRANSLATE_X, ICONS_TRANSLATION_X_CHANNELS_COUNT, Float::sum);
         mQsbAlphaChannels = new MultiValueAlpha(mQsb, ALPHA_CHANNEL_CHANNELS_COUNT);
+        mQsbAlphaChannels.setUpdateVisibility(true);
+
+        setUpBackground();
+    }
+
+    private void setUpBackground() {
+        if(!preferenceManager.getHotseatBG().get()) return;
+
+        var bgColor = PreferenceExtensionsKt.firstBlocking(preferenceManager2.getHotseatBackgroundColor());
+        var transparency = preferenceManager.getHotseatBGAlpha().get();
+        var alphaValue = (transparency * 255) / 100;
+        var baseColor = bgColor.getColorPreferenceEntry().getLightColor().invoke(getContext());
+        var finalColor = Color.argb(alphaValue, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor));
+        int insetHorizontalLeft = preferenceManager.getHotseatBGHorizontalInsetLeft().get();
+        int insetHorizontalRight = preferenceManager.getHotseatBGHorizontalInsetRight().get();
+        int insetVerticalTop = preferenceManager.getHotseatBGVerticalInsetTop().get();
+        int insetVerticalBottom = preferenceManager.getHotseatBGVerticalInsetBottom().get();
+        InsetDrawable bg = new InsetDrawable(DrawableTokens.BgCellLayout.resolve(getContext()),
+            insetHorizontalLeft, insetVerticalTop, insetHorizontalRight, insetVerticalBottom);
+        bg.setTint(finalColor);
+        setBackground(bg);
     }
 
     /** Provides translation X for hotseat icons for the channel. */
@@ -307,8 +379,17 @@ public class Hotseat extends CellLayout implements Insettable {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         DeviceProfile dp = mActivity.getDeviceProfile();
-        mQsb.measure(MeasureSpec.makeMeasureSpec(dp.hotseatQsbWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(dp.hotseatQsbHeight, MeasureSpec.EXACTLY));
+
+        // LC: Fix weird sizing with hotseatQsbWidth being 0 on phone
+        int width;
+        if (dp.isQsbInline) {
+            width = dp.hotseatQsbWidth;
+        } else {
+            width = getShortcutsAndWidgets().getMeasuredWidth();
+        }
+        
+        mQsb.measure(makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                makeMeasureSpec(dp.getHotseatProfile().getQsbHeight(), MeasureSpec.EXACTLY));
     }
 
     @Override
@@ -328,7 +409,7 @@ public class Hotseat extends CellLayout implements Insettable {
         int right = left + qsbMeasuredWidth;
 
         int bottom = b - t - dp.getQsbOffsetY();
-        int top = bottom - dp.hotseatQsbHeight;
+        int top = bottom - dp.getHotseatProfile().getQsbHeight();
         mQsb.layout(left, top, right, bottom);
     }
 

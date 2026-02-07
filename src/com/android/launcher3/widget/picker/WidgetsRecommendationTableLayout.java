@@ -20,6 +20,7 @@ import static com.android.launcher3.widget.util.WidgetSizes.getWidgetSizePx;
 import static com.android.launcher3.widget.util.WidgetsTableUtils.WIDGETS_TABLE_ROW_COUNT_COMPARATOR;
 
 import static java.lang.Math.max;
+import static java.util.stream.Collectors.toList;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -29,6 +30,7 @@ import android.view.View;
 import android.widget.TableLayout;
 
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewCompat;
 import androidx.annotation.Px;
 
 import com.android.launcher3.DeviceProfile;
@@ -41,6 +43,8 @@ import com.android.launcher3.widget.picker.util.WidgetPreviewContainerSize;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import app.lawnchair.theme.drawable.DrawableTokens;
 
 /** A {@link TableLayout} for showing recommended widgets. */
 public final class WidgetsRecommendationTableLayout extends TableLayout {
@@ -74,6 +78,11 @@ public final class WidgetsRecommendationTableLayout extends TableLayout {
     /** Sets a {@link android.view.View.OnClickListener} for all widget cells in this table. */
     public void setWidgetCellOnClickListener(OnClickListener widgetCellOnClickListener) {
         mWidgetCellOnClickListener = widgetCellOnClickListener;
+    }
+
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
     }
 
     /**

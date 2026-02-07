@@ -33,15 +33,20 @@ import android.view.ViewTreeObserver;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.BaseActivity;
-import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.statemanager.StateManager.StateHandler;
 import com.android.launcher3.states.StateAnimationConfig;
+import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.quickstep.util.BaseDepthController;
 
 import java.io.PrintWriter;
 import java.util.function.Consumer;
+
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.compat.LawnchairQuickstepCompat;
+import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Controls blur and wallpaper zoom, for the Launcher surface only.
@@ -63,16 +68,32 @@ public class DepthController extends BaseDepthController implements StateHandler
     // Ensure {@link mOnDrawListener} is added only once to avoid spamming DragLayer's mRunQueue
     // via {@link View#post(Runnable)}
     private boolean mIsOnDrawListenerAdded = false;
+    private boolean mRemoveOnDrawListenerCancelled = false;
 
-    public DepthController(Launcher l) {
-        super(l);
+    private final boolean mEnableDepth;
+
+    public DepthController(QuickstepLauncher launcher) {
+        super(launcher);
+        var pref = PreferenceManager2.getInstance(launcher).getWallpaperDepthEffect();
+        mEnableDepth = PreferenceExtensionsKt.firstBlocking(pref);
     }
 
     private void onLauncherDraw() {
         View view = mLauncher.getDragLayer();
         ViewRootImpl viewRootImpl = view.getViewRootImpl();
-        setBaseSurface(viewRootImpl != null ? viewRootImpl.getSurfaceControl() : null);
-        view.post(this::removeOnDrawListener);
+        try {
+            if (Utilities.ATLEAST_Q) {
+                setBaseSurface(viewRootImpl != null ? viewRootImpl.getSurfaceControl() : null);
+            }
+        } catch (Throwable t) {
+            // LC-Ignored
+        }
+        mRemoveOnDrawListenerCancelled = false;
+        view.post(() -> {
+            if (!mRemoveOnDrawListenerCancelled) {
+                removeOnDrawListener();
+            }
+        });
     }
 
     private void ensureDependencies() {
@@ -86,9 +107,15 @@ public class DepthController extends BaseDepthController implements StateHandler
         mOnAttachListener = new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View view) {
-                UI_HELPER_EXECUTOR.execute(() ->
-                        CrossWindowBlurListeners.getInstance().addListener(
-                                mLauncher.getMainExecutor(), mCrossWindowBlurListener));
+                if (Utilities.ATLEAST_S) {
+                    try {
+                            UI_HELPER_EXECUTOR.execute(() ->
+                                    CrossWindowBlurListeners.getInstance().addListener(
+                                            mLauncher.getMainExecutor(), mCrossWindowBlurListener));
+                    } catch (Throwable t) {
+                        // LC-Ignored
+                    }
+                }
                 mLauncher.getScrimView().addOpaquenessListener(mOpaquenessListener);
 
                 // To handle the case where window token is invalid during last setDepth call.
@@ -119,9 +146,15 @@ public class DepthController extends BaseDepthController implements StateHandler
     }
 
     private void removeSecondaryListeners() {
-        UI_HELPER_EXECUTOR.execute(() ->
-                CrossWindowBlurListeners.getInstance()
+        if (Utilities.ATLEAST_S) {
+            try {
+                UI_HELPER_EXECUTOR.execute(() ->
+                    CrossWindowBlurListeners.getInstance()
                         .removeListener(mCrossWindowBlurListener));
+            } catch (Throwable t) {
+                // LC-Ignored
+            }
+        }
         if (mOpaquenessListener != null) {
             mLauncher.getScrimView().removeOpaquenessListener(mOpaquenessListener);
         }
@@ -136,6 +169,7 @@ public class DepthController extends BaseDepthController implements StateHandler
         } else {
             removeOnDrawListener();
             setBaseSurface(null);
+            setEarlyWakeup(false);
         }
     }
 
@@ -166,8 +200,14 @@ public class DepthController extends BaseDepthController implements StateHandler
 
     @Override
     protected void applyDepthAndBlur() {
-        ensureDependencies();
-        super.applyDepthAndBlur();
+        try {
+            if (LawnchairQuickstepCompat.ATLEAST_R && mEnableDepth) {
+                ensureDependencies();
+                super.applyDepthAndBlur();
+            }
+        } catch (Throwable t) {
+            // LC-Ignored
+        }
     }
 
     @Override
@@ -177,6 +217,7 @@ public class DepthController extends BaseDepthController implements StateHandler
     }
 
     private void addOnDrawListener() {
+        mRemoveOnDrawListenerCancelled = true;
         if (mIsOnDrawListenerAdded) {
             return;
         }
@@ -185,6 +226,7 @@ public class DepthController extends BaseDepthController implements StateHandler
     }
 
     private void removeOnDrawListener() {
+        mRemoveOnDrawListenerCancelled = true;
         if (!mIsOnDrawListenerAdded) {
             return;
         }

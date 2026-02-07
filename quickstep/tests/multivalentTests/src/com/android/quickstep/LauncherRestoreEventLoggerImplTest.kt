@@ -22,10 +22,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.launcher3.Flags
 import com.android.launcher3.LauncherSettings.Favorites
-import com.android.launcher3.util.LauncherModelHelper
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
+import com.android.launcher3.util.SandboxApplication
 import com.google.common.truth.Truth.assertThat
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -37,20 +35,13 @@ import org.junit.runner.RunWith
 class LauncherRestoreEventLoggerImplTest {
 
     @get:Rule val setFlagsRule = SetFlagsRule()
+    @get:Rule val mSandboxContext = SandboxApplication()
 
-    private val mLauncherModelHelper = LauncherModelHelper()
-    private val mSandboxContext: SandboxModelContext = mLauncherModelHelper.sandboxContext
     private lateinit var loggerUnderTest: LauncherRestoreEventLoggerImpl
 
     @Before
     fun setup() {
         loggerUnderTest = LauncherRestoreEventLoggerImpl(mSandboxContext)
-    }
-
-    @After
-    fun teardown() {
-        loggerUnderTest.restoreEventLogger.clearData()
-        mLauncherModelHelper.destroy()
     }
 
     @Test
@@ -62,7 +53,7 @@ class LauncherRestoreEventLoggerImplTest {
         loggerUnderTest.logLauncherItemsRestoreFailed(
             dataType = expectedDataType,
             count = 5,
-            error = expectedError
+            error = expectedError,
         )
         // Then
         val actualResult = loggerUnderTest.restoreEventLogger.loggingResults.first()
@@ -108,7 +99,7 @@ class LauncherRestoreEventLoggerImplTest {
         // When
         loggerUnderTest.logSingleFavoritesItemRestoreFailed(
             favoritesId = Favorites.ITEM_TYPE_APPWIDGET,
-            error = expectedError
+            error = expectedError,
         )
         // Then
         val actualResult = loggerUnderTest.restoreEventLogger.loggingResults.first()
@@ -127,7 +118,7 @@ class LauncherRestoreEventLoggerImplTest {
         loggerUnderTest.logFavoritesItemsRestoreFailed(
             favoritesId = Favorites.ITEM_TYPE_DEEP_SHORTCUT,
             count = 5,
-            error = expectedError
+            error = expectedError,
         )
         // Then
         val actualResult = loggerUnderTest.restoreEventLogger.loggingResults.first()

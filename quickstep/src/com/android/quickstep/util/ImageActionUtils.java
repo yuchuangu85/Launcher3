@@ -25,6 +25,7 @@ import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.THREAD_POOL_EXECUTOR;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 
+import android.annotation.UiThread;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.prediction.AppTarget;
@@ -60,6 +61,9 @@ import java.io.IOException;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import com.topjohnwu.superuser.Shell;
+import app.lawnchair.compatlib.utils.BitmapUtil;
+
 /**
  * Utility class containing methods to help manage image actions such as sharing, cropping, and
  * saving image.
@@ -77,17 +81,27 @@ public class ImageActionUtils {
      */
     public static void saveScreenshot(SystemUiProxy systemUiProxy, Bitmap screenshot,
             Rect screenshotBounds, Insets visibleInsets, Task.TaskKey task) {
-        ScreenshotRequest request =
+        try {
+            ScreenshotRequest request =
                 new ScreenshotRequest.Builder(TAKE_SCREENSHOT_PROVIDED_IMAGE, SCREENSHOT_OVERVIEW)
-                .setTopComponent(task.sourceComponent)
-                .setTaskId(task.id)
-                .setUserId(task.userId)
-                .setBitmap(screenshot)
-                .setBoundsOnScreen(screenshotBounds)
-                .setInsets(visibleInsets)
-                .setDisplayId(task.displayId)
-                .build();
-        systemUiProxy.takeScreenshot(request);
+                    .setTopComponent(task.sourceComponent)
+                    .setTaskId(task.id)
+                    .setUserId(task.userId)
+                    .setBitmap(screenshot)
+                    .setBoundsOnScreen(screenshotBounds)
+                    .setInsets(visibleInsets)
+                    .setDisplayId(task.displayId)
+                    .build();
+            systemUiProxy.takeScreenshot(request);
+        } catch (Throwable t) {
+            try {
+                // Lawnchair-TODO-Merge: LC disabled this, but no code is in 16r2
+//                systemUiProxy.handleImageBundleAsScreenshot(BitmapUtil.hardwareBitmapToBundle(screenshot),
+//                        screenshotBounds, visibleInsets, task);
+            } catch (Throwable ee) {
+                Shell.cmd("input keyevent 120").exec();
+            }
+        }
     }
 
     /**
@@ -158,6 +172,19 @@ public class ImageActionUtils {
             persistBitmapAndStartActivity(context, bitmap,
                     crop, intent, ImageActionUtils::getShareIntentForImageUri, tag, sharedElement);
         });
+    }
+    
+    @UiThread
+    public static void startLensActivity(Context context, Supplier<Bitmap> bitmapSupplier,
+            Rect crop, Intent intent, String tag) {
+        if (bitmapSupplier.get() == null) {
+            Log.e(tag, "No snapshot available, not starting share.");
+            return;
+        }
+
+        UI_HELPER_EXECUTOR.execute(() -> persistBitmapAndStartActivity(context,
+                bitmapSupplier.get(), crop, intent, ImageActionUtils::getLensIntentForImageUri,
+                tag));
     }
 
     /**
@@ -298,6 +325,15 @@ public class ImageActionUtils {
                 .putExtra(Intent.EXTRA_STREAM, uri)
                 .setClipData(clipdata);
         return new Intent[]{Intent.createChooser(intent, null).addFlags(FLAG_ACTIVITY_NEW_TASK)};
+    }
+    
+    @WorkerThread
+    private static Intent[] getLensIntentForImageUri(Uri uri, Intent intent) {
+        if (intent == null) {
+            intent = new Intent();
+        }
+        intent.setPackage("com.google.ar.lens");
+        return getShareIntentForImageUri(uri, intent);
     }
 
     private static void clearOldCacheFiles(Context context) {

@@ -61,7 +61,7 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# raccourci}one{# raccourci}other{# raccourcis}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"Widgets"</string>
-    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Rechercher"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Recherchez"</string>
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Effacer le texte dans le champ de recherche"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Aucun widget ou raccourci proposé"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Aucun widget ni raccourci trouvé"</string>
@@ -93,10 +93,10 @@
     <string name="all_apps_search_results" msgid="5889367432531296759">"Résultats de recherche"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"Liste des applis personnelles"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"Liste des applis professionnelles"</string>
-    <string name="remove_drop_target_label" msgid="7812859488053230776">"Supprimer"</string>
+    <string name="remove_drop_target_label" msgid="7812859488053230776">"Retirer"</string>
     <string name="uninstall_drop_target_label" msgid="4722034217958379417">"Désinstaller"</string>
     <string name="app_info_drop_target_label" msgid="692894985365717661">"Détails de l\'appli"</string>
-    <string name="install_private_system_shortcut_label" msgid="1616889277073184841">"Installer dans privé"</string>
+    <string name="install_private_system_shortcut_label" msgid="1616889277073184841">"Installer en privé"</string>
     <string name="uninstall_private_system_shortcut_label" msgid="8423460530441627982">"Désinstaller l\'appli"</string>
     <string name="install_drop_target_label" msgid="2539096853673231757">"Installer"</string>
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"Ne pas suggérer d\'appli"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Touchez pour terminer la configuration"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Impossible de désinstaller cette appli, car il s\'agit d\'une appli système."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Modifier le nom"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Paginer vers la gauche"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Paginer vers la droite"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"L\'appli <xliff:g id="APP_NAME">%1$s</xliff:g> est désactivée"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} a # notification}one{{app_name} a # notification}other{{app_name} a # notifications}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Page %1$d sur %2$d"</string>
@@ -135,8 +137,8 @@
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"Cette fonction est désactivée par votre administrateur"</string>
     <string name="allow_rotation_title" msgid="7222049633713050106">"Autoriser la rotation de l\'écran d\'accueil"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Lorsque vous faites pivoter le téléphone"</string>
-    <string name="landscape_mode_title" msgid="5138814555934843926">"Mode paysage"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Configurez le téléphone en mode Paysage"</string>
+    <string name="landscape_mode_title" msgid="5138814555934843926">"Mode Paysage"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Régler l\'écran d\'accueil en mode paysage"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Pastilles de notification"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Activées"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Désactivé"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Verrouiller"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Transition vers l\'Espace privé"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Installer"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Ajouter"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Installer des applis dans l\'Espace privé"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Ajouter des fichiers et plus à l\'espace privé"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Cercle"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Carré"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Biscuit à quatre côtés"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Biscuit à sept côtés"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arche"</string>
 </resources>

@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"அமைவை நிறைவுசெய்யத் தட்டவும்"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"இது அமைப்பு ஆப்ஸ் என்பதால் நிறுவல் நீக்கம் செய்ய முடியாது."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"பெயரைத் திருத்துதல்"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"இடதுபுறம் பக்கங்களாகப் பிரித்தல்"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"வலதுபுறம் பக்கங்களாகப் பிரித்தல்"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> முடக்கப்பட்டது"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ஆப்ஸில் # அறிவிப்பு உள்ளது}other{{app_name} ஆப்ஸில் # அறிவிப்புகள் உள்ளன}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"பக்கம் %1$d / %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"முகப்புத் திரை சுழற்சியை அனுமதித்தல்"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"மொபைலைச் சுழற்றும் போது"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"லேண்ட்ஸ்கேப் பயன்முறை"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"மொபைலை லேண்ட்ஸ்கேப் பயன்முறையில் அமைக்கலாம்"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"முகப்புத் திரையை லேண்ட்ஸ்கேப் பயன்முறையில் அமைக்கும்"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"அறிவிப்புப் புள்ளிகள்"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"ஆன்"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ஆஃப்"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"பூட்டு"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"தனிப்பட்ட சேமிப்பிடத்திற்கு மாற்றுகிறது"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"நிறுவுக"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"சேர்"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"தனிப்பட்ட சேமிப்பிடத்தில் ஆப்ஸை நிறுவும்"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"ரகசிய இடத்தில் ஃபைல்கள் மற்றும் பலவற்றைச் சேர்க்கலாம்"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"வட்டம்"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"சதுரம்"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 பக்கம் கொண்ட குக்கீ"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 பக்கம் கொண்ட குக்கீ"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"வளைவு"</string>
 </resources>

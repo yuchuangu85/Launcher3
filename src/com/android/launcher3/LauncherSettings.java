@@ -179,7 +179,7 @@ public class LauncherSettings {
          */
         public static final int CONTAINER_DESKTOP = -100;
         public static final int CONTAINER_HOTSEAT = -101;
-        public static final int CONTAINER_PREDICTION = -102;
+        public static final int CONTAINER_ALL_APPS_PREDICTION = -102;
         public static final int CONTAINER_WIDGETS_PREDICTION = -111;
         public static final int CONTAINER_HOTSEAT_PREDICTION = -103;
         public static final int CONTAINER_ALL_APPS = -104;
@@ -201,7 +201,7 @@ public class LauncherSettings {
             switch (container) {
                 case CONTAINER_DESKTOP: return "desktop";
                 case CONTAINER_HOTSEAT: return "hotseat";
-                case CONTAINER_PREDICTION: return "prediction";
+                case CONTAINER_ALL_APPS_PREDICTION: return "prediction";
                 case CONTAINER_ALL_APPS: return "all_apps";
                 case CONTAINER_WIDGETS_TRAY: return "widgets_tray";
                 case CONTAINER_SHORTCUTS: return "shortcuts";
@@ -359,7 +359,7 @@ public class LauncherSettings {
         /**
          * Lookup flag to be used for items which are visible on the home screen
          */
-        public static final CacheLookupFlag DESKTOP_ICON_FLAG = DEFAULT_LOOKUP_FLAG;
+        public static final CacheLookupFlag DESKTOP_ICON_FLAG = DEFAULT_LOOKUP_FLAG.withThemeIcon();
     }
 
     /**

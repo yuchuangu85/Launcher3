@@ -20,8 +20,9 @@ import static android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED;
 
 import static androidx.preference.PreferenceFragmentCompat.ARG_PREFERENCE_ROOT;
 
-import static com.android.launcher3.BuildConfig.IS_DEBUG_DEVICE;
-import static com.android.launcher3.BuildConfig.IS_STUDIO_BUILD;
+import static com.android.launcher3.BuildConfigs.IS_DEBUG_DEVICE;
+import static com.android.launcher3.BuildConfigs.IS_STUDIO_BUILD;
+import static com.android.launcher3.BuildConfigs.NOTIFICATION_DOTS_ENABLED;
 import static com.android.launcher3.InvariantDeviceProfile.TYPE_MULTI_DISPLAY;
 import static com.android.launcher3.InvariantDeviceProfile.TYPE_TABLET;
 import static com.android.launcher3.states.RotationHelper.ALLOW_ROTATION_PREFERENCE_KEY;
@@ -68,7 +69,7 @@ public class SettingsActivity extends FragmentActivity
         implements OnPreferenceStartFragmentCallback, OnPreferenceStartScreenCallback {
 
     @VisibleForTesting
-    static final String DEVELOPER_OPTIONS_KEY = "pref_developer_options";
+    public static final String DEVELOPER_OPTIONS_KEY = "pref_developer_options";
 
     public static final String FIXED_LANDSCAPE_MODE = "pref_fixed_landscape_mode";
 
@@ -168,7 +169,7 @@ public class SettingsActivity extends FragmentActivity
     public static class LauncherSettingsFragment extends PreferenceFragmentCompat implements
             SettingsCache.OnChangeListener {
 
-        protected boolean mDeveloperOptionsEnabled = false;
+        protected boolean mDeveloperOptionsEnabled = true;
 
         private boolean mRestartOnResume = false;
 
@@ -178,7 +179,7 @@ public class SettingsActivity extends FragmentActivity
 
         @Override
         public void onCreate(@Nullable Bundle savedInstanceState) {
-            if (BuildConfig.IS_DEBUG_DEVICE) {
+            if (false) {
                 Uri devUri = Settings.Global.getUriFor(DEVELOPMENT_SETTINGS_ENABLED);
                 SettingsCache settingsCache = SettingsCache.INSTANCE.get(getContext());
                 mDeveloperOptionsEnabled = settingsCache.getValue(devUri);
@@ -210,8 +211,7 @@ public class SettingsActivity extends FragmentActivity
             // If the target preference is not in the current preference screen, find the parent
             // preference screen that contains the target preference and set it as the preference
             // screen.
-            if (Flags.navigateToChildPreference()
-                    && mHighLightKey != null
+            if (mHighLightKey != null
                     && !isKeyInPreferenceGroup(mHighLightKey, screen)) {
                 final PreferenceScreen parentPreferenceScreen =
                         findParentPreference(screen, mHighLightKey);
@@ -295,7 +295,7 @@ public class SettingsActivity extends FragmentActivity
             DisplayController.Info info = DisplayController.INSTANCE.get(getContext()).getInfo();
             switch (preference.getKey()) {
                 case NOTIFICATION_DOTS_PREFERENCE_KEY:
-                    return BuildConfig.NOTIFICATION_DOTS_ENABLED;
+                    return NOTIFICATION_DOTS_ENABLED;
                 case ALLOW_ROTATION_PREFERENCE_KEY:
                     if (Flags.oneGridSpecs()) {
                         return false;

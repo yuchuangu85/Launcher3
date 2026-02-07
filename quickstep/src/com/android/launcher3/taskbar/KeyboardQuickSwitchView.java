@@ -17,14 +17,21 @@ package com.android.launcher3.taskbar;
 
 import static androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
 
+import static com.android.launcher3.taskbar.TaskbarDesktopExperienceFlags.enableAltTabKqsFlatenning;
+import static com.android.launcher3.taskbar.TaskbarDesktopExperienceFlags.enableAltTabKqsOnConnectedDisplays;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.icu.text.MessageFormat;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -50,8 +57,12 @@ import com.android.internal.jank.Cuj;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatedFloat;
+import com.android.launcher3.icons.GraphicsUtils;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
+import com.android.launcher3.util.Themes;
+import com.android.quickstep.SystemUiProxy;
+import com.android.quickstep.util.DesktopTask;
 import com.android.quickstep.util.GroupTask;
 import com.android.quickstep.util.SingleTask;
 import com.android.quickstep.util.SplitTask;
@@ -98,6 +109,11 @@ public class KeyboardQuickSwitchView extends ConstraintLayout {
     private static final long CONTENT_ALPHA_ANIMATION_DURATION_MS = 83;
     private static final long CONTENT_ALPHA_ANIMATION_START_DELAY_MS = 83;
 
+    private static final int DARK_THEME_STROKE_ALPHA = 51;
+    private static final int LIGHT_THEME_STROKE_ALPHA = 41;
+    private static final int DARK_THEME_SHADOW_ALPHA = 51;
+    private static final int LIGHT_THEME_SHADOW_ALPHA = 25;
+
     private final AnimatedFloat mOutlineAnimationProgress = new AnimatedFloat(
             this::invalidateOutline);
 
@@ -116,6 +132,14 @@ public class KeyboardQuickSwitchView extends ConstraintLayout {
     private int mSmallSpacing;
     private int mOutlineRadius;
     private boolean mIsRtl;
+
+    // Used to paint a background with a shadow.
+    private final Paint mBackgroundPaint = new Paint();
+    private float mBackgroundShadowBlur;
+    private float mBackgroundShadowDistance;
+    private final Paint mStrokePaint = new Paint();
+    private final RectF mLastBackgroundRect = new RectF();
+
 
     private int mOverviewTaskIndex = -1;
     private int mDesktopTaskIndex = -1;
@@ -179,9 +203,45 @@ public class KeyboardQuickSwitchView extends ConstraintLayout {
 
         mIsRtl = Utilities.isRtl(resources);
 
+        mBackgroundPaint.setFlags(Paint.ANTI_ALIAS_FLAG);
+        mBackgroundPaint.setStyle(Paint.Style.FILL);
+        mBackgroundPaint.setColor(
+                Themes.getAttrColor(getContext(), R.attr.overviewScrimColorFallback));
+        mBackgroundShadowBlur = resources.getDimension(R.dimen.transient_taskbar_shadow_blur);
+        mBackgroundShadowDistance = resources.getDimension(
+                R.dimen.transient_taskbar_key_shadow_distance);
+
+
+        mStrokePaint.setFlags(Paint.ANTI_ALIAS_FLAG);
+        mStrokePaint.setStyle(Paint.Style.STROKE);
+        mStrokePaint.setStrokeWidth(
+                getResources().getDimension(R.dimen.transient_taskbar_stroke_width));
+        mStrokePaint.setColor(
+                getResources().getColor(R.color.taskbar_stroke, getContext().getTheme()));
+
         TypefaceUtils.setTypeface(
                 mNoRecentItemsPane.findViewById(R.id.no_recent_items_text),
                 FontFamily.GSF_LABEL_LARGE);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        boolean isDarkTheme = Utilities.isDarkTheme(getContext());
+        mStrokePaint.setAlpha(isDarkTheme ? DARK_THEME_STROKE_ALPHA : LIGHT_THEME_STROKE_ALPHA);
+
+        // Draw shadow.
+        mBackgroundPaint.setShadowLayer(
+                mBackgroundShadowBlur,
+                0,
+                mBackgroundShadowDistance,
+                GraphicsUtils.setColorAlphaBound(Color.BLACK,
+                        isDarkTheme ? DARK_THEME_SHADOW_ALPHA : LIGHT_THEME_SHADOW_ALPHA));
+        mLastBackgroundRect.set(0, 0, getWidth(), getHeight());
+
+        canvas.drawRoundRect(mLastBackgroundRect, mOutlineRadius, mOutlineRadius, mBackgroundPaint);
+        canvas.drawRoundRect(mLastBackgroundRect, mOutlineRadius, mOutlineRadius, mStrokePaint);
     }
 
     private void registerOnBackInvokedCallback() {
@@ -284,6 +344,10 @@ public class KeyboardQuickSwitchView extends ConstraintLayout {
                 task2 = splitTask.getBottomRightTask();
             } else if (groupTask instanceof SingleTask singleTask) {
                 task1 = singleTask.getTask();
+                task2 = null;
+            } else if (enableAltTabKqsFlatenning.isTrue()
+                    && groupTask instanceof DesktopTask desktopTask) {
+                task1 = desktopTask.getTasks().get(0);
                 task2 = null;
             } else {
                 continue;
@@ -443,6 +507,9 @@ public class KeyboardQuickSwitchView extends ConstraintLayout {
         // Unregister the back invoked callback after the view is closed and before the
         // mViewCallbacks is reset.
         unregisterOnBackInvokedCallback();
+        if (enableAltTabKqsOnConnectedDisplays.isTrue()) {
+            SystemUiProxy.INSTANCE.get(getContext()).getFocusState().removeListener(mViewCallbacks);
+        }
         mViewCallbacks = null;
     }
 
@@ -609,6 +676,10 @@ public class KeyboardQuickSwitchView extends ConstraintLayout {
                 displayedContent.setVisibility(VISIBLE);
                 setVisibility(VISIBLE);
                 requestFocus();
+                if (enableAltTabKqsOnConnectedDisplays.isTrue()) {
+                    SystemUiProxy.INSTANCE.get(getContext()).getFocusState().addListener(
+                            mViewCallbacks);
+                }
             }
 
             @Override

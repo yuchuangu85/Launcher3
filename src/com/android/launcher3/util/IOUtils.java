@@ -19,6 +19,7 @@ package com.android.launcher3.util;
 import android.os.FileUtils;
 import android.util.Log;
 
+import com.android.launcher3.Utilities;
 import com.android.launcher3.config.FeatureFlags;
 
 import java.io.ByteArrayOutputStream;
@@ -50,7 +51,19 @@ public class IOUtils {
     }
 
     public static long copy(InputStream from, OutputStream to) throws IOException {
-        return FileUtils.copy(from, to);
+        if (Utilities.ATLEAST_Q) {
+            return FileUtils.copy(from, to);
+        } else {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            long totalBytes = 0;
+
+            while ((bytesRead = from.read(buffer)) != -1) {
+                to.write(buffer, 0, bytesRead);
+                totalBytes += bytesRead;
+            }
+            return totalBytes;
+        }
     }
 
     public static void closeSilently(Closeable c) {

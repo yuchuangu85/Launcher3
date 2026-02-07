@@ -175,7 +175,7 @@ public class ProgressDelegateInputConsumer implements InputConsumer,
             mRecentsAnimationController.finishController(endToRecents /* toRecents */,
                     null /* callback */, false /* sendUserLeaveHint */);
         } else if (endToRecents) {
-            startHomeIntentSafely(mContext, null, TAG);
+            startHomeIntentSafely(mContext, null, TAG, getDisplayId());
         }
     }
 

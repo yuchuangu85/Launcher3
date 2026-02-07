@@ -55,14 +55,11 @@ public class RecentsAnimationTargets extends RemoteAnimationTargets {
      *
      * @return {@code true} if at least one target app is a desktop task
      */
+    // TODO: b/362720309 - Remove this function once multi-desks is fully launched.
     public boolean hasDesktopTasks(Context context) {
         if (!DesktopModeStatus.canEnterDesktopMode(context)) {
             return false;
         }
-        // TODO: b/400866688 - Check if we need to update this such that for an empty desk, we
-        //  receive a list of apps that contain only the Launcher and the `DesktopWallpaperActivity`
-        //  and both are fullscreen windowing mode. A desk can also have transparent modals and
-        //  immersive apps which may not have a "freeform" windowing mode.
         for (RemoteAnimationTarget target : apps) {
             if (target.windowConfiguration.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
                 return true;

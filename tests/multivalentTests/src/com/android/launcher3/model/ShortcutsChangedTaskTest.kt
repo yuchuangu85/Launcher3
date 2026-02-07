@@ -38,12 +38,10 @@ import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.shortcuts.ShortcutKey
 import com.android.launcher3.util.ComponentKey
-import com.android.launcher3.util.IntSparseArrayMap
-import com.android.launcher3.util.LauncherModelHelper
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
+import com.android.launcher3.util.ModelTestExtensions.initItems
+import com.android.launcher3.util.SandboxApplication
 import com.google.common.truth.Truth.assertThat
 import java.util.function.Predicate
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -60,19 +58,20 @@ import org.mockito.kotlin.whenever
 @RunWith(AndroidJUnit4::class)
 class ShortcutsChangedTaskTest {
     @get:Rule val setFlagsRule: SetFlagsRule = SetFlagsRule()
+    @get:Rule val context = SandboxApplication()
 
     private lateinit var shortcutsChangedTask: ShortcutsChangedTask
-    private lateinit var modelHelper: LauncherModelHelper
-    private lateinit var context: SandboxModelContext
     private lateinit var launcherApps: LauncherApps
     private var shortcuts: List<ShortcutInfo> = emptyList()
 
     private val expectedPackage: String = "expected"
     private val expectedShortcutId: String = "shortcut_id"
     private val user: UserHandle = myUserHandle()
+
     private val mockTaskController: ModelTaskController = mock()
     private val mockAllApps: AllAppsList = mock()
     private val mockIconCache: IconCache = mock()
+    private val bgDataModel = BgDataModel(mock(), mock(), mock(), mock())
 
     private val expectedWai =
         WorkspaceItemInfo().apply {
@@ -87,9 +86,6 @@ class ShortcutsChangedTaskTest {
 
     @Before
     fun setup() {
-        modelHelper = LauncherModelHelper()
-        modelHelper.loadModelSync()
-        context = modelHelper.sandboxContext
         launcherApps = context.spyService(LauncherApps::class.java)
         whenever(mockTaskController.context).thenReturn(context)
         whenever(mockTaskController.iconCache).thenReturn(mockIconCache)
@@ -97,11 +93,6 @@ class ShortcutsChangedTaskTest {
             .then { _ -> { expectedWai.bitmap = BitmapInfo.LOW_RES_INFO } }
         shortcuts = emptyList()
         shortcutsChangedTask = ShortcutsChangedTask(expectedPackage, shortcuts, user, false)
-    }
-
-    @After
-    fun teardown() {
-        modelHelper.destroy()
     }
 
     @Test
@@ -114,8 +105,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -127,7 +117,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockIconCache).getShortcutIcon(eq(expectedWai), any<CacheableShortcutInfo>())
         verify(mockTaskController).bindUpdatedWorkspaceItems(listOf(expectedWai))
@@ -144,8 +134,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -157,7 +146,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockTaskController)
             .deleteAndBindComponentsRemoved(
@@ -177,8 +166,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -190,7 +178,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockIconCache).getShortcutIcon(eq(expectedWai), any<CacheableShortcutInfo>())
         verify(mockTaskController).bindUpdatedWorkspaceItems(listOf(expectedWai))
@@ -206,8 +194,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -219,7 +206,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockTaskController, times(0)).deleteAndBindComponentsRemoved(any(), any())
         verify(mockTaskController, times(0)).bindUpdatedWorkspaceItems(any())
@@ -236,8 +223,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -249,7 +235,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockIconCache).getShortcutIcon(eq(expectedWai), any<CacheableShortcutInfo>())
         verify(mockTaskController).bindUpdatedWorkspaceItems(listOf(expectedWai))
@@ -266,8 +252,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -279,7 +264,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockIconCache).getShortcutIcon(eq(expectedWai), any<CacheableShortcutInfo>())
         verify(mockTaskController).bindUpdatedWorkspaceItems(listOf(expectedWai))
@@ -309,10 +294,10 @@ class ShortcutsChangedTaskTest {
                 shouldUpdateIdMap = true,
             )
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
-        assertThat(modelHelper.bgDataModel.deepShortcutMap).containsEntry(expectedKey, 1)
-        verify(mockTaskController).bindDeepShortcuts(eq(modelHelper.bgDataModel))
+        assertThat(bgDataModel.deepShortcutMap).containsEntry(expectedKey, 1)
+        verify(mockTaskController).bindDeepShortcuts(eq(bgDataModel))
     }
 
     @Test
@@ -339,10 +324,10 @@ class ShortcutsChangedTaskTest {
                 shouldUpdateIdMap = false,
             )
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
-        assertThat(modelHelper.bgDataModel.deepShortcutMap).doesNotContainKey(expectedKey)
-        verify(mockTaskController, times(0)).bindDeepShortcuts(eq(modelHelper.bgDataModel))
+        assertThat(bgDataModel.deepShortcutMap).doesNotContainKey(expectedKey)
+        verify(mockTaskController, times(0)).bindDeepShortcuts(eq(bgDataModel))
     }
 
     @Test
@@ -356,8 +341,7 @@ class ShortcutsChangedTaskTest {
                     whenever(id).thenReturn(expectedShortcutId)
                 }
             )
-        val items: IntSparseArrayMap<ItemInfo> = modelHelper.bgDataModel.itemsIdMap
-        items.put(expectedWai.id, expectedWai)
+        bgDataModel.initItems(expectedWai)
         doReturn(
                 ApplicationInfo().apply {
                     enabled = true
@@ -369,7 +353,7 @@ class ShortcutsChangedTaskTest {
             .getApplicationInfo(eq(expectedPackage), any(), eq(user))
         doReturn(shortcuts).whenever(launcherApps).getShortcuts(any(), eq(user))
         // When
-        shortcutsChangedTask.execute(mockTaskController, modelHelper.bgDataModel, mockAllApps)
+        shortcutsChangedTask.execute(mockTaskController, bgDataModel, mockAllApps)
         // Then
         verify(mockTaskController, times(0)).deleteAndBindComponentsRemoved(any(), any())
         verify(mockTaskController, times(0)).bindUpdatedWorkspaceItems(any())

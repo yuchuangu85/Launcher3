@@ -21,4 +21,6 @@
     <item type="id" name="action_dismiss_all" />
 
     <item type="id" name="bubble_bar_flyout_view" />
+    <!-- TODO(b/409248525): Delete with enableRefactorTaskContentView -->
+    <item type="id" name="bottomright_snapshot" />
 </resources>

@@ -30,6 +30,8 @@ import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
 
+import com.android.launcher3.Utilities;
+
 /**
  * A drawable for a very specific purpose. Used for the caret arrow on a rounded rectangle popup
  * bubble.
@@ -68,8 +70,10 @@ public class RoundedArrowDrawable extends Drawable {
 
         // Make the drawable with the triangle pointing down and positioned on the left..
         addDownPointingRoundedTriangleToPath(width, height, radius, mPath);
-        clipPopupBodyFromPath(popupRadius, popupWidth, popupHeight, arrowOffsetX, arrowOffsetY,
-                mPath);
+        if (Utilities.ATLEAST_Q) {
+            clipPopupBodyFromPath(popupRadius, popupWidth, popupHeight, arrowOffsetX, arrowOffsetY,
+                    mPath);
+        }
 
         // ... then flip it horizontal or vertical based on where it will be used.
         Matrix pathTransform = new Matrix();
@@ -149,7 +153,15 @@ public class RoundedArrowDrawable extends Drawable {
 
     @Override
     public void getOutline(Outline outline) {
-        outline.setPath(mPath);
+        if (Utilities.ATLEAST_R) {
+            outline.setPath(mPath);
+        } else {
+            try {
+                outline.setConvexPath(mPath);
+            } catch (Exception e) {
+                // ignore
+            }
+        }
     }
 
     @Override

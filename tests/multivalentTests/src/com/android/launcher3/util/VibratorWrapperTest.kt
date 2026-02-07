@@ -22,12 +22,12 @@ import android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK
 import android.os.VibrationEffect.Composition.PRIMITIVE_TICK
 import android.os.Vibrator
 import androidx.test.filters.SmallTest
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
 import com.android.launcher3.util.VibratorWrapper.HAPTIC_FEEDBACK_URI
 import com.android.launcher3.util.VibratorWrapper.OVERVIEW_HAPTIC
 import com.android.launcher3.util.VibratorWrapper.VIBRATION_ATTRS
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
@@ -46,7 +46,7 @@ class VibratorWrapperTest {
 
     @Mock private lateinit var settingsCache: SettingsCache
     private lateinit var vibrator: Vibrator
-    private val context: SandboxModelContext = SandboxModelContext()
+    @get:Rule val context = SandboxApplication()
     @Captor private lateinit var vibrationEffectCaptor: ArgumentCaptor<VibrationEffect>
     @Mock private lateinit var tracker: DaggerSingletonTracker
     private lateinit var underTest: VibratorWrapper
@@ -131,6 +131,6 @@ class VibratorWrapperTest {
     }
 
     private fun awaitTasksCompleted() {
-        Executors.UI_HELPER_EXECUTOR.submit<Any> { null }.get()
+        Executors.UI_HELPER_EXECUTOR.submit<Any?> { null }.get()
     }
 }

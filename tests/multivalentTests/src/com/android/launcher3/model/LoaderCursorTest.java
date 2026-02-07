@@ -76,9 +76,8 @@ import com.android.launcher3.icons.LauncherIcons;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.Executors;
-import com.android.launcher3.util.LauncherModelHelper;
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext;
 import com.android.launcher3.util.PackageManagerHelper;
+import com.android.launcher3.util.SandboxApplication;
 
 import org.junit.After;
 import org.junit.Before;
@@ -96,13 +95,14 @@ public class LoaderCursorTest {
     @Rule
     public final SetFlagsRule mSetFlagsRule = new SetFlagsRule(DEVICE_DEFAULT);
 
-    private LauncherModelHelper mModelHelper;
+    @Rule
+    public final SandboxApplication mContext = new SandboxApplication();
+
     private LauncherAppState mApp;
     private LauncherPrefs mPrefs;
 
     private MatrixCursor mCursor;
     private InvariantDeviceProfile mIDP;
-    private SandboxModelContext mContext;
 
     private LoaderCursor mLoaderCursor;
 
@@ -114,8 +114,6 @@ public class LoaderCursorTest {
 
     @Before
     public void setup() {
-        mModelHelper = new LauncherModelHelper();
-        mContext = mModelHelper.sandboxContext;
         mPrefs = LauncherPrefs.get(mContext);
         mIDP = InvariantDeviceProfile.INSTANCE.get(mContext);
         mApp = LauncherAppState.getInstance(mContext);
@@ -137,7 +135,6 @@ public class LoaderCursorTest {
     public void tearDown() {
         mPrefs.putSync(IS_FIRST_LOAD_AFTER_RESTORE.to(false));
         mCursor.close();
-        mModelHelper.destroy();
     }
 
     private void initCursor(int itemType, String title) {
@@ -211,7 +208,7 @@ public class LoaderCursorTest {
 
         // Item outside screen bounds are not placed
         assertFalse(mLoaderCursor.checkItemPlacement(
-                newItemInfo(4, 4, 1, 1, CONTAINER_DESKTOP, 1), true));
+                newItemInfo(4, 4, 1, 1, CONTAINER_DESKTOP, 1)));
     }
 
     @Test
@@ -222,22 +219,22 @@ public class LoaderCursorTest {
 
         // Overlapping mItems are not placed
         assertTrue(mLoaderCursor.checkItemPlacement(
-                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 1), true));
+                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 1)));
         assertFalse(mLoaderCursor.checkItemPlacement(
-                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 1), true));
+                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 1)));
 
         assertTrue(mLoaderCursor.checkItemPlacement(
-                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 2), true));
+                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 2)));
         assertFalse(mLoaderCursor.checkItemPlacement(
-                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 2), true));
+                newItemInfo(0, 0, 1, 1, CONTAINER_DESKTOP, 2)));
 
         assertTrue(mLoaderCursor.checkItemPlacement(
-                newItemInfo(1, 1, 1, 1, CONTAINER_DESKTOP, 1), true));
+                newItemInfo(1, 1, 1, 1, CONTAINER_DESKTOP, 1)));
         assertTrue(mLoaderCursor.checkItemPlacement(
-                newItemInfo(2, 2, 2, 2, CONTAINER_DESKTOP, 1), true));
+                newItemInfo(2, 2, 2, 2, CONTAINER_DESKTOP, 1)));
 
         assertFalse(mLoaderCursor.checkItemPlacement(
-                newItemInfo(3, 2, 1, 2, CONTAINER_DESKTOP, 1), true));
+                newItemInfo(3, 2, 1, 2, CONTAINER_DESKTOP, 1)));
     }
 
     @Test
@@ -248,12 +245,12 @@ public class LoaderCursorTest {
 
         // Hotseat mItems are only placed based on screenId
         assertTrue(mLoaderCursor.checkItemPlacement(
-                newItemInfo(3, 3, 1, 1, CONTAINER_HOTSEAT, 1), true));
+                newItemInfo(3, 3, 1, 1, CONTAINER_HOTSEAT, 1)));
         assertTrue(mLoaderCursor.checkItemPlacement(
-                newItemInfo(3, 3, 1, 1, CONTAINER_HOTSEAT, 2), true));
+                newItemInfo(3, 3, 1, 1, CONTAINER_HOTSEAT, 2)));
 
         assertFalse(mLoaderCursor.checkItemPlacement(
-                newItemInfo(3, 3, 1, 1, CONTAINER_HOTSEAT, 3), true));
+                newItemInfo(3, 3, 1, 1, CONTAINER_HOTSEAT, 3)));
     }
 
     @Test

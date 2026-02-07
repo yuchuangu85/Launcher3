@@ -51,6 +51,7 @@ import static com.android.launcher3.util.VibratorWrapper.OVERVIEW_HAPTIC;
 import static com.android.launcher3.util.window.RefreshRateTracker.getSingleFrameMs;
 import static com.android.quickstep.views.RecentsView.ADJACENT_PAGE_HORIZONTAL_OFFSET;
 import static com.android.quickstep.views.RecentsView.CONTENT_ALPHA;
+import static com.android.quickstep.views.RecentsView.DESKTOP_CAROUSEL_DETACH_PROGRESS;
 import static com.android.quickstep.views.RecentsView.FULLSCREEN_PROGRESS;
 import static com.android.quickstep.views.RecentsView.RECENTS_SCALE_PROPERTY;
 import static com.android.quickstep.views.RecentsView.TASK_SECONDARY_TRANSLATION;
@@ -129,13 +130,13 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         mLauncher = launcher;
         mSwipeDetector = new BothAxesSwipeDetector(mLauncher, this);
         mRecentsView = mLauncher.getOverviewPanel();
-        mXRange = mLauncher.getDeviceProfile().widthPx / 2f;
+        mXRange = mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() / 2f;
         mYRange = LayoutUtils.getShelfTrackingDistance(
                 mLauncher,
                 mLauncher.getDeviceProfile(),
                 mRecentsView.getPagedOrientationHandler(),
-                mRecentsView.getSizeStrategy());
-        mMaxYProgress = mLauncher.getDeviceProfile().heightPx / mYRange;
+                mRecentsView.getContainerInterface());
+        mMaxYProgress = mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx() / mYRange;
         mMotionPauseDetector = new MotionPauseDetector(mLauncher);
         mMotionPauseMinDisplacement = mLauncher.getResources().getDimension(
                 R.dimen.motion_pause_detector_min_displacement_from_app);
@@ -260,6 +261,8 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         RECENTS_SCALE_PROPERTY.set(mRecentsView, fromState.getOverviewScaleAndOffset(mLauncher)[0]);
         ADJACENT_PAGE_HORIZONTAL_OFFSET.set(mRecentsView, 1f);
         TASK_THUMBNAIL_SPLASH_ALPHA.set(mRecentsView, fromState.showTaskThumbnailSplash() ? 1f : 0);
+        DESKTOP_CAROUSEL_DETACH_PROGRESS.set(mRecentsView,
+                fromState.detachDesktopCarousel() ? 1f : 0);
         mRecentsView.setContentAlpha(1);
         mRecentsView.setFullscreenProgress(fromState.getOverviewFullscreenProgress());
         mLauncher.getActionsView().getVisibilityAlpha().updateValue(
@@ -275,8 +278,9 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         xAnim.setFloat(mRecentsView, ADJACENT_PAGE_HORIZONTAL_OFFSET, scaleAndOffset[1], LINEAR);
         // Use QuickSwitchState instead of OverviewState to determine scrim color,
         // since we need to take potential taskbar into account.
-        xAnim.setViewBackgroundColor(mLauncher.getScrimView(),
-                QUICK_SWITCH_FROM_HOME.getWorkspaceScrimColor(mLauncher), LINEAR);
+        xAnim.setScrimColors(mLauncher.getScrimView(),
+                QUICK_SWITCH_FROM_HOME.getWorkspaceScrimColor(mLauncher),
+                LINEAR);
         if (!mRecentsView.hasTaskViews()) {
             xAnim.addFloat(mRecentsView, CONTENT_ALPHA, 0f, 1f, LINEAR);
         }

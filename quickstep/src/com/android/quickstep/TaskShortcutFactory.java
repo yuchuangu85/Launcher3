@@ -18,11 +18,9 @@ package com.android.quickstep;
 
 import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
 import static android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
-import static android.view.Surface.ROTATION_0;
 
-import static com.android.launcher3.Flags.enableGridOnlyOverview;
+import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
 import static com.android.launcher3.Flags.enableRefactorTaskThumbnail;
-import static com.android.launcher3.Flags.enableShowEnabledShortcutsInAccessibilityMenu;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_CLOSE_APP_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_FREE_FORM_TAP;
 import static com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT;
@@ -54,7 +52,6 @@ import com.android.launcher3.util.SplitConfigurationOptions;
 import com.android.launcher3.util.SplitConfigurationOptions.SplitPositionOption;
 import com.android.launcher3.views.ActivityContext;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
-import com.android.quickstep.util.RecentsOrientedState;
 import com.android.quickstep.views.GroupedTaskView;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.RecentsViewContainer;
@@ -297,11 +294,11 @@ public interface TaskShortcutFactory {
         }
     }
 
-    class CloseSystemShortcut extends SystemShortcut {
+    class RemoveTaskSystemShortcut extends SystemShortcut {
         private final TaskContainer mTaskContainer;
 
-        public CloseSystemShortcut(int iconResId, int textResId, RecentsViewContainer container,
-                TaskContainer taskContainer) {
+        public RemoveTaskSystemShortcut(int iconResId, int textResId,
+                RecentsViewContainer container, TaskContainer taskContainer) {
             super(iconResId, textResId, container, taskContainer.getTaskView().getFirstItemInfo(),
                     taskContainer.getTaskView());
             mTaskContainer = taskContainer;
@@ -345,19 +342,10 @@ public interface TaskShortcutFactory {
                     !deviceProfile.isTaskbarPresent && recentsView.getTaskViewCount() < 2;
             boolean isTaskSplitNotSupported = !task.isDockable ||
                     (intentFlags & FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS) != 0;
-            boolean hideForExistingMultiWindow = container.getDeviceProfile().isMultiWindowMode;
+            boolean hideForExistingMultiWindow = container.getDeviceProfile().getDeviceProperties().isMultiWindowMode();
 
             if (notEnoughTasksToSplit || isTaskSplitNotSupported || hideForExistingMultiWindow) {
                 return null;
-            }
-
-            if (!enableShowEnabledShortcutsInAccessibilityMenu()) {
-                boolean isLargeTile = deviceProfile.isTablet && taskView.isLargeTile();
-                boolean isTaskInExpectedScrollPosition =
-                        recentsView.isTaskInExpectedScrollPosition(taskView);
-                if (isLargeTile && isTaskInExpectedScrollPosition) {
-                    return null;
-                }
             }
 
             return orientationHandler.getSplitPositionOptions(deviceProfile)
@@ -377,7 +365,7 @@ public interface TaskShortcutFactory {
             DeviceProfile deviceProfile = container.getDeviceProfile();
             final TaskView taskView = taskContainer.getTaskView();
             final RecentsView recentsView = taskView.getRecentsView();
-            boolean isLargeTile = deviceProfile.isTablet && taskView.isLargeTile();
+            boolean isLargeTile = deviceProfile.getDeviceProperties().isTablet() && taskView.isLargeTile();
             boolean isInExpectedScrollPosition =
                     recentsView.isTaskInExpectedScrollPosition(taskView);
             boolean shouldShowActionsButtonInstead =
@@ -387,7 +375,8 @@ public interface TaskShortcutFactory {
             // - we are in 3p launcher
             // - the Overview Actions Button should be visible
             // - the task view is not a valid save-able split pair
-            if (!recentsView.supportsAppPairs()
+            if (!OverviewComponentObserver.INSTANCE.get(container.asContext())
+                    .isHomeAndOverviewSame()
                     || shouldShowActionsButtonInstead
                     || !recentsView.getSplitSelectController().getAppPairsController()
                             .canSaveAppPair(taskView)) {
@@ -506,23 +495,8 @@ public interface TaskShortcutFactory {
         @Override
         public List<SystemShortcut> getShortcuts(RecentsViewContainer container,
                 TaskContainer taskContainer) {
-            if (enableShowEnabledShortcutsInAccessibilityMenu()) {
-                if (!taskContainer.getOverlay().isRealSnapshot()) {
-                    return null;
-                }
-            } else {
-                boolean isTablet = container.getDeviceProfile().isTablet;
-                boolean isGridOnlyOverview = isTablet && enableGridOnlyOverview();
-                // Extra conditions if it's not grid-only overview
-                if (!isGridOnlyOverview) {
-                    RecentsOrientedState orientedState = taskContainer.getTaskView()
-                            .getOrientedState();
-                    boolean isFakeLandscape = !orientedState.isRecentsActivityRotationAllowed()
-                            && orientedState.getTouchRotation() != ROTATION_0;
-                    if (!isFakeLandscape) {
-                        return null;
-                    }
-                }
+            if (!taskContainer.getOverlay().isRealSnapshot()) {
+                return null;
             }
 
             SystemShortcut screenshotShortcut = taskContainer.getOverlay().getScreenshotShortcut(
@@ -540,39 +514,31 @@ public interface TaskShortcutFactory {
         @Override
         public List<SystemShortcut> getShortcuts(RecentsViewContainer container,
                 TaskContainer taskContainer) {
-            if (enableShowEnabledShortcutsInAccessibilityMenu()) {
-                if (!taskContainer.getOverlay().isRealSnapshot()) {
-                    return null;
-                }
+            if (!taskContainer.getOverlay().isRealSnapshot()) {
+                return null;
+            }
 
-                // Modal only works with grid size tiles with enableGridOnlyOverview enabled on
-                // tablets / foldables. With enableGridOnlyOverview off, for large tiles it works,
-                // but the tile needs to be in the center of Recents / Overview.
-                boolean isTablet = container.getDeviceProfile().isTablet;
-                RecentsView recentsView = container.getOverviewPanel();
-                boolean isLargeTileInCenterOfOverview = taskContainer.getTaskView().isLargeTile()
-                        && recentsView.isFocusedTaskInExpectedScrollPosition();
-                if (isTablet
-                        && !isLargeTileInCenterOfOverview
-                        && !enableGridOnlyOverview()) {
-                    return null;
-                }
+            // Modal only works with grid size tiles with enableGridOnlyOverview enabled on
+            // tablets / foldables. With enableGridOnlyOverview off, for large tiles it works,
+            // but the tile needs to be in the center of Recents / Overview.
+            boolean isTablet = container.getDeviceProfile().getDeviceProperties().isTablet();
+            RecentsView recentsView = container.getOverviewPanel();
+            boolean isLargeTileInCenterOfOverview = taskContainer.getTaskView().isLargeTile()
+                    && recentsView.isFocusedTaskInExpectedScrollPosition();
+            if (isTablet
+                    && !isLargeTileInCenterOfOverview
+                    && !enableGridOnlyOverview()) {
+                return null;
+            }
 
-                boolean isFakeLandscape = !taskContainer.getTaskView().getPagedOrientationHandler()
-                        .isLayoutNaturalToLauncher();
-                if (isFakeLandscape) {
-                    return null;
-                }
+            boolean isFakeLandscape = !taskContainer.getTaskView().getPagedOrientationHandler()
+                    .isLayoutNaturalToLauncher();
+            if (isFakeLandscape) {
+                return null;
+            }
 
-                if (taskContainer.getOverlay().isThumbnailRotationDifferentFromTask()) {
-                    return null;
-                }
-            } else {
-                boolean isTablet = container.getDeviceProfile().isTablet;
-                boolean isGridOnlyOverview = isTablet && enableGridOnlyOverview();
-                if (!isGridOnlyOverview) {
-                    return null;
-                }
+            if (taskContainer.getOverlay().isThumbnailRotationDifferentFromTask()) {
+                return null;
             }
 
             SystemShortcut modalStateSystemShortcut =
@@ -582,13 +548,13 @@ public interface TaskShortcutFactory {
         }
     };
 
-    TaskShortcutFactory CLOSE = new TaskShortcutFactory() {
+    TaskShortcutFactory REMOVE_TASK = new TaskShortcutFactory() {
         @Override
         public List<SystemShortcut> getShortcuts(RecentsViewContainer container,
                 TaskContainer taskContainer) {
-            return Collections.singletonList(new CloseSystemShortcut(
-                    R.drawable.ic_close_option,
-                    R.string.recent_task_option_close, container, taskContainer));
+            return Collections.singletonList(new RemoveTaskSystemShortcut(
+                    R.drawable.ic_remove_task_option,
+                    R.string.recent_task_option_remove_task, container, taskContainer));
         }
 
         @Override

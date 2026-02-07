@@ -163,9 +163,14 @@ public class TaskbarDragLayerController implements TaskbarControllers.LoggableTa
      * @return Bounds (in TaskbarDragLayer coordinates) where an opened Folder can display.
      */
     public Rect getFolderBoundingBox() {
-        Rect boundingBox = new Rect(0, 0, mTaskbarDragLayer.getWidth(),
-                mTaskbarDragLayer.getHeight() - mActivity.getDeviceProfile().taskbarHeight
-                        - mActivity.getDeviceProfile().taskbarBottomMargin);
+        Rect boundingBox = new Rect(
+                0,
+                0,
+                mTaskbarDragLayer.getWidth(),
+                mTaskbarDragLayer.getHeight()
+                        - mActivity.getDeviceProfile().getTaskbarProfile().getHeight()
+                        - mActivity.getDeviceProfile().getTaskbarProfile().getBottomMargin()
+        );
         boundingBox.inset(mFolderMargin, mFolderMargin);
         return boundingBox;
     }
@@ -215,7 +220,7 @@ public class TaskbarDragLayerController implements TaskbarControllers.LoggableTa
     }
 
     private void updateBackgroundAlpha() {
-        if (mActivity.isPhoneMode() || mActivity.isDestroyed()) {
+        if (!mActivity.drawsTaskbarBackground() || mActivity.isDestroyed()) {
             return;
         }
 
@@ -352,7 +357,7 @@ public class TaskbarDragLayerController implements TaskbarControllers.LoggableTa
                         deviceProfile.getDisplayInfo().currentSize.y :
                         taskbarDimensions.y;
             } else {
-                return deviceProfile.taskbarHeight;
+                return deviceProfile.getTaskbarProfile().getHeight();
             }
         }
 

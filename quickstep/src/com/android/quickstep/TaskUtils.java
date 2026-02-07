@@ -39,6 +39,8 @@ import com.android.systemui.shared.system.ActivityManagerWrapper;
 
 import java.util.List;
 
+import app.lawnchair.LawnchairApp;
+
 /**
  * Contains helpful methods for retrieving data from {@link Task}s.
  */
@@ -116,6 +118,7 @@ public final class TaskUtils {
      * Requests that the system close any open system windows (including other SystemUI).
      */
     public static void closeSystemWindowsAsync(String reason) {
+        if (!LawnchairApp.isRecentsEnabled()) return;
         UI_HELPER_EXECUTOR.execute(
                 () -> ActivityManagerWrapper.getInstance().closeSystemWindows(reason));
     }

@@ -16,8 +16,8 @@
 
 package com.android.launcher3.taskbar.bubbles.animation
 
-import androidx.core.animation.Animator
-import androidx.core.animation.ValueAnimator
+import android.animation.Animator
+import android.animation.ValueAnimator
 import kotlin.math.max
 import kotlin.math.min
 

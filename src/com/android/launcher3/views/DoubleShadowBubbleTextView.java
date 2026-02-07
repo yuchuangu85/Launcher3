@@ -42,7 +42,7 @@ import com.android.launcher3.R;
  */
 public class DoubleShadowBubbleTextView extends BubbleTextView {
 
-    private final ShadowInfo mShadowInfo;
+    public final ShadowInfo mShadowInfo;
 
     public DoubleShadowBubbleTextView(Context context) {
         this(context, null);
@@ -163,5 +163,9 @@ public class DoubleShadowBubbleTextView extends BubbleTextView {
     private static int getTextShadowColor(int shadowColor, int textAlpha) {
         return setColorAlphaBound(shadowColor,
                 Math.round(Color.alpha(shadowColor) * textAlpha / 255f));
+    }
+
+    public ShadowInfo getShadowInfo() {
+        return mShadowInfo;
     }
 }

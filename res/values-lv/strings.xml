@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Pieskarieties, lai pabeigtu iestatīšanu"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Šī ir sistēmas lietotne, un to nevar atinstalēt."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Nosaukuma rediģēšana"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Lapdale pa kreisi"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Lapdale pa labi"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Lietotne <xliff:g id="APP_NAME">%1$s</xliff:g> ir atspējota"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{Lietotnē {app_name} ir # paziņojums}zero{Lietotnē {app_name} ir # paziņojumi}one{Lietotnē {app_name} ir # paziņojums}other{Lietotnē {app_name} ir # paziņojumi}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%1$d. lapa no %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Atļaut sākuma ekrāna pagriešanu"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Pagriežot tālruni"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Ainavas režīms"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Iestatīt tālrunī ainavas režīmu"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Ainavas režīma iestatīšana sākuma ekrānā"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Paziņojumu punkti"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Ieslēgti"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Izslēgts"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Bloķēšana"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Pāriet uz privāto mapi"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Instalēt"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Pievienot"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instalējiet lietotnes privātajā telpā."</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Pievienojiet failus un citu saturu privātajai telpai"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Loks"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrāts"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Cepums ar četrām malām"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Cepums ar septiņām malām"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arka"</string>
 </resources>

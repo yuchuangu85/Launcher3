@@ -20,7 +20,7 @@ import com.android.quickstep.dagger.QuickstepBaseActivityComponent
 import dagger.Subcomponent
 
 /** Sub component for Dagger injection for ActivityContext. */
-@Subcomponent(modules = [LauncherActivityContextModule::class])
+@Subcomponent
 @ActivityContextSingleton
 interface ActivityContextComponent : QuickstepBaseActivityComponent {
 

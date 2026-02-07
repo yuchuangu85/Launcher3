@@ -153,7 +153,7 @@ message TaskBarContainer {
   }
 }
 
-// Next value 54
+// Next value 55
 enum Attribute {
   option allow_alias = true;
 
@@ -229,6 +229,7 @@ enum Attribute {
   WEB_SEARCH_RESULT_CALCULATOR = 37;
   WEB_SEARCH_RESULT_URL = 38;
   WEB_SEARCH_RESULT_RICH_ANSWER = 40;
+  WEB_SEARCH_RESULT_AI_MODE = 54;
 
   WIDGETS_BOTTOM_TRAY = 28;
   WIDGETS_TRAY_PREDICTION = 29;

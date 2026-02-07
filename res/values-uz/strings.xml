@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Sozlashni yakunlash uchun bosing"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Bu tizim ilovasi, shuning uchun o‘chirib bo‘lmaydi."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Nomini tahrirlash"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Chapga sahifalash"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Oʻngga sahifalash"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> ilovasi o‘chirib qo‘yildi"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ilovasida # ta bildirishnoma bor}other{{app_name} ilovasida # ta bildirishnoma bor}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$ddan %1$d ta sahifa"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Bosh ekranni burishga ruxsat"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Telefon burilganda"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Yotiq rejim"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Telefonni yotiq rejimga oʻtkazish"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Bosh ekranni eniga sozlash"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Bildirishnoma belgilari"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Yoniq"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Oʻchiq"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Qulflash"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Maxfiy joyga almashtirish"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Oʻrnatish"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Kiritish"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Ilovalarni Maxfiy makonga oʻrnatish"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Maxfiy makonga fayllar va boshqalarni qoʻshish"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Aylana"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 tomonli pishiriq"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 tomonli pishiriq"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arka"</string>
 </resources>

@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"ማዋቀርን ለመጨረስ መታ ያድርጉ"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"ይህ የስርዓት መተግበሪያ ነው እና ማራገፍ አይቻልም።"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"ስም ያርትዑ"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"ወደ ግራ ገፅ ይስጡ"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"ወደ ቀኝ ገፅ ይስጡ"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> ተሰናክሏል"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name}፣ # ማሳወቂያ አለው}one{{app_name}፣ # ማሳወቂያዎች አሉት}other{{app_name}፣ # ማሳወቂያዎች አሉት}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"ገፅ %1$d ከ%2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"የመነሻ ማያ ገፅ ማሽከርከርን ይፍቀዱ"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"ስልኩ ሲዞር"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"የመሬት አቀማመጥ ሁኔታ"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ስልክን ወደ የመሬት አቀማመጥ ሁኔታ ያቀናብሩ"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"መነሻ ማያ ገፅን ወደ የመሬት አቀማመጥ ሁኔታ ያቀናብሩ"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"የማሳወቂያ ነጥቦች"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"አብራ"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ጠፍቷል"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"ቆልፍ"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"የግል ቦታ ሽግግር"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ይጫኑ"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"አክል"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"መተግበሪያዎችን ወደ የግል ቦታ ይጫኑ"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"ወደ የግል ቦታ ፋይሎች እና ሌሎችንም ያክሉ"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"ክብ"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"ካሬ"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4-ጎን ያለው ኩኪ"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7-ጎን ያለው ኩኪ"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"ቅስት"</string>
 </resources>

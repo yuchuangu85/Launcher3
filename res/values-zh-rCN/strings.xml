@@ -34,10 +34,10 @@
     <string name="split_app_usage_settings" msgid="7214375263347964093">"%1$s的使用设置"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"新窗口"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"管理窗口"</string>
-    <string name="save_app_pair" msgid="5647523853662686243">"保存应用组合"</string>
+    <string name="save_app_pair" msgid="5647523853662686243">"保存应用对"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"在该设备上无法使用此应用对"</string>
-    <string name="app_pair_needs_unfold" msgid="4588897528143807002">"展开设备即可使用此应用组合"</string>
+    <string name="app_pair_needs_unfold" msgid="4588897528143807002">"展开设备即可使用此应用对"</string>
     <string name="app_pair_not_available" msgid="3556767440808032031">"应用对不可用"</string>
     <string name="long_press_widget_to_add" msgid="3587712543577675817">"轻触并按住即可移动微件。"</string>
     <string name="long_accessible_way_to_add" msgid="2733588281439571974">"点按两次并按住微件即可移动该微件或使用自定义操作。"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"点按即可完成设置"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"这是系统应用，无法卸载。"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"修改名称"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"左侧分页"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"右侧分页"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"已停用<xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{“{app_name}”有 # 条通知}other{“{app_name}”有 # 条通知}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"第%1$d页，共%2$d页"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"允许旋转主屏幕"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"手机旋转时"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"横屏模式"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"将手机设为横屏模式"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"将主屏幕设为横屏模式"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"通知圆点"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"已开启"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"已关闭"</string>
@@ -165,7 +167,7 @@
     <string name="widgets_list_closed" msgid="6141506579418771922">"微件列表已关闭"</string>
     <string name="action_add_to_workspace" msgid="215894119683164916">"添加到主屏幕"</string>
     <string name="action_move_here" msgid="2170188780612570250">"将项目移至此处"</string>
-    <string name="item_removed" msgid="851119963877842327">"项目已移除"</string>
+    <string name="item_removed" msgid="851119963877842327">"已移除项目"</string>
     <string name="undo" msgid="4151576204245173321">"撤消"</string>
     <string name="action_move" msgid="4339390619886385032">"移动项目"</string>
     <string name="move_to_empty_cell_description" msgid="5254852678218206889">"移至<xliff:g id="STRING">%3$s</xliff:g>中的第 <xliff:g id="NUMBER_0">%1$s</xliff:g> 行第 <xliff:g id="NUMBER_1">%2$s</xliff:g> 列"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"锁定"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"私密空间转换"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"安装"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"添加"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"将应用安装到私密空间"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"将文件等内容添加到私密空间"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"圆形"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"方形"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"四边形饼干"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"七边形饼干"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"拱形"</string>
 </resources>

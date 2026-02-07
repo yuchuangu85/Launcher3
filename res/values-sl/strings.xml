@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Dotaknite se, da dokončate postopek nastavitve."</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"To je sistemska aplikacija in je ni mogoče odstraniti."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Urejanje imena"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Pomikanje po straneh v levo"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Pomikanje po straneh v desno"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Aplikacija <xliff:g id="APP_NAME">%1$s</xliff:g> je onemogočena"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ima # obvestilo.}one{{app_name} ima # obvestilo.}two{{app_name} ima # obvestili.}few{{app_name} ima # obvestila.}other{{app_name} ima # obvestil.}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Stran %1$d od %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Dovoli sukanje začetnega zaslona"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Ko se telefon zasuka"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Ležeči način"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Telefon preklopite v ležeči način"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Nastavitev začetnega zaslona v ležeči način"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Obvestilne pike"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Vklopljeno"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Izklopljeno"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Zaklepanje"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Preklapljanje zasebnega prostora"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Namestitev"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Dodaj"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Nameščanje aplikacij v zasebni prostor"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Dodajte datoteke in drugo v zasebni prostor"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Krog"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Piškotek s 4 stranicami"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Piškotek s 7 stranicami"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Lok"</string>
 </resources>

@@ -12,12 +12,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modifications copyright 2025, Lawnchair
  */
 
 package com.android.launcher3;
 
-import static android.app.PendingIntent.FLAG_IMMUTABLE;
-import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.content.pm.ActivityInfo.CONFIG_UI_MODE;
 import static android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE;
 import static android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
@@ -26,11 +26,12 @@ import static com.android.app.animation.Interpolators.EMPHASIZED;
 import static com.android.launcher3.AbstractFloatingView.TYPE_FOLDER;
 import static com.android.launcher3.AbstractFloatingView.TYPE_ICON_SURFACE;
 import static com.android.launcher3.AbstractFloatingView.TYPE_REBIND_SAFE;
+import static com.android.launcher3.AbstractFloatingView.TYPE_WIDGETS_FULL_SHEET;
 import static com.android.launcher3.AbstractFloatingView.getTopOpenViewWithType;
+import static com.android.launcher3.Flags.allAppsBlur;
 import static com.android.launcher3.Flags.enableAddAppWidgetViaConfigActivityV2;
-import static com.android.launcher3.Flags.enableSmartspaceRemovalToggle;
-import static com.android.launcher3.Flags.enableStrictMode;
 import static com.android.launcher3.Flags.enableWorkspaceInflation;
+import static com.android.launcher3.Flags.enableLongPressRemoveShortcut;
 import static com.android.launcher3.LauncherAnimUtils.HOTSEAT_SCALE_PROPERTY_FACTORY;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_INDEX_WIDGET_TRANSITION;
 import static com.android.launcher3.LauncherAnimUtils.SPRING_LOADED_EXIT_DELAY;
@@ -49,18 +50,16 @@ import static com.android.launcher3.LauncherConstants.SavedInstanceKeys.RUNTIME_
 import static com.android.launcher3.LauncherConstants.SavedInstanceKeys.RUNTIME_STATE_PENDING_REQUEST_CODE;
 import static com.android.launcher3.LauncherConstants.SavedInstanceKeys.RUNTIME_STATE_RECREATE_TO_UPDATE_THEME;
 import static com.android.launcher3.LauncherConstants.SavedInstanceKeys.RUNTIME_STATE_WIDGET_PANEL;
-import static com.android.launcher3.LauncherConstants.TraceEvents.COLD_STARTUP_TRACE_COOKIE;
-import static com.android.launcher3.LauncherConstants.TraceEvents.COLD_STARTUP_TRACE_METHOD_NAME;
-import static com.android.launcher3.LauncherConstants.TraceEvents.DISPLAY_ALL_APPS_TRACE_COOKIE;
 import static com.android.launcher3.LauncherConstants.TraceEvents.DISPLAY_ALL_APPS_TRACE_METHOD_NAME;
-import static com.android.launcher3.LauncherConstants.TraceEvents.DISPLAY_WORKSPACE_TRACE_COOKIE;
 import static com.android.launcher3.LauncherConstants.TraceEvents.DISPLAY_WORKSPACE_TRACE_METHOD_NAME;
 import static com.android.launcher3.LauncherConstants.TraceEvents.ON_CREATE_EVT;
 import static com.android.launcher3.LauncherConstants.TraceEvents.ON_NEW_INTENT_EVT;
 import static com.android.launcher3.LauncherConstants.TraceEvents.ON_RESUME_EVT;
 import static com.android.launcher3.LauncherConstants.TraceEvents.ON_START_EVT;
+import static com.android.launcher3.LauncherConstants.TraceEvents.SINGLE_TRACE_COOKIE;
 import static com.android.launcher3.LauncherPrefs.FIXED_LANDSCAPE_MODE;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.EDIT_MODE;
@@ -70,12 +69,15 @@ import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.NO_OFFSET;
 import static com.android.launcher3.LauncherState.NO_SCALE;
 import static com.android.launcher3.LauncherState.SPRING_LOADED;
+import static com.android.launcher3.Utilities.ATLEAST_Q;
+import static com.android.launcher3.Utilities.ATLEAST_R;
 import static com.android.launcher3.Utilities.postAsyncCallback;
 import static com.android.launcher3.Workspace.mapOverCellLayouts;
 import static com.android.launcher3.anim.AnimatorListeners.forEndCallback;
 import static com.android.launcher3.config.FeatureFlags.FOLDABLE_SINGLE_PAGE;
 import static com.android.launcher3.config.FeatureFlags.MULTI_SELECT_EDIT_MODE;
 import static com.android.launcher3.icons.BitmapRenderer.createHardwareBitmap;
+import static com.android.launcher3.folder.FolderGridOrganizer.createFolderGridOrganizer;
 import static com.android.launcher3.logging.KeyboardStateManager.KeyboardState.HIDE;
 import static com.android.launcher3.logging.KeyboardStateManager.KeyboardState.SHOW;
 import static com.android.launcher3.logging.StatsLogManager.EventEnum;
@@ -90,32 +92,23 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCH
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SWIPERIGHT;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_RECONFIGURED;
 import static com.android.launcher3.logging.StatsLogManager.LauncherLatencyEvent.LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE;
-import static com.android.launcher3.logging.StatsLogManager.LauncherLatencyEvent.LAUNCHER_LATENCY_STARTUP_TOTAL_DURATION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherLatencyEvent.LAUNCHER_LATENCY_STARTUP_VIEW_INFLATION;
-import static com.android.launcher3.logging.StatsLogManager.StatsLatencyLogger.LatencyType.COLD;
-import static com.android.launcher3.logging.StatsLogManager.StatsLatencyLogger.LatencyType.COLD_DEVICE_REBOOTING;
-import static com.android.launcher3.logging.StatsLogManager.StatsLatencyLogger.LatencyType.WARM;
 import static com.android.launcher3.model.ItemInstallQueue.FLAG_ACTIVITY_PAUSED;
 import static com.android.launcher3.model.ItemInstallQueue.FLAG_DRAG_AND_DROP;
 import static com.android.launcher3.popup.SystemShortcut.APP_INFO;
 import static com.android.launcher3.popup.SystemShortcut.INSTALL;
+import static com.android.launcher3.popup.SystemShortcut.REMOVE;
 import static com.android.launcher3.popup.SystemShortcut.WIDGETS;
 import static com.android.launcher3.states.RotationHelper.REQUEST_LOCK;
 import static com.android.launcher3.states.RotationHelper.REQUEST_NONE;
 import static com.android.launcher3.testing.shared.TestProtocol.LAUNCHER_ACTIVITY_STOPPED_MESSAGE;
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.ItemInfoMatcher.forFolderMatch;
 import static com.android.launcher3.util.SettingsCache.TOUCHPAD_NATURAL_SCROLLING;
-import static com.android.launcher3.util.WallpaperThemeManager.setWallpaperDependentTheme;
 
 import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.content.ActivityNotFoundException;
@@ -131,9 +124,10 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.os.StrictMode;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.os.UserHandle;
@@ -143,6 +137,7 @@ import android.util.FloatProperty;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
+import android.view.InflateException;
 import android.view.KeyEvent;
 import android.view.KeyboardShortcutGroup;
 import android.view.Menu;
@@ -152,7 +147,9 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver.OnPreDrawListener;
 import android.view.WindowInsets;
+import android.view.WindowInsets.Type;
 import android.view.WindowInsetsAnimation;
+import android.view.WindowInsetsAnimation.Callback;
 import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.OvershootInterpolator;
@@ -164,6 +161,7 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.StringRes;
 import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.os.BuildCompat;
@@ -181,27 +179,26 @@ import com.android.launcher3.celllayout.CellPosMapper;
 import com.android.launcher3.celllayout.CellPosMapper.CellPos;
 import com.android.launcher3.celllayout.CellPosMapper.TwoPanelCellPosMapper;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
+import com.android.launcher3.compose.ComposeFacade;
 import com.android.launcher3.config.FeatureFlags;
+import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.debug.TestEventEmitter;
 import com.android.launcher3.debug.TestEventEmitter.TestEvent;
-import com.android.launcher3.dragndrop.DragController;
+import com.android.launcher3.dot.DotInfo;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.dragndrop.LauncherDragController;
 import com.android.launcher3.folder.Folder;
 import com.android.launcher3.folder.FolderIcon;
-import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo;
 import com.android.launcher3.logger.LauncherAtom.WorkspaceContainer;
-import com.android.launcher3.logging.ColdRebootStartupLatencyLogger;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.logging.InstanceId;
 import com.android.launcher3.logging.InstanceIdSequence;
 import com.android.launcher3.logging.StartupLatencyLogger;
 import com.android.launcher3.logging.StatsLogManager;
-import com.android.launcher3.logging.StatsLogManager.LauncherLatencyEvent;
 import com.android.launcher3.model.BgDataModel.Callbacks;
 import com.android.launcher3.model.ItemInstallQueue;
 import com.android.launcher3.model.ModelWriter;
@@ -211,6 +208,8 @@ import com.android.launcher3.model.data.CollectionInfo;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
+import com.android.launcher3.model.data.PredictedContainerInfo;
+import com.android.launcher3.model.data.WorkspaceData;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.notification.NotificationListener;
 import com.android.launcher3.pm.PinRequestHelper;
@@ -231,13 +230,11 @@ import com.android.launcher3.util.BackPressHandler;
 import com.android.launcher3.util.CannedAnimationCoordinator;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.ContextTracker;
-import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.ItemInflater;
 import com.android.launcher3.util.KeyboardShortcutsDelegate;
 import com.android.launcher3.util.LauncherBindableItemsContainer;
-import com.android.launcher3.util.LockedUserState;
-import com.android.launcher3.util.MSDLPlayerWrapper;
+import com.android.launcher3.util.OnboardingPrefs;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.util.PendingRequestArgs;
 import com.android.launcher3.util.PluginManagerWrapper;
@@ -251,7 +248,7 @@ import com.android.launcher3.util.Themes;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.util.TouchController;
 import com.android.launcher3.util.TraceHelper;
-import com.android.launcher3.views.ActivityContext;
+import com.android.launcher3.util.WallpaperThemeManager;
 import com.android.launcher3.views.FloatingIconView;
 import com.android.launcher3.views.FloatingSurfaceView;
 import com.android.launcher3.views.OptionsPopupView;
@@ -273,10 +270,11 @@ import com.android.systemui.plugins.LauncherOverlayPlugin;
 import com.android.systemui.plugins.PluginListener;
 import com.android.systemui.plugins.shared.LauncherOverlayManager;
 import com.android.systemui.plugins.shared.LauncherOverlayManager.LauncherOverlayTouchProxy;
-import com.android.window.flags.Flags;
+import com.android.window.flags2.Flags;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -287,8 +285,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import app.lawnchair.LawnchairApp;
 
 /**
  * Default launcher application.
@@ -303,8 +302,6 @@ public class Launcher extends StatefulActivity<LauncherState>
 
     static final boolean LOGD = false;
 
-    static final boolean DEBUG_STRICT_MODE = false;
-
     private static final float BOUNCE_ANIMATION_TENSION = 1.3f;
 
     /**
@@ -316,7 +313,8 @@ public class Launcher extends StatefulActivity<LauncherState>
     public static final String INTENT_ACTION_ALL_APPS_TOGGLE =
             "launcher.intent_action_all_apps_toggle";
 
-    private static boolean sIsNewProcess = true;
+    private static final String EXCLUDE_CLOSE_WIDGET_PICKER =
+            "launcher.extra.EXCLUDE_CLOSE_WIDGET_PICKER";
 
     private StateManager<LauncherState, Launcher> mStateManager;
 
@@ -355,8 +353,10 @@ public class Launcher extends StatefulActivity<LauncherState>
 
     // Main container view for the all apps screen.
     @Thunk
-    ActivityAllAppsContainerView<Launcher> mAppsView;
+    public ActivityAllAppsContainerView<Launcher> mAppsView;
     AllAppsTransitionController mAllAppsController;
+    // Views that should be blurred when All Apps is open or depth is otherwise applied.
+    private List<View> mDepthBlurTargets;
 
     // Scrim view for the all apps and overview state.
     @Thunk
@@ -372,7 +372,6 @@ public class Launcher extends StatefulActivity<LauncherState>
 
     private LauncherModel mModel;
     private ModelWriter mModelWriter;
-    private IconCache mIconCache;
     private LauncherAccessibilityDelegate mAccessibilityDelegate;
 
     private PopupDataProvider mPopupDataProvider;
@@ -397,7 +396,7 @@ public class Launcher extends StatefulActivity<LauncherState>
     private RotationHelper mRotationHelper;
 
     protected LauncherOverlayManager mOverlayManager;
-    protected DragController mDragController;
+    protected LauncherDragController mDragController;
     // If true, overlay callbacks are deferred
     private boolean mDeferOverlayCallbacks;
     private final Runnable mDeferredOverlayCallbacks = this::checkIfOverlayStillDeferred;
@@ -411,19 +410,23 @@ public class Launcher extends StatefulActivity<LauncherState>
     // session on the server side.
     protected InstanceId mAllAppsSessionLogId;
     private LauncherState mPrevLauncherState;
-    private StartupLatencyLogger mStartupLatencyLogger;
     private CellPosMapper mCellPosMapper = CellPosMapper.DEFAULT;
 
     private final CannedAnimationCoordinator mAnimationCoordinator =
             new CannedAnimationCoordinator(this);
 
     private final List<BackPressHandler> mBackPressedHandlers = new ArrayList<>();
-    private boolean mIsColdStartupAfterReboot;
 
     private boolean mIsNaturalScrollingEnabled;
 
     private final SettingsCache.OnChangeListener mNaturalScrollingChangedListener =
             enabled -> mIsNaturalScrollingEnabled = enabled;
+
+    private StartupLatencyLogger mStartupLatencyLogger;
+
+    protected WallpaperThemeManager mWallpaperThemeManager;
+
+    private boolean mIsTopResumedActivity;
 
     public static Launcher getLauncher(Context context) {
         return fromContext(context);
@@ -432,90 +435,14 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     @TargetApi(Build.VERSION_CODES.S)
     protected void onCreate(Bundle savedInstanceState) {
-        mStartupLatencyLogger = createStartupLatencyLogger(
-                sIsNewProcess
-                        ? LockedUserState.get(this).isUserUnlockedAtLauncherStartup()
-                            ? COLD
-                            : COLD_DEVICE_REBOOTING
-                        : WARM);
-
-        mIsColdStartupAfterReboot = sIsNewProcess
-            && !LockedUserState.get(this).isUserUnlockedAtLauncherStartup();
-        if (mIsColdStartupAfterReboot) {
-            /*
-             * This trace is used to calculate the time from create to the point that icons are
-             * visible.
-             */
-            Trace.beginAsyncSection(
-                    COLD_STARTUP_TRACE_METHOD_NAME, COLD_STARTUP_TRACE_COOKIE);
-        }
-
-        sIsNewProcess = false;
-        mStartupLatencyLogger
-                .logStart(LAUNCHER_LATENCY_STARTUP_TOTAL_DURATION)
-                .logStart(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE);
-        // Only use a hard-coded cookie since we only want to trace this once.
-        Trace.beginAsyncSection(
-                DISPLAY_WORKSPACE_TRACE_METHOD_NAME, DISPLAY_WORKSPACE_TRACE_COOKIE);
-        Trace.beginAsyncSection(DISPLAY_ALL_APPS_TRACE_METHOD_NAME,
-                DISPLAY_ALL_APPS_TRACE_COOKIE);
-        TraceHelper.INSTANCE.beginSection(ON_CREATE_EVT);
-        if (DEBUG_STRICT_MODE
-                || (FeatureFlags.IS_STUDIO_BUILD && enableStrictMode())) {
-            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
-                    .detectDiskReads()
-                    .detectDiskWrites()
-                    .detectNetwork()   // or .detectAll() for all detectable problems
-                    .penaltyLog()
-                    .build());
-            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
-                    .detectLeakedSqlLiteObjects()
-                    .detectLeakedClosableObjects()
-                    .detectActivityLeaks()
-                    .penaltyLog()
-                    .penaltyDeath()
-                    .build());
-        }
-
-        if (Utilities.IS_DEBUG_DEVICE && FeatureFlags.NOTIFY_CRASHES.get()) {
-            final String notificationChannelId = "com.android.launcher3.Debug";
-            final String notificationChannelName = "Debug";
-            final String notificationTag = "Debug";
-            final int notificationId = 0;
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(new NotificationChannel(
-                    notificationChannelId, notificationChannelName,
-                    NotificationManager.IMPORTANCE_HIGH));
-
-            Thread.currentThread().setUncaughtExceptionHandler((thread, throwable) -> {
-                String stackTrace = Log.getStackTraceString(throwable);
-
-                Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, stackTrace);
-                shareIntent = Intent.createChooser(shareIntent, null);
-                PendingIntent sharePendingIntent = PendingIntent.getActivity(
-                        this, 0, shareIntent, FLAG_UPDATE_CURRENT | FLAG_IMMUTABLE);
-
-                Notification notification = new Notification.Builder(this, notificationChannelId)
-                        .setSmallIcon(android.R.drawable.ic_menu_close_clear_cancel)
-                        .setContentTitle("Launcher crash detected!")
-                        .setStyle(new Notification.BigTextStyle().bigText(stackTrace))
-                        .addAction(android.R.drawable.ic_menu_share, "Share", sharePendingIntent)
-                        .build();
-                notificationManager.notify(notificationTag, notificationId, notification);
-
-                Thread.UncaughtExceptionHandler defaultUncaughtExceptionHandler =
-                        Thread.getDefaultUncaughtExceptionHandler();
-                if (defaultUncaughtExceptionHandler != null) {
-                    defaultUncaughtExceptionHandler.uncaughtException(thread, throwable);
-                }
-            });
-        }
+//        TraceHelper.INSTANCE.beginSection(ON_CREATE_EVT);
+//        Trace.beginAsyncSection(DISPLAY_WORKSPACE_TRACE_METHOD_NAME, SINGLE_TRACE_COOKIE);
+//        Trace.beginAsyncSection(DISPLAY_ALL_APPS_TRACE_METHOD_NAME, SINGLE_TRACE_COOKIE);
+        mStartupLatencyLogger = StartupLatencyLogger.getLogger(this);
+        mStartupLatencyLogger.logStart(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE);
 
         super.onCreate(savedInstanceState);
-        setWallpaperDependentTheme(this);
+        mWallpaperThemeManager = new WallpaperThemeManager(this);
 
         LauncherAppState app = LauncherAppState.getInstance(this);
         mModel = app.getModel();
@@ -525,7 +452,6 @@ public class Launcher extends StatefulActivity<LauncherState>
         initDeviceProfile(idp);
         idp.addOnChangeListener(this);
         mSharedPrefs = LauncherPrefs.getPrefs(this);
-        mIconCache = app.getIconCache();
         mAccessibilityDelegate = createAccessibilityDelegate();
 
         initDragController();
@@ -546,7 +472,7 @@ public class Launcher extends StatefulActivity<LauncherState>
                 mFocusHandler, new CellLayout(mWorkspace.getContext(), mWorkspace));
 
         mPopupDataProvider = new PopupDataProvider(this);
-        mWidgetPickerDataProvider = new WidgetPickerDataProvider(this);
+        mWidgetPickerDataProvider = new WidgetPickerDataProvider();
         PillColorProvider.getInstance(mWorkspace.getContext()).registerObserver();
 
         boolean internalStateHandled = ACTIVITY_TRACKER.handleCreate(this);
@@ -587,8 +513,12 @@ public class Launcher extends StatefulActivity<LauncherState>
         getRootView().dispatchInsets();
 
         final SettingsCache settingsCache = SettingsCache.INSTANCE.get(this);
-        settingsCache.register(TOUCHPAD_NATURAL_SCROLLING, mNaturalScrollingChangedListener);
-        mIsNaturalScrollingEnabled = settingsCache.getValue(TOUCHPAD_NATURAL_SCROLLING);
+        try {
+            settingsCache.register(TOUCHPAD_NATURAL_SCROLLING, mNaturalScrollingChangedListener);
+            mIsNaturalScrollingEnabled = settingsCache.getValue(TOUCHPAD_NATURAL_SCROLLING);
+        } catch (Exception e) {
+            mIsNaturalScrollingEnabled = false;
+        }
 
         // Listen for screen turning off
         ScreenOnTracker.INSTANCE.get(this).addListener(mScreenOnListener);
@@ -604,39 +534,18 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         getWindow().setSoftInputMode(LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         setTitle(R.string.home_screen);
-        mStartupLatencyLogger.logEnd(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE);
 
         if (BuildCompat.isAtLeastV()
                 && com.android.launcher3.Flags.enableTwoPaneLauncherSettings()) {
             RuleController.getInstance(this).setRules(
                     RuleController.parseRules(this, R.xml.split_configuration));
         }
+        mStartupLatencyLogger.logEnd(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE);
         TestEventEmitter.sendEvent(TestEvent.LAUNCHER_ON_CREATE);
     }
 
     protected ModelCallbacks createModelCallbacks() {
         return new ModelCallbacks(this);
-    }
-
-    /**
-     * We only log startup latency in {@link COLD_DEVICE_REBOOTING} type. For other latency types,
-     * create a no op implementation.
-     */
-    private StartupLatencyLogger createStartupLatencyLogger(
-            StatsLogManager.StatsLatencyLogger.LatencyType latencyType) {
-        if (latencyType == COLD_DEVICE_REBOOTING) {
-            return createColdRebootStartupLatencyLogger();
-        }
-        return StartupLatencyLogger.Companion.getNO_OP();
-    }
-
-    /**
-     * Create {@link ColdRebootStartupLatencyLogger} that only collects launcher startup latency
-     * metrics without sending them anywhere. Child class can override this method to create logger
-     * that overrides {@link StartupLatencyLogger#log()} to report those metrics.
-     */
-    protected ColdRebootStartupLatencyLogger createColdRebootStartupLatencyLogger() {
-        return new ColdRebootStartupLatencyLogger();
     }
 
     @NonNull View getAccessibilityActionView() {
@@ -791,15 +700,15 @@ public class Launcher extends StatefulActivity<LauncherState>
     }
 
     private void updateFixedLandscape() {
-        if (false/*!com.android.launcher3.Flags.oneGridSpecs()*/) {
+        if (!com.android.launcher3.Flags.oneGridSpecs()) {
             return;
         }
         // When the flag oneGridSpecs is on we want to disable ALLOW_ROTATION which is replaced
         // by FIXED_LANDSCAPE_MODE, ALLOW_ROTATION will only be used on Tablets and foldables
         // afterwards.
-        if (getDeviceProfile().isPhone) {
+        if (getDeviceProfile().getDeviceProperties().isPhone()) {
             LauncherPrefs.get(this).put(LauncherPrefs.ALLOW_ROTATION, false);
-        } else if (getDeviceProfile().isTablet) {
+        } else if (getDeviceProfile().getDeviceProperties().isTablet()) {
             // Tablet do not use fixed landscape mode, make sure it can't be activated by mistake
             LauncherPrefs.get(this).put(FIXED_LANDSCAPE_MODE, false);
         }
@@ -809,7 +718,7 @@ public class Launcher extends StatefulActivity<LauncherState>
     }
 
     public void onAssistantVisibilityChanged(float visibility) {
-        mHotseat.getQsb().setAlpha(1f - visibility);
+        mHotseat.setQsbAlpha(1f - visibility, Hotseat.ALPHA_CHANNEL_ASSISTANT_VISIBILITY);
     }
 
     /**
@@ -828,7 +737,7 @@ public class Launcher extends StatefulActivity<LauncherState>
                     this, getMultiWindowDisplaySize());
         }
 
-        if (FOLDABLE_SINGLE_PAGE.get() && mDeviceProfile.isTwoPanels) {
+        if (FOLDABLE_SINGLE_PAGE.get() && mDeviceProfile.getDeviceProperties().isTwoPanels()) {
             mCellPosMapper = new TwoPanelCellPosMapper(mDeviceProfile.inv.numColumns);
         } else {
             mCellPosMapper = new CellPosMapper(mDeviceProfile.isVerticalBarLayout(),
@@ -1135,23 +1044,25 @@ public class Launcher extends StatefulActivity<LauncherState>
         mAppWidgetHolder.setActivityResumed(true);
 
         // Listen for IME changes to keep state up to date.
-        getRootView().setWindowInsetsAnimationCallback(
-                new WindowInsetsAnimation.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
-                    @Override
-                    public WindowInsets onProgress(WindowInsets windowInsets,
-                            List<WindowInsetsAnimation> windowInsetsAnimations) {
-                        return windowInsets;
-                    }
-
-                    @Override
-                    public void onEnd(WindowInsetsAnimation animation) {
-                        WindowInsets insets = getRootView().getRootWindowInsets();
-                        boolean isImeVisible =
-                                insets != null && insets.isVisible(WindowInsets.Type.ime());
-                        getStatsLogManager().keyboardStateManager().setKeyboardState(
-                                isImeVisible ? SHOW : HIDE);
-                    }
-                });
+        if (ATLEAST_R) {
+            getRootView().setWindowInsetsAnimationCallback(
+                    new Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                        @Override
+                        public WindowInsets onProgress(WindowInsets windowInsets,
+                                List<WindowInsetsAnimation> windowInsetsAnimations) {
+                            return windowInsets;
+                        }
+    
+                        @Override
+                        public void onEnd(WindowInsetsAnimation animation) {
+                            WindowInsets insets = getRootView().getRootWindowInsets();
+                            boolean isImeVisible =
+                                    insets != null && insets.isVisible(Type.ime());
+                            getStatsLogManager().keyboardStateManager().setKeyboardState(
+                                    isImeVisible ? SHOW : HIDE);
+                        }
+                    });
+        }
     }
 
     private void logStopAndResume(boolean isResume) {
@@ -1237,6 +1148,12 @@ public class Launcher extends StatefulActivity<LauncherState>
         if (mPrevLauncherState != state && ALL_APPS.equals(state)
                 // Making sure mAllAppsSessionLogId is null to avoid double logging.
                 && mAllAppsSessionLogId == null) {
+            // LC-Note: Mark home bounce as seen when user actually opens All Apps
+            if (!OnboardingPrefs.HOME_BOUNCE_SEEN.get(this)) {
+                LauncherPrefs.getPrefs(this).edit()
+                        .putBoolean(OnboardingPrefs.HOME_BOUNCE_SEEN.getSharedPrefKey(), true)
+                        .apply();
+            }
             // creates new instance ID since new all apps session is started.
             mAllAppsSessionLogId = new InstanceIdSequence().newInstanceId();
             if (getAllAppsEntryEvent().isPresent()) {
@@ -1286,7 +1203,10 @@ public class Launcher extends StatefulActivity<LauncherState>
             getAllAppsExitEvent().ifPresent(getStatsLogManager().logger()::log);
             mAllAppsSessionLogId = null;
         }
+        setTitle(state);
+    }
 
+    protected void setTitle(@NonNull LauncherState state) {
         // Set screen title for Talkback
         setTitle(state.getTitle());
     }
@@ -1372,6 +1292,9 @@ public class Launcher extends StatefulActivity<LauncherState>
      * Finds all the views we need and configure them properly.
      */
     protected void setupViews() {
+        if (allAppsBlur()) {
+            getTheme().applyStyle(getAllAppsBlurStyleResId(), true);
+        }
         mStartupLatencyLogger.logStart(LAUNCHER_LATENCY_STARTUP_VIEW_INFLATION);
         inflateRootView(R.layout.launcher);
         mStartupLatencyLogger.logEnd(LAUNCHER_LATENCY_STARTUP_VIEW_INFLATION);
@@ -1391,9 +1314,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         // Until the workspace is bound, ensure that we keep the wallpaper offset locked to the
         // default state, otherwise we will update to the wrong offsets in RTL
         mWorkspace.lockWallpaperToDefaultPage();
-        if (!enableSmartspaceRemovalToggle()) {
-            mWorkspace.bindAndInitFirstWorkspaceScreen();
-        }
+        mWorkspace.bindAndInitFirstWorkspaceScreen();
         mDragController.addDragListener(mWorkspace);
 
         // Get the search/delete/uninstall bar
@@ -1413,6 +1334,8 @@ public class Launcher extends StatefulActivity<LauncherState>
         mWorkspace.getPageIndicator().setShouldAutoHide(true);
         mWorkspace.getPageIndicator().setPaintColor(Themes.getAttrBoolean(
                 this, R.attr.isWorkspaceDarkText) ? Color.BLACK : Color.WHITE);
+
+        mDepthBlurTargets = List.of(mWorkspace, mHotseat);
     }
 
     /**
@@ -1438,7 +1361,7 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         if (container < 0) {
             // Adding a shortcut to the Workspace.
-            final View view = mItemInflater.inflateItem(info, getModelWriter());
+            final View view = mItemInflater.inflateItem(info);
             boolean foundCellSpan = false;
             // First we check if we already know the exact location where we want to add this item.
             if (cellX >= 0 && cellY >= 0) {
@@ -1501,6 +1424,10 @@ public class Launcher extends StatefulActivity<LauncherState>
         if (appWidgetInfo == null) {
             appWidgetInfo = mAppWidgetManager.getLauncherAppWidgetInfo(appWidgetId,
                     itemInfo.getTargetComponent());
+            if (appWidgetInfo == null){
+                mAppWidgetHolder.deleteAppWidgetId(appWidgetId);
+                return;
+            }
         }
 
         if (hostView == null && !showPendingWidget) {
@@ -1508,6 +1435,11 @@ public class Launcher extends StatefulActivity<LauncherState>
             hostView = mAppWidgetHolder.createView(appWidgetId, appWidgetInfo);
         }
 
+        if (appWidgetInfo.provider == null) {
+            appWidgetInfo.provider = itemInfo.getTargetComponent();
+            if (appWidgetInfo.provider == null)
+                return;
+        }
         LauncherAppWidgetInfo launcherInfo;
         launcherInfo =
                 new LauncherAppWidgetInfo(
@@ -1635,16 +1567,27 @@ public class Launcher extends StatefulActivity<LauncherState>
         boolean isActionMain = Intent.ACTION_MAIN.equals(intent.getAction());
         boolean internalStateHandled = ACTIVITY_TRACKER.handleNewIntent(this);
 
+        logOnNewIntent(alreadyOnHome, shouldMoveToDefaultScreen, intent.getAction(),
+                internalStateHandled);
+
         if (isActionMain) {
             if (!internalStateHandled) {
                 // In all these cases, only animate if we're already on home
-                AbstractFloatingView.closeAllOpenViewsExcept(
-                        this, isStarted(), AbstractFloatingView.TYPE_LISTENER);
+                int excludedViews = AbstractFloatingView.TYPE_LISTENER;
+                if (intent.getBooleanExtra(EXCLUDE_CLOSE_WIDGET_PICKER, false)) {
+                    excludedViews |= TYPE_WIDGETS_FULL_SHEET;
+                }
+                AbstractFloatingView.closeAllOpenViewsExcept(this, isStarted(), excludedViews);
+
 
                 if (!isInState(NORMAL)) {
                     // Only change state, if not already the same. This prevents cancelling any
                     // animations running as part of resume
-                    mStateManager.goToState(NORMAL, mStateManager.shouldAnimateStateChange());
+                    boolean animate = mStateManager.shouldAnimateStateChange();
+                    if (!LawnchairApp.isRecentsEnabled()) {
+                        animate &= alreadyOnHome;
+                    }
+                    mStateManager.goToState(NORMAL, animate);
                 }
 
                 // Reset the apps view
@@ -1653,7 +1596,11 @@ public class Launcher extends StatefulActivity<LauncherState>
                 }
 
                 if (shouldMoveToDefaultScreen && !mWorkspace.isHandlingTouch()) {
-                    mWorkspace.post(mWorkspace::moveToDefaultScreen);
+                    if (mWorkspace.getNextPage() != Workspace.DEFAULT_PAGE) {
+                        mWorkspace.post(mWorkspace::moveToDefaultScreen);
+                    } else {
+                        handleHomeTap();
+                    }
                 }
             }
 
@@ -1671,6 +1618,9 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         TraceHelper.INSTANCE.endSection();
     }
+
+    protected void logOnNewIntent(boolean alreadyOnHome, boolean shouldMoveToDefaultScreen,
+            String action, boolean internalStateHandled) { }
 
     /** Handle animating away split placeholder view when user taps on home button */
     protected void handleSplitAnimationGoingToHome(EventEnum splitDismissReason) {
@@ -1704,6 +1654,9 @@ public class Launcher extends StatefulActivity<LauncherState>
                         }
                     });
         }
+    }
+
+    public void handleHomeTap() {
     }
 
     protected void showAllAppsFromIntent(boolean alreadyOnHome) {
@@ -1814,7 +1767,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         return mAccessibilityDelegate;
     }
 
-    public DragController getDragController() {
+    public LauncherDragController getDragController() {
         return mDragController;
     }
 
@@ -1982,8 +1935,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         getModelWriter().addItemToDatabase(folderInfo, container, screenId, cellX, cellY);
 
         // Create the view
-        FolderIcon newFolder = FolderIcon.inflateFolderAndIcon(R.layout.folder_icon, this, layout,
-                folderInfo);
+        FolderIcon newFolder = (FolderIcon) mItemInflater.inflateItem(folderInfo, layout);
         mWorkspace.addInScreen(newFolder, folderInfo);
         // Force measure the new folder icon
         CellLayout parent = mWorkspace.getParentCellLayoutForView(newFolder);
@@ -2001,13 +1953,15 @@ public class Launcher extends StatefulActivity<LauncherState>
     public void updateOpenFolderPosition(int[] inOutPosition, Rect bounds, int width, int height) {
         int left = inOutPosition[0];
         int top = inOutPosition[1];
-        DeviceProfile grid = getDeviceProfile();
+        DeviceProfile deviceProfile = getDeviceProfile();
         int distFromEdgeOfScreen = getWorkspace().getPaddingLeft();
-        if (grid.isPhone && (grid.availableWidthPx - width) < 4 * distFromEdgeOfScreen) {
+        final int availableWidth = deviceProfile.getDeviceProperties().getAvailableWidthPx();
+        if (deviceProfile.getDeviceProperties().isPhone()
+                && (availableWidth - width) < 4 * distFromEdgeOfScreen) {
             // Center the folder if it is very close to being centered anyway, by virtue of
             // filling the majority of the viewport. ie. remove it from the uncanny valley
             // of centeredness.
-            left = (grid.availableWidthPx - width) / 2;
+            left = (availableWidth - width) / 2;
         } else if (width >= bounds.width()) {
             // If the folder doesn't fit within the bounds, center it about the desired bounds
             left = bounds.left + (bounds.width() - width) / 2;
@@ -2018,7 +1972,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         } else {
             // Folder height is less than page height, so bound it to the absolute open folder
             // bounds if necessary
-            Rect folderBounds = grid.getAbsoluteOpenFolderBounds();
+            Rect folderBounds = deviceProfile.getAbsoluteOpenFolderBounds();
             left = Math.max(folderBounds.left, Math.min(left, folderBounds.right - width));
             top = Math.max(folderBounds.top, Math.min(top, folderBounds.bottom - height));
         }
@@ -2198,70 +2152,20 @@ public class Launcher extends StatefulActivity<LauncherState>
     }
 
     @Override
-    public IntSet getPagesToBindSynchronously(IntArray orderedScreenIds) {
-        return mModelCallbacks.getPagesToBindSynchronously(orderedScreenIds);
+    public void bindCompleteModelAsync(WorkspaceData itemIdMap, boolean isBindingSync) {
+        mModelCallbacks.bindCompleteModelAsync(itemIdMap, isBindingSync);
     }
 
     @Override
-    public void startBinding() {
-        mModelCallbacks.startBinding();
+    public void bindItemsAdded(@NonNull List<ItemInfo> items) {
+        mModelCallbacks.bindItemsAdded(items);
     }
 
-    @Override
-    public void setIsFirstPagePinnedItemEnabled(boolean isFirstPagePinnedItemEnabled) {
-        mModelCallbacks.setIsFirstPagePinnedItemEnabled(isFirstPagePinnedItemEnabled);
-    }
-
-    @Override
-    public void bindScreens(IntArray orderedScreenIds) {
-        mModelCallbacks.bindScreens(orderedScreenIds);
-    }
-
-    /**
-     * Remove odd number because they are already included when isTwoPanels and add the pair screen
-     * if not present.
-     */
-    private IntArray filterTwoPanelScreenIds(IntArray orderedScreenIds) {
-        IntSet screenIds = IntSet.wrap(orderedScreenIds);
-        orderedScreenIds.forEach(screenId -> {
-            if (screenId % 2 == 1) {
-                screenIds.remove(screenId);
-                // In case the pair is not added, add it
-                if (!mWorkspace.containsScreenId(screenId - 1)) {
-                    screenIds.add(screenId - 1);
-                }
-            }
-        });
-        return screenIds.getArray();
-    }
-
-    @Override
-    public void preAddApps() {
-        mModelCallbacks.preAddApps();
-    }
-
-    @Override
-    public void bindAppsAdded(IntArray newScreens, ArrayList<ItemInfo> addNotAnimated,
-            ArrayList<ItemInfo> addAnimated) {
-        mModelCallbacks.bindAppsAdded(newScreens, addNotAnimated, addAnimated);
-    }
-
-    /**
-     * Bind the items start-end from the list.
-     *
-     * Implementation of the method from LauncherModel.Callbacks.
-     */
-    @Override
-    public void bindItems(final List<ItemInfo> items, final boolean forceAnimateIcons) {
-        bindInflatedItems(items.stream()
-                .map(i -> Pair.create(i, getItemInflater().inflateItem(i, getModelWriter())))
-                .collect(Collectors.toList()),
-                forceAnimateIcons ? new AnimatorSet() : null);
-    }
-
-    @Override
-    public void bindInflatedItems(List<Pair<ItemInfo, View>> items) {
-        bindInflatedItems(items, null);
+    /** Inflates the binds the provided item using animation */
+    public void inflateAndBindItemWithAnimation(ItemInfo info) {
+        bindInflatedItems(
+                Collections.singletonList(Pair.create(info, getItemInflater().inflateItem(info))),
+                new AnimatorSet());
     }
 
     /**
@@ -2290,7 +2194,8 @@ public class Launcher extends StatefulActivity<LauncherState>
                     if (FeatureFlags.IS_STUDIO_BUILD) {
                         throw (new RuntimeException(desc));
                     } else {
-                        getModelWriter().deleteItemFromDatabase(item, desc);
+                        // b/417021465 - Avoid mutating the model in the UI layer.
+                        Log.e(TAG, desc, new Exception());
                         continue;
                     }
                 }
@@ -2339,7 +2244,7 @@ public class Launcher extends StatefulActivity<LauncherState>
      * Add the views for a widget to the workspace.
      */
     public void bindAppWidget(LauncherAppWidgetInfo item) {
-        View view = mItemInflater.inflateItem(item, getModelWriter());
+        View view = mItemInflater.inflateItem(item);
         if (view != null) {
             mWorkspace.addInScreen(view, item);
             mWorkspace.requestLayout();
@@ -2373,6 +2278,9 @@ public class Launcher extends StatefulActivity<LauncherState>
         return info;
     }
 
+    /** Called when a new LauncherModel data binding is starting */
+    public void startBinding() { }
+
     /**
      * Call back when ModelCallbacks finish binding the Launcher data.
      */
@@ -2382,28 +2290,10 @@ public class Launcher extends StatefulActivity<LauncherState>
             getRootView().getViewTreeObserver().removeOnPreDrawListener(mOnInitialBindListener);
             mOnInitialBindListener = null;
         }
-        if (!isBindSync) {
-            mStartupLatencyLogger
-                    .logCardinality(workspaceItemCount)
-                    .logEnd(LauncherLatencyEvent.LAUNCHER_LATENCY_STARTUP_WORKSPACE_LOADER_ASYNC);
-        }
-        MAIN_EXECUTOR.getHandler().postAtFrontOfQueue(() -> {
-            mStartupLatencyLogger
-                    .logEnd(LAUNCHER_LATENCY_STARTUP_TOTAL_DURATION)
-                    .log()
-                    .reset();
-        });
-    }
 
-    @Override
-    public void onInitialBindComplete(IntSet boundPages, RunnableList pendingTasks,
-            RunnableList onCompleteSignal, int workspaceItemCount, boolean isBindSync) {
-        mModelCallbacks.onInitialBindComplete(boundPages, pendingTasks, onCompleteSignal,
-                workspaceItemCount, isBindSync);
-        if (mIsColdStartupAfterReboot) {
-            Trace.endAsyncSection(COLD_STARTUP_TRACE_METHOD_NAME,
-                    COLD_STARTUP_TRACE_COOKIE);
-        }
+        mStartupLatencyLogger = mStartupLatencyLogger.finishLogs(workspaceItemCount, isBindSync);
+
+
     }
 
     /**
@@ -2412,7 +2302,7 @@ public class Launcher extends StatefulActivity<LauncherState>
      * Implementation of the method from LauncherModel.Callbacks.
      */
     public void finishBindingItems(IntSet pagesBoundFirst) {
-        mModelCallbacks.finishBindingItems(pagesBoundFirst);
+        TestEventEmitter.sendEvent(TestEvent.WORKSPACE_FINISH_LOADING);
     }
 
     private boolean canAnimatePageChange() {
@@ -2501,8 +2391,9 @@ public class Launcher extends StatefulActivity<LauncherState>
     public void bindAllApplications(AppInfo[] apps, int flags,
             Map<PackageUserKey, Integer> packageUserKeytoUidMap) {
         mModelCallbacks.bindAllApplications(apps, flags, packageUserKeytoUidMap);
-        Trace.endAsyncSection(DISPLAY_ALL_APPS_TRACE_METHOD_NAME,
-                DISPLAY_ALL_APPS_TRACE_COOKIE);
+        if (Utilities.ATLEAST_S) {
+            Trace.endAsyncSection(DISPLAY_ALL_APPS_TRACE_METHOD_NAME, SINGLE_TRACE_COOKIE);
+        }
     }
 
     /**
@@ -2543,14 +2434,12 @@ public class Launcher extends StatefulActivity<LauncherState>
     }
 
     @Override
-    public void bindSmartspaceWidget() {
-        mModelCallbacks.bindSmartspaceWidget();
-    }
-
-    @Override
     public void bindStringCache(StringCache cache) {
         mModelCallbacks.bindStringCache(cache);
     }
+
+    /** Called to updated any prediction info by the {@link #mModelCallbacks} */
+    public void bindPredictedContainerInfo(PredictedContainerInfo info) { }
 
     /**
      * @param packageUser if null, refreshes all widgets and shortcuts, otherwise only
@@ -2633,10 +2522,9 @@ public class Launcher extends StatefulActivity<LauncherState>
             // Ignore
         }
 
-        mModel.dumpState(prefix, fd, writer, args);
         mOverlayManager.dump(prefix, writer);
         ACTIVITY_TRACKER.dump(prefix, writer);
-        MSDLPlayerWrapper.INSTANCE.get(getApplicationContext()).dump(prefix, writer);
+        LauncherComponentProvider.get(this).getDumpManager().dump(prefix, writer, args);
     }
 
     /**
@@ -2723,12 +2611,16 @@ public class Launcher extends StatefulActivity<LauncherState>
     }
 
     private void updateDisallowBack() {
-        if (BuildCompat.isAtLeastV()
+        try {
+            if (BuildCompat.isAtLeastV()
                 && Flags.enableDesktopWindowingMode()
                 && !Flags.enableDesktopWindowingWallpaperActivity()
-                && mDeviceProfile.isTablet) {
-            // TODO(b/333533253): Clean up after desktop wallpaper activity flag is rolled out
-            return;
+                && mDeviceProfile.getDeviceProperties().isTablet()) {
+                // TODO(b/333533253): Clean up after desktop wallpaper activity flag is rolled out
+                return;
+            }
+        } catch (Throwable t) {
+            // LC-Ignored
         }
         LauncherRootView rv = getRootView();
         if (rv != null) {
@@ -2775,14 +2667,6 @@ public class Launcher extends StatefulActivity<LauncherState>
     @VisibleForTesting
     public void enableHotseatEdu(boolean enable) {}
 
-
-    /**
-     * Just a wrapper around the type cast to allow easier tracking of calls.
-     */
-    public static <T extends Launcher> T cast(ActivityContext activityContext) {
-        return (T) activityContext;
-    }
-
     public boolean supportsAdaptiveIconAnimation(View clickedView) {
         return false;
     }
@@ -2796,6 +2680,12 @@ public class Launcher extends StatefulActivity<LauncherState>
         // No-Op
     }
 
+    /** @return list of View targets to be blurred based on changes to depth. */
+    @NonNull
+    public List<View> getDepthBlurTargets() {
+        return mDepthBlurTargets == null ? Collections.emptyList() : mDepthBlurTargets;
+    }
+
     /**
      * Animates Launcher elements during a transition to the Widgets pages.
      *
@@ -2803,7 +2693,7 @@ public class Launcher extends StatefulActivity<LauncherState>
      */
     public void onWidgetsTransition(float progress) {
         float scale = Utilities.mapToRange(progress, 0f, 1f, 1f,
-                mDeviceProfile.bottomSheetWorkspaceScale, EMPHASIZED);
+                mDeviceProfile.getBottomSheetProfile().getBottomSheetWorkspaceScale(), EMPHASIZED);
         WORKSPACE_WIDGET_SCALE.set(getWorkspace(), scale);
         HOTSEAT_WIDGET_SCALE.set(getHotseat(), scale);
     }
@@ -2843,6 +2733,13 @@ public class Launcher extends StatefulActivity<LauncherState>
      */
     public boolean areDesktopTasksVisible() {
         return false; // Base launcher does not track desktop tasks
+    }
+
+    /**
+     * @return true when home screen should be shown behind desktop mode.
+     */
+    public boolean shouldShowHomeBehindDesktop() {
+        return false; // Base launcher does not show behind desktop mode.
     }
 
     // Getters and Setters
@@ -2983,9 +2880,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         return mModel;
     }
 
-    /**
-     * Returns the ModelWriter writer, make sure to call the function every time you want to use it.
-     */
+    @Override
     public ModelWriter getModelWriter() {
         return mModelWriter;
     }
@@ -3025,7 +2920,17 @@ public class Launcher extends StatefulActivity<LauncherState>
         return new RectF(x - halfSize, y - halfSize, x + halfSize, y + halfSize);
     }
 
-    public Stream<SystemShortcut.Factory> getSupportedShortcuts() {
+    /**
+     * Gets the system shortcuts that are supported by launcher in a given container.
+     *
+     * @param container is the container of the item as derived from ItemInfo.
+     * @return a stream of supported system shortcuts.
+     */
+    public Stream<SystemShortcut.Factory> getSupportedShortcuts(int container) {
+        if (enableLongPressRemoveShortcut()
+                && (container == CONTAINER_DESKTOP || container == CONTAINER_HOTSEAT)) {
+            return Stream.of(APP_INFO, WIDGETS, INSTALL, REMOVE);
+        }
         return Stream.of(APP_INFO, WIDGETS, INSTALL);
     }
 
@@ -3044,8 +2949,40 @@ public class Launcher extends StatefulActivity<LauncherState>
         // Overridden
     }
 
-    public boolean getIsFirstPagePinnedItemEnabled() {
-        return mModelCallbacks.getIsFirstPagePinnedItemEnabled();
+    /** Opens the widget picker UI. Returns true if opened. */
+    public boolean openWidgetPicker() {
+        if (getPackageManager().isSafeMode()) {
+            Toast.makeText(this, R.string.safemode_widget_error, Toast.LENGTH_SHORT).show();
+            return false;
+        } else {
+            if (com.android.launcher3.Flags.enableWidgetPickerRefactor() &&
+                     ComposeFacade.INSTANCE.isComposeAvailable()) {
+                Intent intent = new Intent(Intent.ACTION_PICK);
+                intent.setPackage(asContext().getPackageName());
+                asContext().startActivity(intent);
+                return true;
+            }
+            openWidgetsFullSheet();
+            return true;
+        }
+    }
+
+    /** Returns WidgetsFullSheet that was opened, or null if nothing was opened. */
+    @VisibleForTesting
+    public WidgetsFullSheet openWidgetsFullSheet() {
+        AbstractFloatingView floatingView = AbstractFloatingView.getTopOpenViewWithType(
+                this, TYPE_WIDGETS_FULL_SHEET);
+        if (floatingView != null) {
+            return (WidgetsFullSheet) floatingView;
+        }
+        if (shouldShowHomeBehindDesktop() && !mIsTopResumedActivity) {
+            Intent intent = new Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .putExtra(EXCLUDE_CLOSE_WIDGET_PICKER, true);
+            startActivity(intent);
+        }
+        return WidgetsFullSheet.show(this, true /* animated */);
     }
 
     /**
@@ -3065,7 +3002,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         return super.getStatsLogManager().withDefaultInstanceId(mAllAppsSessionLogId);
     }
 
-    @Override
+    @NonNull
     public ItemInflater<Launcher> getItemInflater() {
         return mItemInflater;
     }
@@ -3083,6 +3020,19 @@ public class Launcher extends StatefulActivity<LauncherState>
     public OnClickListener getItemOnClickListener() {
         return ItemClickHandler.INSTANCE;
     }
+
+    /**
+     * @return true if Launcher is the current top resumed activity.
+     */
+    public boolean isTopResumedActivity() {
+        return mIsTopResumedActivity;
+    }
+
+    @Override
+    public void onTopResumedActivityChanged(boolean isResumed) {
+        mIsTopResumedActivity = isResumed;
+    }
+
 
     // End of Getters and Setters
 }

@@ -24,9 +24,6 @@ import android.content.pm.LauncherApps
 import android.content.pm.LauncherApps.AppUsageLimit
 import android.graphics.Outline
 import android.graphics.Paint
-import android.icu.text.MeasureFormat
-import android.icu.util.Measure
-import android.icu.util.MeasureUnit
 import android.os.UserHandle
 import android.provider.Settings
 import android.util.AttributeSet
@@ -35,7 +32,6 @@ import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
-import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.core.util.component1
 import androidx.core.util.component2
@@ -43,14 +39,14 @@ import androidx.core.view.isVisible
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.util.Executors
-import com.android.launcher3.util.SplitConfigurationOptions
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_UNDEFINED
 import com.android.launcher3.util.SplitConfigurationOptions.StagePosition
 import com.android.quickstep.TaskUtils
+import com.android.quickstep.task.apptimer.DurationFormatter
 import com.android.systemui.shared.recents.model.Task
+import com.android.wm.shell.shared.split.SplitBounds
 import java.time.Duration
-import java.util.Locale
 
 @SuppressLint("AppCompatCustomView")
 class DigitalWellBeingToast
@@ -83,10 +79,11 @@ constructor(
             }
         }
 
-    private var isDestroyed = false
+    var isDestroyed = false
+        private set
 
     var hasLimit = false
-    var splitBounds: SplitConfigurationOptions.SplitBounds? = null
+    var splitBounds: SplitBounds? = null
     var bannerOffsetPercentage = 0f
         set(value) {
             if (field != value) {
@@ -181,7 +178,7 @@ constructor(
         val splitBounds = splitBounds
         return when {
             splitBounds == null ||
-                !recentsViewContainer.deviceProfile.isTablet ||
+                !recentsViewContainer.deviceProfile.deviceProperties.isTablet ||
                 taskView.isLargeTile -> SplitBannerConfig.SPLIT_BANNER_FULLSCREEN
             // For portrait grid only height of task changes, not width. So we keep the text the
             // same
@@ -196,37 +193,6 @@ constructor(
                 if (splitBounds.leftTopTaskPercent > THRESHOLD_RIGHT_ICON_ONLY)
                     SplitBannerConfig.SPLIT_GRID_BANNER_SMALL
                 else SplitBannerConfig.SPLIT_GRID_BANNER_LARGE
-        }
-    }
-
-    private fun getReadableDuration(
-        duration: Duration,
-        @StringRes durationLessThanOneMinuteStringId: Int,
-    ): String {
-        val hours = Math.toIntExact(duration.toHours())
-        val minutes = Math.toIntExact(duration.minusHours(hours.toLong()).toMinutes())
-        return when {
-            // Apply FormatWidth.WIDE if both the hour part and the minute part are non-zero.
-            hours > 0 && minutes > 0 ->
-                MeasureFormat.getInstance(Locale.getDefault(), MeasureFormat.FormatWidth.NARROW)
-                    .formatMeasures(
-                        Measure(hours, MeasureUnit.HOUR),
-                        Measure(minutes, MeasureUnit.MINUTE),
-                    )
-            // Apply FormatWidth.WIDE if only the hour part is non-zero (unless forced).
-            hours > 0 ->
-                MeasureFormat.getInstance(Locale.getDefault(), MeasureFormat.FormatWidth.WIDE)
-                    .formatMeasures(Measure(hours, MeasureUnit.HOUR))
-            // Apply FormatWidth.WIDE if only the minute part is non-zero (unless forced).
-            minutes > 0 ->
-                MeasureFormat.getInstance(Locale.getDefault(), MeasureFormat.FormatWidth.WIDE)
-                    .formatMeasures(Measure(minutes, MeasureUnit.MINUTE))
-            // Use a specific string for usage less than one minute but non-zero.
-            duration > Duration.ZERO -> context.getString(durationLessThanOneMinuteStringId)
-            // Otherwise, return 0-minute string.
-            else ->
-                MeasureFormat.getInstance(Locale.getDefault(), MeasureFormat.FormatWidth.WIDE)
-                    .formatMeasures(Measure(0, MeasureUnit.MINUTE))
         }
     }
 
@@ -248,7 +214,8 @@ constructor(
                 else remainingTime
             )
         val readableDuration =
-            getReadableDuration(
+            DurationFormatter.format(
+                context,
                 duration,
                 R.string.shorter_duration_less_than_one_minute, /* forceFormatWidth */
             )
@@ -303,7 +270,7 @@ constructor(
             snapshotWidth = taskView.layoutParams.width
             snapshotHeight =
                 taskView.layoutParams.height -
-                    recentsViewContainer.deviceProfile.overviewTaskThumbnailTopMarginPx
+                    recentsViewContainer.deviceProfile.overviewProfile.taskThumbnailTopMarginPx
         } else {
             val groupedTaskSize =
                 taskView.pagedOrientationHandler.getGroupedTaskViewSizes(
@@ -338,7 +305,7 @@ constructor(
                 taskView.layoutParams.height,
                 splitBounds,
                 recentsViewContainer.deviceProfile,
-                taskView.snapshotViews,
+                taskView.taskContentViews,
                 task.key.id,
                 this,
             )

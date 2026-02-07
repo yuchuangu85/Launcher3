@@ -43,7 +43,7 @@ public class SplitScreenSelectState extends OverviewState {
 
     @Override
     public int getTransitionDuration(ActivityContext context, boolean isToState) {
-        if (isToState && context.getDeviceProfile().isTablet) {
+        if (isToState && context.getDeviceProfile().getDeviceProperties().isTablet()) {
             return SplitAnimationTimings.TABLET_ENTER_DURATION;
         } else if (isToState) {
             return SplitAnimationTimings.PHONE_ENTER_DURATION;

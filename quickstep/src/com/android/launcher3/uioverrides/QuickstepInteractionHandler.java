@@ -20,6 +20,7 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCH
 
 import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;
+import android.app.IActivityTaskManagerHidden;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.RemoteException;
@@ -36,6 +37,9 @@ import com.android.launcher3.widget.LauncherAppWidgetHostView;
 
 import java.util.function.Consumer;
 
+import dev.rikka.tools.refine.Refine;
+import app.lawnchair.LawnchairApp;
+
 /** Provides a Quickstep specific animation when launching an activity from an app widget. */
 class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
         Consumer<LauncherAppWidgetHostView> {
@@ -44,7 +48,7 @@ class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
 
     private final QuickstepLauncher mLauncher;
 
-    QuickstepInteractionHandler(QuickstepLauncher launcher) {
+    public QuickstepInteractionHandler(QuickstepLauncher launcher) {
         mLauncher = launcher;
     }
 
@@ -71,30 +75,56 @@ class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
             return true;
         }
         Pair<Intent, ActivityOptions> options = remoteResponse.getLaunchOptions(view);
-        ActivityOptionsWrapper activityOptions = mLauncher.getAppTransitionManager()
-                .getActivityLaunchOptions(hostView, (ItemInfo) hostView.getTag());
+
+        ActivityOptionsWrapper activityOptions = null;
+        try {
+            activityOptions = mLauncher.getAppTransitionManager()
+                    .getActivityLaunchOptions(hostView, (ItemInfo) hostView.getTag());
+        } catch (NullPointerException e) {
+            Log.e("pE(C7evQZDJ)", "Failed to get activity launch options");
+        }
         if (!pendingIntent.isActivity()) {
             // In the event this pending intent eventually launches an activity, i.e. a trampoline,
             // use the Quickstep transition animation.
             try {
-                ActivityTaskManager.getService()
-                        .registerRemoteAnimationForNextActivityStart(
-                                pendingIntent.getCreatorPackage(),
-                                activityOptions.options.getRemoteAnimationAdapter(),
-                                activityOptions.options.getLaunchCookie());
-            } catch (RemoteException e) {
+                IActivityTaskManagerHidden atm = Refine.unsafeCast(ActivityTaskManager.getService());
+                try {
+                    atm.registerRemoteAnimationForNextActivityStart(
+                            pendingIntent.getCreatorPackage(),
+                            activityOptions.options.getRemoteAnimationAdapter(),
+                            activityOptions.options.getLaunchCookie());
+                } catch (NoSuchMethodError e) {
+                    atm.registerRemoteAnimationForNextActivityStart(
+                            pendingIntent.getCreatorPackage(),
+                            activityOptions.options.getRemoteAnimationAdapter());
+                }
+            } catch (NullPointerException | RemoteException e) {
+                // pE-TODO(C7evQZDJ): Remove NullPointerException after fixing
                 // Do nothing.
             }
         }
-        activityOptions.options.setPendingIntentLaunchFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        activityOptions.options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_SOLID_COLOR);
-        activityOptions.options.setPendingIntentBackgroundActivityStartMode(
-                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-        options = Pair.create(options.first, activityOptions.options);
+        try {
+            activityOptions.options.setPendingIntentLaunchFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activityOptions.options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_ICON);
+            activityOptions.options.setPendingIntentBackgroundActivityStartMode(
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        } catch (Throwable t) {
+            // ignore
+        }
+        // pE-TODO(C7evQZDJ): Remove activityOptions null check
+        if (activityOptions != null) {
+            options = Pair.create(options.first, activityOptions.options);
+        }
         if (pendingIntent.isActivity()) {
             logAppLaunch(hostView.getTag());
         }
-        return RemoteViews.startPendingIntent(hostView, pendingIntent, options);
+        if (activityOptions != null) {
+            return RemoteViews.startPendingIntent(hostView, pendingIntent, options);
+        } else {
+            Log.d("pE(C7evQZDJ)", "activityOptions is null!");
+            return RemoteViews.startPendingIntent(hostView, pendingIntent,
+                remoteResponse.getLaunchOptions(view));
+        }
     }
 
     /**

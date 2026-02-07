@@ -39,8 +39,6 @@ import com.android.launcher3.taskbar.rules.TaskbarSandboxComponent
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule.InjectController
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
-import com.android.launcher3.util.Executors.MAIN_EXECUTOR
-import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
 import com.android.launcher3.util.LauncherMultivalentJUnit
 import com.android.launcher3.util.LauncherMultivalentJUnit.EmulatedDevices
 import com.android.launcher3.util.TestUtil.getOnUiThread
@@ -89,11 +87,7 @@ class KeyboardQuickSwitchControllerTest {
         TaskbarWindowSandboxContext.create(
             SandboxParams(
                 {
-                    spy(SystemUiProxy(
-                          ApplicationProvider.getApplicationContext(),
-                          MAIN_EXECUTOR,
-                          UI_HELPER_EXECUTOR,
-                        )) { proxy ->
+                    spy(SystemUiProxy(ApplicationProvider.getApplicationContext())) { proxy ->
                         systemUiProxySpy = proxy
                         doAnswer { desktopTaskListener = it.getArgument(0) }
                             .whenever(proxy)
@@ -281,12 +275,7 @@ class KeyboardQuickSwitchControllerTest {
         triggerAltTabAndLaunchFocusedTask()
 
         val deskIdCaptor = argumentCaptor<Int>()
-        verify(systemUiProxySpy)
-            ?.activateDesk(
-                deskIdCaptor.capture(),
-                transitionCaptor.capture(),
-                transitionSource = eq(DesktopModeTransitionSource.KEYBOARD_SHORTCUT),
-            )
+        verify(systemUiProxySpy)?.activateDesk(deskIdCaptor.capture(), transitionCaptor.capture())
         assertThat(deskIdCaptor.firstValue).isEqualTo(deskId)
         assertThat(transitionCaptor.firstValue.remoteTransition)
             .isInstanceOf(SlideInRemoteTransition::class.java)

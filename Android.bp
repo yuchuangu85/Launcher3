@@ -47,8 +47,8 @@ filegroup {
 filegroup {
     name: "launcher-compose-enabled-src",
     srcs: [
-        "compose/facade/enabled/*.kt",
-        "compose/facade/core/*.kt",
+        "compose/facade/enabled/**/*.kt",
+        "compose/facade/core/**/*.kt",
         "compose/features/**/*.kt",
     ],
 }
@@ -56,8 +56,36 @@ filegroup {
 filegroup {
     name: "launcher-compose-disabled-src",
     srcs: [
-        "compose/facade/core/*.kt",
-        "compose/facade/disabled/*.kt",
+        "compose/facade/core/**/*.kt",
+        "compose/facade/disabled/**/*.kt",
+    ],
+}
+
+filegroup {
+    name: "launcher-compose-test-helpers-src",
+    srcs: [
+        "compose/tests/com/android/launcher3/helper/TestHelper.kt",
+    ],
+}
+
+filegroup {
+    name: "launcher-compose-ui-tests-src",
+    srcs: [], // Placeholder for compose/tests/com/android/launcher3/ui/.. tests.
+}
+
+// Tests for features that are enabled only when compose dependency is enabled & run as part of
+// Launcher3Tests
+filegroup {
+    name: "launcher-compose-unit-tests-src",
+    srcs: [
+        "compose/tests/com/android/launcher3/widget/AddWidgetConfigTest.kt",
+    ],
+}
+
+filegroup {
+    name: "launcher-compose-tests-src",
+    srcs: [
+        "compose/tests/**/*.kt",
     ],
 }
 
@@ -70,6 +98,13 @@ filegroup {
     ],
     device_common_srcs: [
         ":launcher-quickstep-processed-protolog-src",
+    ],
+}
+
+filegroup {
+    name: "quickstep-compose-tests-src",
+    srcs: [
+        "quickstep/compose/tests/**/*.kt",
     ],
 }
 
@@ -122,7 +157,6 @@ java_genrule {
         "--protolog-class com.android.internal.protolog.common.ProtoLog " +
         "--loggroups-class com.android.quickstep.util.QuickstepProtoLogGroup " +
         "--loggroups-jar $(location :launcher-quickstep_protolog-groups) " +
-        "--viewer-config-type proto " +
         "--viewer-config $(out) " +
         "$(locations :launcher-quickstep-unprocessed-protolog-src)",
     out: ["launcher.quickstep.protolog.pb"],
@@ -185,6 +219,10 @@ filegroup {
     srcs: ["proguard.flags"],
 }
 
+soong_config_bool_variable {
+    name: "release_enable_compose_in_launcher",
+}
+
 // Opt-in configuration for Launcher3 code depending on Jetpack Compose.
 soong_config_module_type {
     name: "launcher_compose_java_defaults",
@@ -197,32 +235,6 @@ soong_config_module_type {
     ],
 }
 
-// Opt-in configuration for Launcher Quickstep code depending on Jetpack Compose.
-soong_config_bool_variable {
-    name: "release_enable_compose_in_launcher",
-}
-
-soong_config_module_type {
-    name: "quickstep_compose_java_defaults",
-    module_type: "java_defaults",
-    config_namespace: "ANDROID",
-    bool_variables: ["release_enable_compose_in_launcher"],
-    properties: [
-        "srcs",
-        "static_libs",
-    ],
-}
-
-soong_config_module_type {
-    name: "launcher_compose_tests_java_defaults",
-    module_type: "java_defaults",
-    config_namespace: "ANDROID",
-    bool_variables: ["release_enable_compose_in_launcher"],
-    properties: [
-        "static_libs",
-    ],
-}
-
 launcher_compose_java_defaults {
     name: "launcher_compose_defaults",
     soong_config_variables: {
@@ -231,10 +243,13 @@ launcher_compose_java_defaults {
                 ":launcher-compose-enabled-src",
             ],
 
-            // Compose dependencies
             static_libs: [
+                "widget_picker_component",
+                // Compose dependencies
                 "androidx.compose.runtime_runtime",
                 "androidx.compose.material3_material3",
+                "androidx.compose.ui_ui-tooling-preview",
+                "androidx.compose.ui_ui-tooling",
             ],
 
             // By default, Compose is disabled and we compile the ComposeFacade
@@ -249,6 +264,53 @@ launcher_compose_java_defaults {
     },
 }
 
+soong_config_module_type {
+    name: "launcher_compose_tests_java_defaults",
+    module_type: "java_defaults",
+    config_namespace: "ANDROID",
+    bool_variables: ["release_enable_compose_in_launcher"],
+    properties: [
+        "srcs",
+        "static_libs",
+    ],
+}
+
+launcher_compose_tests_java_defaults {
+    name: "launcher_compose_tests_defaults",
+    soong_config_variables: {
+        release_enable_compose_in_launcher: {
+            srcs: [
+                ":launcher-compose-test-helpers-src",
+                ":launcher-compose-unit-tests-src",
+            ],
+            // Compose dependencies
+            static_libs: [
+                "widget_picker_component",
+                "androidx.compose.runtime_runtime",
+                "androidx.compose.ui_ui-test-junit4",
+                "androidx.compose.ui_ui-test-manifest",
+            ],
+
+            conditions_default: {
+                srcs: [],
+                static_libs: [],
+            },
+        },
+    },
+}
+
+// Opt-in configuration for Launcher Quickstep code depending on Jetpack Compose.
+soong_config_module_type {
+    name: "quickstep_compose_java_defaults",
+    module_type: "java_defaults",
+    config_namespace: "ANDROID",
+    bool_variables: ["release_enable_compose_in_launcher"],
+    properties: [
+        "srcs",
+        "static_libs",
+    ],
+}
+
 quickstep_compose_java_defaults {
     name: "quickstep_compose_defaults",
     soong_config_variables: {
@@ -261,6 +323,8 @@ quickstep_compose_java_defaults {
             static_libs: [
                 "androidx.compose.runtime_runtime",
                 "androidx.compose.material3_material3",
+                "androidx.compose.ui_ui-tooling-preview",
+                "androidx.compose.ui_ui-tooling",
             ],
 
             // By default, Compose is disabled and we compile the ComposeFacade
@@ -269,24 +333,6 @@ quickstep_compose_java_defaults {
                 srcs: [
                     ":launcher-quickstep-compose-disabled-src",
                 ],
-                static_libs: [],
-            },
-        },
-    },
-}
-
-launcher_compose_tests_java_defaults {
-    name: "launcher_compose_tests_defaults",
-    soong_config_variables: {
-        release_enable_compose_in_launcher: {
-            // Compose dependencies
-            static_libs: [
-                "androidx.compose.runtime_runtime",
-                "androidx.compose.ui_ui-test-junit4",
-                "androidx.compose.ui_ui-test-manifest",
-            ],
-
-            conditions_default: {
                 static_libs: [],
             },
         },
@@ -312,6 +358,8 @@ android_library {
     srcs: [
         "tests/tapl/**/*.java",
         "tests/tapl/**/*.kt",
+        "tests/src_tapl_build_config/**/*.java",
+        "tests/src_tapl_build_config/**/*.kt",
     ],
     resource_dirs: [],
     manifest: "tests/tapl/AndroidManifest.xml",
@@ -367,9 +415,6 @@ java_library {
 // Library with all the dependencies for building Launcher3
 android_library {
     name: "Launcher3ResLib",
-    defaults: [
-        "launcher_compose_defaults",
-    ],
     srcs: [],
     resource_dirs: ["res"],
     static_libs: [
@@ -388,6 +433,7 @@ android_library {
         "//frameworks/libs/systemui:view_capture",
         "//frameworks/libs/systemui:animationlib",
         "//frameworks/libs/systemui:contextualeducationlib",
+        "//frameworks/libs/systemui:mechanics",
         "//frameworks/libs/systemui:msdl",
         "SystemUI-statsd",
         "WindowManager-Shell-shared-AOSP",
@@ -402,6 +448,9 @@ android_library {
         "dagger2",
         "jsr330",
         "com_android_systemui_shared_flags_lib",
+        "launcher-dagger-qualifiers",
+        "launcher-executor-qualifiers",
+        "launcher-executors-module",
     ],
     manifest: "AndroidManifest-common.xml",
     sdk_version: "current",
@@ -419,7 +468,10 @@ android_library {
 //
 android_app {
     name: "Launcher3",
-    defaults: ["launcher-non-platform-apis-defaults"],
+    defaults: [
+        "launcher-non-platform-apis-defaults",
+        "launcher_compose_defaults",
+    ],
 
     static_libs: [
         "Launcher3ResLib",
@@ -481,6 +533,7 @@ android_library {
         "SettingsLibSettingsTheme",
         "dagger2",
         "protolog-group",
+        "displaylib",
     ],
     manifest: "quickstep/AndroidManifest.xml",
     min_sdk_version: "current",

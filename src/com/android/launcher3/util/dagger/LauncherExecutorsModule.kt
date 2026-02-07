@@ -34,9 +34,6 @@ import dagger.Module
 import dagger.Binds
 import dagger.Provides
 
-import java.util.concurrent.Executor
-import java.util.concurrent.ExecutorService
-
 /**
  * Module that provides the executors for Launcher3 as per the [ExecutorsModule]
  * interface.
@@ -53,14 +50,6 @@ abstract class LauncherExecutorsModule {
         @Ui executor: LooperExecutor
     ): ListeningExecutorService
 
-    @Binds
-    @LauncherAppSingleton
-    @LightweightBackground(LightweightBackgroundPriority.UI)
-    abstract fun provideUiExecutorService(
-        @LightweightBackground(LightweightBackgroundPriority.UI)
-        executor: LooperExecutor
-    ): ListeningExecutorService
-
     companion object {
         @Provides
         @LauncherAppSingleton
@@ -72,7 +61,7 @@ abstract class LauncherExecutorsModule {
         @Provides
         @LauncherAppSingleton
         @LightweightBackground(LightweightBackgroundPriority.UI)
-        fun provideUiHelperLooperExecutor(): LooperExecutor {
+        fun provideUiExecutorService(): ListeningExecutorService {
             return Executors.UI_HELPER_EXECUTOR
         }
 

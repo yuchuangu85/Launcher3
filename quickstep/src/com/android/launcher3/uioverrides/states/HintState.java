@@ -15,6 +15,7 @@
  */
 package com.android.launcher3.uioverrides.states;
 
+import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_HOME;
 
 import android.content.Context;
@@ -26,6 +27,8 @@ import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimColors;
+
+import app.lawnchair.theme.color.tokens.ColorTokens;
 
 /**
  * Scale down workspace/hotseat to hint at going to either overview (on pause) or first home screen.
@@ -52,16 +55,20 @@ public class HintState extends LauncherState {
 
     @Override
     protected float getDepthUnchecked(Context context) {
-        return DEPTH_5_PERCENT;
+        if (enableScalingRevealHomeAnimation()) {
+            return DEPTH_5_PERCENT;
+        } else {
+            return 0.15f;
+        }
     }
 
     @Override
     public ScrimColors getWorkspaceScrimColor(Launcher launcher) {
-        ScrimColors overviewStateColor = OVERVIEW.getWorkspaceScrimColor(launcher);
+//        ScrimColors overviewStateColor = OVERVIEW.getWorkspaceScrimColor(launcher);
         return new ScrimColors(
                 /* backgroundColor */
-                ColorUtils.setAlphaComponent(overviewStateColor.getBackgroundColor(),
-                        Math.round(Color.valueOf(overviewStateColor.getBackgroundColor()).alpha()
+                ColorUtils.setAlphaComponent(ColorTokens.OverviewScrim.resolveColor(launcher),
+                        Math.round(Color.valueOf(ColorTokens.OverviewScrim.resolveColor(launcher)).alpha()
                                 * 100)),
                 /* foregroundColor */ Color.TRANSPARENT);
     }

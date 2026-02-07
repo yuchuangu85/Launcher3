@@ -19,16 +19,16 @@ flag {
     name: "enable_refactor_task_thumbnail"
     namespace: "launcher_overview"
     description: "Enables rewritten version of TaskThumbnailViews in Overview"
-    bug: "331753115"
+    bug: "331754864"
 }
 
 flag {
-    name: "enable_hover_of_child_elements_in_taskview"
+    name: "enable_coroutine_threading_improvements"
     namespace: "launcher_overview"
-    description: "Enables child elements to receive hover events in TaskView and respond visually to those hover events."
-    bug: "342594235"
+    description: "Enables changes to the threading model of Launcher's coroutines implementation"
+    bug: "416206104"
     metadata {
-      purpose: PURPOSE_BUGFIX
+        purpose: PURPOSE_BUGFIX
     }
 }
 
@@ -40,23 +40,6 @@ flag {
 }
 
 flag {
-    name: "enable_overview_command_helper_timeout"
-    namespace: "launcher_overview"
-    description: "Enables OverviewCommandHelper new version with a timeout to prevent the queue to be unresponsive."
-    bug: "351122926"
-    metadata {
-      purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
-    name: "enable_desktop_windowing_carousel_detach"
-    namespace: "launcher_overview"
-    description: "Makes the desktop windowing task carousel detaches from fullscreen task carousel during quickswitch."
-    bug: "353947917"
-}
-
-flag {
     name: "enable_desktop_exploded_view"
     namespace: "launcher_overview"
     description: "Enables the non-overlapping layout for desktop windows in Overview mode."
@@ -64,30 +47,10 @@ flag {
 }
 
 flag {
-    name: "enable_use_top_visible_activity_for_exclude_from_recent_task"
-    namespace: "launcher_overview"
-    description: "Enables using the top visible activity for exclude from recent task instead of the activity indicies."
-    bug: "342627272"
-    metadata {
-      purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "enable_expressive_dismiss_task_motion"
     namespace: "launcher_overview"
     description: "Enables expressive motion and animations for dismissing a task in Overview."
     bug: "381239462"
-}
-
-flag {
-    name: "enable_separate_external_display_tasks"
-    namespace: "launcher_overview"
-    description: "Enables separating external display tasks in Overview."
-    bug: "391311008"
-    metadata {
-      purpose: PURPOSE_BUGFIX
-    }
 }
 
 flag {
@@ -101,7 +64,7 @@ flag {
     name: "enable_overview_background_wallpaper_blur"
     namespace: "launcher_overview"
     description: "Enable wallpaper blur in overview."
-    bug: "369975912"
+    bug: "360297985"
 }
 
 flag {
@@ -112,11 +75,32 @@ flag {
 }
 
 flag {
-    name: "enable_show_enabled_shortcuts_in_accessibility_menu"
+    name: "enable_refactor_digital_wellbeing_toast"
     namespace: "launcher_overview"
-    description: "Enables showing the same shortcuts in the Task menu as well as the accessibility actions menu"
-    bug: "383662632"
+    description: "Enables rewritten version of digital wellbeing toast in overview."
+    bug: "404838605"
+}
+
+flag {
+    name: "enable_refactor_task_content_view"
+    namespace: "launcher_overview"
+    description: "Enables refactor wrapping TaskThumbnailView in a TaskContentView."
+    bug: "408971730"
+}
+
+flag {
+    name: "enable_desktop_menu_on_secondary_display_bugfix"
+    namespace: "launcher_overview"
+    description: "Enable the 'Desktop' menu entry on full screen tiles on secondary display."
+    bug:  "418822736"
     metadata {
         purpose: PURPOSE_BUGFIX
     }
+}
+
+flag {
+    name: "enable_simultaneous_overview_trigger_on_extended_desktop"
+    namespace: "launcher_overview"
+    description: "Enable Overview to launch and exit simultaneously on default and external displays wherever it was triggered or quit from"
+    bug:  "421128035"
 }

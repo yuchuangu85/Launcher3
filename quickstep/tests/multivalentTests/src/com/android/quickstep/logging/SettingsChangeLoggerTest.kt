@@ -40,29 +40,37 @@ import com.android.launcher3.util.SettingsCache
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Answers
 import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.any
+import org.mockito.junit.MockitoJUnit
 import org.mockito.kotlin.atLeastOnce
+import org.mockito.kotlin.capture
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 @RunWith(AndroidJUnit4::class)
 class SettingsChangeLoggerTest {
+
+    @get:Rule val mockito = MockitoJUnit.rule()
+
     private val mContext: Context = ApplicationProvider.getApplicationContext()
 
     private val mInstanceId = InstanceId.fakeInstanceId(1)
 
     private lateinit var mSystemUnderTest: SettingsChangeLogger
 
+    @Mock private lateinit var mStatsLogFactory: StatsLogManager.StatsLogManagerFactory
+
     @Mock private lateinit var mStatsLogManager: StatsLogManager
 
-    @Mock private lateinit var mMockLogger: StatsLogManager.StatsLogger
+    @Mock(answer = Answers.RETURNS_SELF)
+    private lateinit var mMockLogger: StatsLogManager.StatsLogger
     @Mock private lateinit var mTracker: DaggerSingletonTracker
     private var displayController: DisplayController = DisplayController.INSTANCE.get(mContext)
     private var settingsCache: SettingsCache = SettingsCache.INSTANCE.get(mContext)
@@ -77,10 +85,8 @@ class SettingsChangeLoggerTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.initMocks(this)
-
+        whenever(mStatsLogFactory.create(mContext)).doReturn(mStatsLogManager)
         whenever(mStatsLogManager.logger()).doReturn(mMockLogger)
-        whenever(mStatsLogManager.logger().withInstanceId(any())).doReturn(mMockLogger)
         mDefaultThemedIcons = themeManager.isMonoThemeEnabled
         mDefaultAllowRotation = LauncherPrefs.get(mContext).get(ALLOW_ROTATION)
         // To match the default value of THEMED_ICONS
@@ -91,10 +97,10 @@ class SettingsChangeLoggerTest {
         mSystemUnderTest =
             SettingsChangeLogger(
                 mContext,
-                mStatsLogManager,
                 mTracker,
                 displayController,
                 settingsCache,
+                mStatsLogFactory,
             )
     }
 
@@ -109,17 +115,16 @@ class SettingsChangeLoggerTest {
         val systemUnderTest =
             SettingsChangeLogger(
                 mContext,
-                mStatsLogManager,
                 mTracker,
                 displayController,
                 settingsCache,
+                mStatsLogFactory,
             )
 
         assertThat(systemUnderTest.loggingPrefs[ALLOW_ROTATION_PREFERENCE_KEY]!!.defaultValue)
             .isFalse()
         assertThat(systemUnderTest.loggingPrefs[ADD_ICON_PREFERENCE_KEY]!!.defaultValue).isTrue()
         assertThat(systemUnderTest.loggingPrefs[OVERVIEW_SUGGESTED_ACTIONS]!!.defaultValue).isTrue()
-        assertThat(systemUnderTest.loggingPrefs[SMARTSPACE_ON_HOME_SCREEN]!!.defaultValue).isTrue()
         assertThat(systemUnderTest.loggingPrefs[KEY_ENABLE_MINUS_ONE]!!.defaultValue).isTrue()
     }
 
@@ -127,7 +132,7 @@ class SettingsChangeLoggerTest {
     fun logSnapshot_defaultValue() {
         mSystemUnderTest.logSnapshot(mInstanceId)
 
-        verify(mMockLogger, atLeastOnce()).log(mEventCaptor.capture())
+        verify(mMockLogger, atLeastOnce()).log(capture(mEventCaptor))
         val capturedEvents = mEventCaptor.allValues
         assertThat(capturedEvents.isNotEmpty()).isTrue()
         verifyDefaultEvent(capturedEvents)
@@ -140,10 +145,10 @@ class SettingsChangeLoggerTest {
         LauncherPrefs.get(mContext).put(item = ALLOW_ROTATION, value = true)
 
         // This a new object so the values of mLoggablePrefs will be different
-        SettingsChangeLogger(mContext, mStatsLogManager, mTracker, displayController, settingsCache)
+        SettingsChangeLogger(mContext, mTracker, displayController, settingsCache, mStatsLogFactory)
             .logSnapshot(mInstanceId)
 
-        verify(mMockLogger, atLeastOnce()).log(mEventCaptor.capture())
+        verify(mMockLogger, atLeastOnce()).log(capture(mEventCaptor))
         val capturedEvents = mEventCaptor.allValues
         assertThat(capturedEvents.isNotEmpty()).isTrue()
         verifyDefaultEvent(capturedEvents)
@@ -168,7 +173,6 @@ class SettingsChangeLoggerTest {
     companion object {
         private const val KEY_ENABLE_MINUS_ONE = "pref_enable_minus_one"
         private const val OVERVIEW_SUGGESTED_ACTIONS = "pref_overview_action_suggestions"
-        private const val SMARTSPACE_ON_HOME_SCREEN = "pref_smartspace_home_screen"
 
         private const val LAUNCHER_GOOGLE_APP_SWIPE_LEFT_ENABLED = 617
     }

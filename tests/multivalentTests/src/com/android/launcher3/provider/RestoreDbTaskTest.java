@@ -63,14 +63,14 @@ import com.android.launcher3.model.ModelDbController;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.AllModulesForTest;
 import com.android.launcher3.util.IntArray;
-import com.android.launcher3.util.LauncherModelHelper;
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext;
+import com.android.launcher3.util.SandboxApplication;
 
 import dagger.BindsInstance;
 import dagger.Component;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -89,8 +89,9 @@ public class RestoreDbTaskTest {
 
     private final UserHandle mWorkUser = UserHandle.getUserHandleForUid(PER_USER_RANGE);
 
-    private LauncherModelHelper mModelHelper;
-    private SandboxModelContext mContext;
+    @Rule
+    public final SandboxApplication mContext = new SandboxApplication();
+
     private UserCache mUserCacheSpy;
 
     private RestoreDbTask mTask;
@@ -105,8 +106,6 @@ public class RestoreDbTaskTest {
 
     @Before
     public void setup() {
-        mModelHelper = new LauncherModelHelper();
-        mContext = mModelHelper.sandboxContext;
         mUserCacheSpy = spy(UserCache.getInstance(getInstrumentation().getTargetContext()));
 
         mContext.initDaggerComponent(
@@ -135,7 +134,6 @@ public class RestoreDbTaskTest {
         if (mWidgetHost != null) {
             mWidgetHost.deleteHost();
         }
-        mModelHelper.destroy();
         LauncherPrefs.get(mContext).removeSync(RESTORE_DEVICE);
     }
 

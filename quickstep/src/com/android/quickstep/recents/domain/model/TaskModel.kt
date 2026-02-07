@@ -18,6 +18,7 @@ package com.android.quickstep.recents.domain.model
 
 import android.graphics.drawable.Drawable
 import com.android.systemui.shared.recents.model.ThumbnailData
+import java.time.Duration
 
 /**
  * Data class representing a task in the application.
@@ -26,6 +27,7 @@ import com.android.systemui.shared.recents.model.ThumbnailData
  * title, associated icon, optional thumbnail data, and background color.
  *
  * @property id The unique identifier for this task. Must be an integer.
+ * @property packageName top activity package for the task's app
  * @property title The display title of the task.
  * @property titleDescription A content description of the task.
  * @property icon An optional drawable resource representing an icon for the task. Can be null if no
@@ -35,15 +37,20 @@ import com.android.systemui.shared.recents.model.ThumbnailData
  * @property backgroundColor The background color of the task, represented as an integer color
  *   value.
  * @property isLocked Indicates whether the [Task] is locked.
+ * @property isMinimized Indicates whether the [Task] is minimized.
+ * @property remainingAppDuration time remaining on the app timer for the application.
  */
 data class TaskModel(
     val id: TaskId,
+    val packageName: String,
     val title: String?,
     val titleDescription: String?,
     val icon: Drawable?,
     val thumbnail: ThumbnailData?,
     val backgroundColor: Int,
     val isLocked: Boolean,
+    val isMinimized: Boolean,
+    val remainingAppDuration: Duration?,
 )
 
 typealias TaskId = Int

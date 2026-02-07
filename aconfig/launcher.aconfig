@@ -72,13 +72,6 @@ flag {
 }
 
 flag {
-    name: "enable_unfolded_two_pane_picker"
-    namespace: "launcher"
-    description: "Enables two pane widget picker for unfolded foldables"
-    bug: "313922374"
-}
-
-flag {
     name: "enable_tablet_two_pane_picker_v2"
     namespace: "launcher"
     description: "Enables full width two pane widget picker for tablets in landscape and portrait"
@@ -97,13 +90,6 @@ flag {
     namespace: "launcher"
     description: "Enable predictive back gesture on Launcher (including all apps and widget picker)."
     bug: "238475505"
-}
-
-flag {
-    name: "enable_shortcut_dont_suggest_app"
-    namespace: "launcher"
-    description: "Enables don't suggest app shortcut for suggested apps"
-    bug: "319250810"
 }
 
 flag {
@@ -181,24 +167,6 @@ flag {
 }
 
 flag {
-    name: "use_activity_overlay"
-    namespace: "launcher"
-    description: "Use an activity for home screen overlay"
-    bug: "273828110"
-}
-
-flag {
-    name: "enable_grid_migration_fix"
-    namespace: "launcher"
-    description: "Keep items in place when migrating to a bigger grid"
-    bug: "325286145"
-    is_fixed_read_only: true
-    metadata {
-      purpose: PURPOSE_BUGFIX
-    }
-}
-
-flag {
     name: "enable_narrow_grid_restore"
     namespace: "launcher"
     description: "Using only the most recent workspace when restoring to avoid confusion."
@@ -224,44 +192,10 @@ flag {
 }
 
 flag {
-  name: "enable_handle_delayed_gesture_callbacks"
-  namespace: "launcher"
-  description: "Enables additional handling for delayed mid-gesture callbacks"
-  bug: "285636175"
-  metadata {
-    purpose: PURPOSE_BUGFIX
-  }
-}
-
-flag {
     name: "enable_fallback_overview_in_window"
     namespace: "lse_desktop_experience"
     description: "Enables fallback recents opening inside of a window instead of an activity."
     bug: "292269949"
-}
-
-flag {
-    name: "enable_smartspace_as_a_widget"
-    namespace: "launcher"
-    description: "Enables smartspace as a widget"
-    bug: "300140279"
-}
-
-flag {
-    name: "enable_smartspace_removal_toggle"
-    namespace: "launcher"
-    description: "Enables smartspace removal toggle"
-    bug: "303471576"
-}
-
-flag {
-  name: "enable_additional_home_animations"
-  namespace: "launcher"
-  description: "Enables custom home animations for non-running tasks"
-  bug: "237638627"
-  metadata {
-    purpose: PURPOSE_BUGFIX
-  }
 }
 
 flag {
@@ -318,24 +252,10 @@ flag {
 }
 
 flag {
-    name: "multiline_search_bar"
-    namespace: "launcher"
-    description: "Search bar can wrap to multi-line"
-    bug: "341795751"
-}
-
-flag {
     name: "enable_multi_instance_menu_taskbar"
     namespace: "launcher"
     description: "Menu in Taskbar with options to launch and manage multiple instances of the same app"
     bug: "355237285"
-}
-
-flag {
-    name: "navigate_to_child_preference"
-    namespace: "launcher"
-    description: "Settings screen supports navigating to child preference if the key is not on the screen"
-    bug: "293390881"
 }
 
 flag {
@@ -353,16 +273,6 @@ flag {
     namespace: "launcher"
     description: "Change fast scroller to a lettered list"
     bug: "358673724"
-}
-
-flag {
-    name: "enable_desktop_task_alpha_animation"
-    namespace: "launcher"
-    description: "Enables the animation of the desktop task's background view"
-    bug: "320307666"
-    metadata {
-      purpose: PURPOSE_BUGFIX
-    }
 }
 
 flag {
@@ -442,20 +352,6 @@ flag {
 }
 
 flag {
-    name: "taskbar_overflow"
-    namespace: "launcher"
-    description: "Show recent apps in the taskbar overflow."
-    bug: "368119679"
-}
-
-flag {
-    name: "enable_active_gesture_proto_log"
-    namespace: "launcher"
-    description: "Enables tracking active gesture logs in ProtoLog"
-    bug: "293182501"
-}
-
-flag {
     name: "enable_recents_window_proto_log"
     namespace: "lse_desktop_experience"
     description: "Enables tracking recents window logs in ProtoLog"
@@ -467,16 +363,6 @@ flag {
     namespace: "lse_desktop_experience"
     description: "Enables tracking state manager logs in ProtoLog"
     bug: "292269949"
-}
-
-flag {
-    name: "coordinate_workspace_scale"
-    namespace: "launcher"
-    description: "Ensure that the workspace and hotseat scale doesn't conflict and transitions smoothly between launching and closing apps"
-    bug: "366403487"
-    metadata {
-      purpose: PURPOSE_BUGFIX
-    }
 }
 
 flag {
@@ -525,13 +411,6 @@ flag {
 }
 
 flag {
-    name: "enable_pinning_app_with_context_menu"
-    namespace: "launcher"
-    description: "Add options to pin/unpin to taskbar to app context menus."
-    bug: "375648361"
-}
-
-flag {
   name: "enable_launcher_icon_shapes"
   namespace: "launcher"
   description: "Enable launcher icon shape customizations"
@@ -563,6 +442,17 @@ flag {
   namespace: "launcher"
   description: "Adds refresh for font family, app longpress menu icons, and pagination dots"
   bug: "395145453"
+}
+
+flag {
+  name: "external_data_access"
+  namespace: "launcher"
+  description: "For LauncherProvider bug fixes and new static permissions as part of the cross oem backup / restore effort."
+  bug: "395145453"
+  is_fixed_read_only: true
+  metadata {
+    purpose: PURPOSE_BUGFIX
+  }
 }
 
 flag {
@@ -625,13 +515,6 @@ flag {
   namespace: "launcher"
   description: "Enable Strict Mode for the Launcher app"
   bug: "394651876"
-}
-
-flag {
-  name: "extendible_theme_manager"
-  namespace: "launcher"
-  description: "Enables custom theme manager in Launcher"
-  bug: "381897614"
 }
 
 flag {
@@ -700,6 +583,61 @@ flag {
   namespace: "launcher"
   description: "Initializes parts of Taskbar before onUserUnlocked"
   bug: "324485921"
+  metadata {
+    purpose: PURPOSE_BUGFIX
+  }
+}
+
+flag {
+  name: "enable_taskbar_ui_thread"
+  namespace: "launcher"
+  description: "Enable per-window thread for taskbar"
+  bug: "404636836"
+}
+
+flag {
+  name: "enable_expressive_folder_expansion"
+  namespace: "launcher"
+  description: "Enables expressive folder expansion motion"
+  bug: "348708061"
+  metadata {
+    purpose: PURPOSE_BUGFIX
+  }
+}
+
+flag {
+  name: "model_repository"
+  namespace: "launcher"
+  description: "Adds various data repositories for the model"
+  bug: "390572144"
+}
+
+flag {
+  name: "home_screen_edit_improvements"
+  namespace: "launcher"
+  description: "Improves item removal and resizing within home screen"
+  bug: "416087474"
+}
+
+flag {
+  name: "enable_widget_picker_refactor"
+  namespace: "launcher"
+  description: "Enables the refactored code for widget picker using separate activity and module"
+  bug: "370950552"
+}
+
+flag {
+    name: "enable_reversible_home_action_corner"
+    namespace: "launcher"
+    description: "Enables home action corner to be reversible"
+    bug: "416664984"
+}
+
+flag {
+  name: "enable_long_press_remove_shortcut"
+  namespace: "launcher"
+  description: "Enables remove app shortcut on long press menu"
+  bug: "419289205"
   metadata {
     purpose: PURPOSE_BUGFIX
   }

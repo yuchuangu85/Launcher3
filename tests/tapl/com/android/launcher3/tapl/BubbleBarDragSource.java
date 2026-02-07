@@ -34,10 +34,8 @@ public interface BubbleBarDragSource {
 
     /**
      * Drags this app icon to the provided bubble bar location drop zone.
-     *
-     * @return The {@link BubbleBar} instance that accepted the app icon drag.
      */
-    default BubbleBar dragToBubbleBarLocation(boolean isBubbleBarLeftDropTarget) {
+    default void dragToBubbleBarLocation(boolean isBubbleBarLeftDropTarget) {
         Launchable launchable = getLaunchable();
         LauncherInstrumentation launcher = launchable.mLauncher;
         int bubbleBarDropTargetHalfSize = launcher.getBubbleBarDropTargetSize() / 2;
@@ -47,7 +45,6 @@ public interface BubbleBarDragSource {
         final Point endPoint = new Point(endX, displaySize.y - bubbleBarDropTargetHalfSize);
         dragToPoint(launcher, launchable, endPoint,
                 /* waitForShell = */ getTaskbarLocation() == TaskbarLocation.LAUNCHED_APP);
-        return launcher.getBubbleBar();
     }
 
     private static void dragToPoint(
@@ -97,8 +94,8 @@ public interface BubbleBarDragSource {
                                 endPoint,
                                 LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER);
                         try (LauncherInstrumentation.Closable c4 = launcher.addContextLayer(
-                                "BubbleBar should appear and expand")) {
-                            new BubbleBar(launcher).verifyExpanded(null);
+                                "BubbleBar should appear")) {
+                            new BubbleBar(launcher);
                         }
                     }
                 }

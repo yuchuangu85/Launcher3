@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Нажмите, чтобы завершить настройку."</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Это системное приложение, его нельзя удалить."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Измените название"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Перейти на предыдущую страницу"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Перейти на следующую страницу"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Приложение <xliff:g id="APP_NAME">%1$s</xliff:g> отключено"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{В приложении \"{app_name}\" # уведомление}one{В приложении \"{app_name}\" # уведомление}few{В приложении \"{app_name}\" # уведомления}many{В приложении \"{app_name}\" # уведомлений}other{В приложении \"{app_name}\" # уведомления}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Стр. %1$d из %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Разрешить поворачивать главный экран"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"При повороте телефона"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Горизонтальный режим"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Перевести телефон в горизонтальный режим"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Показывать главный экран в горизонтальном режиме"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Значки уведомлений"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Включены"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Отключены"</string>
@@ -146,7 +148,7 @@
     <string name="notification_dots_service_title" msgid="4284221181793592871">"Показывать значки уведомлений"</string>
     <string name="developer_options_title" msgid="700788437593726194">"Для разработчиков"</string>
     <string name="auto_add_shortcuts_label" msgid="4926805029653694105">"Добавлять значки приложений на главный экран"</string>
-    <string name="auto_add_shortcuts_description" msgid="7117251166066978730">"Добавлять значки установленных приложений на главный экран"</string>
+    <string name="auto_add_shortcuts_description" msgid="7117251166066978730">"Для новых приложений"</string>
     <string name="package_state_unknown" msgid="7592128424511031410">"Неизвестно"</string>
     <string name="abandoned_clean_this" msgid="7610119707847920412">"Убрать"</string>
     <string name="abandoned_search" msgid="891119232568284442">"Найти"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Блокировка"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Переход к личному пространству"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Установить"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Добавить"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Установить приложения в личном пространстве"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Добавляйте в частное пространство файлы и многое другое"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Круг"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Квадрат"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Печенье (четыре стороны)"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Печенье (семь сторон)"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Арка"</string>
 </resources>

@@ -16,7 +16,6 @@
 <resources xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <color name="gesture_tutorial_back_arrow_color">#99000000</color>
-
     <color name="gesture_tutorial_fake_wallpaper_color">#000000</color> <!-- Black -->
 
     <color name="mock_webpage_url_bar">#202124</color>

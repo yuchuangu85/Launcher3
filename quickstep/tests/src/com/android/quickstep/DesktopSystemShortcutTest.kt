@@ -16,11 +16,9 @@
 
 package com.android.quickstep
 
-import android.Manifest.permission.SYSTEM_ALERT_WINDOW
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.platform.test.annotations.DisableFlags
 import android.platform.test.annotations.EnableFlags
@@ -32,6 +30,8 @@ import com.android.dx.mockito.inline.extended.StaticMockitoSession
 import com.android.internal.R
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.AbstractFloatingViewHelper
+import com.android.launcher3.Flags
+import com.android.launcher3.Flags.enableRefactorTaskContentView
 import com.android.launcher3.Flags.enableRefactorTaskThumbnail
 import com.android.launcher3.logging.StatsLogManager
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent
@@ -39,6 +39,7 @@ import com.android.launcher3.model.data.TaskViewItemInfo
 import com.android.launcher3.util.SplitConfigurationOptions
 import com.android.launcher3.util.TransformingTouchDelegate
 import com.android.quickstep.TaskOverlayFactory.TaskOverlay
+import com.android.quickstep.task.thumbnail.TaskContentView
 import com.android.quickstep.task.thumbnail.TaskThumbnailView
 import com.android.quickstep.views.LauncherRecentsView
 import com.android.quickstep.views.RecentsViewContainer
@@ -49,16 +50,16 @@ import com.android.quickstep.views.TaskViewIcon
 import com.android.quickstep.views.TaskViewType
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.Task.TaskKey
-import com.android.window.flags.Flags
+import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus
 import com.android.wm.shell.shared.desktopmode.DesktopModeTransitionSource
 import com.google.common.truth.Truth.assertThat
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
@@ -97,6 +98,7 @@ class DesktopSystemShortcutTest {
                 .startMocking()
         whenever(DesktopModeStatus.canEnterDesktopMode(any())).thenReturn(true)
         whenever(overlayFactory.createOverlay(any())).thenReturn(mock<TaskOverlay<*>>())
+        doReturn(DEFAULT_DISPLAY).whenever(context).displayId
         whenever(launcher.asContext()).thenReturn(context)
     }
 
@@ -116,8 +118,29 @@ class DesktopSystemShortcutTest {
     }
 
     @Test
-    @EnableFlags(Flags.FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
-    @DisableFlags(Flags.FLAG_ENABLE_MODALS_FULLSCREEN_WITH_PERMISSION)
+    @EnableFlags(FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
+    fun createDesktopTaskShortcutFactory_noDisplayActivity() {
+        val baseComponent = ComponentName("", /* class */ "")
+        val taskKey =
+            TaskKey(
+                /* id */ 1,
+                /* windowingMode */ 0,
+                Intent(),
+                baseComponent,
+                /* userId */ 0,
+                /* lastActiveTime */ 2000,
+                DEFAULT_DISPLAY,
+                baseComponent,
+                /* numActivities */ 1,
+                /* isTopActivityNoDisplay */ true,
+                /* isActivityStackTransparent */ false,
+            )
+        val taskContainer = createTaskContainer(Task(taskKey))
+        val shortcuts = factory.getShortcuts(launcher, taskContainer)
+    }
+
+    @Test
+    @EnableFlags(FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
     fun createDesktopTaskShortcutFactory_transparentTask() {
         val baseComponent = ComponentName("", /* class */ "")
         val taskKey =
@@ -140,65 +163,7 @@ class DesktopSystemShortcutTest {
     }
 
     @Test
-    @EnableFlags(
-        Flags.FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY,
-        Flags.FLAG_ENABLE_MODALS_FULLSCREEN_WITH_PERMISSION,
-    )
-    fun createDesktopTaskShortcutFactoryPermissionEnabledAllowed_transparentTask() {
-        val packageManager: PackageManager = mock()
-        setUpTransparentPermission(packageManager, isAllowed = true)
-        val baseComponent = ComponentName("", /* class */ "")
-        val taskKey =
-            TaskKey(
-                /* id */ 1,
-                /* windowingMode */ 0,
-                Intent(),
-                baseComponent,
-                /* userId */ 0,
-                /* lastActiveTime */ 2000,
-                DEFAULT_DISPLAY,
-                baseComponent,
-                /* numActivities */ 1,
-                /* isTopActivityNoDisplay */ false,
-                /* isActivityStackTransparent */ true,
-            )
-        val taskContainer = createTaskContainer(Task(taskKey))
-        val shortcuts = factory.getShortcuts(launcher, taskContainer)
-        assertThat(shortcuts).isNull()
-    }
-
-    @Test
-    @EnableFlags(
-        Flags.FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY,
-        Flags.FLAG_ENABLE_MODALS_FULLSCREEN_WITH_PERMISSION,
-    )
-    fun createDesktopTaskShortcutFactoryPermissionEnabledNotAllowed_transparentTask() {
-        val packageManager: PackageManager = mock()
-        setUpTransparentPermission(packageManager, isAllowed = false)
-        val baseComponent = ComponentName("", /* class */ "")
-        val homeActivities = ComponentName("defaultHomePackage", /* class */ "")
-        whenever(packageManager.getHomeActivities(any())).thenReturn(homeActivities)
-        val taskKey =
-            TaskKey(
-                /* id */ 1,
-                /* windowingMode */ 0,
-                Intent(),
-                baseComponent,
-                /* userId */ 0,
-                /* lastActiveTime */ 2000,
-                DEFAULT_DISPLAY,
-                baseComponent,
-                /* numActivities */ 1,
-                /* isTopActivityNoDisplay */ false,
-                /* isActivityStackTransparent */ true,
-            )
-        val taskContainer = createTaskContainer(Task(taskKey).apply { isDockable = true })
-        val shortcuts = factory.getShortcuts(launcher, taskContainer)
-        assertThat(shortcuts).isNotEmpty()
-    }
-
-    @Test
-    @EnableFlags(Flags.FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
+    @EnableFlags(FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
     fun createDesktopTaskShortcutFactory_systemUiTask() {
         val sysUiPackageName: String = context.resources.getString(R.string.config_systemUi)
         val baseComponent = ComponentName(sysUiPackageName, /* class */ "")
@@ -222,7 +187,7 @@ class DesktopSystemShortcutTest {
     }
 
     @Test
-    @EnableFlags(Flags.FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
+    @EnableFlags(FLAG_ENABLE_DESKTOP_WINDOWING_MODALS_POLICY)
     fun createDesktopTaskShortcutFactory_defaultHomeTask() {
         val packageManager: PackageManager = mock()
         whenever(context.packageManager).thenReturn(packageManager)
@@ -257,10 +222,11 @@ class DesktopSystemShortcutTest {
     }
 
     @Test
-    fun desktopSystemShortcutClicked() {
+    fun desktopSystemShortcutClickedWithoutDesktopModeOnDisplay() {
         val task = createTask()
         val taskContainer = spy(createTaskContainer(task))
 
+        whenever(DesktopModeStatus.isDesktopModeSupportedOnDisplay(any(), any())).thenReturn(false)
         whenever(launcher.getOverviewPanel<LauncherRecentsView>()).thenReturn(recentsView)
         whenever(launcher.statsLogManager).thenReturn(statsLogManager)
         whenever(statsLogManager.logger()).thenReturn(statsLogger)
@@ -274,10 +240,29 @@ class DesktopSystemShortcutTest {
         doReturn(taskViewItemInfo).whenever(taskContainer).itemInfo
 
         val shortcuts = factory.getShortcuts(launcher, taskContainer)
-        assertThat(shortcuts).isNotNull()
-        assertThat(shortcuts!!.single()).isInstanceOf(DesktopSystemShortcut::class.java)
+        assertThat(shortcuts).isNull()
+    }
 
-        val desktopShortcut = shortcuts.single() as DesktopSystemShortcut
+    @Test
+    fun desktopSystemShortcutClickedWithDesktopModeOnDisplay() {
+        val task = createTask()
+        val taskContainer = spy(createTaskContainer(task))
+
+        whenever(DesktopModeStatus.isDesktopModeSupportedOnDisplay(any(), any())).thenReturn(true)
+        whenever(launcher.getOverviewPanel<LauncherRecentsView>()).thenReturn(recentsView)
+        whenever(launcher.statsLogManager).thenReturn(statsLogManager)
+        whenever(statsLogManager.logger()).thenReturn(statsLogger)
+        whenever(statsLogger.withItemInfo(any())).thenReturn(statsLogger)
+        whenever(taskView.context).thenReturn(context)
+        whenever(recentsView.moveTaskToDesktop(any(), any(), any())).thenAnswer {
+            val successCallback = it.getArgument<Runnable>(2)
+            successCallback.run()
+        }
+        val taskViewItemInfo = mock<TaskViewItemInfo>()
+        doReturn(taskViewItemInfo).whenever(taskContainer).itemInfo
+
+        val shortcuts = assertNotNull(factory.getShortcuts(launcher, taskContainer))
+        val desktopShortcut = assertIs<DesktopSystemShortcut>(shortcuts.single())
 
         desktopShortcut.onClick(taskView)
 
@@ -294,7 +279,20 @@ class DesktopSystemShortcutTest {
         verify(statsLogger).log(LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_DESKTOP_TAP)
     }
 
-    private fun createTask() =
+    @Test
+    @DisableFlags(Flags.FLAG_ENABLE_DESKTOP_MENU_ON_SECONDARY_DISPLAY_BUGFIX)
+    fun createDesktopTaskShortcutFactoryOnSecondaryDisplayWithoutFlag() {
+        `when`(DesktopModeStatus.canEnterDesktopMode(any())).thenReturn(true)
+        `when`(DesktopModeStatus.isDesktopModeSupportedOnDisplay(any(), any())).thenReturn(true)
+        doReturn(SECONDARY_DISPLAY).whenever(context).displayId
+
+        val taskContainer = createTaskContainer(createTask(displayId = SECONDARY_DISPLAY))
+
+        val shortcuts = factory.getShortcuts(launcher, taskContainer)
+        assertThat(shortcuts).isNull()
+    }
+
+    private fun createTask(displayId: Int = DEFAULT_DISPLAY) =
         Task(
                 TaskKey(
                     /* id */ 1,
@@ -303,7 +301,7 @@ class DesktopSystemShortcutTest {
                     ComponentName("", ""),
                     /* userId */ 0,
                     /* lastActiveTime */ 2000,
-                    DEFAULT_DISPLAY,
+                    displayId,
                     ComponentName("", ""),
                     /* numActivities */ 1,
                     /* isTopActivityNoDisplay */ false,
@@ -316,6 +314,11 @@ class DesktopSystemShortcutTest {
         TaskContainer(
             taskView,
             task,
+            when {
+                enableRefactorTaskContentView() -> mock<TaskContentView>()
+                enableRefactorTaskThumbnail() -> mock<TaskThumbnailView>()
+                else -> mock<TaskThumbnailViewDeprecated>()
+            },
             if (enableRefactorTaskThumbnail()) mock<TaskThumbnailView>()
             else mock<TaskThumbnailViewDeprecated>(),
             mock<TaskViewIcon>(),
@@ -326,26 +329,14 @@ class DesktopSystemShortcutTest {
             overlayFactory,
         )
 
-    private fun setUpTransparentPermission(packageManager: PackageManager, isAllowed: Boolean) {
-        val packageInfo: PackageInfo = mock()
-        if (isAllowed) {
-            packageInfo.requestedPermissions = arrayOf(SYSTEM_ALERT_WINDOW)
-        }
-        whenever(context.packageManager).thenReturn(packageManager)
-        whenever(
-                packageManager.getPackageInfoAsUser(
-                    anyString(),
-                    eq(PackageManager.GET_PERMISSIONS),
-                    anyInt(),
-                )
-            )
-            .thenReturn(packageInfo)
-    }
-
     private fun createTaskViewMock(): TaskView {
         val taskView: TaskView = mock()
         whenever(taskView.type).thenReturn(TaskViewType.SINGLE)
         whenever(taskView.context).thenReturn(context)
         return taskView
+    }
+
+    private companion object {
+        const val SECONDARY_DISPLAY = 13
     }
 }

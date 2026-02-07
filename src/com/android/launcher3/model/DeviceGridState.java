@@ -23,9 +23,12 @@ import static com.android.launcher3.LauncherPrefs.GRID_TYPE;
 import static com.android.launcher3.LauncherPrefs.HOTSEAT_COUNT;
 import static com.android.launcher3.LauncherPrefs.WORKSPACE_SIZE;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.text.TextUtils;
 
+import app.lawnchair.LawnchairProto;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent;
@@ -47,8 +50,8 @@ public class DeviceGridState implements Comparable<DeviceGridState> {
     private final String mGridSizeString;
     private final int mNumHotseat;
     private final @DeviceType int mDeviceType;
-    private final String mDbFile;
-    private final int mGridType;
+    private String mDbFile;
+    private int mGridType;
 
     public DeviceGridState(int columns, int row, int numHotseat, int deviceType, String dbFile,
             int gridType) {
@@ -65,6 +68,14 @@ public class DeviceGridState implements Comparable<DeviceGridState> {
         mDeviceType = idp.deviceType;
         mDbFile = idp.dbFile;
         mGridType = idp.gridType;
+    }
+
+    // Lawnchair@2038c6722c1ebd977290492881023675e1cddecd: Backup creation
+    @SuppressLint("WrongConstant")
+    public DeviceGridState(LawnchairProto.GridState protoGridState) {
+        mGridSizeString = protoGridState.getGridSize();
+        mNumHotseat = protoGridState.getHotseatCount();
+        mDeviceType = protoGridState.getDeviceType();
     }
 
     public DeviceGridState(Context context) {
@@ -120,6 +131,27 @@ public class DeviceGridState implements Comparable<DeviceGridState> {
 
     }
 
+
+    public void writeToPrefs(Context context, boolean commit) {
+        SharedPreferences.Editor editor = LauncherPrefs.getPrefs(context).edit()
+                .putString(KEY_WORKSPACE_SIZE, mGridSizeString)
+                .putInt(KEY_HOTSEAT_COUNT, mNumHotseat)
+                .putInt(KEY_DEVICE_TYPE, mDeviceType);
+        if (commit) {
+            editor.commit();
+        } else {
+            editor.apply();
+        }
+    }
+
+    public LawnchairProto.GridState toProtoMessage() {
+        return LawnchairProto.GridState.newBuilder()
+                .setGridSize(mGridSizeString)
+                .setHotseatCount(mNumHotseat)
+                .setDeviceType(mDeviceType)
+                .build();
+    }
+
     /**
      * Returns the logging event corresponding to the grid state
      */
@@ -136,6 +168,8 @@ public class DeviceGridState implements Comparable<DeviceGridState> {
                     return LauncherEvent.LAUNCHER_GRID_SIZE_4_BY_5;
                 case "4,6":
                     return LauncherEvent.LAUNCHER_GRID_SIZE_4_BY_6;
+                case "4,7":
+                    return LauncherEvent.LAUNCHER_GRID_SIZE_4_BY_7;
                 case "5,5":
                     return LauncherEvent.LAUNCHER_GRID_SIZE_5_BY_5;
                 case "5,6":

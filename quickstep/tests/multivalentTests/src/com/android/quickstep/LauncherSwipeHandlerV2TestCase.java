@@ -76,6 +76,8 @@ public class LauncherSwipeHandlerV2TestCase extends AbsSwipeUpHandlerTestCase<
         return new LauncherSwipeHandlerV2(
                 mContext,
                 mTaskAnimationManager,
+                mDeviceState,
+                mRotationTouchHelper,
                 mGestureState,
                 touchTimeMs,
                 continuingLastGesture,
@@ -93,5 +95,11 @@ public class LauncherSwipeHandlerV2TestCase extends AbsSwipeUpHandlerTestCase<
     @Override
     protected RecentsView<QuickstepLauncher, LauncherState> getRecentsView() {
         return mRecentsView;
+    }
+
+    @NonNull
+    @Override
+    protected LauncherState getBaseState() {
+        return LauncherState.NORMAL;
     }
 }

@@ -29,5 +29,7 @@ public class StateManagerProtoLogProxy {
 
     public static void logOnStateTransitionEnd(Object state) { }
 
+    public static void logOnRepeatStateSetAborted(Object state) { }
+
     public static void logCancelAnimation(boolean animationOngoing, String trace) { }
 }

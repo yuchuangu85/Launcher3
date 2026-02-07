@@ -47,7 +47,7 @@
     <string name="widget_accessible_dims_format" msgid="3640149169885301790">"%1$d de largura por %2$d de altura"</string>
     <string name="widget_preview_context_description" msgid="9045841361655787574">"Widget <xliff:g id="WIDGET_NAME">%1$s</xliff:g>"</string>
     <string name="widget_preview_name_and_dims_content_description" msgid="8489038126122831595">"Widget <xliff:g id="WIDGET_NAME">%1$s</xliff:g>: %2$d de largura por %3$d de altura"</string>
-    <string name="add_item_request_drag_hint" msgid="8730547755622776606">"Toque no widget e o pressione para definir a posição dele na tela inicial"</string>
+    <string name="add_item_request_drag_hint" msgid="8730547755622776606">"Toque e segure o widget para mover sua posição na tela inicial"</string>
     <string name="add_to_home_screen" msgid="9168649446635919791">"Adicionar à tela inicial"</string>
     <string name="added_to_home_screen_accessibility_text" msgid="4451545765448884415">"Widget <xliff:g id="WIDGET_NAME">%1$s</xliff:g> adicionado à tela inicial"</string>
     <string name="suggested_widgets_header_title" msgid="1844314680798145222">"Sugestões"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Toque para concluir a configuração"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Este é um app do sistema e não pode ser desinstalado."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Editar nome"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Paginar para a esquerda"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Paginar para a direita"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> desativado"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{O app {app_name} tem # notificação}one{O app {app_name} tem # notificação}other{O app {app_name} tem # notificações}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Página %1$d de %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Permitir a rotação da tela inicial"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Quando o smartphone for girado"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Modo paisagem"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Definir o smartphone para o modo paisagem"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Definir a tela inicial no modo paisagem"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Pontos de notificação"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Ativados"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Desativado"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Bloqueio"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Espaço particular em transição"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Instalar"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Adicionar"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instalar apps no espaço privado"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Adicione arquivos e muito mais ao espaço privado"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Círculo"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Quadrado"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Biscoito com 4 lados"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Biscoito com 7 lados"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arco"</string>
 </resources>

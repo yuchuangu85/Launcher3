@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.View.MeasureSpec;
 import android.widget.RemoteViews;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
@@ -44,6 +45,11 @@ import com.android.launcher3.icons.BaseIconFactory;
 import com.android.launcher3.icons.FastBitmapDrawable;
 import com.android.launcher3.icons.LauncherIcons;
 import com.android.launcher3.icons.RoundDrawableWrapper;
+import com.android.launcher3.widget.DatabaseWidgetPreviewLoader.WidgetPreviewInfo;
+
+import java.util.Objects;
+
+import app.lawnchair.LawnchairAppWidgetHostView;
 
 /**
  * Extension of {@link DragPreviewProvider} with logic specific to pending widgets/shortcuts
@@ -57,6 +63,7 @@ public class PendingItemDragHelper extends DragPreviewProvider {
     private int[] mEstimatedCellSize;
 
     @Nullable private RemoteViews mRemoteViewsPreview;
+    @Nullable private WidgetPreviewInfo mWidgetPreviewInfo;
     private float mRemoteViewsPreviewScale = 1f;
     @Nullable private NavigableAppWidgetHostView mAppWidgetHostViewPreview;
     private final float mEnforcedRoundedCornersForWidget;
@@ -66,6 +73,13 @@ public class PendingItemDragHelper extends DragPreviewProvider {
         mAddInfo = (PendingAddItemInfo) view.getTag();
         mEnforcedRoundedCornersForWidget = RoundedCornerEnforcement.computeEnforcedRadius(
                 view.getContext());
+    }
+
+    /**
+     * Set the necessary information about the preview, so a preview can be built for drag and drop.
+     */
+    public void setWidgetPreviewInfo(@NonNull WidgetPreviewInfo previewInfo) {
+        mWidgetPreviewInfo = previewInfo;
     }
 
     /**
@@ -82,6 +96,9 @@ public class PendingItemDragHelper extends DragPreviewProvider {
     public void setAppWidgetHostViewPreview(
             @Nullable NavigableAppWidgetHostView appWidgetHostViewPreview) {
         mAppWidgetHostViewPreview = appWidgetHostViewPreview;
+        if (appWidgetHostViewPreview instanceof LawnchairAppWidgetHostView) {
+            ((LawnchairAppWidgetHostView) appWidgetHostViewPreview).disablePreviewMode();
+        }
     }
 
     /**
@@ -115,8 +132,31 @@ public class PendingItemDragHelper extends DragPreviewProvider {
 
             int[] previewSizeBeforeScale = new int[1];
 
-            if (mRemoteViewsPreview != null) {
-                mAppWidgetHostViewPreview = new LauncherAppWidgetHostView(launcher);
+            if (mWidgetPreviewInfo != null) {
+                if (mWidgetPreviewInfo.previewBitmap != null) {
+                    Drawable drawable = new FastBitmapDrawable(mWidgetPreviewInfo.previewBitmap);
+                    drawable = new RoundDrawableWrapper(drawable, mEnforcedRoundedCornersForWidget);
+                    preview = drawable;
+                    if (drawable.getIntrinsicWidth() > 0
+                            && drawable.getIntrinsicHeight() > 0) {
+                        previewSizeBeforeScale[0] = drawable.getIntrinsicWidth();
+                    }
+                } else {
+                    mAppWidgetHostViewPreview = new LawnchairAppWidgetHostView(launcher);
+                    mAppWidgetHostViewPreview.setAppWidget(/* appWidgetId= */ -1,
+                            mWidgetPreviewInfo.providerInfo);
+                    mAppWidgetHostViewPreview.setClipChildren(false);
+                    mAppWidgetHostViewPreview.setClipToPadding(false);
+                    mAppWidgetHostViewPreview.updateAppWidget(/* remoteViews= */
+                            mWidgetPreviewInfo.remoteViews);
+
+                    DeviceProfile deviceProfile = launcher.getDeviceProfile();
+                    Size widgetSizes = getWidgetSizePx(deviceProfile, mAddInfo.spanX,
+                            mAddInfo.spanY);
+                    measureAndUpdateAppWidgetHostViewScale(widgetSizes);
+                }
+            } else if (mRemoteViewsPreview != null) {
+                mAppWidgetHostViewPreview = new LawnchairAppWidgetHostView(launcher);
                 mAppWidgetHostViewPreview.setAppWidget(/* appWidgetId= */ -1,
                         ((PendingAddWidgetInfo) mAddInfo).info);
                 DeviceProfile deviceProfile = launcher.getDeviceProfile();
@@ -133,9 +173,9 @@ public class PendingItemDragHelper extends DragPreviewProvider {
                 previewSizeBeforeScale[0] = mAppWidgetHostViewPreview.getMeasuredWidth();
             }
             if (preview == null && mAppWidgetHostViewPreview == null) {
-                Drawable p = new FastBitmapDrawable(new DatabaseWidgetPreviewLoader(launcher)
-                        .generateWidgetPreview(
-                                createWidgetInfo.info, maxWidth, previewSizeBeforeScale));
+                Drawable p = new FastBitmapDrawable(new DatabaseWidgetPreviewLoader(launcher,
+                        launcher.getDeviceProfile()).generateWidgetPreview(createWidgetInfo.info,
+                        maxWidth, previewSizeBeforeScale));
                 p = new RoundDrawableWrapper(p, mEnforcedRoundedCornersForWidget);
                 preview = p;
             }
@@ -212,6 +252,38 @@ public class PendingItemDragHelper extends DragPreviewProvider {
         } else {
             launcher.getDragController().startDrag(preview, draggableView, dragLayerX, dragLayerY,
                     source, mAddInfo, dragRegion, scale, scale, options);
+        }
+    }
+
+    private void measureAndUpdateAppWidgetHostViewScale(Size widgetSizes) {
+        Objects.requireNonNull(mAppWidgetHostViewPreview).measure(
+                MeasureSpec.makeMeasureSpec(widgetSizes.getWidth(),
+                        MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(widgetSizes.getHeight(),
+                        MeasureSpec.EXACTLY));
+
+        // Scale the preview to fit the widget's size. Not all widgets fill bounds, so we need to
+        // scale them.
+        if (mAppWidgetHostViewPreview.getChildCount() == 1) {
+            View content = mAppWidgetHostViewPreview.getChildAt(0);
+            float contentWidth = content.getMeasuredWidth();
+            float contentHeight = content.getMeasuredHeight();
+            if (contentWidth > 0 && contentHeight > 0) {
+
+                // Take the content width based on the edge furthest from the center, so that when
+                // scaling the hostView, the farthest edge is still visible.
+                contentWidth = 2 * Math.max(contentWidth / 2 - content.getLeft(),
+                        content.getRight() - contentWidth / 2);
+                contentHeight = 2 * Math.max(contentHeight / 2 - content.getTop(),
+                        content.getBottom() - contentHeight / 2);
+
+                if (contentWidth > 0 && contentHeight > 0) {
+                    float pWidth = widgetSizes.getWidth();
+                    float pHeight = widgetSizes.getHeight();
+                    mAppWidgetHostViewPreview.setScaleToFit(
+                            Math.min(pWidth / contentWidth, pHeight / contentHeight));
+                }
+            }
         }
     }
 

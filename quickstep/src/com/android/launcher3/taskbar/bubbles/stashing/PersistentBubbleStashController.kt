@@ -60,6 +60,10 @@ class PersistentBubbleStashController(
                 // if there are no bubbles, there's nothing to show, so just return.
                 return
             }
+            if (transitionFromHome && inAppDisplayOverrideProgress != 0f) {
+                // was on -1 page and leaving it, - reset the inAppDisplayOverrideProgress
+                inAppDisplayOverrideProgress = 0f
+            }
             // If we're transitioning anywhere, bubble bar should be collapsed
             updateExpandedState(expand = false)
             if (transitionFromHome || field == BubbleLauncherState.HOME) {
@@ -100,6 +104,10 @@ class PersistentBubbleStashController(
             return -bubbleBarVerticalCenterForHome + bubbleBarHeight / 2
         }
 
+    /**
+     * Returns bubble bar Y target position according to [isBubblesShowingOnHome] value. Value could
+     * be adjusted to the display override progress.
+     */
     override val bubbleBarTranslationY: Float
         get() =
             if (inAppDisplayOverrideProgress > 0f && launcherState == BubbleLauncherState.HOME) {
@@ -112,7 +120,7 @@ class PersistentBubbleStashController(
                     Interpolators.LINEAR,
                 )
             } else {
-                super.bubbleBarTranslationY
+                targetTranslationYForState
             }
 
     override var inAppDisplayOverrideProgress: Float = 0f
@@ -238,7 +246,7 @@ class PersistentBubbleStashController(
         }
         if (bubbleBarViewController.isExpanded != expand) {
             val maybeShowEdu = expand && bubbleBarGesture
-            bubbleBarViewController.setExpanded(expand, maybeShowEdu)
+            bubbleBarViewController.animateExpanded(expand, maybeShowEdu)
         }
     }
 

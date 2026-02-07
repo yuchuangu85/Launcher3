@@ -163,7 +163,7 @@ public class LauncherUnfoldAnimationController implements OnDeviceProfileChangeL
 
     @Override
     public void onDeviceProfileChanged(DeviceProfile dp) {
-        if (mIsTablet != null && dp.isTablet != mIsTablet) {
+        if (mIsTablet != null && dp.getDeviceProperties().isTablet() != mIsTablet) {
             // We should preemptively start the animation only if:
             // - We changed to the unfolded screen
             // - SystemUI IPC connection is alive, so we won't end up in a situation that we won't
@@ -173,7 +173,7 @@ public class LauncherUnfoldAnimationController implements OnDeviceProfileChangeL
             //   if Launcher was not open during unfold, in this case we receive the configuration
             //   change only after we went back to home screen and we don't want to start the
             //   animation in this case.
-            if (dp.isTablet
+            if (dp.getDeviceProperties().isTablet()
                     && SystemUiProxy.INSTANCE.get(mLauncher).isActive()
                     && !mExternalTransitionStatusProvider.hasRun()) {
                 // Preemptively start the unfold animation to make sure that we have drawn
@@ -181,12 +181,12 @@ public class LauncherUnfoldAnimationController implements OnDeviceProfileChangeL
                 preemptivelyStartAnimationOnNextFrame();
             }
 
-            if (!dp.isTablet) {
+            if (!dp.getDeviceProperties().isTablet()) {
                 mExternalTransitionStatusProvider.onFolded();
             }
         }
 
-        mIsTablet = dp.isTablet;
+        mIsTablet = dp.getDeviceProperties().isTablet();
     }
 
     private class QsbAnimationListener implements TransitionProgressListener {
@@ -208,6 +208,10 @@ public class LauncherUnfoldAnimationController implements OnDeviceProfileChangeL
                 float insetPercentage = (1 - progress) * MAX_WIDTH_INSET_FRACTION;
                 mQsbInsettable.setHorizontalInsets(insetPercentage);
             }
+        }
+
+        @Override
+        public void onTransitionFinishing() {
         }
     }
 
@@ -233,6 +237,10 @@ public class LauncherUnfoldAnimationController implements OnDeviceProfileChangeL
         private void setScale(float value) {
             WORKSPACE_SCALE_PROPERTY.setValue(mLauncher.getWorkspace(), value);
             HOTSEAT_SCALE_PROPERTY.setValue(mLauncher.getHotseat(), value);
+        }
+
+        @Override
+        public void onTransitionFinishing() {
         }
     }
 

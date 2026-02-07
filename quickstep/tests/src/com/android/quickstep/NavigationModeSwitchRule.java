@@ -33,10 +33,10 @@ import androidx.test.uiautomator.UiDevice;
 
 import com.android.launcher3.tapl.LauncherInstrumentation;
 import com.android.launcher3.tapl.TestHelpers;
-import com.android.launcher3.ui.AbstractLauncherUiTest;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.Wait;
 import com.android.launcher3.util.rule.FailureWatcher;
+import com.android.launcher3.util.ui.AbstractLauncherUiTest;
 import com.android.systemui.shared.system.QuickStepContract;
 
 import org.junit.rules.TestRule;
@@ -205,12 +205,16 @@ public class NavigationModeSwitchRule implements TestRule {
 
     private static void assertTrue(LauncherInstrumentation launcher, String message,
             boolean condition, Description description) {
-        launcher.checkForAnomaly(true, true);
-        if (!condition) {
+        try {
+            launcher.checkForAnomaly(true, true);
+            if (!condition) {
+                throw new AssertionError(message);
+            }
+        } catch (Throwable e) {
             if (description != null) {
                 FailureWatcher.onError(launcher, description);
             }
-            throw new AssertionError(message);
+            throw e;
         }
     }
 }

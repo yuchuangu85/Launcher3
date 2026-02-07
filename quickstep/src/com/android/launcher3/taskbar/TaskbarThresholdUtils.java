@@ -38,7 +38,7 @@ public class TaskbarThresholdUtils {
 
     private static int getThreshold(Resources r, DeviceProfile dp, int thresholdDimen,
             int multiplierDimen) {
-        float landscapeScreenHeight = dp.isLandscape ? dp.heightPx : dp.widthPx;
+        float landscapeScreenHeight = dp.getDeviceProperties().isLandscape() ? dp.getDeviceProperties().getHeightPx() : dp.getDeviceProperties().getWidthPx();
         float screenPart = (landscapeScreenHeight * SCREEN_UNITS);
         float defaultDp = dpiFromPx(screenPart, DisplayMetrics.DENSITY_DEVICE_STABLE);
         float thisDp = dpToPx(defaultDp);

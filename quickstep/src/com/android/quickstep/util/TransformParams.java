@@ -26,7 +26,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.quickstep.RemoteAnimationTargets;
 import com.android.quickstep.util.SurfaceTransaction.SurfaceProperties;
-import com.android.window.flags.Flags;
+import com.android.window.flags2.Flags;
 
 import java.util.function.Supplier;
 
@@ -34,29 +34,29 @@ public class TransformParams {
 
     public static FloatProperty<TransformParams> PROGRESS =
             new FloatProperty<TransformParams>("progress") {
-        @Override
-        public void setValue(TransformParams params, float v) {
-            params.setProgress(v);
-        }
+                @Override
+                public void setValue(TransformParams params, float v) {
+                    params.setProgress(v);
+                }
 
-        @Override
-        public Float get(TransformParams params) {
-            return params.getProgress();
-        }
-    };
+                @Override
+                public Float get(TransformParams params) {
+                    return params.getProgress();
+                }
+            };
 
     public static FloatProperty<TransformParams> TARGET_ALPHA =
             new FloatProperty<TransformParams>("targetAlpha") {
-        @Override
-        public void setValue(TransformParams params, float v) {
-            params.setTargetAlpha(v);
-        }
+                @Override
+                public void setValue(TransformParams params, float v) {
+                    params.setTargetAlpha(v);
+                }
 
-        @Override
-        public Float get(TransformParams params) {
-            return params.getTargetAlpha();
-        }
-    };
+                @Override
+                public Float get(TransformParams params) {
+                    return params.getTargetAlpha();
+                }
+            };
 
     /** Progress from 0 to 1 where 0 is in-app and 1 is Overview */
     private float mProgress;
@@ -255,6 +255,6 @@ public class TransformParams {
         BuilderProxy ALWAYS_VISIBLE = (builder, app, params) -> builder.setAlpha(1);
 
         void onBuildTargetParams(SurfaceProperties builder,
-                RemoteAnimationTarget app, TransformParams params);
+                                 RemoteAnimationTarget app, TransformParams params);
     }
 }

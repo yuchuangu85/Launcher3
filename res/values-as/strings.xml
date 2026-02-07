@@ -61,7 +61,7 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# টা শ্বৰ্টকাট}one{# টা শ্বৰ্টকাট}other{# টা শ্বৰ্টকাট}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"ৱিজেটসমূহ"</string>
-    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"সন্ধান"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"সন্ধান কৰক"</string>
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"সন্ধান বাকচত থকা পাঠ মচক"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"ৱিজেট আৰু শ্বৰ্টকাট উপলব্ধ নহয়"</string>
     <string name="no_search_results" msgid="3787956167293097509">"কোনো ৱিজেট আৰু শ্বৰ্টকাট পোৱা নগ’ল"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"ছেটআপ সমাপ্ত কৰিবলৈ টিপক"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"এইটো এটা ছিষ্টেম এপ আৰু ইয়াক আনইনষ্টল কৰিব নোৱৰি"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"নাম সম্পাদনা কৰক"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"বাওঁফালে পৃষ্ঠা হিচাপে পৃথকীকৰণ কৰক"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"সোঁফালে পৃষ্ঠা হিচাপে পৃথকীকৰণ কৰক"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> অক্ষম কৰা হ’ল"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name}ৰ # টা জাননী আছে}one{{app_name}ৰ # টা জাননী আছে}other{{app_name}ৰ # টা জাননী আছে}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$dৰ %1$d পৃষ্ঠা"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"গৃহ স্ক্ৰীন ঘূৰোৱাৰ অনুমতি দিয়ক"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"ফ\'নটো যেতিয়া ঘূৰোৱা হয়"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"লেণ্ডস্কেইপ ম’ড"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ফ’নটো লেণ্ডস্কেইপ ম’ডলৈ ছেট কৰক"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"গৃহ স্ক্ৰীনখনক লেণ্ডস্কেইপ ম’ড হিচাপে ছেট কৰক"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"জাননী বিন্দু"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"অন কৰা আছে"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"অফ আছে"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"লক কৰক"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"ব্যক্তিগত স্পে’চৰ স্থানান্তৰণ"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ইনষ্টল কৰক"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"যোগ দিয়ক"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"এপ্‌সমূহ প্ৰাইভেট স্পেচত ইনষ্টল কৰক"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"প্ৰাইভেট স্পে’চত ফাইল আৰু অধিক যোগ দিয়ক"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"বৃত্ত"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"বৰ্গাকাৰ"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"৪-কোণীয়া কুকি"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"৭-কোণীয়া কুকি"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"খিলান"</string>
 </resources>

@@ -17,12 +17,14 @@ package com.android.launcher3.widget;
 
 import static android.app.Activity.RESULT_CANCELED;
 
-import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
 import static com.android.launcher3.Flags.enableWorkspaceInflation;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.fromProviderInfo;
 import static com.android.launcher3.widget.ListenableAppWidgetHost.getWidgetHolderExecutor;
 
+import android.app.ActivityOptions;
+import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
@@ -47,6 +49,8 @@ import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
+import com.android.launcher3.util.ActivityOptionsWrapper;
+import com.android.launcher3.util.ResourceBasedOverride;
 import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.widget.ListenableAppWidgetHost.ProviderChangedListener;
@@ -61,6 +65,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+
+import app.lawnchair.LawnchairAppWidgetHostView;
 
 /**
  * A wrapper for LauncherAppWidgetHost. This class is created so the AppWidgetHost could run in
@@ -132,14 +138,15 @@ public class LauncherWidgetHolder {
                 mWidgetHost.startListening();
             } catch (Exception e) {
                 if (!Utilities.isBinderSizeError(e)) {
-                    throw new RuntimeException(e);
+                    Log.e(TAG, "RuntimeException 1");
+                    return;
                 }
                 // We're willing to let this slide. The exception is being caused by the list of
                 // RemoteViews which is being passed back. The startListening relationship will
                 // have been established by this point, and we will end up populating the
                 // widgets upon bind anyway. See issue 14255011 for more context.
             }
-            // TODO: Investigate why widgetHost.startListening() always return non-empty updates
+        // TODO: Investigate why widgetHost.startListening() always return non-empty updates
             setListeningFlag(true);
 
             MAIN_EXECUTOR.execute(this::updateDeferredView);
@@ -249,7 +256,27 @@ public class LauncherWidgetHolder {
      * @param requestCode The request code
      */
     public void startConfigActivity(@NonNull BaseActivity activity, int widgetId, int requestCode) {
+        startConfigActivity(activity, widgetId, requestCode, 0);
+    }
+
+    /**
+     * Starts the configuration activity for the widget with retry counter
+     * 
+     * @param activity    The activity in which to start the configuration page
+     * @param widgetId    The ID of the widget
+     * @param requestCode The request code
+     * @param retryCount  The number of retries attempted
+     */
+    private void startConfigActivity(@NonNull BaseActivity activity, int widgetId,
+            int requestCode, int retryCount) {
         if (!WIDGETS_ENABLED) {
+            sendActionCancelled(activity, requestCode);
+            return;
+        }
+
+        // Prevent infinite loops by limiting retries
+        if (retryCount >= 3) {
+            Log.e(this.getClass().getName(), "Too many retries for widget configuration, cancelling");
             sendActionCancelled(activity, requestCode);
             return;
         }
@@ -261,12 +288,38 @@ public class LauncherWidgetHolder {
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(activity, R.string.activity_not_found, Toast.LENGTH_SHORT).show();
             sendActionCancelled(activity, requestCode);
+        } catch (IllegalArgumentException e) {
+            // Widget ID became invalid, possibly due to two-step configuration some cases
+            Log.e(this.getClass().getName(), "Widget ID became invalid during configuration (retry " + retryCount + ")", e);
+            handleInvalidWidgetId(activity, widgetId, requestCode, retryCount + 1);
+        }
+    }
+
+    private void handleInvalidWidgetId(BaseActivity activity, int widgetId, int requestCode) {
+        handleInvalidWidgetId(activity, widgetId, requestCode, 0);
+    }
+
+    private void handleInvalidWidgetId(BaseActivity activity, int widgetId, int requestCode, int retryCount) {
+        // Remove the invalid widget
+        deleteAppWidgetId(widgetId);
+
+        int newWidgetId = allocateAppWidgetId();
+        if (newWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            startConfigActivity(activity, newWidgetId, requestCode, retryCount);
+        } else {
+            sendActionCancelled(activity, requestCode);
         }
     }
 
     private void sendActionCancelled(final BaseActivity activity, final int requestCode) {
         MAIN_EXECUTOR.execute(
                 () -> activity.onActivityResult(requestCode, RESULT_CANCELED, null));
+    }
+
+    private Bundle getDefaultConfigurationActivityOptions() {
+        // Must allow background activity start for U.
+        return Utilities.allowBGLaunch(ActivityOptions.makeBasic())
+                .toBundle();
     }
 
     /**

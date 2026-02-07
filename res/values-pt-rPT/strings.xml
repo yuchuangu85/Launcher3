@@ -89,7 +89,7 @@
     <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"Toque duas vezes sem soltar para mover um atalho ou utilizar ações personalizadas."</string>
     <string name="out_of_space" msgid="6455557115204099579">"Sem espaço neste ecrã principal"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"Não existe mais espaço no tabuleiro de Favoritos"</string>
-    <string name="all_apps_button_label" msgid="8130441508702294465">"Lista de aplicações"</string>
+    <string name="all_apps_button_label" msgid="8130441508702294465">"Lista de apps"</string>
     <string name="all_apps_search_results" msgid="5889367432531296759">"Resultados da pesquisa"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"Lista de aplicações pessoais"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"Lista de aplicações de trabalho"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Toque para concluir a configuração"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"É uma app de sistema e não pode ser desinstalada."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Edite o nome"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Paginação à esquerda"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Paginação à direita"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> desativado"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{A app {app_name} tem # notificação}other{A app {app_name} tem # notificações}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Página %1$d de %2$d"</string>
@@ -129,14 +131,14 @@
     <string name="folder_name_format_overflow" msgid="4270108890534995199">"Pasta: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> ou mais itens"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"Pasta sem nome"</string>
     <string name="app_pair_name_format" msgid="8134106404716224054">"Par de apps: <xliff:g id="APP1">%1$s</xliff:g> e <xliff:g id="APP2">%2$s</xliff:g>"</string>
-    <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"Imagem fundo/estilo"</string>
+    <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"Imagem de fundo e estilo"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"Editar ecrã principal"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"Definições de início"</string>
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"Desativada pelo gestor"</string>
     <string name="allow_rotation_title" msgid="7222049633713050106">"Permitir rotação do ecrã principal"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Quando o telemóvel é rodado"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Modo horizontal"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Defina o telemóvel para o modo horizontal"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Defina o ecrã principal para o modo horizontal"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Pontos de notificação"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Ativados"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Desativados"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Bloqueio"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Transição do espaço privado"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Instalar"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Adicionar"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instale apps no espaço privado"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Adicione ficheiros e muito mais ao espaço privado"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Círculo"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Quadrado"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Bolacha de 4 lados"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Bolacha de 7 lados"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arco"</string>
 </resources>

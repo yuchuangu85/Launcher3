@@ -22,6 +22,7 @@ import android.platform.test.rule.DeviceProduct
 import android.platform.test.rule.IgnoreLimit
 import android.platform.test.rule.LimitDevicesRule
 import android.util.SparseArray
+import com.android.launcher3.DeviceProfile.Builder.createDefaultDisplayOptionSpec
 import com.android.launcher3.DeviceProfile.DEFAULT_DIMENSION_PROVIDER
 import com.android.launcher3.DeviceProfile.DEFAULT_PROVIDER
 import com.android.launcher3.testing.shared.ResourceUtils.INVALID_RESOURCE_HANDLE
@@ -81,6 +82,12 @@ abstract class FakeInvariantDeviceProfileTest {
             DEFAULT_PROVIDER,
             DEFAULT_DIMENSION_PROVIDER,
             isTransientTaskbar,
+            createDefaultDisplayOptionSpec(
+                info,
+                windowBounds,
+                /* isMultiDisplay= */ useTwoPanels,
+                inv,
+            ),
         )
 
     protected fun initializeVarsForPhone(

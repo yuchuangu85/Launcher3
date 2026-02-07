@@ -66,6 +66,12 @@ public class Executors {
     public static final LooperExecutor UI_HELPER_EXECUTOR =
             new LooperExecutor("UiThreadHelper", Process.THREAD_PRIORITY_FOREGROUND);
 
+    /**
+     * A background executor for running tasks that are not time sensitive, typically for data
+     * transformations.
+     */
+    public static final LooperExecutor DATA_HELPER_EXECUTOR =
+            new LooperExecutor("DataThreadHelper", Process.THREAD_PRIORITY_DEFAULT);
 
     /** A background executor to preinflate views. */
     public static final ExecutorService VIEW_PREINFLATION_EXECUTOR =

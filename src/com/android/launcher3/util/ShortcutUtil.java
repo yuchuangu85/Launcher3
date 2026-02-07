@@ -15,7 +15,7 @@
  */
 package com.android.launcher3.util;
 
-import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
 
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.Utilities;

@@ -18,7 +18,6 @@ package com.android.launcher3.taskbar.bubbles
 import android.content.Context
 import android.graphics.Color
 import androidx.test.core.app.ApplicationProvider
-import com.android.launcher3.taskbar.bubbles.testing.FakeBubbleViewFactory
 import com.google.android.apps.nexuslauncher.imagecomparison.goldenpathmanager.ViewScreenshotGoldenPathManager
 import org.junit.Rule
 import org.junit.Test

@@ -62,11 +62,11 @@ import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.BubbleLauncherState;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
+import com.android.quickstep.BaseContainerInterface;
+import com.android.quickstep.OverviewComponentObserver;
 import com.android.quickstep.RecentsAnimationCallbacks;
 import com.android.quickstep.RecentsAnimationController;
 import com.android.quickstep.fallback.RecentsState;
-import com.android.quickstep.fallback.window.RecentsDisplayModel;
-import com.android.quickstep.fallback.window.RecentsWindowFlags;
 import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.util.ScalingWorkspaceRevealAnim;
 import com.android.quickstep.util.SystemUiFlagUtils;
@@ -80,6 +80,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Track LauncherState, RecentsAnimation, resumed state for task bar in one place here and animate
@@ -360,16 +361,16 @@ public class TaskbarLauncherStateController {
 
         if (mTaskBarRecentsAnimationListener != null) {
             mTaskBarRecentsAnimationListener.endGestureStateOverride(
-                    !mLauncher.isInState(LauncherState.OVERVIEW), false /*canceled*/);
+                    !isStateManagerInState(LauncherState.OVERVIEW), /* canceled= */ false);
         }
         mTaskBarRecentsAnimationListener = new TaskBarRecentsAnimationListener(callbacks);
         callbacks.addListener(mTaskBarRecentsAnimationListener);
         RecentsView recentsView = mControllers.uiController.getRecentsView();
         if (recentsView != null) {
             recentsView.setTaskLaunchListener(() -> mTaskBarRecentsAnimationListener
-                    .endGestureStateOverride(true, false /*canceled*/));
+                    .endGestureStateOverride(/* finishedToApp= */ true, /* canceled= */ false));
             recentsView.setTaskLaunchCancelledRunnable(() -> {
-                updateStateForUserFinishedToApp(false /* finishedToApp */);
+                updateStateForUserFinishedToApp(/* finishedToApp= */ false);
             });
         }
 
@@ -506,6 +507,10 @@ public class TaskbarLauncherStateController {
                     + ", toAlignment: " + toAlignment);
         }
         mControllers.bubbleControllers.ifPresent(controllers -> {
+            // Ignore state changes when taskbar is destroyed
+            if (mControllers.taskbarActivityContext.isDestroyed()) {
+                return;
+            }
             // Show the bubble bar when on launcher home (hotseat icons visible) or in overview
             boolean onOverview = isInLauncher && mLauncherState == LauncherState.OVERVIEW;
             boolean hotseatIconsVisible = isInLauncher && mLauncherState.areElementsVisible(
@@ -522,11 +527,22 @@ public class TaskbarLauncherStateController {
         stashController.updateStateForFlag(FLAG_IN_OVERVIEW,
                 mLauncherState == LauncherState.OVERVIEW);
 
+        // Update taskbar stash flag here since we are skipping the playStateTransitionAnim below
+        if (isPinnedTaskbar) {
+            stashController.updateStateForFlag(FLAG_IN_STASHED_LAUNCHER_STATE,
+                    mLauncherState.isTaskbarStashed(mLauncher));
+        }
+
         AnimatorSet animatorSet = new AnimatorSet();
 
         if (hasAnyFlag(changedFlags, FLAG_LAUNCHER_IN_STATE_TRANSITION)) {
             boolean launcherTransitionCompleted = !hasAnyFlag(FLAG_LAUNCHER_IN_STATE_TRANSITION);
-            playStateTransitionAnim(animatorSet, duration, launcherTransitionCompleted);
+
+            // We are skipping the taskbar stash animation for pinned taskbar, as we handle that now
+            // in setupPinnedTaskbarAnimation.
+            if (!isPinnedTaskbar) {
+                playStateTransitionAnim(animatorSet, duration, launcherTransitionCompleted);
+            }
 
             if (launcherTransitionCompleted
                     && mLauncherState == LauncherState.QUICK_SWITCH_FROM_HOME) {
@@ -550,6 +566,8 @@ public class TaskbarLauncherStateController {
                 @Override
                 public void onAnimationStart(Animator animation) {
                     mIsAnimatingToLauncher = isInLauncher;
+                    // updateOverviewDragState uses mIsAnimatingToLauncher as well, so poke it.
+                    updateOverviewDragState(mLauncherState);
 
                     if (DEBUG) {
                         Log.d(TAG, "onAnimationStart - FLAG_IN_APP: " + !isInLauncher);
@@ -561,6 +579,8 @@ public class TaskbarLauncherStateController {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     mIsAnimatingToLauncher = false;
+                    // updateOverviewDragState uses mIsAnimatingToLauncher as well, so poke it.
+                    updateOverviewDragState(mLauncherState);
                 }
             });
 
@@ -614,7 +634,7 @@ public class TaskbarLauncherStateController {
         AnimatedFloat taskbarBgOffset =
                 mControllers.taskbarDragLayerController.getTaskbarBackgroundOffset();
         boolean showTaskbar = shouldShowTaskbar(mControllers.taskbarActivityContext, isInLauncher,
-                isInOverview);
+                isInOverview) && !mControllers.taskbarStashController.isStashed();
         float taskbarBgOffsetEnd = showTaskbar ? 0f : 1f;
         float taskbarBgOffsetStart = showTaskbar ? 1f : 0f;
 
@@ -763,6 +783,7 @@ public class TaskbarLauncherStateController {
         return !isInLauncher || isInOverview;
     }
 
+    // Used to stash/unstash pinned taskbar between home, overview, in app states.
     private void setupPinnedTaskbarAnimation(AnimatorSet animatorSet, boolean showTaskbar,
             AnimatedFloat taskbarBgOffset, float taskbarBgOffsetStart, float taskbarBgOffsetEnd,
             long duration, Animator taskbarBackgroundAlpha) {
@@ -773,19 +794,26 @@ public class TaskbarLauncherStateController {
                     ALPHA_CHANNEL_TASKBAR_ALIGNMENT);
         }
 
+        float targetTaskbarIconAlpha = showTaskbar ? 1f : 0f;
+        if (mTaskbarAlphaForHome.getValue() != targetTaskbarIconAlpha) {
+            animatorSet.play(mTaskbarAlphaForHome
+                    .animateToValue(targetTaskbarIconAlpha)
+                    .setDuration(duration));
+        }
         if ((taskbarBgOffset.value != taskbarBgOffsetEnd && !taskbarBgOffset.isAnimating())
                 || taskbarBgOffset.isAnimatingToValue(taskbarBgOffsetStart)) {
             taskbarBgOffset.cancelAnimation();
-            Animator taskbarIconAlpha = mTaskbarAlphaForHome.animateToValue(
-                    showTaskbar ? 1f : 0f);
             AnimatedFloat taskbarIconTranslationYForHome =
                     mControllers.taskbarViewController.mTaskbarIconTranslationYForHome;
             ObjectAnimator taskbarBackgroundOffset = taskbarBgOffset.animateToValue(
                     taskbarBgOffsetStart,
                     taskbarBgOffsetEnd);
             ObjectAnimator taskbarIconsYTranslation = null;
-            float taskbarHeight =
-                    mControllers.taskbarActivityContext.getDeviceProfile().taskbarHeight;
+            float taskbarHeight = mControllers
+                    .taskbarActivityContext
+                    .getDeviceProfile()
+                    .getTaskbarProfile()
+                    .getHeight();
             if (showTaskbar) {
                 taskbarIconsYTranslation = taskbarIconTranslationYForHome.animateToValue(
                         taskbarHeight, 0);
@@ -794,11 +822,9 @@ public class TaskbarLauncherStateController {
                         taskbarHeight);
             }
 
-            taskbarIconAlpha.setDuration(duration);
             taskbarIconsYTranslation.setDuration(duration);
             taskbarBackgroundOffset.setDuration(duration);
 
-            animatorSet.play(taskbarIconAlpha);
             animatorSet.play(taskbarIconsYTranslation);
             animatorSet.play(taskbarBackgroundOffset);
         }
@@ -1056,6 +1082,12 @@ public class TaskbarLauncherStateController {
         translationXAnimation.start();
     }
 
+    private boolean isStateManagerInState(@NonNull LauncherState state) {
+        return mLauncher.isInState(state) || state == getFromRecentsWindowManager(
+                recentsWindowManager ->
+                        toLauncherState(recentsWindowManager.getStateManager().getState()));
+    }
+
     private final class TaskBarRecentsAnimationListener implements
             RecentsAnimationCallbacks.RecentsAnimationListener {
         private final RecentsAnimationCallbacks mCallbacks;
@@ -1066,18 +1098,13 @@ public class TaskbarLauncherStateController {
 
         @Override
         public void onRecentsAnimationCanceled(HashMap<Integer, ThumbnailData> thumbnailDatas) {
-            boolean isInOverview = mLauncher.isInState(LauncherState.OVERVIEW);
-            endGestureStateOverride(!isInOverview, true /*canceled*/);
+            boolean isInOverview = isStateManagerInState(LauncherState.OVERVIEW);
+            endGestureStateOverride(!isInOverview, /* canceled= */ true);
         }
 
         @Override
         public void onRecentsAnimationFinished(RecentsAnimationController controller) {
-            endGestureStateOverride(!controller.getFinishTargetIsLauncher(),
-                    controller.getLauncherIsVisibleAtFinish(), false /*canceled*/);
-        }
-
-        private void endGestureStateOverride(boolean finishedToApp, boolean canceled) {
-            endGestureStateOverride(finishedToApp, finishedToApp, canceled);
+            endGestureStateOverride(!controller.getFinishTargetIsLauncher(), /* canceled= */ false);
         }
 
         /**
@@ -1087,45 +1114,35 @@ public class TaskbarLauncherStateController {
          *
          * @param finishedToApp {@code true} if the recents animation finished to showing an app and
          *                      not workspace or overview
-         * @param launcherIsVisible {code true} if launcher is visible at finish
          * @param canceled      {@code true} if the recents animation was canceled instead of
          *                      finishing
          *                      to completion
          */
-        private void endGestureStateOverride(boolean finishedToApp, boolean launcherIsVisible,
-                boolean canceled) {
+        private void endGestureStateOverride(boolean finishedToApp, boolean canceled) {
             mCallbacks.removeListener(this);
             mTaskBarRecentsAnimationListener = null;
             RecentsView recentsView = mControllers.uiController.getRecentsView();
             if (recentsView != null) {
                 recentsView.setTaskLaunchListener(null);
+                recentsView.setTaskLaunchCancelledRunnable(null);
             }
 
             if (mSkipNextRecentsAnimEnd && !canceled) {
                 mSkipNextRecentsAnimEnd = false;
                 return;
             }
-            updateStateForUserFinishedToApp(finishedToApp, launcherIsVisible);
+            updateStateForUserFinishedToApp(finishedToApp);
         }
-    }
-
-    /**
-     * @see #updateStateForUserFinishedToApp(boolean, boolean)
-     */
-    private void updateStateForUserFinishedToApp(boolean finishedToApp) {
-        updateStateForUserFinishedToApp(finishedToApp, !finishedToApp);
     }
 
     /**
      * Updates the visible state immediately to ensure a seamless handoff.
      *
      * @param finishedToApp True iff user is in an app.
-     * @param launcherIsVisible True iff launcher is still visible (ie. transparent app)
      */
-    private void updateStateForUserFinishedToApp(boolean finishedToApp,
-            boolean launcherIsVisible) {
+    private void updateStateForUserFinishedToApp(boolean finishedToApp) {
         // Update the visible state immediately to ensure a seamless handoff
-        boolean launcherVisible = !finishedToApp || launcherIsVisible;
+        boolean launcherVisible = !finishedToApp;
         updateStateForFlag(FLAG_TRANSITION_TO_VISIBLE, false);
         updateStateForFlag(FLAG_VISIBLE, launcherVisible);
         applyState();
@@ -1134,7 +1151,7 @@ public class TaskbarLauncherStateController {
         if (DEBUG) {
             Log.d(TAG, "endGestureStateOverride - FLAG_IN_APP: " + finishedToApp);
         }
-        controller.updateStateForFlag(FLAG_IN_APP, finishedToApp && !launcherIsVisible);
+        controller.updateStateForFlag(FLAG_IN_APP, finishedToApp);
         controller.applyState();
     }
 
@@ -1142,14 +1159,24 @@ public class TaskbarLauncherStateController {
      * Helper function to run a callback on the RecentsWindowManager (if it exists).
      */
     private void runForRecentsWindowManager(Consumer<RecentsWindowManager> callback) {
-        if (RecentsWindowFlags.getEnableOverviewInWindow()) {
-            final TaskbarActivityContext taskbarContext = mControllers.taskbarActivityContext;
-            RecentsWindowManager recentsWindowManager = RecentsDisplayModel.getINSTANCE()
-                    .get(taskbarContext).getRecentsWindowManager(taskbarContext.getDisplayId());
-            if (recentsWindowManager != null) {
-                callback.accept(recentsWindowManager);
-            }
+        getFromRecentsWindowManager(recentsWindowManager -> {
+            callback.accept(recentsWindowManager);
+            return null;
+        });
+    }
+
+    private <T> @Nullable T getFromRecentsWindowManager(
+            Function<RecentsWindowManager, T> function) {
+        final TaskbarActivityContext taskbarContext = mControllers.taskbarActivityContext;
+        int displayId = taskbarContext.getDisplayId();
+        BaseContainerInterface<?, ?> containerInterface = OverviewComponentObserver.INSTANCE.get(
+                taskbarContext).getContainerInterface(displayId);
+        if (containerInterface == null
+                || !(containerInterface.getCreatedContainer() instanceof RecentsWindowManager
+                recentsWindowManager)) {
+            return null;
         }
+        return function.apply(recentsWindowManager);
     }
 
     private static String getStateString(int flags) {

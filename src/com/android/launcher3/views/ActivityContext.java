@@ -17,7 +17,7 @@ package com.android.launcher3.views;
 
 import static android.window.SplashScreen.SPLASH_SCREEN_STYLE_SOLID_COLOR;
 
-import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
 import static com.android.launcher3.LauncherSettings.Animation.DEFAULT_NO_ICON;
 import static com.android.launcher3.Utilities.allowBGLaunch;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_KEYBOARD_CLOSED;
@@ -44,6 +44,7 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.AccessibilityDelegate;
@@ -62,12 +63,14 @@ import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener;
 import com.android.launcher3.DropTargetHandler;
+import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.ActivityAllAppsContainerView;
 import com.android.launcher3.celllayout.CellPosMapper;
+import com.android.launcher3.dagger.ActivityContextComponent;
 import com.android.launcher3.dot.DotInfo;
 import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.folder.FolderIcon;
@@ -75,6 +78,7 @@ import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.logging.InstanceId;
 import com.android.launcher3.logging.InstanceIdSequence;
 import com.android.launcher3.logging.StatsLogManager;
+import com.android.launcher3.model.ModelWriter;
 import com.android.launcher3.model.StringCache;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
@@ -86,6 +90,7 @@ import com.android.launcher3.util.Preconditions;
 import com.android.launcher3.util.RunnableList;
 import com.android.launcher3.util.SplitConfigurationOptions;
 import com.android.launcher3.util.SystemUiController;
+import com.android.launcher3.util.TraceHelper;
 import com.android.launcher3.util.ViewCache;
 import com.android.launcher3.util.WeakCleanupSet;
 import com.android.launcher3.widget.picker.model.WidgetPickerDataProvider;
@@ -99,6 +104,9 @@ import java.util.List;
 public interface ActivityContext extends SavedStateRegistryOwner {
 
     String TAG = "ActivityContext";
+
+    /** Returns the dagger graph for this UI context */
+    ActivityContextComponent getActivityComponent();
 
     default boolean finishAutoCancelActionMode() {
         return false;
@@ -207,12 +215,37 @@ public interface ActivityContext extends SavedStateRegistryOwner {
         return null;
     }
 
+    /** @return {@code true} if all apps background blur is enabled */
+    default boolean isAllAppsBackgroundBlurEnabled() {
+        return false;
+    }
+
+    /** @return {@code true} if overview background blur is enabled */
+    default boolean isOverviewBackgroundBlurEnabled() {
+        return false;
+    }
+
+    /** @return the resource id of the style to apply for the current blur state in All Apps. */
+    default int getAllAppsBlurStyleResId() {
+        if (!Flags.allAppsBlur()) {
+            // Don't alter the colors provided in the default Launcher themes.
+            return View.NO_ID;
+        }
+        return isAllAppsBackgroundBlurEnabled() ? R.style.AllAppsBlurStyle
+                : R.style.AllAppsBlurFallbackStyle;
+    }
+
+    /** @return the resource id of the style to apply for the current blur state in Overview. */
+    default int getOverviewBlurStyleResId() {
+        return View.NO_ID;
+    }
+
     DeviceProfile getDeviceProfile();
 
     /** Registered {@link OnDeviceProfileChangeListener} instances. */
     List<OnDeviceProfileChangeListener> getOnDeviceProfileChangeListeners();
 
-    /** Notifies listeners of a {@link DeviceProfile} change. */
+    /** Notifies listeners of a {@link deviceprofile} change. */
     default void dispatchDeviceProfileChanged() {
         DeviceProfile deviceProfile = getDeviceProfile();
         List<OnDeviceProfileChangeListener> listeners = getOnDeviceProfileChangeListeners();
@@ -221,12 +254,12 @@ public interface ActivityContext extends SavedStateRegistryOwner {
         }
     }
 
-    /** Register listener for {@link DeviceProfile} changes. */
+    /** Register listener for {@link deviceprofile} changes. */
     default void addOnDeviceProfileChangeListener(OnDeviceProfileChangeListener listener) {
         getOnDeviceProfileChangeListeners().add(listener);
     }
 
-    /** Unregister listener for {@link DeviceProfile} changes. */
+    /** Unregister listener for {@link deviceprofile} changes. */
     default void removeOnDeviceProfileChangeListener(OnDeviceProfileChangeListener listener) {
         getOnDeviceProfileChangeListeners().remove(listener);
     }
@@ -316,26 +349,28 @@ public interface ActivityContext extends SavedStateRegistryOwner {
         if (root == null) {
             return;
         }
-        Preconditions.assertUIThread();
-        // Hide keyboard with WindowInsetsController if could. In case hideSoftInputFromWindow may
-        // get ignored by input connection being finished when the screen is off.
-        //
-        // In addition, inside IMF, the keyboards are closed asynchronously that launcher no longer
-        // need to post to the message queue.
-        final WindowInsetsController wic = root.getWindowInsetsController();
-        WindowInsets insets = root.getRootWindowInsets();
-        boolean isImeShown = insets != null && insets.isVisible(WindowInsets.Type.ime());
-        if (wic != null) {
-            // Only hide the keyboard if it is actually showing.
-            if (isImeShown) {
-                // this method cannot be called cross threads
-                wic.hide(WindowInsets.Type.ime());
-                getStatsLogManager().logger().log(LAUNCHER_ALLAPPS_KEYBOARD_CLOSED);
+        if (Utilities.ATLEAST_R) {
+            Preconditions.assertUIThread();
+            // Hide keyboard with WindowInsetsController if could. In case hideSoftInputFromWindow may
+            // get ignored by input connection being finished when the screen is off.
+            //
+            // In addition, inside IMF, the keyboards are closed asynchronously that launcher no longer
+            // need to post to the message queue.
+            final WindowInsetsController wic = root.getWindowInsetsController();
+            WindowInsets insets = root.getRootWindowInsets();
+            boolean isImeShown = insets != null && insets.isVisible(WindowInsets.Type.ime());
+            if (wic != null) {
+                // Only hide the keyboard if it is actually showing.
+                if (isImeShown) {
+                    // this method cannot be called cross threads
+                    wic.hide(WindowInsets.Type.ime());
+                    getStatsLogManager().logger().log(LAUNCHER_ALLAPPS_KEYBOARD_CLOSED);
+                }
+    
+                // If the WindowInsetsController is not null, we end here regardless of whether we hid
+                // the keyboard or not.
+                return;
             }
-
-            // If the WindowInsetsController is not null, we end here regardless of whether we hid
-            // the keyboard or not.
-            return;
         }
 
         InputMethodManager imm = root.getContext().getSystemService(InputMethodManager.class);
@@ -419,6 +454,7 @@ public interface ActivityContext extends SavedStateRegistryOwner {
             View v, Intent intent, @Nullable ItemInfo item) {
         Preconditions.assertUIThread();
         Context context = (Context) this;
+        
         if (LauncherAppState.getInstance(context).isSafeModeEnabled()
                 && !new ApplicationInfoWrapper(context, intent).isSystem()) {
             Toast.makeText(context, R.string.safemode_shortcut_error, Toast.LENGTH_SHORT).show();
@@ -521,6 +557,12 @@ public interface ActivityContext extends SavedStateRegistryOwner {
         return new CellPosMapper(dp.isVerticalBarLayout(), dp.numShownHotseatIcons);
     }
 
+    /** Returns a writer for updating model properties */
+    default ModelWriter getModelWriter() {
+        return LauncherAppState.getInstance(asContext()).getModel().getWriter(
+                false, getCellPosMapper(), null);
+    }
+
     /** Set to manage objects that can be cleaned up along with the context */
     WeakCleanupSet getOwnerCleanupSet();
 
@@ -537,6 +579,14 @@ public interface ActivityContext extends SavedStateRegistryOwner {
     /** Returns the current ActivityContext as context */
     default Context asContext() {
         return (Context) this;
+    }
+
+    /**
+     * Allows the current ActivityContext to intercept KeyEvent dispatches.
+     * <p>
+     * Returns true iff the event has been handled. */
+    default boolean onRootViewDispatchKeyEvent(KeyEvent event) {
+        return false;
     }
 
     /**

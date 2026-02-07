@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Ayarlamanı tamamlamaq üçün toxunun"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Bu sistem tətbiqi olduğu üçün sistemdən silinə bilməz."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Adı redaktə edin"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Sola doğru səhifələmə"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Sağa doğru səhifələmə"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> deaktiv edildi"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} tətbiqində # bildiriş var}other{{app_name} tətbiqində # bildiriş var}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Səhifə %1$d of %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Əsas ekran çevrilsin"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Telefon çevrilən zaman"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Landşaft rejimi"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Telefonu landşaft rejiminə ayarlayın"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Əsas ekranı landşaft rejiminə qoyun"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Bildiriş nöqtələri"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Aktiv"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Deaktiv"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Kilidləyin"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Şəxsi məkana keçid"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Quraşdırın"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Əlavə edin"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Tətbiqləri şəxsi sahədə quraşdırın"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Private Space-ə fayllar və s. əlavə edin"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Dairə"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 tərəfli peçenye"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 tərəfli peçenye"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Qövs"</string>
 </resources>

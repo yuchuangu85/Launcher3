@@ -20,7 +20,6 @@ import static android.content.ClipDescription.MIMETYPE_TEXT_INTENT;
 import static android.view.WindowInsets.Type.navigationBars;
 import static android.view.WindowInsets.Type.statusBars;
 
-import static com.android.launcher3.Utilities.shouldEnableMouseInteractionChanges;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 
@@ -36,6 +35,7 @@ import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowInsetsController;
 import android.window.BackEvent;
 import android.window.OnBackAnimationCallback;
 import android.window.OnBackInvokedDispatcher;
@@ -52,7 +52,6 @@ import com.android.launcher3.model.WidgetPredictionsRequester;
 import com.android.launcher3.model.WidgetsModel;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.PackageItemInfo;
-import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.widget.WidgetCell;
 import com.android.launcher3.widget.model.WidgetsListBaseEntriesBuilder;
 import com.android.launcher3.widget.model.WidgetsListBaseEntry;
@@ -60,8 +59,6 @@ import com.android.launcher3.widget.picker.WidgetCategoryFilter;
 import com.android.launcher3.widget.picker.WidgetsFullSheet;
 import com.android.launcher3.widget.picker.model.WidgetPickerDataProvider;
 import com.android.launcher3.widgetpicker.WidgetPickerConfig;
-import com.android.quickstep.TouchInteractionService;
-import com.android.quickstep.util.TISBindHelper;
 import com.android.systemui.animation.back.FlingOnBackAnimationCallback;
 
 import java.util.ArrayList;
@@ -120,7 +117,6 @@ public class QuickstepWidgetPickerActivity extends
      */
     private static final String EXTRA_USER_ID_FILTER = "filtered_user_ids";
 
-    private TISBindHelper mTISBindHelper;
     private WidgetsModel mModel;
     private StringCache mStringCache;
     private WidgetPredictionsRequester mWidgetPredictionsRequester;
@@ -150,17 +146,16 @@ public class QuickstepWidgetPickerActivity extends
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        mTISBindHelper = new TISBindHelper(this, this::onTISConnected);
-
         setWidgetPickerConfig(parseIntentExtras());
+
         super.onCreate(savedInstanceState);
 
-        if (getWidgetPickerConfig().getUiSurface().equals(LOCKSCREEN_WIDGETS_HUB_UI_SURFACE)) {
-            getWindow().getDecorView().getWindowInsetsController().hide(
-                    navigationBars() + statusBars());
-        }
-
         if (!Flags.enableWidgetPickerRefactor() || !ComposeFacade.INSTANCE.isComposeAvailable()) {
+            if (getWidgetPickerConfig().getUiSurface().equals(LOCKSCREEN_WIDGETS_HUB_UI_SURFACE)) {
+                WindowInsetsController wc = getDragLayer().getWindowInsetsController();
+                wc.hide(navigationBars() + statusBars());
+            }
+
             LauncherAppComponent component = LauncherComponentProvider.get(this);
             InvariantDeviceProfile idp = component.getIDP();
             mDeviceProfile = idp.getDeviceProfile(this);
@@ -173,9 +168,11 @@ public class QuickstepWidgetPickerActivity extends
 
     @Override
     protected void registerBackDispatcher() {
-        getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-                new BackAnimationCallback());
+        if (Utilities.ATLEAST_T) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    new BackAnimationCallback());
+        }
     }
 
     @NonNull
@@ -210,10 +207,12 @@ public class QuickstepWidgetPickerActivity extends
         if (uiSurfaceParam != null && UI_SURFACE_PATTERN.matcher(uiSurfaceParam).matches()) {
             uiSurface = uiSurfaceParam;
         }
-        ArrayList<AppWidgetProviderInfo> addedWidgets = getIntent().getParcelableArrayListExtra(
-                EXTRA_ADDED_APP_WIDGETS, AppWidgetProviderInfo.class);
-        if (addedWidgets != null) {
-            mAddedWidgets = addedWidgets;
+        if (Utilities.ATLEAST_T) {
+            ArrayList<AppWidgetProviderInfo> addedWidgets = getIntent().getParcelableArrayListExtra(
+                    EXTRA_ADDED_APP_WIDGETS, AppWidgetProviderInfo.class);
+            if (addedWidgets != null) {
+                mAddedWidgets = addedWidgets;
+            }
         }
 
         List<UserHandle> filteredUsers = List.of();
@@ -223,20 +222,13 @@ public class QuickstepWidgetPickerActivity extends
             filteredUsers = filteredUserIds.stream().map(UserHandle::of).toList();
         }
 
-        DeviceProfile deviceProfile = LauncherComponentProvider.get(this)
-                .getIDP()
-                .getDeviceProfile(this);
-
         return new WidgetPickerConfig(
                 /*uiSurface=*/ uiSurface,
                 /*title=*/ title,
                 /*description=*/ description,
                 /*categoryInclusionFilter=*/ inclusionFilter,
                 /*categoryExclusionFilter=*/ exclusionFilter,
-                /*filteredUsers=*/ filteredUsers,
-                /*handleSwipeUpGesture=*/ deviceProfile.getDeviceProperties().isGestureMode(),
-                /*isDesktopFormFactor=*/ shouldEnableMouseInteractionChanges(
-                        getApplicationContext()));
+                /*filteredUsers=*/ filteredUsers);
     }
 
     @NonNull
@@ -316,7 +308,8 @@ public class QuickstepWidgetPickerActivity extends
             WidgetPickerConfig config = getWidgetPickerConfig();
             mModel.update(null);
 
-            StringCache stringCache = StringCache.fromContext(this);
+            StringCache stringCache = new StringCache();
+            stringCache.loadStrings(this);
 
             bindStringCache(stringCache);
             bindWidgets(mModel.getWidgetsByPackageItemForPicker());
@@ -370,39 +363,8 @@ public class QuickstepWidgetPickerActivity extends
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        updateServiceState(true);
-    }
-
-    private void onTISConnected(TouchInteractionService.TISBinder binder) {
-        updateServiceState(isResumed());
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        updateServiceState(false);
-    }
-
-    private void updateServiceState(boolean isEnabled) {
-        if (DisplayController.showDesktopTaskbarForFreeformDisplay(this)) {
-            // Avoid blocking gestures when taskbar is always shown. Gestures should still allow
-            // user to return home in this case.
-            return;
-        }
-        TouchInteractionService.TISBinder binder = mTISBindHelper.getBinder();
-        if (binder != null) {
-            binder.setGestureBlockedTaskId(isEnabled ? getTaskId() : -1);
-        }
-    }
-
-    @Override
     protected void onDestroy() {
         super.onDestroy();
-        mTISBindHelper.onDestroy();
-        updateServiceState(false);
-
         if (!Flags.enableWidgetPickerRefactor() || !ComposeFacade.INSTANCE.isComposeAvailable()) {
             mWidgetPickerDataProvider.destroy();
             if (mWidgetPredictionsRequester != null) {

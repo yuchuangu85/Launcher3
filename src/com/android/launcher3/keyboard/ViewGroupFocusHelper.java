@@ -59,8 +59,10 @@ public class ViewGroupFocusHelper extends FocusIndicatorHelper {
 
     @Override
     public void viewToRect(View v, Rect outRect) {
-        // Using FocusedRect here allows views to provide their custom rect for drawing outline,
-        // e.g. making the Rect bigger than the content to leave some padding between view and
+        // Using FocusedRect here allows views to provide their custom rect for drawing
+        // outline,
+        // e.g. making the Rect bigger than the content to leave some padding between
+        // view and
         // outline
         v.getFocusedRect(sTempRect);
         outRect.left = sTempRect.left;
@@ -68,7 +70,8 @@ public class ViewGroupFocusHelper extends FocusIndicatorHelper {
 
         computeLocationRelativeToContainer(v, outRect);
 
-        // If a view is scaled, its position will also shift accordingly. For optimization, only
+        // If a view is scaled, its position will also shift accordingly. For
+        // optimization, only
         // consider this for the last node.
         outRect.left = (int) (outRect.left + (1 - v.getScaleX()) * sTempRect.width() / 2);
         outRect.top = (int) (outRect.top + (1 - v.getScaleY()) * sTempRect.height() / 2);

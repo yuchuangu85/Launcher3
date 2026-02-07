@@ -1396,6 +1396,23 @@ class BubbleBarViewAnimatorTest {
 
     private fun setUpBubbleBar() {
         bubbleBarView = BubbleBarView(context)
+        bubbleBarView.setController(
+            object : BubbleBarView.Controller {
+                override fun getBubbleBarTranslationY(): Float = 0f
+
+                override fun onBubbleBarTouched() {}
+
+                override fun expandBubbleBar() {}
+
+                override fun dismissBubbleBar() {}
+
+                override fun updateBubbleBarLocation(location: BubbleBarLocation?, source: Int) {}
+
+                override fun setIsDragging(dragging: Boolean) {}
+
+                override fun onBubbleBarExpandedStateChanged(expanded: Boolean) {}
+            }
+        )
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             bubbleBarView.layoutParams = FrameLayout.LayoutParams(0, 0)
             val inflater = LayoutInflater.from(context)

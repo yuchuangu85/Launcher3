@@ -43,6 +43,8 @@ import android.view.animation.Interpolator;
 import android.view.animation.PathInterpolator;
 import android.widget.FrameLayout;
 
+import androidx.annotation.VisibleForTesting;
+
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.InsettableFrameLayout;
 import com.android.launcher3.R;
@@ -53,6 +55,9 @@ import com.android.launcher3.util.RunnableList;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BaseDragLayer;
+
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.theme.drawable.DrawableTokens;
 
 /**
  * A container for shortcuts to deep links and notifications associated with an app.
@@ -75,7 +80,7 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
     protected int mCloseChildFadeStartDelay = 0;
     protected int mCloseChildFadeDuration = 140;
 
-    private static final int OPEN_DURATION_U = 200;
+    @VisibleForTesting public static final int OPEN_DURATION_U = 200;
     private static final int OPEN_FADE_START_DELAY_U = 0;
     private static final int OPEN_FADE_DURATION_U = 83;
     private static final int OPEN_CHILD_FADE_START_DELAY_U = 0;
@@ -126,7 +131,7 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
     // Tag for Views that have children that will need to be iterated to add styling.
     private final String mIterateChildrenTag;
 
-    protected final int[] mColors;
+    public final int[] mColors;
 
     public ArrowPopup(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
@@ -134,11 +139,14 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
         mOutlineRadius = Themes.getDialogCornerRadius(context);
         mActivityContext = ActivityContext.lookupContext(context);
         mIsRtl = Utilities.isRtl(getResources());
+
+        int popupPrimaryColor = ColorTokens.PopupColorPrimary.resolveColor(context);
+        mArrowColor = popupPrimaryColor;
         mElevation = getResources().getDimension(R.dimen.deep_shortcuts_elevation);
 
         // Initialize arrow view
         final Resources resources = getResources();
-        mArrowColor = getContext().getColor(R.color.materialColorSurfaceContainer);
+        mArrowColor = ColorTokens.PopupArrow.resolveColor(context);
         mChildContainerMargin = resources.getDimensionPixelSize(R.dimen.popup_margin);
         mArrowWidth = resources.getDimensionPixelSize(R.dimen.popup_arrow_width);
         mArrowHeight = resources.getDimensionPixelSize(R.dimen.popup_arrow_height);
@@ -151,7 +159,6 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
 
         int smallerRadius = resources.getDimensionPixelSize(R.dimen.popup_smaller_radius);
         mRoundedTop = new GradientDrawable();
-        int popupPrimaryColor = Themes.getAttrColor(context, R.attr.popupColorPrimary);
         mRoundedTop.setColor(popupPrimaryColor);
         mRoundedTop.setCornerRadii(new float[]{mOutlineRadius, mOutlineRadius, mOutlineRadius,
                 mOutlineRadius, smallerRadius, smallerRadius, smallerRadius, smallerRadius});
@@ -165,12 +172,12 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
 
         if (mActivityContext.canUseMultipleShadesForPopup()) {
             mColors = new int[]{
-                    getContext().getColor(R.color.popup_shade_first),
-                    getContext().getColor(R.color.popup_shade_second),
-                    getContext().getColor(R.color.popup_shade_third)
+                ColorTokens.PopupShadeFirst.resolveColor(context),
+                ColorTokens.PopupShadeSecond.resolveColor(context),
+                ColorTokens.PopupShadeThird.resolveColor(context)
             };
         } else {
-            mColors = new int[]{getContext().getColor(R.color.materialColorSurfaceContainer)};
+            mColors = new int[]{ColorTokens.PopupArrow.resolveColor(context)};
         }
     }
 
@@ -262,14 +269,15 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
 
                 if (isShortcutOrWrapper(view)) {
                     if (totalVisibleShortcuts == 1) {
-                        view.setBackgroundResource(R.drawable.single_item_primary);
+                        // Lawnchair-TODO-High: view.setBackgroundResource is use instead
+                        view.setBackground(DrawableTokens.SingleItemPrimary.resolve(getContext()));
                     } else if (totalVisibleShortcuts > 1) {
                         if (numVisibleShortcut == 0) {
                             view.setBackground(mRoundedTop.getConstantState().newDrawable());
                         } else if (numVisibleShortcut == (totalVisibleShortcuts - 1)) {
                             view.setBackground(mRoundedBottom.getConstantState().newDrawable());
                         } else {
-                            view.setBackgroundResource(R.drawable.middle_item_primary);
+                            view.setBackground(DrawableTokens.MiddleItemPrimary.resolve(getContext()));
                         }
                         numVisibleShortcut++;
                     }

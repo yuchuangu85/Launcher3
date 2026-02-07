@@ -88,10 +88,6 @@ public class FallbackTaskbarUIController
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        RecentsView recentsView = getRecentsView();
-        if (recentsView != null) {
-            recentsView.setTaskLaunchListener(null);
-        }
         mRecentsContainer.setTaskbarUIController(null);
         mRecentsContainer.getStateManager().removeStateListener(mStateListener);
     }

@@ -37,12 +37,12 @@ import com.android.systemui.shared.system.QuickStepContract
  * increase in size during the animation.
  */
 open class FloatingAppPairBackground(
-        context: Context,
-        // the view that we will draw this background on
-        protected val floatingView: FloatingAppPairView,
-        private val appIcon1: Drawable,
-        private val appIcon2: Drawable?,
-        dividerPos: Int
+    context: Context,
+    // the view that we will draw this background on
+    protected val floatingView: FloatingAppPairView,
+    private val appIcon1: Drawable,
+    private val appIcon2: Drawable?,
+    dividerPos: Int,
 ) : Drawable() {
     companion object {
         // Design specs -- app icons start small and expand during the animation
@@ -79,41 +79,44 @@ open class FloatingAppPairBackground(
         backgroundPaint.color = ta.getColor(R.styleable.FolderIconPreview_folderPreviewColor, 0)
         ta.recycle()
         // Set up timings and interpolators
-        val timings = AnimUtils.getDeviceAppPairLaunchTimings(container.deviceProfile.isTablet)
+        val timings =
+            AnimUtils.getDeviceAppPairLaunchTimings(
+                container.deviceProfile.deviceProperties.isTablet
+            )
         expandXInterpolator =
             Interpolators.clampToProgress(
                 timings.getStagedRectScaleXInterpolator(),
                 timings.stagedRectSlideStartOffset,
-                timings.stagedRectSlideEndOffset
+                timings.stagedRectSlideEndOffset,
             )
         expandYInterpolator =
             Interpolators.clampToProgress(
                 timings.getStagedRectScaleYInterpolator(),
                 timings.stagedRectSlideStartOffset,
-                timings.stagedRectSlideEndOffset
+                timings.stagedRectSlideEndOffset,
             )
         cellSplitInterpolator =
             Interpolators.clampToProgress(
                 timings.cellSplitInterpolator,
                 timings.cellSplitStartOffset,
-                timings.cellSplitEndOffset
+                timings.cellSplitEndOffset,
             )
         iconFadeInterpolator =
             Interpolators.clampToProgress(
                 timings.iconFadeInterpolator,
                 timings.iconFadeStartOffset,
-                timings.iconFadeEndOffset
+                timings.iconFadeEndOffset,
             )
 
         // Find device-specific measurements
         val resources = context.resources
         deviceCornerRadius = QuickStepContract.getWindowCornerRadius(context)
         deviceHalfDividerSize =
-                resources.getDimensionPixelSize(R.dimen.multi_window_task_divider_size) / 2f
+            resources.getDimensionPixelSize(R.dimen.multi_window_task_divider_size) / 2f
         val dividerCenterPos = dividerPos + deviceHalfDividerSize
         desiredSplitRatio =
-            if (dp.isLeftRightSplit) dividerCenterPos / dp.widthPx
-            else dividerCenterPos / dp.heightPx
+            if (dp.isLeftRightSplit) dividerCenterPos / dp.deviceProperties.widthPx
+            else dividerCenterPos / dp.deviceProperties.heightPx
         dividerPaint.color = resources.getColor(R.color.taskbar_background_dark, null /*theme*/)
     }
 
@@ -157,8 +160,13 @@ open class FloatingAppPairBackground(
         // The right half of the background image
         val rightSide = RectF(dividerCenterPos + changingDividerSize, 0f, width, height)
         // Middle part is for divider background
-        val middleRect = RectF(leftSide.right - deviceHalfDividerSize, 0f,
-                rightSide.left + deviceHalfDividerSize, height)
+        val middleRect =
+            RectF(
+                leftSide.right - deviceHalfDividerSize,
+                0f,
+                rightSide.left + deviceHalfDividerSize,
+                height,
+            )
 
         // Draw background
         canvas.drawRect(middleRect, dividerPaint)
@@ -174,7 +182,7 @@ open class FloatingAppPairBackground(
                 changingInnerRadiusY,
                 cornerRadiusX,
                 cornerRadiusY,
-            )
+            ),
         )
         drawCustomRoundedRect(
             canvas,
@@ -188,7 +196,7 @@ open class FloatingAppPairBackground(
                 cornerRadiusY,
                 changingInnerRadiusX,
                 changingInnerRadiusY,
-            )
+            ),
         )
 
         // Calculate changing measurements for icons.
@@ -259,8 +267,13 @@ open class FloatingAppPairBackground(
         // The bottom half of the background image
         val bottomSide = RectF(0f, dividerCenterPos + changingDividerSize, width, height)
         // Middle part is for divider background
-        val middleRect = RectF(0f, topSide.bottom - deviceHalfDividerSize,
-                width, bottomSide.top + deviceHalfDividerSize)
+        val middleRect =
+            RectF(
+                0f,
+                topSide.bottom - deviceHalfDividerSize,
+                width,
+                bottomSide.top + deviceHalfDividerSize,
+            )
 
         // Draw background
         canvas.drawRect(middleRect, dividerPaint)
@@ -275,8 +288,8 @@ open class FloatingAppPairBackground(
                 changingInnerRadiusX,
                 changingInnerRadiusY,
                 changingInnerRadiusX,
-                changingInnerRadiusY
-            )
+                changingInnerRadiusY,
+            ),
         )
         drawCustomRoundedRect(
             canvas,
@@ -289,8 +302,8 @@ open class FloatingAppPairBackground(
                 cornerRadiusX,
                 cornerRadiusY,
                 cornerRadiusX,
-                cornerRadiusY
-            )
+                cornerRadiusY,
+            ),
         )
 
         // Calculate changing measurements for icons.

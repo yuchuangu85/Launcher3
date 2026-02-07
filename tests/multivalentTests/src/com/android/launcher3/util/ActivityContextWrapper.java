@@ -60,6 +60,7 @@ public class ActivityContextWrapper extends BaseContext {
 
         @Override
         public void recreateControllers() {
+            super.recreateControllers();
             mControllers = new TouchController[0];
         }
     }

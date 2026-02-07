@@ -24,10 +24,10 @@ import android.content.Intent;
 
 import com.android.launcher3.tapl.LauncherInstrumentation;
 import com.android.launcher3.tapl.Taskbar;
-import com.android.launcher3.ui.AbstractLauncherUiTest;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.LauncherLayoutBuilder;
 import com.android.launcher3.util.TestUtil;
+import com.android.launcher3.util.ui.AbstractLauncherUiTest;
 
 import org.junit.After;
 import org.junit.Assume;

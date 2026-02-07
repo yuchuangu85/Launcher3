@@ -23,29 +23,38 @@ import android.app.Person;
 import android.app.role.RoleManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.LauncherActivityInfo;
+import android.content.pm.LauncherApps;
+import android.content.pm.LauncherUserInfo;
 import android.content.pm.ShortcutInfo;
+import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.ArrayMap;
+import android.view.SurfaceControlViewHost;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
+import com.android.launcher3.BaseActivity;
 import com.android.launcher3.BuildConfig;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppComponent;
 import com.android.launcher3.dagger.LauncherAppSingleton;
+import com.android.launcher3.icons.BitmapRenderer;
+import com.android.launcher3.util.TouchController;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.inject.Inject;
 
@@ -101,10 +110,32 @@ public class ApiWrapper {
                 // TODO: Migrate to a better platform API
                 NoopDrawable d = new NoopDrawable();
                 boolean isWork = (d != mContext.getPackageManager().getUserBadgedIcon(d, user));
+
+                var launcherApps = mContext.getSystemService(LauncherApps.class);
                 UserIconInfo info = new UserIconInfo(
                         user,
                         isWork ? UserIconInfo.TYPE_WORK : UserIconInfo.TYPE_MAIN,
                         serial);
+
+                try {
+                    if (Utilities.ATLEAST_V && launcherApps != null) {
+                        LauncherUserInfo userInfo = launcherApps.getLauncherUserInfo(user);
+                        if (userInfo != null) {
+                            var userType = userInfo.getUserType();
+                            info = new UserIconInfo(
+                                    user,
+                                    userType.equals (UserManager.USER_TYPE_PROFILE_MANAGED) ? UserIconInfo.TYPE_WORK :
+                                            userType.equals (UserManager.USER_TYPE_PROFILE_CLONE) ? UserIconInfo.TYPE_CLONED :
+                                                    userType.equals (UserManager.USER_TYPE_PROFILE_PRIVATE) ? UserIconInfo.TYPE_PRIVATE :
+                                                            UserIconInfo.TYPE_MAIN,
+                                    serial
+                            );
+                        }
+                    }
+                } catch (Throwable t) {
+                    // Ignore
+                }
+
                 users.put(user, info);
             }
         }
@@ -190,30 +221,25 @@ public class ApiWrapper {
      * as HOME app, a toast asking the user to do the latter is shown.
      */
     public void assignDefaultHomeRole(Context context) {
-        RoleManager roleManager = context.getSystemService(RoleManager.class);
-        assert roleManager != null;
-        if (roleManager.isRoleAvailable(RoleManager.ROLE_HOME)
-                && !roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-            Intent roleRequestIntent = roleManager.createRequestRoleIntent(
-                    RoleManager.ROLE_HOME);
-            Launcher launcher = Launcher.getLauncher(context);
-            launcher.startActivityForResult(roleRequestIntent, REQUEST_HOME_ROLE);
+        RoleManager roleManager = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            roleManager = context.getSystemService(RoleManager.class);
+            if (roleManager != null && roleManager.isRoleAvailable (RoleManager.ROLE_HOME)
+                    && !roleManager.isRoleHeld (RoleManager.ROLE_HOME)) {
+                Intent roleRequestIntent = roleManager.createRequestRoleIntent (
+                        RoleManager.ROLE_HOME);
+                Launcher launcher = Launcher.getLauncher (context);
+                launcher.startActivityForResult (roleRequestIntent , REQUEST_HOME_ROLE);
+            }
         }
     }
 
-    /**
-     * Returns a hash to uniquely identify a particular version of appInfo
-     */
-    public String getApplicationInfoHash(@NonNull ApplicationInfo appInfo) {
-        // The hashString in source dir changes with every install
-        return appInfo.sourceDir;
-    }
-
-    /**
-     * Returns the round icon resource Id if defined by the app
-     */
-    public int getRoundIconRes(@NonNull ApplicationInfo appInfo) {
-        return 0;
+    @Nullable
+    public TouchController createStatusBarTouchController(
+            BaseActivity launcher,
+            Supplier<Boolean> isEnabledCheck
+    ) {
+        return null;
     }
 
     /**
@@ -221,6 +247,11 @@ public class ApiWrapper {
      */
     public boolean isFileDrawable(@NonNull ShortcutInfo shortcutInfo) {
         return false;
+    }
+
+    /** Captures a snapshot of the host content as a bitmap */
+    public Bitmap captureSnapshot(SurfaceControlViewHost host, int width, int height) {
+        return BitmapRenderer.createHardwareBitmap(width, height, host.getView()::draw);
     }
 
     private static class NoopDrawable extends ColorDrawable {

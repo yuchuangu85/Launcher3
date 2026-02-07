@@ -16,38 +16,64 @@
 
 package com.android.launcher3.dagger
 
+import com.android.launcher3.backuprestore.LauncherRestoreEventLogger
+import com.android.launcher3.icons.LauncherIconProvider
+import com.android.launcher3.icons.LauncherIconProviderImpl
+import com.android.launcher3.logging.StatsLogManager.StatsLogManagerFactory
 import com.android.launcher3.uioverrides.QuickstepWidgetHolder.QuickstepWidgetHolderFactory
 import com.android.launcher3.uioverrides.SystemApiWrapper
 import com.android.launcher3.uioverrides.plugins.PluginManagerWrapperImpl
 import com.android.launcher3.util.ApiWrapper
+import com.android.launcher3.util.InstantAppResolver
 import com.android.launcher3.util.PluginManagerWrapper
 import com.android.launcher3.util.window.RefreshRateTracker
 import com.android.launcher3.util.window.WindowManagerProxy
 import com.android.launcher3.widget.LauncherWidgetHolder.WidgetHolderFactory
+import com.android.quickstep.InstantAppResolverImpl
+import com.android.quickstep.LauncherRestoreEventLoggerImpl
+import com.android.quickstep.logging.StatsLogCompatManager.StatsLogCompatManagerFactory
 import com.android.quickstep.util.ChoreographerFrameRateTracker
 import com.android.quickstep.util.GestureExclusionManager
-import com.android.quickstep.util.SystemWindowManagerProxy
+import com.android.systemui.shared.system.ActivityManagerWrapper
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
+
+import app.lawnchair.factory.LawnchairWidgetHolder
+import app.lawnchair.util.LawnchairWindowManagerProxy
 
 private object Modules {}
 
 @Module
 abstract class WindowManagerProxyModule {
-    @Binds abstract fun bindWindowManagerProxy(proxy: SystemWindowManagerProxy): WindowManagerProxy
+    @Binds abstract fun bindWindowManagerProxy(proxy: LawnchairWindowManagerProxy): WindowManagerProxy
 }
 
 @Module
 abstract class ApiWrapperModule {
+    @Binds
+    abstract fun bindStatsLogManagerFactory(
+        impl: StatsLogCompatManagerFactory
+    ): StatsLogManagerFactory
+
     @Binds abstract fun bindApiWrapper(systemApiWrapper: SystemApiWrapper): ApiWrapper
+
+    @Binds
+    abstract fun bindIconProvider(iconProviderImpl: LauncherIconProviderImpl): LauncherIconProvider
+
+    @Binds abstract fun bindInstantAppResolver(impl: InstantAppResolverImpl): InstantAppResolver
+
+    @Binds
+    abstract fun bindRestoreEventLogger(
+        impl: LauncherRestoreEventLoggerImpl
+    ): LauncherRestoreEventLogger
 }
 
 @Module
 abstract class WidgetModule {
 
     @Binds
-    abstract fun bindWidgetHolderFactory(factor: QuickstepWidgetHolderFactory): WidgetHolderFactory
+    abstract fun bindWidgetHolderFactory(factor: LawnchairWidgetHolder.Factory): WidgetHolderFactory
 }
 
 @Module
@@ -66,4 +92,9 @@ object StaticObjectModule {
     @Provides
     @JvmStatic
     fun provideRefreshRateTracker(): RefreshRateTracker = ChoreographerFrameRateTracker
+
+    @Provides
+    @JvmStatic
+    fun provideActivityManagerWrapper(): ActivityManagerWrapper =
+        ActivityManagerWrapper.getInstance()
 }

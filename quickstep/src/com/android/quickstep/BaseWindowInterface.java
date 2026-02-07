@@ -18,7 +18,6 @@ package com.android.quickstep;
 import static com.android.app.animation.Interpolators.ACCELERATE_2;
 import static com.android.app.animation.Interpolators.INSTANT;
 import static com.android.app.animation.Interpolators.LINEAR;
-import static com.android.launcher3.MotionEventsUtils.isTrackpadMultiFingerSwipe;
 import static com.android.quickstep.AbsSwipeUpHandler.RECENTS_ATTACH_DURATION;
 import static com.android.quickstep.util.RecentsAtomicAnimationFactory.INDEX_RECENTS_FADE_ANIM;
 import static com.android.quickstep.util.RecentsAtomicAnimationFactory.INDEX_RECENTS_TRANSLATE_X_ANIM;
@@ -30,11 +29,10 @@ import static com.android.quickstep.views.RecentsView.TASK_SECONDARY_TRANSLATION
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
-import android.util.Log;
-import android.view.MotionEvent;
 
 import androidx.annotation.Nullable;
 
+import com.android.launcher3.Launcher;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.statehandlers.DepthController;
@@ -42,6 +40,7 @@ import com.android.launcher3.taskbar.TaskbarUIController;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.NavigationMode;
 import com.android.quickstep.fallback.RecentsState;
+import com.android.quickstep.fallback.window.RecentsWindowFlags;
 import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.util.AnimatorControllerWithResistance;
 import com.android.quickstep.views.RecentsView;
@@ -84,14 +83,6 @@ public abstract class BaseWindowInterface extends
         return windowManager != null && windowManager.isStarted();
     }
 
-    public boolean deferStartingActivity(RecentsAnimationDeviceState deviceState, MotionEvent ev) {
-        TaskbarUIController controller = getTaskbarController();
-        boolean isEventOverBubbleBarStashHandle =
-                controller != null && controller.isEventOverBubbleBarViews(ev);
-        return deviceState.isInDeferredGestureRegion(ev) || deviceState.isImeRenderingNavButtons()
-                || isTrackpadMultiFingerSwipe(ev) || isEventOverBubbleBarStashHandle;
-    }
-
     /**
      * Closes any overlays.
      */
@@ -114,6 +105,16 @@ public abstract class BaseWindowInterface extends
             return;
         }
         recentsView.switchToScreenshot(thumbnailDatas, runnable);
+    }
+
+    @Override
+    public boolean isLauncherOverlayShowing() {
+        if (!RecentsWindowFlags.enableLauncherOverviewInWindow) {
+            return false;
+        }
+        Launcher launcher = Launcher.ACTIVITY_TRACKER.getCreatedContext();
+
+        return launcher != null && launcher.getWorkspace().isOverlayShown();
     }
 
     /**

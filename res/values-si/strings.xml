@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"පිහිටුවීම අවසන් කිරීමට තට්ටු කරන්න"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"මෙය පද්ධති යෙදුමක් වන අතර අස්ථාපනය කළ නොහැක."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"නම සංස්කරණය කරන්න"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"වමට පිටු වෙන් කිරීම"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"දකුණට පිටු වෙන් කිරීම"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> අබල කෙරිණි"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} හට දැනුම්දීම් #ක් ඇත}one{{app_name} හට දැනුම්දීම් #ක් ඇත}other{{app_name} හට දැනුම්දීම් #ක් ඇත}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$d හි %1$d පිටුව"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"මුල් තිරය කරකැවීමට ඉඩ දෙන්න"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"දුරකථනය කරකවන විට"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"භූ දර්ශන ආකාරය"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"දුරකථනය භූ දර්ශන ආකාරයට සකසන්න"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"මුල් තිරය භූ දර්ශන ප්‍රකාරයට සකසන්න"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"දැනුම්දීම් තිත්"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"ක්‍රියාත්මකයි"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ක්‍රියාවිරහිතයි"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"අගුළු දමන්න"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"පෞද්ගලික අවකාශ සංක්‍රමණය"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ස්ථාපන කරන්න"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"එක් කරන්න"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"පෞද්ගලික අවකාශයට යෙදුම් ස්ථාපනය කරන්න"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"රහසිගත අවකාශයට ගොනු සහ තවත් දේ එක් කරන්න"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"කවය"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"සමචතුරස්‍රය"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"පැති 4 කුකී"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"පැති 7 කුකී"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"ආරුක්කුව"</string>
 </resources>

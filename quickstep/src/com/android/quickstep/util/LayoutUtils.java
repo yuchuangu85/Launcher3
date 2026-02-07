@@ -34,7 +34,8 @@ public class LayoutUtils {
      * The height for the swipe up motion
      */
     public static float getDefaultSwipeHeight(Context context, DeviceProfile dp) {
-        float swipeHeight = dp.allAppsCellHeightPx - dp.allAppsIconTextSizePx;
+        float swipeHeight = dp.getAllAppsProfile().getCellHeightPx()
+                - dp.getAllAppsProfile().getIconTextSizePx();
         if (DisplayController.getNavigationMode(context) == NavigationMode.NO_BUTTON) {
             swipeHeight -= dp.getInsets().bottom;
         }

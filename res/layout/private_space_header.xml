@@ -16,18 +16,18 @@
   -->
 
 <RelativeLayout
-        android:id="@+id/ps_header_layout"
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/ps_header_height"
-        android:background="@drawable/bg_ps_header"
-        android:clipToOutline="true"
-        android:gravity="center_vertical"
-        android:textDirection="locale"
-        android:orientation="horizontal"
-        android:contentDescription="@string/ps_container_lock_button_content_description"
-        android:importantForAccessibility="yes">
+    android:id="@+id/ps_header_layout"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/ps_header_height"
+    android:background="@android:color/transparent"
+    android:clipToOutline="true"
+    android:gravity="center_vertical"
+    android:textDirection="locale"
+    android:orientation="horizontal"
+    android:contentDescription="@string/ps_container_lock_button_content_description"
+    android:importantForAccessibility="yes">
 
     <LinearLayout
         android:id="@+id/settingsAndLockGroup"
@@ -60,7 +60,7 @@
                 android:layout_marginTop="@dimen/ps_lock_icon_margin_top"
                 android:layout_marginBottom="@dimen/ps_lock_icon_margin_bottom"
                 android:importantForAccessibility="no"
-                android:src="@drawable/ic_lock"
+                android:src="@drawable/ic_pr_lock"
                 app:tint="@color/materialColorPrimaryFixedDim"
                 android:scaleType="center"/>
             <TextView
@@ -75,7 +75,7 @@
                 android:maxLines="1"
                 android:visibility="gone"
                 android:alpha="0"
-                style="@style/TextHeadline"/>
+                style="@style/PrivateSpaceLockTextStyle"/>
         </LinearLayout>
     </LinearLayout>
     <ImageView

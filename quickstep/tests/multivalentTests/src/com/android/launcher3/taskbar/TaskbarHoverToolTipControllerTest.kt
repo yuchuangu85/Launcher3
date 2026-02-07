@@ -147,6 +147,15 @@ class TaskbarHoverToolTipControllerTest {
         assertThat(isHoverToolTipOpen).isFalse()
     }
 
+    @Test
+    fun onHover_emptyTitle_noTooltip() {
+        runOnMainSync {
+            iconView.text = ""
+            iconView.dispatchGenericMotionEvent(HOVER_ENTER)
+        }
+        assertThat(isHoverToolTipOpen).isFalse()
+    }
+
     companion object {
         private val HOVER_EXIT = MotionEvent.obtain(0, 0, ACTION_HOVER_EXIT, 0f, 0f, 0)
         private val HOVER_ENTER = MotionEvent.obtain(0, 0, ACTION_HOVER_ENTER, 0f, 0f, 0)

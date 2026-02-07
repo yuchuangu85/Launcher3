@@ -181,6 +181,6 @@ class SimpleBroadcastReceiverTest {
     }
 
     private fun awaitTasksCompleted() {
-        UI_HELPER_EXECUTOR.submit<Any> { null }.get()
+        UI_HELPER_EXECUTOR.submit<Any?> { null }.get()
     }
 }

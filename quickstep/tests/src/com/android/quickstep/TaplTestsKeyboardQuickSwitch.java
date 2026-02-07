@@ -16,11 +16,13 @@
 package com.android.quickstep;
 
 import android.content.Intent;
+import android.platform.test.annotations.DisableFlags;
 
 import androidx.annotation.NonNull;
 import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.launcher3.Flags;
 import com.android.launcher3.tapl.KeyboardQuickSwitch;
 import com.android.launcher3.taskbar.KeyboardQuickSwitchController;
 
@@ -86,6 +88,7 @@ public class TaplTestsKeyboardQuickSwitch extends AbstractQuickStepTest {
     }
 
     @Test
+    @DisableFlags(value = Flags.FLAG_ENABLE_WIDGET_PICKER_REFACTOR)
     public void testDismiss_fromWidgets() {
         runTest(TestSurface.WIDGETS, TestCase.DISMISS);
     }
@@ -106,6 +109,7 @@ public class TaplTestsKeyboardQuickSwitch extends AbstractQuickStepTest {
     }
 
     @Test
+    @DisableFlags(value = Flags.FLAG_ENABLE_WIDGET_PICKER_REFACTOR)
     public void testLaunchLastTask_fromWidgets() {
         runTest(TestSurface.WIDGETS, TestCase.LAUNCH_LAST_APP);
     }
@@ -126,6 +130,7 @@ public class TaplTestsKeyboardQuickSwitch extends AbstractQuickStepTest {
     }
 
     @Test
+    @DisableFlags(value = Flags.FLAG_ENABLE_WIDGET_PICKER_REFACTOR)
     public void testLaunchSelectedTask_fromWidgets() {
         runTest(TestSurface.WIDGETS, TestCase.LAUNCH_SELECTED_APP);
     }
@@ -146,13 +151,14 @@ public class TaplTestsKeyboardQuickSwitch extends AbstractQuickStepTest {
     }
 
     @Test
+    @DisableFlags(value = Flags.FLAG_ENABLE_WIDGET_PICKER_REFACTOR)
     public void testLaunchOverviewTask_fromWidgets() {
         runTest(TestSurface.WIDGETS, TestCase.LAUNCH_OVERVIEW);
     }
 
     @Test
     public void testLaunchSingleRecentTask() {
-        mLauncher.getLaunchedAppState().switchToOverview().dismissAllTasks();
+        clearAllRecentTasks();
         startAppFast(CALCULATOR_APP_PACKAGE);
         mLauncher.goHome().showQuickSwitchView().launchFocusedAppTask(CALCULATOR_APP_PACKAGE);
     }

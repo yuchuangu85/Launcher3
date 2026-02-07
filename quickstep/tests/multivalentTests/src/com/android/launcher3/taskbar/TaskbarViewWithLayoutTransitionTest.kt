@@ -19,7 +19,6 @@ package com.android.launcher3.taskbar
 import android.platform.test.annotations.EnableFlags
 import android.platform.test.flag.junit.SetFlagsRule
 import android.view.View
-import com.android.launcher3.Flags.FLAG_TASKBAR_OVERFLOW
 import com.android.launcher3.R
 import com.android.launcher3.statehandlers.DesktopVisibilityController
 import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnMainSync
@@ -36,7 +35,8 @@ import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule.ForceRtl
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
 import com.android.launcher3.util.LauncherMultivalentJUnit
 import com.android.launcher3.util.LauncherMultivalentJUnit.EmulatedDevices
-import com.android.window.flags.Flags.FLAG_ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION
+import com.android.window.flags2.Flags.FLAG_ENABLE_TASKBAR_OVERFLOW
+import com.android.window.flags2.Flags.FLAG_ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -46,7 +46,7 @@ import org.mockito.kotlin.whenever
 
 @RunWith(LauncherMultivalentJUnit::class)
 @EmulatedDevices(["pixelFoldable2023", "pixelTablet2023"])
-@EnableFlags(FLAG_ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION, FLAG_TASKBAR_OVERFLOW)
+@EnableFlags(FLAG_ENABLE_TASKBAR_OVERFLOW, FLAG_ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION)
 class TaskbarViewWithLayoutTransitionTest {
 
     @get:Rule(order = 0) val setFlagsRule = SetFlagsRule()
@@ -241,6 +241,17 @@ class TaskbarViewWithLayoutTransitionTest {
         whenever(desktopVisibilityController.isInDesktopMode(context.displayId)).thenReturn(true)
         runOnMainSync { taskbarView.updateItems(createHotseatItems(1), emptyList()) }
         assertThat(taskbarView).hasIconTypes(ALL_APPS, HOTSEAT)
+    }
+
+    @Test
+    fun testUpdateItems_desktopMode_hotseatItem_noDividerAfterDesktopModeChange() {
+        whenever(desktopVisibilityController.isInDesktopMode(context.displayId)).thenReturn(false)
+        runOnMainSync { taskbarView.updateItems(createHotseatItems(1), emptyList()) }
+
+        whenever(desktopVisibilityController.isInDesktopMode(context.displayId)).thenReturn(true)
+        runOnMainSync { taskbarView.updateItems(createHotseatItems(2), emptyList()) }
+
+        assertThat(taskbarView).hasIconTypes(ALL_APPS, HOTSEAT, HOTSEAT)
     }
 
     @Test

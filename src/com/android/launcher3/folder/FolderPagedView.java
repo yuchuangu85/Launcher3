@@ -18,12 +18,14 @@ package com.android.launcher3.folder;
 
 import static com.android.launcher3.AbstractFloatingView.TYPE_ALL;
 import static com.android.launcher3.AbstractFloatingView.TYPE_FOLDER;
+import static com.android.launcher3.Flags.enableLauncherVisualRefresh;
 import static com.android.launcher3.folder.FolderGridOrganizer.createFolderGridOrganizer;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.util.ArrayMap;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -46,8 +48,8 @@ import com.android.launcher3.celllayout.CellLayoutLayoutParams;
 import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
-import com.android.launcher3.pageindicators.Direction;
 import com.android.launcher3.pageindicators.PageIndicatorDots;
 import com.android.launcher3.util.LauncherBindableItemsContainer.ItemOperator;
 import com.android.launcher3.util.Thunk;
@@ -130,8 +132,6 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
     public void setFolder(Folder folder) {
         mFolder = folder;
         mPageIndicator = folder.findViewById(R.id.folder_page_indicator);
-        mPageIndicator.setArrowClickListener(direction -> snapToPageImmediately(
-                (Direction.END == direction) ? mCurrentPage + 1 : mCurrentPage - 1));
         initParentViews(folder);
     }
 
@@ -255,8 +255,13 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
             icon = AppPairIcon.inflateIcon(R.layout.folder_app_pair, ActivityContext.lookupContext(
                     getContext()), null , api, BubbleTextView.DISPLAY_FOLDER);
         } else {
-            icon = mViewCache.getView(R.layout.folder_application, getContext(), null);
-            ((BubbleTextView) icon).applyFromWorkspaceItem((WorkspaceItemInfo) item);
+            if (mFolder.isInAppDrawer()) {
+                icon = mViewCache.getView(R.layout.all_apps_folder_application, getContext(), null);
+                ((BubbleTextView) icon).applyFromItemInfoWithIcon((ItemInfoWithIcon) item);
+            } else {
+                icon = mViewCache.getView(R.layout.folder_application, getContext(), null);
+                ((BubbleTextView) icon).applyFromWorkspaceItem((WorkspaceItemInfo) item);
+            }
         }
 
         icon.setOnClickListener(mFolder.mActivityContext.getItemOnClickListener());
@@ -264,12 +269,11 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
         icon.setOnFocusChangeListener(mFocusIndicatorHelper);
 
         CellLayoutLayoutParams lp = (CellLayoutLayoutParams) icon.getLayoutParams();
+        Point pos = mOrganizer.getPosForRank(item.rank);
         if (lp == null) {
-            icon.setLayoutParams(new CellLayoutLayoutParams(
-                    item.cellX, item.cellY, item.spanX, item.spanY));
+            icon.setLayoutParams(new CellLayoutLayoutParams(pos.x, pos.y, 1, 1));
         } else {
-            lp.setCellX(item.cellX);
-            lp.setCellY(item.cellY);
+            lp.setCellXY(pos);
             lp.cellHSpan = lp.cellVSpan = 1;
         }
 
@@ -390,6 +394,9 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
 
         // Update footer
         mPageIndicator.setVisibility(getPageCount() > 1 ? View.VISIBLE : View.GONE);
+        if (enableLauncherVisualRefresh()) {
+            mFolder.onIndicatorVisibilityChanged();
+        }
         // Set the gravity as LEFT or RIGHT instead of START, as START depends on the actual text.
         int horizontalGravity = getPageCount() > 1
                 ? (mIsRtl ? Gravity.RIGHT : Gravity.LEFT) : Gravity.CENTER_HORIZONTAL;
@@ -485,6 +492,7 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
         super.notifyPageSwitchListener(prevPage);
         if (mFolder != null) {
             mFolder.updateTextViewFocus();
+            mFolder.updateArrowAlphas();
         }
     }
 

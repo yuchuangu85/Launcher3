@@ -24,16 +24,19 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.content.Context;
 import android.graphics.Rect;
-import android.view.MotionEvent;
 import android.view.RemoteAnimationTarget;
 
 import androidx.annotation.Nullable;
 
+import com.android.app.displaylib.PerDisplayRepository;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.taskbar.TaskbarUIController;
+import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.views.ScrimColors;
 import com.android.quickstep.GestureState.GestureEndTarget;
+import com.android.quickstep.dagger.QuickstepBaseAppComponent;
 import com.android.quickstep.fallback.RecentsState;
 import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
@@ -41,20 +44,31 @@ import com.android.quickstep.util.AnimatorControllerWithResistance;
 import com.android.quickstep.util.ContextInitListener;
 import com.android.quickstep.views.RecentsView;
 
+import dagger.assisted.AssistedInject;
+
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
 
 /**
  * {@link BaseWindowInterface} for recents when the default launcher is different than the
  * currently running one and apps should interact with the {@link RecentsWindowManager} as opposed
  * to the in-launcher one.
  */
-public final class FallbackWindowInterface extends BaseWindowInterface{
+public final class FallbackWindowInterface extends BaseWindowInterface {
 
-    private final RecentsWindowManager mRecentsWindowManager;
+    public static final DaggerSingletonObject<PerDisplayRepository<FallbackWindowInterface>>
+            REPOSITORY_INSTANCE = new DaggerSingletonObject<>(
+            QuickstepBaseAppComponent::getFallbackWindowInterfaceRepository);
 
-    public FallbackWindowInterface(RecentsWindowManager recentsWindowManager) {
+    @Nullable private RecentsWindowManager mRecentsWindowManager = null;
+
+    @AssistedInject
+    public FallbackWindowInterface() {
         super(DEFAULT, BACKGROUND_APP);
+    }
+
+    public void setRecentsWindowManager(@Nullable RecentsWindowManager recentsWindowManager) {
         mRecentsWindowManager = recentsWindowManager;
     }
 
@@ -64,9 +78,9 @@ public final class FallbackWindowInterface extends BaseWindowInterface{
             RecentsPagedOrientationHandler orientationHandler) {
         calculateTaskSize(context, dp, outRect, orientationHandler);
         if (dp.isVerticalBarLayout() && DisplayController.getNavigationMode(context) != NO_BUTTON) {
-            return dp.isSeascape() ? outRect.left : (dp.widthPx - outRect.right);
+            return dp.isSeascape() ? outRect.left : (dp.getDeviceProperties().getWidthPx() - outRect.right);
         } else {
-            return dp.heightPx - outRect.bottom;
+            return dp.getDeviceProperties().getHeightPx() - outRect.bottom;
         }
     }
 
@@ -119,8 +133,8 @@ public final class FallbackWindowInterface extends BaseWindowInterface{
     @Override
     public <T extends RecentsView<?, ?>> T getVisibleRecentsView() {
         RecentsWindowManager manager = getCreatedContainer();
-        if(manager.isStarted() || isInLiveTileMode()){
-            return getCreatedContainer().getOverviewPanel();
+        if (manager != null && (manager.isStarted() || isInLiveTileMode())) {
+            return manager.getOverviewPanel();
         }
         return null;
     }
@@ -131,26 +145,17 @@ public final class FallbackWindowInterface extends BaseWindowInterface{
     }
 
     @Override
-    protected int getOverviewScrimColorForState(RecentsWindowManager container,
+    protected ScrimColors getOverviewScrimColorForState(RecentsWindowManager container,
             RecentsState state) {
         return state.getScrimColor(container.asContext());
     }
 
     @Override
-    public boolean deferStartingActivity(RecentsAnimationDeviceState deviceState, MotionEvent ev) {
-        // In non-gesture mode, user might be clicking on the home button which would directly
-        // start the home activity instead of going through recents. In that case, defer starting
-        // recents until we are sure it is a gesture.
-        return false;
-//        return !deviceState.isFullyGesturalNavMode();
-//                || super.deferStartingActivity(deviceState, ev);
-    }
-
-    @Override
     public void onExitOverview(Runnable exitRunnable) {
+        RecentsWindowManager windowManager = getCreatedContainer();
         final StateManager<RecentsState, RecentsWindowManager> stateManager =
-                getCreatedContainer().getStateManager();
-        if (stateManager.getState() == HOME) {
+                windowManager != null ? windowManager.getStateManager() : null;
+        if (stateManager == null || stateManager.getState() == HOME) {
             exitRunnable.run();
             notifyRecentsOfOrientation();
             return;
@@ -203,8 +208,11 @@ public final class FallbackWindowInterface extends BaseWindowInterface{
     }
 
     private void notifyRecentsOfOrientation() {
-        // reset layout on swipe to home
-        ((RecentsView) getCreatedContainer().getOverviewPanel()).reapplyActiveRotation();
+        RecentsWindowManager recentsWindowManager = getCreatedContainer();
+        if (recentsWindowManager != null) {
+            // reset layout on swipe to home
+            ((RecentsView) recentsWindowManager.getOverviewPanel()).reapplyActiveRotation();
+        }
     }
 
     @Override

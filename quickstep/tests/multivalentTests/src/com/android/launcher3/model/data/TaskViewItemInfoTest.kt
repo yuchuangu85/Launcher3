@@ -30,11 +30,13 @@ import com.android.launcher3.pm.UserCache
 import com.android.launcher3.util.AllModulesForTest
 import com.android.launcher3.util.SandboxContext
 import com.android.launcher3.util.SplitConfigurationOptions
+import com.android.launcher3.util.TestDispatcherProvider
 import com.android.launcher3.util.TransformingTouchDelegate
 import com.android.launcher3.util.UserIconInfo
 import com.android.quickstep.TaskOverlayFactory
 import com.android.quickstep.TaskOverlayFactory.TaskOverlay
 import com.android.quickstep.recents.di.RecentsDependencies
+import com.android.quickstep.task.thumbnail.TaskContentView
 import com.android.quickstep.task.thumbnail.TaskThumbnailView
 import com.android.quickstep.views.RecentsView
 import com.android.quickstep.views.TaskContainer
@@ -47,6 +49,7 @@ import com.android.systemui.shared.recents.model.Task.TaskKey
 import com.google.common.truth.Truth.assertThat
 import dagger.BindsInstance
 import dagger.Component
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -64,6 +67,7 @@ class TaskViewItemInfoTest {
     private val overlayFactory = mock<TaskOverlayFactory>()
     private val userCache = mock<UserCache>()
     private val userInfo = mock<UserIconInfo>()
+    private val dispatcher = StandardTestDispatcher()
 
     @Before
     fun setUp() {
@@ -76,7 +80,7 @@ class TaskViewItemInfoTest {
         context.initDaggerComponent(
             DaggerTaskViewItemInfoTest_TestComponent.builder().bindUserCache(userCache)
         )
-        RecentsDependencies.maybeInitialize(context)
+        RecentsDependencies.maybeInitialize(context, TestDispatcherProvider(dispatcher))
     }
 
     @After
@@ -198,6 +202,7 @@ class TaskViewItemInfoTest {
         return TaskContainer(
             taskView,
             task,
+            mock<TaskContentView>(),
             if (enableRefactorTaskThumbnail()) mock<TaskThumbnailView>()
             else mock<TaskThumbnailViewDeprecated>(),
             mock<TaskViewIcon>(),

@@ -20,15 +20,15 @@ import android.database.sqlite.SQLiteDatabase
 import android.graphics.Point
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import app.lawnchair.preferences2.PreferenceManager2
+import com.android.launcher3.BuildConfig
+import com.android.launcher3.BuildConfigs
 import com.android.launcher3.Flags
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.get
-import com.android.launcher3.LauncherPrefs.Companion.getPrefs
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherSettings.Favorites.TABLE_NAME
 import com.android.launcher3.LauncherSettings.Favorites.TMP_TABLE
-import com.android.launcher3.Utilities
-import com.android.launcher3.config.FeatureFlags
 import com.android.launcher3.logging.FileLog
 import com.android.launcher3.logging.StatsLogManager
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ROW_SHIFT_GRID_MIGRATION
@@ -44,6 +44,7 @@ import com.android.launcher3.provider.LauncherDbUtils.shiftWorkspaceByXCells
 import com.android.launcher3.util.CellAndSpan
 import com.android.launcher3.util.GridOccupancy
 import com.android.launcher3.util.IntArray
+import com.patrykmichalik.opto.core.firstBlocking
 
 class GridSizeMigrationLogic {
     /**
@@ -502,15 +503,11 @@ class GridSizeMigrationLogic {
         val itemsToPlace = WorkspaceItemsToPlace(sortedItemsToPlace, mutableListOf())
         val occupied = GridOccupancy(trgX, trgY)
         val trg = Point(trgX, trgY)
+
+        val prefs2 = PreferenceManager2.INSTANCE.get(context)
+
         val next: Point =
-            if (
-                screenId == 0 &&
-                    (FeatureFlags.QSB_ON_FIRST_SCREEN &&
-                        (!Flags.enableSmartspaceRemovalToggle() ||
-                            getPrefs(context)
-                                .getBoolean(LoaderTask.SMARTSPACE_ON_HOME_SCREEN, true)) &&
-                        !Utilities.SHOULD_SHOW_FIRST_PAGE_WIDGET)
-            ) {
+            if (screenId == 0 && prefs2.enableSmartspace.firstBlocking()) {
                 Point(0, 1 /* smartspace */)
             } else {
                 Point(0, 0)

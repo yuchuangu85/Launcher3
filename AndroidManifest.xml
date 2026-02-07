@@ -15,18 +15,25 @@
 ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ** See the License for the specific language governing permissions and
 ** limitations under the License.
+**
+** Modifications copyright 2021, Lawnchair
 */
 -->
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.launcher3">
-    <uses-sdk android:targetSdkVersion="33" android:minSdkVersion="30"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-sdk android:targetSdkVersion="30" android:minSdkVersion="26"
+        tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk.client"/>
     <!--
     Manifest entries specific to Launcher3. This is merged with AndroidManifest-common.xml.
     Refer comments around specific entries on how to extend individual components.
     -->
 
+    <!-- Permission required to start a WidgetPickerActivity. -->
+    <permission android:name="${applicationId}.permission.START_WIDGET_PICKER_ACTIVITY"
+        android:protectionLevel="signature|privileged" />
+
     <application
+        android:name="app.lawnchair.LawnchairApp"
         android:backupAgent="com.android.launcher3.LauncherBackupAgent"
         android:fullBackupOnly="true"
         android:fullBackupContent="@xml/backupscheme"
@@ -44,7 +51,7 @@
         attributes and intent filters the same
         -->
         <activity
-            android:name="com.android.launcher3.Launcher"
+            android:name="app.lawnchair.LawnchairLauncher"
             android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
@@ -58,6 +65,7 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
                 <action android:name="android.intent.action.SHOW_WORK_APPS" />
                 <action android:name="android.intent.action.ALL_APPS" />
                 <category android:name="android.intent.category.HOME" />
@@ -70,5 +78,18 @@
                 android:value="${packageName}.grid_control" />
         </activity>
 
+        <activity android:name="com.android.launcher3.widgetpicker.WidgetPickerActivity"
+            android:theme="@style/WidgetPickerActivityTheme"
+            android:excludeFromRecents="true"
+            android:autoRemoveFromRecents="true"
+            android:launchMode="singleTop"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:permission="${applicationId}.permission.START_WIDGET_PICKER_ACTIVITY">
+            <intent-filter>
+                <action android:name="android.intent.action.PICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

@@ -16,8 +16,8 @@
 package com.android.quickstep;
 
 import static android.app.WindowConfiguration.ACTIVITY_TYPE_HOME;
+import static android.view.Display.DEFAULT_DISPLAY;
 
-import static com.android.launcher3.Flags.enableHandleDelayedGestureCallbacks;
 import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.NavigationMode.NO_BUTTON;
@@ -35,19 +35,23 @@ import android.content.Intent;
 import android.os.SystemProperties;
 import android.util.Log;
 import android.view.RemoteAnimationTarget;
+import android.window.DesktopExperienceFlags;
 import android.window.TransitionInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.annotation.VisibleForTesting;
 
+import com.android.app.displaylib.PerDisplayRepository;
 import com.android.internal.util.ArrayUtils;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.config.FeatureFlags;
+import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.taskbar.TaskbarUIController;
+import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DisplayController;
-import com.android.quickstep.fallback.window.RecentsDisplayModel;
-import com.android.quickstep.fallback.window.RecentsWindowFlags;
+import com.android.quickstep.dagger.QuickstepBaseAppComponent;
 import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.util.ActiveGestureProtoLogProxy;
 import com.android.quickstep.util.SystemUiFlagUtils;
@@ -57,11 +61,20 @@ import com.android.systemui.shared.system.QuickStepContract;
 import com.android.systemui.shared.system.TaskStackChangeListener;
 import com.android.systemui.shared.system.TaskStackChangeListeners;
 
+import dagger.assisted.Assisted;
+import dagger.assisted.AssistedFactory;
+import dagger.assisted.AssistedInject;
+
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Locale;
 
 public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAnimationListener {
+
+    private static final String TAG = "TaskAnimationManager";
+
+    @VisibleForTesting
+    public static final long RECENTS_ANIMATION_START_TIMEOUT_MS = 5000L;
     public static final boolean SHELL_TRANSITIONS_ROTATION =
             SystemProperties.getBoolean("persist.wm.debug.shell_transit_rotate", false);
     private final Context mCtx;
@@ -69,7 +82,6 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
     private RecentsAnimationCallbacks mCallbacks;
     private RecentsAnimationTargets mTargets;
     private TransitionInfo mTransitionInfo;
-    private RecentsAnimationDeviceState mDeviceState;
 
     // Temporary until we can hook into gesture state events
     private GestureState mLastGestureState;
@@ -79,6 +91,12 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
     private boolean mRecentsAnimationStartPending = false;
     private boolean mShouldIgnoreMotionEvents = false;
     private final int mDisplayId;
+
+    private boolean mLauncherDestroyCallbackSet = false;
+
+    public static final DaggerSingletonObject<PerDisplayRepository<TaskAnimationManager>>
+            REPOSITORY_INSTANCE = new DaggerSingletonObject<>(
+            QuickstepBaseAppComponent::getTaskAnimationManagerRepository);
 
     private final TaskStackChangeListener mLiveTileRestartListener = new TaskStackChangeListener() {
         @Override
@@ -103,10 +121,11 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
         }
     };
 
-    public TaskAnimationManager(Context ctx, RecentsAnimationDeviceState deviceState,
-            int displayId) {
+    @AssistedInject
+    public TaskAnimationManager(
+            @ApplicationContext Context ctx,
+            @Assisted int displayId) {
         mCtx = ctx;
-        mDeviceState = deviceState;
         mDisplayId = displayId;
     }
 
@@ -141,7 +160,7 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
             if (FeatureFlags.IS_STUDIO_BUILD) {
                 throw new IllegalArgumentException(msg);
             } else {
-                Log.e("TaskAnimationManager", msg, new Exception());
+                Log.e(TAG, msg, new Exception());
             }
         }
         // Notify if recents animation is still running
@@ -150,7 +169,7 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
             if (FeatureFlags.IS_STUDIO_BUILD) {
                 throw new IllegalArgumentException(msg);
             } else {
-                Log.e("TaskAnimationManager", msg, new Exception());
+                Log.e(TAG, msg, new Exception());
             }
         }
         // But force-finish it anyways
@@ -166,16 +185,28 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
 
         final BaseContainerInterface containerInterface = gestureState.getContainerInterface();
         mLastGestureState = gestureState;
-        RecentsAnimationCallbacks newCallbacks = new RecentsAnimationCallbacks(getSystemUiProxy());
+        RecentsAnimationCallbacks newCallbacks = new RecentsAnimationCallbacks(
+                containerInterface.getCreatedContainer());
         mCallbacks = newCallbacks;
+        mLauncherDestroyCallbackSet = false;
+        final Runnable recentsAnimationStartTimeoutCallback = () -> {
+            if (!mRecentsAnimationStartPending) return;
+            mRecentsAnimationStartPending = false;
+            Log.wtf(TAG, "Recents animation start has been pending for over "
+                    + RECENTS_ANIMATION_START_TIMEOUT_MS + "ms");
+            ActiveGestureProtoLogProxy.logRecentsAnimationStartTimedOut();
+            cleanUpRecentsAnimation(newCallbacks);
+        };
         mCallbacks.addListener(new RecentsAnimationCallbacks.RecentsAnimationListener() {
             @Override
             public void onRecentsAnimationStart(RecentsAnimationController controller,
                     RecentsAnimationTargets targets, @Nullable TransitionInfo transitionInfo) {
-                if (enableHandleDelayedGestureCallbacks() && mRecentsAnimationStartPending) {
+                if (mRecentsAnimationStartPending) {
                     ActiveGestureProtoLogProxy.logStartRecentsAnimationCallback(
                             "onRecentsAnimationStart");
                     mRecentsAnimationStartPending = false;
+                    MAIN_EXECUTOR.getHandler().removeCallbacks(
+                            recentsAnimationStartTimeoutCallback);
                 }
                 if (mCallbacks == null) {
                     // It's possible for the recents animation to have finished and be cleaned up
@@ -217,20 +248,24 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
 
             @Override
             public void onRecentsAnimationCanceled(HashMap<Integer, ThumbnailData> thumbnailDatas) {
-                if (enableHandleDelayedGestureCallbacks() && mRecentsAnimationStartPending) {
+                if (mRecentsAnimationStartPending) {
                     ActiveGestureProtoLogProxy.logStartRecentsAnimationCallback(
                             "onRecentsAnimationCanceled");
                     mRecentsAnimationStartPending = false;
+                    MAIN_EXECUTOR.getHandler().removeCallbacks(
+                            recentsAnimationStartTimeoutCallback);
                 }
                 cleanUpRecentsAnimation(newCallbacks);
             }
 
             @Override
             public void onRecentsAnimationFinished(RecentsAnimationController controller) {
-                if (enableHandleDelayedGestureCallbacks() && mRecentsAnimationStartPending) {
+                if (mRecentsAnimationStartPending) {
                     ActiveGestureProtoLogProxy.logStartRecentsAnimationCallback(
                             "onRecentsAnimationFinished");
                     mRecentsAnimationStartPending = false;
+                    MAIN_EXECUTOR.getHandler().removeCallbacks(
+                            recentsAnimationStartTimeoutCallback);
                 }
                 cleanUpRecentsAnimation(newCallbacks);
             }
@@ -305,6 +340,7 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
                 ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_ALWAYS);
         options.setTransientLaunch();
         options.setSourceInfo(ActivityOptions.SourceInfo.TYPE_RECENTS_ANIMATION, eventTime);
+        options.setLaunchDisplayId(mDisplayId);
 
         // Notify taskbar that we should skip reacting to launcher visibility change to
         // avoid a jumping taskbar.
@@ -327,24 +363,45 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
             });
         }
 
-        if(containerInterface.getCreatedContainer() instanceof RecentsWindowManager
-                && RecentsWindowFlags.Companion.getEnableOverviewInWindow()) {
+        if (containerInterface.getCreatedContainer()
+                instanceof RecentsWindowManager recentsWindowManager) {
             mRecentsAnimationStartPending = getSystemUiProxy().startRecentsActivity(intent, options,
-                    mCallbacks, gestureState.useSyntheticRecentsTransition());
-            RecentsDisplayModel.getINSTANCE().get(mCtx)
-                    .getRecentsWindowManager(gestureState.getDisplayId())
-                    .startRecentsWindow(mCallbacks);
+                    mCallbacks, gestureState.useSyntheticRecentsTransition(), null, mDisplayId);
+            recentsWindowManager.startRecentsWindow(mCallbacks);
         } else {
             mRecentsAnimationStartPending = getSystemUiProxy().startRecentsActivity(intent,
-                    options, mCallbacks, false /* useSyntheticRecentsTransition */);
+                    options, mCallbacks, false /* useSyntheticRecentsTransition */, null,
+                    mDisplayId);
         }
-
-        if (enableHandleDelayedGestureCallbacks()) {
-            ActiveGestureProtoLogProxy.logSettingRecentsAnimationStartPending(
-                    mRecentsAnimationStartPending);
+        if (mRecentsAnimationStartPending) {
+            MAIN_EXECUTOR.getHandler().postDelayed(
+                    recentsAnimationStartTimeoutCallback, RECENTS_ANIMATION_START_TIMEOUT_MS);
         }
+        ActiveGestureProtoLogProxy.logSettingRecentsAnimationStartPending(
+                mRecentsAnimationStartPending);
         gestureState.setState(STATE_RECENTS_ANIMATION_INITIALIZED);
         return mCallbacks;
+    }
+
+    /**
+     * Executes the provided {@code homeAction} lambda if this TaskAnimationManager is associated
+     * with the default display. This prevents navigating to a home activity that is pinned to a
+     * different display.
+     *
+     * @param homeAction The lambda to execute for the standard home action on the default display.
+     */
+    public void maybeStartHomeAction(Runnable homeAction) {
+        if (!DesktopExperienceFlags.ENABLE_REJECT_HOME_TRANSITION.isTrue()) {
+          homeAction.run();
+          return;
+        }
+
+        if (mDisplayId == DEFAULT_DISPLAY) {
+            homeAction.run();
+        } else {
+            // TODO: b/378443899 - Implement the reject home transition.
+            // For now, simply suppress the transition.
+        }
     }
 
     /**
@@ -479,7 +536,11 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
         if (mCallbacks == null) {
             return;
         }
+        if (mLauncherDestroyCallbackSet) {
+            return;
+        }
         ActiveGestureProtoLogProxy.logQueuingForceFinishRecentsAnimation();
+        mLauncherDestroyCallbackSet = true;
         mCallbacks.addListener(new RecentsAnimationCallbacks.RecentsAnimationListener() {
             @Override
             public void onRecentsAnimationStart(
@@ -491,6 +552,7 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
                         /* forceFinish= */ true,
                         /* forceFinishCb= */ null,
                         controller);
+                mLauncherDestroyCallbackSet = false;
             }
         });
     }
@@ -522,6 +584,7 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
 
         mController = null;
         mCallbacks = null;
+        mLauncherDestroyCallbackSet = false;
         mTargets = null;
         mTransitionInfo = null;
         mLastGestureState = null;
@@ -537,10 +600,8 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
         pw.println(prefix + "TaskAnimationManager:");
         pw.println(prefix + "\tmDisplayId=" + mDisplayId);
 
-        if (enableHandleDelayedGestureCallbacks()) {
-            pw.println(prefix + "\tmRecentsAnimationStartPending=" + mRecentsAnimationStartPending);
-            pw.println(prefix + "\tmShouldIgnoreUpcomingGestures=" + mShouldIgnoreMotionEvents);
-        }
+        pw.println(prefix + "\tmRecentsAnimationStartPending=" + mRecentsAnimationStartPending);
+        pw.println(prefix + "\tmShouldIgnoreUpcomingGestures=" + mShouldIgnoreMotionEvents);
         if (mController != null) {
             mController.dump(prefix + '\t', pw);
         }
@@ -554,4 +615,11 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
             mLastGestureState.dump(prefix + '\t', pw);
         }
     }
+
+    @AssistedFactory
+    public interface Factory {
+        /** Creates a new instance of [TaskAnimationManager] for a given [displayId]. */
+        TaskAnimationManager create(int displayId);
+    }
+
 }

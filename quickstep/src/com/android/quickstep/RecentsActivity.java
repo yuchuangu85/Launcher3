@@ -15,7 +15,6 @@
  */
 package com.android.quickstep;
 
-import static android.os.Trace.TRACE_TAG_APP;
 import static android.view.RemoteAnimationTarget.MODE_CLOSING;
 import static android.view.RemoteAnimationTarget.MODE_OPENING;
 
@@ -61,6 +60,7 @@ import com.android.launcher3.LauncherAnimationRunner.AnimationResult;
 import com.android.launcher3.LauncherAnimationRunner.RemoteAnimationFactory;
 import com.android.launcher3.LauncherRootView;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
@@ -97,12 +97,14 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.List;
 
+import app.lawnchair.compat.LawnchairQuickstepCompat;
+
 /**
  * A recents activity that shows the recently launched tasks as swipable task cards.
  * See {@link com.android.quickstep.views.RecentsView}.
  */
 public final class RecentsActivity extends StatefulActivity<RecentsState> implements
-        RecentsViewContainer {
+        RecentsViewContainer,  InvariantDeviceProfile.OnIDPChangeListener {
     private static final String TAG = "RecentsActivity";
 
     public static final ContextTracker.ActivityTracker<RecentsActivity> ACTIVITY_TRACKER =
@@ -134,6 +136,7 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
      * Init drag layer and overview panel views.
      */
     protected void setupViews() {
+        getTheme().applyStyle(getOverviewBlurStyleResId(), true);
         SystemUiProxy systemUiProxy = SystemUiProxy.INSTANCE.get(this);
         // SplitSelectStateController needs to be created before setContentView()
         mSplitSelectStateController =
@@ -237,6 +240,16 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
     }
 
     @Override
+    public FallbackActivityInterface getContainerInterface() {
+        return FallbackActivityInterface.INSTANCE;
+    }
+
+    @Override
+    public SplitSelectStateController getSplitSelectStateController() {
+        return mSplitSelectStateController;
+    }
+
+    @Override
     public FallbackRecentsView getOverviewPanel() {
         return mFallbackRecentsView;
     }
@@ -298,20 +311,23 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
 
         final LauncherAnimationRunner wrapper = new LauncherAnimationRunner(
                 mUiHandler, mActivityLaunchAnimationRunner, true /* startAtFrontOfQueue */);
-        final ActivityOptions options = ActivityOptions.makeRemoteAnimation(
+        final ActivityOptions options = LawnchairQuickstepCompat.getActivityOptionsCompat().makeRemoteAnimation(
                 new RemoteAnimationAdapter(wrapper, RECENTS_LAUNCH_DURATION,
                         RECENTS_LAUNCH_DURATION - STATUS_BAR_TRANSITION_DURATION
                                 - STATUS_BAR_TRANSITION_PRE_DELAY),
-                new RemoteTransition(wrapper.toRemoteTransition(), getIApplicationThread(),
-                        "LaunchFromRecents"));
+                LawnchairQuickstepCompat.getRemoteTransitionCompat().getRemoteTransition(wrapper.toRemoteTransition(),
+                        this.getIApplicationThread(),
+                        "LaunchFromRecents"),
+                "Lawnchair");
         final ActivityOptionsWrapper activityOptions = new ActivityOptionsWrapper(options,
                 onEndCallback);
-        activityOptions.options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_ICON);
-        activityOptions.options.setLaunchDisplayId(
-                (v != null && v.getDisplay() != null) ? v.getDisplay().getDisplayId()
-                        : Display.DEFAULT_DISPLAY);
-        activityOptions.options.setPendingIntentBackgroundActivityStartMode(
-                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        if (Utilities.ATLEAST_T) {
+            activityOptions.options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_ICON);
+            activityOptions.options.setLaunchDisplayId(
+                    (v != null && v.getDisplay() != null) ? v.getDisplay().getDisplayId()
+                            : Display.DEFAULT_DISPLAY);
+            Utilities.allowBGLaunch(activityOptions.options);
+        }
         mHandler.postDelayed(mAnimationStartTimeoutRunnable, RECENTS_ANIMATION_TIMEOUT);
         return activityOptions;
     }
@@ -374,10 +390,10 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setWallpaperDependentTheme(this);
-
         mStateManager = new StateManager<>(this, RecentsState.BG_LAUNCHER);
 
         initDeviceProfile();
+        InvariantDeviceProfile.INSTANCE.get(this).addOnChangeListener(this);
         setupViews();
 
         getSystemUiController().updateUiState(SystemUiController.UI_STATE_BASE_WINDOW,
@@ -463,6 +479,7 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
         mActivityLaunchAnimationRunner = null;
         mSplitSelectStateController.onDestroy();
         mTISBindHelper.onDestroy();
+        InvariantDeviceProfile.INSTANCE.get(this).removeOnChangeListener(this);
     }
 
     @Override
@@ -480,11 +497,13 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
     private void startHomeInternal() {
         LauncherAnimationRunner runner = new LauncherAnimationRunner(
                 getMainThreadHandler(), mAnimationToHomeFactory, true);
-        ActivityOptions options = ActivityOptions.makeRemoteAnimation(
+        ActivityOptions options = LawnchairQuickstepCompat.getActivityOptionsCompat().makeRemoteAnimation(
                 new RemoteAnimationAdapter(runner, HOME_APPEAR_DURATION, 0),
-                new RemoteTransition(runner.toRemoteTransition(), getIApplicationThread(),
-                        "StartHomeFromRecents"));
-        startHomeIntentSafely(this, options.toBundle(), TAG);
+                LawnchairQuickstepCompat.getRemoteTransitionCompat().getRemoteTransition(runner.toRemoteTransition(),
+                        this.getIApplicationThread(),
+                        "StartHomeFromRecents"),
+                "Lawnchair");
+        startHomeIntentSafely(this, options.toBundle(), TAG, getDisplayId());
     }
 
     private final RemoteAnimationFactory mAnimationToHomeFactory =
@@ -532,8 +551,6 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
     @Override
     public void dispatchDeviceProfileChanged() {
         super.dispatchDeviceProfileChanged();
-        Trace.instantForTrack(TRACE_TAG_APP, "RecentsActivity#DeviceProfileChanged",
-                getDeviceProfile().toSmallString());
     }
 
     private AnimatorListenerAdapter resetStateListener() {
@@ -554,5 +571,15 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
     @Override
     public boolean isRecentsViewVisible() {
         return getStateManager().getState().isRecentsViewVisible();
+    }
+
+    @Override
+    public void onIdpChanged(boolean modelPropertiesChanged) {
+        onHandleConfigurationChanged();
+    }
+
+    @Override
+    public int getOverviewBlurStyleResId() {
+        return R.style.OverviewBlurFallbackStyle;
     }
 }

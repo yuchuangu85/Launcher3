@@ -29,7 +29,7 @@
         android:layout_width="@dimen/keyboard_quick_switch_text_button_width"
         android:layout_height="@dimen/keyboard_quick_switch_taskview_height"
         android:background="@drawable/keyboard_quick_switch_text_button_background"
-        android:backgroundTint="@androidprv:color/materialColorSurfaceContainer"
+        android:backgroundTint="@color/materialColorSurfaceContainer"
         android:clipToOutline="true"
         android:paddingHorizontal="@dimen/keyboard_quick_switch_text_button_horizontal_padding"
 
@@ -43,7 +43,7 @@
             android:layout_width="@dimen/keyboard_quick_switch_desktop_icon_size"
             android:layout_height="@dimen/keyboard_quick_switch_desktop_icon_size"
             android:layout_marginBottom="4dp"
-            android:tint="@androidprv:color/materialColorOnSurface"
+            android:tint="@color/materialColorOnSurface"
             android:src="@drawable/ic_desktop"
 
             app:layout_constraintVertical_chainStyle="packed"

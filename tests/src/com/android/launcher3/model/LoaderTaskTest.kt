@@ -30,22 +30,26 @@ import com.android.launcher3.LauncherSettings.Favorites.TABLE_NAME
 import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.icons.IconCache
+import com.android.launcher3.icons.cache.CacheLookupFlag.Companion.DEFAULT_LOOKUP_FLAG
 import com.android.launcher3.icons.cache.CachingLogic
 import com.android.launcher3.icons.cache.IconCacheUpdateHandler
 import com.android.launcher3.model.LoaderTask.LoaderTaskFactory
 import com.android.launcher3.model.data.AppInfo
+import com.android.launcher3.model.data.AppsListData.Companion.FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED
+import com.android.launcher3.model.data.AppsListData.Companion.FLAG_QUIET_MODE_ENABLED
+import com.android.launcher3.model.data.AppsListData.Companion.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED
 import com.android.launcher3.model.data.IconRequestInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.provider.RestoreDbTask
-import com.android.launcher3.ui.TestViewHelpers
 import com.android.launcher3.util.AllModulesForTest
 import com.android.launcher3.util.Executors.MODEL_EXECUTOR
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
 import com.android.launcher3.util.LooperIdleLock
 import com.android.launcher3.util.ModelTestExtensions
+import com.android.launcher3.util.SandboxApplication
 import com.android.launcher3.util.TestUtil
 import com.android.launcher3.util.UserIconInfo
+import com.android.launcher3.util.ui.TestViewHelpers
 import com.google.common.truth.Truth.assertThat
 import dagger.BindsInstance
 import dagger.Component
@@ -78,7 +82,7 @@ private const val INSERTION_STATEMENT_FILE = "databases/workspace_items.sql"
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class LoaderTaskTest {
-    private var context = SandboxModelContext()
+    @get:Rule val context = SandboxApplication()
     private val expectedBroadcastModel =
         FirstScreenBroadcastModel(
             installerPackage = "installerPackage",
@@ -174,7 +178,6 @@ class LoaderTaskTest {
         LauncherPrefs.get(context).removeSync(RESTORE_DEVICE)
         LauncherPrefs.get(context).putSync(IS_FIRST_LOAD_AFTER_RESTORE.to(false))
         inMemoryDb.close()
-        context.onDestroy()
         mockitoSession.finishMocking()
     }
 
@@ -206,7 +209,7 @@ class LoaderTaskTest {
                         .size
                 )
                 .isAtLeast(8)
-            assertThat(itemsIdMap.size()).isAtLeast(40)
+            assertThat(itemsIdMap.count()).isAtLeast(40)
         }
 
     @Test
@@ -218,12 +221,11 @@ class LoaderTaskTest {
 
         verify(launcherBinder).bindWorkspace(true, false)
         verify(modelDelegate).workspaceLoadComplete()
-        verify(modelDelegate).loadAndBindAllAppsItems(any(), anyOrNull(), any())
+        verify(modelDelegate).loadAndAddExtraModelItems(any())
         verify(launcherBinder).bindAllApps()
         verify(iconCacheUpdateHandler, times(4)).updateIcons(any(), any<CachingLogic<Any>>(), any())
         verify(launcherBinder).bindDeepShortcuts()
         verify(launcherBinder).bindWidgets()
-        verify(modelDelegate).loadAndBindOtherItems(anyOrNull())
         verify(iconCacheUpdateHandler).finish()
         verify(modelDelegate).modelLoadComplete()
         verify(transaction).commit()
@@ -244,12 +246,9 @@ class LoaderTaskTest {
                 .newLoaderTask(launcherBinder, userManagerState)
                 .runSyncOnBackgroundThread()
 
-            verify(bgAllAppsList)
-                .setFlags(BgDataModel.Callbacks.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED, true)
-            verify(bgAllAppsList)
-                .setFlags(BgDataModel.Callbacks.FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED, false)
-            verify(bgAllAppsList, Mockito.never())
-                .setFlags(BgDataModel.Callbacks.FLAG_QUIET_MODE_ENABLED, true)
+            verify(bgAllAppsList).setFlags(FLAG_WORK_PROFILE_QUIET_MODE_ENABLED, true)
+            verify(bgAllAppsList).setFlags(FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED, false)
+            verify(bgAllAppsList, Mockito.never()).setFlags(FLAG_QUIET_MODE_ENABLED, true)
         }
 
     @Test
@@ -267,12 +266,9 @@ class LoaderTaskTest {
                 .newLoaderTask(launcherBinder, userManagerState)
                 .runSyncOnBackgroundThread()
 
-            verify(bgAllAppsList)
-                .setFlags(BgDataModel.Callbacks.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED, false)
-            verify(bgAllAppsList)
-                .setFlags(BgDataModel.Callbacks.FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED, true)
-            verify(bgAllAppsList, Mockito.never())
-                .setFlags(BgDataModel.Callbacks.FLAG_QUIET_MODE_ENABLED, true)
+            verify(bgAllAppsList).setFlags(FLAG_WORK_PROFILE_QUIET_MODE_ENABLED, false)
+            verify(bgAllAppsList).setFlags(FLAG_PRIVATE_PROFILE_QUIET_MODE_ENABLED, true)
+            verify(bgAllAppsList, Mockito.never()).setFlags(FLAG_QUIET_MODE_ENABLED, true)
         }
 
     @Test
@@ -481,7 +477,7 @@ class LoaderTaskTest {
                     },
                     activityInfo,
                     expectedIconBlob,
-                    false, /* useLowResIcon */
+                    DEFAULT_LOOKUP_FLAG.withUseLowRes(false),
                 )
             )
         val expectedAppInfo = AppInfo().apply { componentName = expectedComponent }
@@ -517,7 +513,7 @@ class LoaderTaskTest {
                     },
                     activityInfo,
                     expectedIconBlob,
-                    false, /* useLowResIcon */
+                    DEFAULT_LOOKUP_FLAG.withUseLowRes(false),
                 )
             )
         val expectedAppInfo = AppInfo().apply { componentName = expectedComponent }
@@ -553,7 +549,7 @@ class LoaderTaskTest {
                     },
                     activityInfo,
                     expectedIconBlob,
-                    false, /* useLowResIcon */
+                    DEFAULT_LOOKUP_FLAG.withUseLowRes(false),
                 )
             )
         val expectedAppInfo = AppInfo().apply { componentName = expectedComponent }
@@ -589,7 +585,7 @@ class LoaderTaskTest {
                     },
                     activityInfo,
                     expectedIconBlob,
-                    false, /* useLowResIcon */
+                    DEFAULT_LOOKUP_FLAG.withUseLowRes(false),
                 )
             )
         val expectedAppInfo =
@@ -623,7 +619,7 @@ class LoaderTaskTest {
                     WorkspaceItemInfo(),
                     activityInfo,
                     expectedIconBlob,
-                    false, /* useLowResIcon */
+                    DEFAULT_LOOKUP_FLAG.withUseLowRes(false),
                 )
             )
         val expectedAppInfo = AppInfo()

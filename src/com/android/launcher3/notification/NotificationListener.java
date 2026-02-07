@@ -49,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import app.lawnchair.NotificationManager;
+
 /**
  * A {@link NotificationListenerService} that sends updates to its
  * {@link NotificationsChangedListener} when notifications are posted or canceled,
@@ -82,13 +84,15 @@ public class NotificationListener extends NotificationListenerService {
     private SettingsCache mSettingsCache;
     private SettingsCache.OnChangeListener mNotificationSettingsChangedListener;
 
+    private NotificationManager mNotificationManager;
+
     public NotificationListener() {
         mWorkerHandler = new Handler(MODEL_EXECUTOR.getLooper(), this::handleWorkerMessage);
         mUiHandler = new Handler(Looper.getMainLooper(), this::handleUiMessage);
         sNotificationListenerInstance = this;
     }
 
-    private static @Nullable NotificationListener getInstanceIfConnected() {
+    public static @Nullable NotificationListener getInstanceIfConnected() {
         return sIsConnected ? sNotificationListenerInstance : null;
     }
 
@@ -113,6 +117,12 @@ public class NotificationListener extends NotificationListenerService {
         if (listener != null) {
             sNotificationsChangedListeners.remove(listener);
         }
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        mNotificationManager = NotificationManager.INSTANCE.get(this);
     }
 
     private boolean handleWorkerMessage(Message message) {
@@ -209,6 +219,10 @@ public class NotificationListener extends NotificationListenerService {
             result = getActiveNotifications(keys);
         } catch (SecurityException e) {
             Log.e(TAG, "SecurityException: failed to fetch notifications");
+        } catch (RuntimeException e) {
+            // This is an upstream bug in the Android framework
+            // https://github.com/GrapheneOS/os-issue-tracker/issues/2601
+            Log.e(TAG, "Workaround for Android framework.");
         }
         return result == null ? new StatusBarNotification[0] : result;
     }
@@ -237,6 +251,7 @@ public class NotificationListener extends NotificationListenerService {
 
     private void onNotificationFullRefresh() {
         mWorkerHandler.obtainMessage(MSG_NOTIFICATION_FULL_REFRESH).sendToTarget();
+        mNotificationManager.onNotificationFullRefresh();
     }
 
     @Override
@@ -252,6 +267,7 @@ public class NotificationListener extends NotificationListenerService {
     public void onNotificationPosted(final StatusBarNotification sbn) {
         if (sbn != null) {
             mWorkerHandler.obtainMessage(MSG_NOTIFICATION_POSTED, sbn).sendToTarget();
+            mNotificationManager.onNotificationPosted(sbn);
         }
     }
 
@@ -259,6 +275,7 @@ public class NotificationListener extends NotificationListenerService {
     public void onNotificationRemoved(final StatusBarNotification sbn) {
         if (sbn != null) {
             mWorkerHandler.obtainMessage(MSG_NOTIFICATION_REMOVED, sbn).sendToTarget();
+            mNotificationManager.onNotificationRemoved(sbn);
         }
     }
 

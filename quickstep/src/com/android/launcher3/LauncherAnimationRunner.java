@@ -25,10 +25,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
 import android.view.IRemoteAnimationFinishedCallback;
 import android.view.RemoteAnimationTarget;
+import android.view.SurfaceControl;
+import android.window.TransitionInfo;
 
 import androidx.annotation.BinderThread;
 import androidx.annotation.Nullable;
@@ -99,6 +102,22 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
         }
     }
 
+    // Introduced in NothingOS 2.5.5, needed in 2.6
+    @BinderThread
+    public void onAnimationStartWithSurfaceTransaction(
+            int transit,
+            TransitionInfo transitionInfo,
+            SurfaceControl.Transaction transaction,
+            RemoteAnimationTarget[] appTargets,
+            RemoteAnimationTarget[] wallpaperTargets,
+            RemoteAnimationTarget[] nonAppTargets,
+            Runnable runnable) {
+        if (transaction != null) {
+            transaction.apply();
+        }
+        onAnimationStart(transit, appTargets, wallpaperTargets, nonAppTargets, runnable);
+    }
+
     private RemoteAnimationFactory getFactory() {
         RemoteAnimationFactory factory = mFactory.get();
         return factory != null ? factory : DEFAULT_FACTORY;
@@ -122,6 +141,10 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
             finishExistingAnimation();
             getFactory().onAnimationCancelled();
         });
+    }
+
+    public void onAnimationCancelled(boolean isKeyguardOccluded) {
+        onAnimationCancelled();
     }
 
     /**
@@ -193,6 +216,10 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
                         finish();
                     }
                 });
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU) {
+                    mAnimator.start();
+                }
+
                 if (skipFirstFrame) {
                     // Because t=0 has the app icon in its original spot, we can skip the
                     // first frame and have the same movement one frame earlier.
@@ -200,7 +227,9 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
                     mAnimator.setCurrentPlayTime(
                             Math.min(getSingleFrameMs(context), mAnimator.getTotalDuration()));
                 }
-                mAnimator.start();
+                if (Utilities.ATLEAST_U) {
+                    mAnimator.start();
+                }
             }
         }
 
@@ -231,6 +260,9 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
                 RemoteAnimationTarget[] wallpaperTargets,
                 RemoteAnimationTarget[] nonAppTargets,
                 LauncherAnimationRunner.AnimationResult result);
+
+        @UiThread
+        default void onAnimationCancelled(boolean isKeyguardOccluded) {}
 
         /**
          * Called when the animation is cancelled. This can happen with or without

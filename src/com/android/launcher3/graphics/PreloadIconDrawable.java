@@ -35,6 +35,7 @@ import android.util.Property;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.graphics.ColorUtils;
 
+import com.android.launcher3.Flags;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatedFloat;
@@ -72,9 +73,15 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
     // Duration = COMPLETE_ANIM_FRACTION * DURATION_SCALE
     private static final float COMPLETE_ANIM_FRACTION = 1f;
 
-    private static final float SMALL_SCALE = 0.8f;
+    private static final float SMALL_ICON_SCALE = 0.8f;
     private static final float PROGRESS_STROKE_SCALE = 0.055f;
     private static final float PROGRESS_BOUNDS_SCALE = 0.075f;
+    private static final float TOTAL_STROKE_SCALE = 3 * PROGRESS_STROKE_SCALE / 2;
+    // Scale for canvas when drawing plate stroke. This is to avoid gaps between icon and plate.
+    // We use icon scale + 2 * plate gap width. This is the same as icon scale + progress scale.
+    private static final float PLATE_SCALE = SMALL_ICON_SCALE + PROGRESS_STROKE_SCALE;
+
+
     private static final int PRELOAD_ACCENT_COLOR_INDEX = 0;
     private static final int PRELOAD_BACKGROUND_COLOR_INDEX = 1;
 
@@ -86,6 +93,7 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
     // Path in [0, 100] bounds.
     private final Path mShapePath;
 
+    private final Path mScaledPlatePath;
     private final Path mScaledTrackPath;
     private final Path mScaledProgressPath;
     private final Paint mProgressPaint;
@@ -132,6 +140,7 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
         super(info.bitmap);
         mItem = info;
         mShapePath = shapePath;
+        mScaledPlatePath = new Path();
         mScaledTrackPath = new Path();
         mScaledProgressPath = new Path();
 
@@ -173,7 +182,7 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
 
         setLevel(info.getProgressLevel());
         // Set a disabled icon color if the app is suspended or if the app is pending download
-        setIsDisabled(info.isDisabled() || info.isPendingDownload());
+        setDisabled(info.isDisabled() || info.isPendingDownload());
     }
 
     @Override
@@ -181,13 +190,21 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
         super.onBoundsChange(bounds);
 
         float progressWidth = bounds.width() * PROGRESS_BOUNDS_SCALE;
+        float plateGapWidth = bounds.width() * PROGRESS_BOUNDS_SCALE / 2f;
+
         mTmpMatrix.setScale(
                 (bounds.width() - 2 * progressWidth) / DEFAULT_PATH_SIZE,
                 (bounds.height() - 2 * progressWidth) / DEFAULT_PATH_SIZE);
         mTmpMatrix.postTranslate(bounds.left + progressWidth, bounds.top + progressWidth);
-
         mShapePath.transform(mTmpMatrix, mScaledTrackPath);
         mProgressPaint.setStrokeWidth(PROGRESS_STROKE_SCALE * bounds.width());
+
+        mTmpMatrix.setScale(
+                (bounds.width() - 2 * plateGapWidth) / DEFAULT_PATH_SIZE,
+                (bounds.height() - 2 * plateGapWidth) / DEFAULT_PATH_SIZE);
+        mTmpMatrix.postTranslate(bounds.left + plateGapWidth, bounds.top + plateGapWidth);
+        mShapePath.transform(mTmpMatrix, mScaledPlatePath);
+
 
         mPathMeasure.setPath(mScaledTrackPath, true);
         mTrackLength = mPathMeasure.getLength();
@@ -201,7 +218,62 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
             super.drawInternal(canvas, bounds);
             return;
         }
+        if (Flags.enableLauncherIconShapes()) {
+            drawShapedProgressIcon(canvas, bounds);
+        } else {
+            drawDefaultProgressIcon(canvas, bounds);
+        }
+    }
 
+    private void drawShapedProgressIcon(Canvas canvas, Rect bounds) {
+        if (mInternalStateProgress > 0f) {
+            if (mInternalStateProgress < 1f) {
+                // Draw icon at scale UNDER the progress and background paths.
+                drawIconAtScale(canvas, bounds);
+            }
+            drawBackgroundPlate(canvas, bounds);
+            drawTrackAndProgress(canvas);
+            if (mInternalStateProgress >= 1f) {
+                // Draw icon at scale animating OVER the progress and background path.
+                drawIconAtScale(canvas, bounds);
+            }
+        } else {
+            // Just draw Icon when no progress
+            drawIconAtScale(canvas, bounds);
+        }
+    }
+
+    /**
+     * Draw background plate as a stroke around icon.
+     * Uses total stroke width for gap + progress, so that progress can be overlaid to leave gap.
+     */
+    private void drawBackgroundPlate(Canvas canvas, Rect bounds) {
+        float width = canvas.getWidth();
+        canvas.save();
+        canvas.scale(PLATE_SCALE, PLATE_SCALE, bounds.exactCenterX(), bounds.exactCenterY());
+        mProgressPaint.setStyle(Paint.Style.STROKE);
+        mProgressPaint.setStrokeWidth(width * TOTAL_STROKE_SCALE);
+        mProgressPaint.setColor(mPlateColor);
+        canvas.drawPath(mScaledPlatePath, mProgressPaint);
+        canvas.restore();
+    }
+
+    /**
+     * Draws track around icon with gap, and draws progress bar according to current progress.
+     */
+    private void drawTrackAndProgress(Canvas canvas) {
+        canvas.save();
+        mProgressPaint.setStyle(Paint.Style.STROKE);
+        mProgressPaint.setStrokeWidth(canvas.getWidth() * PROGRESS_STROKE_SCALE);
+        mProgressPaint.setColor(mTrackColor);
+        canvas.drawPath(mScaledTrackPath, mProgressPaint);
+        mProgressPaint.setAlpha(MAX_PAINT_ALPHA);
+        mProgressPaint.setColor(mProgressColor);
+        canvas.drawPath(mScaledProgressPath, mProgressPaint);
+        canvas.restore();
+    }
+
+    private void drawDefaultProgressIcon(Canvas canvas, Rect bounds) {
         if (mInternalStateProgress > 0) {
             // Draw background.
             mProgressPaint.setStyle(Paint.Style.FILL);
@@ -219,12 +291,18 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
             canvas.drawPath(mScaledProgressPath, mProgressPaint);
         }
 
-        int saveCount = canvas.save();
-        float scale = 1 - mIconScaleMultiplier.value * (1 - SMALL_SCALE);
-        canvas.scale(scale, scale, bounds.exactCenterX(), bounds.exactCenterY());
+        drawIconAtScale(canvas, bounds);
+    }
 
+    /**
+     * Draws just the icon to scale
+     */
+    private void drawIconAtScale(Canvas canvas, Rect bounds) {
+        canvas.save();
+        float scale = 1 - mIconScaleMultiplier.value * (1 - SMALL_ICON_SCALE);
+        canvas.scale(scale, scale, bounds.exactCenterX(), bounds.exactCenterY());
         super.drawInternal(canvas, bounds);
-        canvas.restoreToCount(saveCount);
+        canvas.restore();
     }
 
     /**
@@ -362,7 +440,7 @@ public class PreloadIconDrawable extends FastBitmapDrawable {
     @Override
     public FastBitmapConstantState newConstantState() {
         return new PreloadIconConstantState(
-                mBitmapInfo,
+                bitmapInfo,
                 mItem,
                 mIndicatorColor,
                 new int[] {mSystemAccentColor, mSystemBackgroundColor},

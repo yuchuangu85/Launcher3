@@ -16,7 +16,7 @@ android {
         }
         androidTest {
             java.srcDirs = ["tests/src", "tests/robolectric/src"]
-            kotlin.directories.addAll("tests/src", "tests/robolectric/src")
+            kotlin.directories.addAll('tests/src', "tests/robolectric/src")
             manifest.srcFile 'tests/AndroidManifest.xml'
         }
     }

@@ -36,12 +36,12 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.android.launcher3.R;
 import com.android.launcher3.util.Preconditions;
-import com.android.launcher3.util.SplitConfigurationOptions.SplitBounds;
 import com.android.quickstep.util.BorderAnimator;
 import com.android.systemui.shared.recents.model.Task;
 import com.android.systemui.shared.recents.model.ThumbnailData;
 import com.android.wm.shell.shared.TypefaceUtils;
 import com.android.wm.shell.shared.TypefaceUtils.FontFamily;
+import com.android.wm.shell.shared.split.SplitBounds;
 
 import kotlin.Unit;
 

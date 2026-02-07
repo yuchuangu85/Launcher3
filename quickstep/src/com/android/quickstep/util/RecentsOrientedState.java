@@ -16,13 +16,13 @@
 
 package com.android.quickstep.util;
 
+import static android.view.Display.DEFAULT_DISPLAY;
 import static android.view.OrientationEventListener.ORIENTATION_UNKNOWN;
 import static android.view.Surface.ROTATION_0;
 import static android.view.Surface.ROTATION_180;
 import static android.view.Surface.ROTATION_270;
 import static android.view.Surface.ROTATION_90;
 
-import static com.android.launcher3.Flags.enableOverviewOnConnectedDisplays;
 import static com.android.launcher3.LauncherPrefs.ALLOW_ROTATION;
 import static com.android.launcher3.LauncherPrefs.FIXED_LANDSCAPE_MODE;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
@@ -56,7 +56,6 @@ import com.android.launcher3.util.SettingsCache;
 import com.android.quickstep.BaseContainerInterface;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.TaskAnimationManager;
-import com.android.quickstep.fallback.window.RecentsDisplayModel;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
 
 import java.lang.annotation.Retention;
@@ -148,7 +147,7 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
             IntConsumer rotationChangeListener) {
         mContext = context;
         mContainerInterface = containerInterface;
-        mOrientationListener = new OrientationEventListener(context) {
+        mOrientationListener = new OrientationEventListener(mContext) {
             @Override
             public void onOrientationChanged(int degrees) {
                 int newRotation = getRotationForUserDegreesRotated(degrees, mPreviousRotation);
@@ -176,7 +175,7 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
      */
     public void setDeviceProfile(DeviceProfile deviceProfile) {
         boolean oldMultipleOrientationsSupported = isMultipleOrientationSupportedByDevice();
-        setFlag(FLAG_MULTIPLE_ORIENTATION_SUPPORTED_BY_DENSITY, !deviceProfile.isTablet);
+        setFlag(FLAG_MULTIPLE_ORIENTATION_SUPPORTED_BY_DENSITY, !deviceProfile.getDeviceProperties().isTablet());
         if (mListenersInitialized) {
             boolean newMultipleOrientationsSupported = isMultipleOrientationSupportedByDevice();
             // If isMultipleOrientationSupportedByDevice is changed, init or destroy listeners
@@ -421,6 +420,20 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
     }
 
     /**
+     * Returns if we should show the action buttons on the recent view based on the orientation
+     * state.
+     */
+    public boolean shouldHideActionButtons() {
+        // In fixed landscape always show the action buttons
+        return !isLauncherFixedLandscape()
+                // When not in fixed landscape, do not show actions buttons when using
+                // fake landscape which happens when the rotation is not ROTATION_0 unless
+                // rotation is allowed
+                && (getTouchRotation() != ROTATION_0 || getRecentsActivityRotation() != ROTATION_0)
+                && !isRecentsActivityRotationAllowed();
+    }
+
+    /**
      * Enables or disables the rotation watcher for listening to rotation callbacks
      */
     public void setRotationWatcherEnabled(boolean isEnabled) {
@@ -600,9 +613,8 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
      * Returns the device profile based on expected launcher rotation
      */
     public DeviceProfile getLauncherDeviceProfile(int displayId) {
-        if (enableOverviewOnConnectedDisplays()) {
-            return RecentsDisplayModel.getINSTANCE().get(mContext).getRecentsWindowManager(
-                    displayId).getDeviceProfile();
+        if (displayId != DEFAULT_DISPLAY) {
+            return mContainerInterface.getCreatedContainer().getDeviceProfile();
         } else {
             InvariantDeviceProfile idp = InvariantDeviceProfile.INSTANCE.get(mContext);
             Point currentSize = DisplayController.INSTANCE.get(mContext).getInfo().currentSize;

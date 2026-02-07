@@ -65,7 +65,7 @@
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"ล้างข้อความออกจากช่องค้นหา"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"วิดเจ็ตและทางลัดไม่พร้อมให้บริการ"</string>
     <string name="no_search_results" msgid="3787956167293097509">"ไม่พบวิดเจ็ตหรือทางลัด"</string>
-    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"ส่วนตัว"</string>
+    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"ส่วนบุคคล"</string>
     <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"งาน"</string>
     <string name="widget_category_conversations" msgid="8894438636213590446">"การสนทนา"</string>
     <string name="widget_category_note_taking" msgid="3469689394504266039">"การจดบันทึก"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"แตะเพื่อสิ้นสุดการตั้งค่า"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"นี่เป็นแอประบบและไม่สามารถถอนการติดตั้งได้"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"แก้ไขชื่อ"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"ใส่เลขหน้าด้านซ้าย"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"ใส่เลขหน้าด้านขวา"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"ปิดใช้ <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} มีการแจ้งเตือน # รายการ}other{{app_name} มีการแจ้งเตือน # รายการ}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"หน้า %1$d จาก %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"อนุญาตให้หมุนหน้าจอหลัก"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"เมื่อหมุนโทรศัพท์"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"โหมดแนวนอน"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ตั้งค่าโทรศัพท์เป็นโหมดแนวนอน"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"ตั้งหน้าจอหลักเป็นโหมดแนวนอน"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"เครื่องหมายจุดแสดงการแจ้งเตือน"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"เปิด"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ปิด"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"ล็อก"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"การเปลี่ยนไปใช้พื้นที่ส่วนตัว"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ติดตั้ง"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"เพิ่ม"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"ติดตั้งแอปไปยังพื้นที่ส่วนตัว"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"เพิ่มไฟล์และอื่นๆ ไปยังพื้นที่ส่วนตัว"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"วงกลม"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"สี่เหลี่ยมจัตุรัส"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"คุกกี้ 4 เหลี่ยม"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"คุกกี้ 7 เหลี่ยม"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"ทรงโค้ง"</string>
 </resources>

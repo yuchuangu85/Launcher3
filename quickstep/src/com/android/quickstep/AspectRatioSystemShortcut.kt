@@ -26,7 +26,7 @@ import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.popup.SystemShortcut
 import com.android.quickstep.views.RecentsViewContainer
 import com.android.quickstep.views.TaskContainer
-import com.android.window.flags.Flags.universalResizableByDefault
+import com.android.window.flags2.Flags.universalResizableByDefault
 
 /**
  * System shortcut to change the application's aspect ratio compatibility mode.
@@ -58,8 +58,7 @@ class AspectRatioSystemShortcut(
         }
 
         mTarget.startActivitySafely(view, intent, mItemInfo)
-        mTarget
-            .statsLogManager
+        mTarget.statsLogManager
             .logger()
             .withItemInfo(mItemInfo)
             .log(LauncherEvent.LAUNCHER_ASPECT_RATIO_SETTINGS_SYSTEM_SHORTCUT_TAP)
@@ -81,7 +80,7 @@ class AspectRatioSystemShortcut(
                         !universalResizableByDefault() -> null
 
                         // The option is only shown on sw600dp+ screens (checked by isTablet)
-                        !viewContainer.deviceProfile.isTablet -> null
+                        !viewContainer.deviceProfile.deviceProperties.isTablet -> null
 
                         else -> {
                             listOf(

@@ -47,7 +47,7 @@
     <string name="widget_accessible_dims_format" msgid="3640149169885301790">"%1$d plotis ir %2$d aukštis"</string>
     <string name="widget_preview_context_description" msgid="9045841361655787574">"<xliff:g id="WIDGET_NAME">%1$s</xliff:g> valdiklis"</string>
     <string name="widget_preview_name_and_dims_content_description" msgid="8489038126122831595">"Valdiklis: <xliff:g id="WIDGET_NAME">%1$s</xliff:g>; %2$d pločio ir %3$d aukščio"</string>
-    <string name="add_item_request_drag_hint" msgid="8730547755622776606">"Paliesdami ir palaikydami valdiklį galite judėti pagrindiniame ekrane"</string>
+    <string name="add_item_request_drag_hint" msgid="8730547755622776606">"Palietę ir palaikę valdiklį galėsite jį judinti pagrindiniame ekrane"</string>
     <string name="add_to_home_screen" msgid="9168649446635919791">"Pridėti prie pagrindinio ekrano"</string>
     <string name="added_to_home_screen_accessibility_text" msgid="4451545765448884415">"Valdiklis „<xliff:g id="WIDGET_NAME">%1$s</xliff:g>“ pridėtas prie pagrindinio ekrano"</string>
     <string name="suggested_widgets_header_title" msgid="1844314680798145222">"Pasiūlymai"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Palieskite, kad užbaigtumėte sąranką"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Tai sistemos programa ir jos negalima pašalinti."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Pavadinimo redagavimas"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Pereiti į ankstesnį puslapį"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Pereiti į tolesnį puslapį"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ išjungta"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{Programoje „{app_name}“ yra # pranešimas}one{Programoje „{app_name}“ yra # pranešimas}few{Programoje „{app_name}“ yra # pranešimai}many{Programoje „{app_name}“ yra # pranešimo}other{Programoje „{app_name}“ yra # pranešimų}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%1$d psl. iš %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Leisti pasukti pagrindinį ekraną"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Kai telefonas pasukamas"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Gulsčiojo ekrano režimas"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Nustatykite telefoną į gulsčiojo ekrano režimą"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Pagrindinį ekraną rodyti gulsčiojo ekrano režimu"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Pranešimų taškai"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Įjungta"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Išjungta"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Užrakinti"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Privačios erdvės perkėlimas"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Įdiegti"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Pridėti"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Įdiegti programas privačioje erdvėje"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Pridėkite failų ir kt. prie privačios erdvės"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Apskritimas"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadratas"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Keturkampis sausainis"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Septyniakampis sausainis"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arka"</string>
 </resources>

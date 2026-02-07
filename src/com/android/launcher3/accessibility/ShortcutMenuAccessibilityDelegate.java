@@ -28,7 +28,6 @@ import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.shortcuts.DeepShortcutView;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -64,7 +63,7 @@ public class ShortcutMenuAccessibilityDelegate extends LauncherAccessibilityDele
                 mContext.getModelWriter().addItemToDatabase(info,
                         LauncherSettings.Favorites.CONTAINER_DESKTOP,
                         screenId, coordinates[0], coordinates[1]);
-                mContext.bindItems(Collections.singletonList(info), true);
+                mContext.inflateAndBindItemWithAnimation(info);
                 AbstractFloatingView.closeAllOpenViews(mContext);
             }));
             return true;

@@ -16,26 +16,46 @@
 
 package com.android.quickstep.recents.domain.usecase
 
+import android.os.UserHandle
+import com.android.launcher3.Flags.enableRefactorDigitalWellbeingToast
 import com.android.quickstep.recents.data.RecentTasksRepository
 import com.android.quickstep.recents.domain.model.TaskModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class GetTaskUseCase(private val repository: RecentTasksRepository) {
+class GetTaskUseCase(
+    private val tasksRepository: RecentTasksRepository,
+    private val getRemainingAppTimerDurationUseCase: GetRemainingAppTimerDurationUseCase,
+) {
     operator fun invoke(taskId: Int): Flow<TaskModel?> =
-        repository.getTaskDataById(taskId).map { task ->
-            if (task != null) {
-                TaskModel(
-                    id = task.key.id,
-                    title = task.title,
-                    titleDescription = task.titleDescription,
-                    icon = task.icon,
-                    thumbnail = task.thumbnail,
-                    backgroundColor = task.colorBackground,
-                    isLocked = task.isLocked,
-                )
-            } else {
-                null
-            }
+        tasksRepository.getTaskDataById(taskId).map { task ->
+            if (task == null) return@map null
+
+            val packageName = task.topComponent.packageName
+
+            // TODO(b/405359794): If getTask for a single task ends up being called multiple
+            //  times by the UI, explore alternatives of loading the timer info only once.
+            val remainingDuration =
+                if (enableRefactorDigitalWellbeingToast()) {
+                    getRemainingAppTimerDurationUseCase(
+                        packageName = packageName,
+                        userHandle = UserHandle(task.key.userId),
+                    )
+                } else {
+                    null
+                }
+
+            TaskModel(
+                id = task.key.id,
+                packageName = packageName,
+                title = task.title,
+                titleDescription = task.titleDescription,
+                icon = task.icon,
+                thumbnail = task.thumbnail,
+                backgroundColor = task.colorBackground,
+                isLocked = task.isLocked,
+                isMinimized = task.isMinimized,
+                remainingAppDuration = remainingDuration,
+            )
         }
 }

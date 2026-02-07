@@ -22,10 +22,10 @@ import static com.android.launcher3.allapps.ActivityAllAppsContainerView.Adapter
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_WORK_DISABLED_CARD;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_WORK_EDU_CARD;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TURN_OFF_WORK_APPS_TAP;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_HAS_SHORTCUT_PERMISSION;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_QUIET_MODE_CHANGE_PERMISSION;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_QUIET_MODE_ENABLED;
-import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
+import static com.android.launcher3.model.data.AppsListData.FLAG_HAS_SHORTCUT_PERMISSION;
+import static com.android.launcher3.model.data.AppsListData.FLAG_QUIET_MODE_CHANGE_PERMISSION;
+import static com.android.launcher3.model.data.AppsListData.FLAG_QUIET_MODE_ENABLED;
+import static com.android.launcher3.model.data.AppsListData.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
 
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -130,11 +130,13 @@ public class WorkProfileManager extends UserProfileManager
      * Creates and attaches for profile toggle button to {@link ActivityAllAppsContainerView}
      */
     public boolean attachWorkUtilityViews() {
-        if (!mAllApps.getAppsStore().hasModelFlag(
-                FLAG_HAS_SHORTCUT_PERMISSION | FLAG_QUIET_MODE_CHANGE_PERMISSION)) {
-            Log.e(TAG, "unable to attach work mode switch; Missing required permissions");
-            return false;
-        }
+           // LC: Skip permission checks - being the default launcher is sufficient for work profile control
+           // FLAG_HAS_SHORTCUT_PERMISSION and FLAG_QUIET_MODE_CHANGE_PERMISSION are not required
+//         if (!mAllApps.getAppsStore().hasModelFlag(
+//                 FLAG_HAS_SHORTCUT_PERMISSION | FLAG_QUIET_MODE_CHANGE_PERMISSION)) {
+//             Log.e(TAG, "unable to attach work mode switch; Missing required permissions");
+//             return false;
+//         }
         if (mWorkUtilityView == null) {
             mWorkUtilityView = (WorkUtilityView) mAllApps.getLayoutInflater().inflate(
                     R.layout.work_mode_utility_view, mAllApps, false);
@@ -142,8 +144,11 @@ public class WorkProfileManager extends UserProfileManager
         if (mWorkUtilityView.getParent() == null) {
             mAllApps.addView(mWorkUtilityView);
         }
-        if (mAllApps.getCurrentPage() != WORK) {
+        int currentPage = mAllApps.getCurrentPage();
+        if (currentPage != WORK) {
             mWorkUtilityView.animateVisibility(false);
+        } else {
+            mWorkUtilityView.animateVisibility(true);
         }
         if (getAH() != null) {
             getAH().applyPadding();

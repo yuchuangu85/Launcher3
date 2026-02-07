@@ -17,13 +17,29 @@
 package com.android.quickstep.compose
 
 import android.content.Context
+import android.view.View
 import com.android.launcher3.compose.ComposeFacade
 import com.android.launcher3.compose.core.BaseComposeFacade
 import com.android.quickstep.compose.core.QuickstepComposeFeatures
+import com.android.quickstep.recents.ui.viewmodel.TaskViewModel
+import com.android.quickstep.views.TaskViewIcon
 
 object QuickstepComposeFacade : BaseComposeFacade, QuickstepComposeFeatures {
 
     override fun isComposeAvailable() = ComposeFacade.isComposeAvailable()
 
     override fun initComposeView(appContext: Context) = ComposeFacade.initComposeView(appContext)
+
+    override fun startIconAppChip(
+        composeView: TaskViewIcon,
+        viewModel: TaskViewModel,
+        taskId: Int,
+        onClick: () -> Unit,
+        onLongClick: () -> Unit,
+    ): View {
+        error(
+            "Compose is not available. Make sure to check isComposeAvailable() before calling any" +
+                " other function on ComposeFacade."
+        )
+    }
 }

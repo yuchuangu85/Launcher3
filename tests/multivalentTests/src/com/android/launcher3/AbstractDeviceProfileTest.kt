@@ -173,6 +173,28 @@ abstract class AbstractDeviceProfileTest {
         )
     }
 
+    protected fun initializeVarsForDesktop(
+        deviceSpec: DeviceSpec,
+        isLandscape: Boolean = false,
+        isGestureMode: Boolean = true,
+        gridName: String? = GRID_NAME.defaultValue,
+    ) {
+        val (naturalX, naturalY) = deviceSpec.naturalSize
+        val windowsBounds = tabletWindowsBounds(deviceSpec, naturalX, naturalY)
+        val displayInfo = CachedDisplayInfo(Point(naturalX, naturalY), Surface.ROTATION_0)
+        val perDisplayBoundsCache = mapOf(displayInfo to windowsBounds)
+
+        initializeCommonVars(
+            perDisplayBoundsCache,
+            displayInfo,
+            rotation = if (isLandscape) Surface.ROTATION_0 else Surface.ROTATION_90,
+            isGestureMode,
+            densityDpi = deviceSpec.densityDpi,
+            gridName = gridName,
+            isDesktopFormFactor = true,
+        )
+    }
+
     protected fun initializeVarsForTwoPanel(
         deviceSpecUnfolded: DeviceSpec,
         deviceSpecFolded: DeviceSpec,
@@ -291,6 +313,7 @@ abstract class AbstractDeviceProfileTest {
         isGestureMode: Boolean = true,
         densityDpi: Int,
         isFixedLandscape: Boolean = false,
+        isDesktopFormFactor: Boolean = false,
         gridName: String? = GRID_NAME.defaultValue,
     ) {
         setFlagsRule.setFlags(true, Flags.FLAG_ENABLE_TWOLINE_TOGGLE)
@@ -340,7 +363,16 @@ abstract class AbstractDeviceProfileTest {
             launcherPrefs.put(GRID_NAME, gridName)
         }
 
-        val info = spy(DisplayController.Info(context, windowManagerProxy, perDisplayBoundsCache))
+        val info =
+            spy(
+                DisplayController.Info(
+                    context,
+                    isDesktopFormFactor,
+                    windowManagerProxy,
+                    perDisplayBoundsCache,
+                    densityDpi,
+                )
+            )
         whenever(displayController.info).thenReturn(info)
         whenever(info.isTransientTaskbar).thenReturn(isGestureMode)
     }

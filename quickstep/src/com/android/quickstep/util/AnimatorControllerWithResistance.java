@@ -183,7 +183,7 @@ public class AnimatorControllerWithResistance {
                 params.startTranslation, endTranslation, RECENTS_TRANSLATE_RESIST_INTERPOLATOR);
 
         float prevScaleRate = (fullscreenScale - params.startScale)
-                / (params.dp.heightPx - startRect.bottom);
+                / (params.dp.getDeviceProperties().getHeightPx() - startRect.bottom);
         // This is what the scale would be at the end of the drag if we didn't apply resistance.
         float endScale = params.startScale - prevScaleRate * distanceToCover;
         // Create an interpolator that resists the scale so the scale doesn't get smaller than
@@ -256,7 +256,7 @@ public class AnimatorControllerWithResistance {
             this.scaleProperty = scaleProperty;
             this.translationTarget = translationTarget;
             this.translationProperty = translationProperty;
-            if (dp.isTablet) {
+            if (dp.getDeviceProperties().isTablet()) {
                 resistanceParams = RecentsResistanceParams.FROM_APP_TABLET;
             } else {
                 resistanceParams = RecentsResistanceParams.FROM_APP;

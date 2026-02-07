@@ -32,6 +32,9 @@ import static com.android.wm.shell.shared.split.SplitScreenConstants.SNAP_TO_NON
 import static com.android.wm.shell.shared.split.SplitScreenConstants.getIndex;
 import static com.android.wm.shell.shared.split.SplitScreenConstants.isPersistentSnapPosition;
 
+import static java.util.stream.Collectors.toList;
+
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.LauncherApps;
 import android.util.Log;
@@ -41,7 +44,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.app.displaylib.PerDisplayRepository;
 import com.android.internal.jank.Cuj;
+import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
 import com.android.launcher3.allapps.AllAppsStore;
@@ -56,14 +61,16 @@ import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.TaskViewItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.taskbar.TaskbarActivityContext;
-import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.SplitConfigurationOptions.StagePosition;
 import com.android.launcher3.views.ActivityContext;
+import com.android.quickstep.OverviewComponentObserver;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.TaskUtils;
 import com.android.quickstep.TopTaskTracker;
+import com.android.quickstep.fallback.window.RecentsWindowFlags;
+import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.views.GroupedTaskView;
 import com.android.quickstep.views.TaskContainer;
 import com.android.quickstep.views.TaskView;
@@ -105,6 +112,12 @@ public class AppPairsController {
 
     void onDestroy() {
         mContext = null;
+    }
+
+    private Launcher getLauncher() {
+        return mContext == null || !OverviewComponentObserver.INSTANCE.get(mContext.asContext())
+                .isHomeAndOverviewSame()
+                ? null : Launcher.ACTIVITY_TRACKER.getCreatedContext();
     }
 
     /**
@@ -215,19 +228,27 @@ public class AppPairsController {
                 iconCache.getTitleAndIcon(member, member.getMatchingLookupFlag());
             });
             MAIN_EXECUTOR.execute(() -> {
-                LauncherAccessibilityDelegate delegate = QuickstepLauncher.getLauncher(
-                        mContext.asContext()).getAccessibilityDelegate();
-                if (delegate != null) {
-                    delegate.addToWorkspace(newAppPair, true, (success) -> {
-                        if (success) {
-                            InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_SAVE_APP_PAIR);
-                        } else {
-                            InteractionJankMonitorWrapper.cancel(Cuj.CUJ_LAUNCHER_SAVE_APP_PAIR);
-                        }
-                    });
-                    mStatsLogManager.logger().withItemInfo(newAppPair)
-                            .log(StatsLogManager.LauncherEvent.LAUNCHER_APP_PAIR_SAVE);
+                Launcher launcher = getLauncher();
+                LauncherAccessibilityDelegate delegate = launcher == null
+                        ? null : launcher.getAccessibilityDelegate();
+                if (delegate == null) {
+                    return;
                 }
+                if (RecentsWindowFlags.enableLauncherOverviewInWindow) {
+                    PerDisplayRepository<RecentsWindowManager> recentsWindowManagerRepository =
+                            RecentsWindowManager.REPOSITORY_INSTANCE.get(mContext.asContext());
+                    recentsWindowManagerRepository.get(gtv.getDisplayId())
+                            .getStateManager().moveToRestState();
+                }
+                delegate.addToWorkspace(newAppPair, true, (success) -> {
+                    if (success) {
+                        InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_SAVE_APP_PAIR);
+                    } else {
+                        InteractionJankMonitorWrapper.cancel(Cuj.CUJ_LAUNCHER_SAVE_APP_PAIR);
+                    }
+                });
+                mStatsLogManager.logger().withItemInfo(newAppPair)
+                        .log(StatsLogManager.LauncherEvent.LAUNCHER_APP_PAIR_SAVE);
             });
         });
     }
@@ -299,8 +320,11 @@ public class AppPairsController {
      */
     @Nullable
     private AppInfo resolveAppInfoByComponent(@NonNull ComponentKey key) {
-        AllAppsStore appsStore = ActivityContext.lookupContext(mContext.asContext())
-                .getAppsView().getAppsStore();
+        Launcher launcher = getLauncher();
+        if (launcher == null) {
+            return null;
+        }
+        AllAppsStore appsStore = launcher.getAppsView().getAppsStore();
 
         // First look up the app info in order of:
         // - The exact activity for the recent task

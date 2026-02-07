@@ -18,7 +18,7 @@
 package com.android.launcher3.taskbar.bubbles
 
 import com.android.launcher3.R
-import com.android.launcher3.testing.shared.R as SharedR
+import com.android.wm.shell.R as SharedR // WM and WMShared are "shared" or linked together.
 import com.android.wm.shell.shared.bubbles.DismissView
 
 /**
@@ -39,6 +39,7 @@ fun DismissView.setup() {
             floatingGradientColorResId = android.R.color.system_neutral1_900,
             backgroundResId = SharedR.drawable.floating_dismiss_background,
             iconResId = SharedR.drawable.floating_dismiss_ic_close,
+            applyMarginOverNavBarInset = false,
         )
     )
 }

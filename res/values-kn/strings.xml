@@ -89,7 +89,7 @@
     <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"ಶಾರ್ಟ್‌ಕಟ್ ಸರಿಸಲು ಅಥವಾ ಕಸ್ಟಮ್ ಕ್ರಿಯೆಗಳನ್ನು ಬಳಸಲು ಡಬಲ್-ಟ್ಯಾಪ್ ಮಾಡಿ ಮತ್ತು ಹಿಡಿದುಕೊಳ್ಳಿ."</string>
     <string name="out_of_space" msgid="6455557115204099579">"ಈ ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ ಸ್ಥಳಾವಕಾಶವಿಲ್ಲ"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"ಮೆಚ್ಚಿನವುಗಳ ಟ್ರೇನಲ್ಲಿ ಹೆಚ್ಚಿನ ಸ್ಥಳಾವಕಾಶವಿಲ್ಲ"</string>
-    <string name="all_apps_button_label" msgid="8130441508702294465">"ಅಪ್ಲಿಕೇಶನ್‌ಗಳ ಪಟ್ಟಿ"</string>
+    <string name="all_apps_button_label" msgid="8130441508702294465">"ಆ್ಯಪ್‌ಗಳ ಪಟ್ಟಿ"</string>
     <string name="all_apps_search_results" msgid="5889367432531296759">"ಹುಡುಕಾಟ ಫಲಿತಾಂಶಗಳು"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"ವೈಯಕ್ತಿಕ ಅಪ್ಲಿಕೇಶನ್‌ಗಳ ಪಟ್ಟಿ"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"ಕೆಲಸದ ಅಪ್ಲಿಕೇಶನ್‌ಗಳ ಪಟ್ಟಿ"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"ಇದೊಂದು ಆ್ಯಪ್‌ ಆಗಿದೆ ಮತ್ತು ಅಸ್ಥಾಪಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"ಹೆಸರನ್ನು ಎಡಿಟ್ ಮಾಡಿ"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"ಎಡಕ್ಕೆ ಪುಟ ವಿಂಗಡಿಸಿ"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"ಬಲಕ್ಕೆ ಪುಟ ವಿಂಗಡಿಸಿ"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ಆ್ಯಪ್ # ಅಧಿಸೂಚನೆಯನ್ನು ಹೊಂದಿದೆ}one{{app_name} ಆ್ಯಪ್ # ಅಧಿಸೂಚನೆಗಳನ್ನು ಹೊಂದಿದೆ}other{{app_name} ಆ್ಯಪ್ # ಅಧಿಸೂಚನೆಗಳನ್ನು ಹೊಂದಿದೆ}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$d ರಲ್ಲಿ %1$d ಪುಟ"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"ಹೋಮ್ ಸ್ಕ್ರೀನ್ ತಿರುಗುವಿಕೆಯನ್ನು ಅನುಮತಿಸಿ"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"ಫೋನ್‌ ತಿರುಗಿಸಿದಾಗ"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"ಲ್ಯಾಂಡ್‌ಸ್ಕೇಪ್ ಮೋಡ್"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ಫೋನ್ ಅನ್ನು ಲ್ಯಾಂಡ್‌ಸ್ಕೇಪ್ ಮೋಡ್‌ಗೆ ಸೆಟ್ ಮಾಡಿ"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"ಹೋಮ್ ಸ್ಕ್ರೀನ್ ಅನ್ನು ಲ್ಯಾಂಡ್‌ಸ್ಕೇಪ್ ಮೋಡ್‌ಗೆ ಸೆಟ್ ಮಾಡಿ"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"ನೋಟಿಫಿಕೇಶನ್ ಡಾಟ್‌ಗಳು"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"ಆನ್ ಆಗಿದೆ"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ಆಫ್ ಆಗಿದೆ"</string>
@@ -146,7 +148,7 @@
     <string name="notification_dots_service_title" msgid="4284221181793592871">"ನೋಟಿಫಿಕೇಶನ್ ಡಾಟ್‌ಗಳನ್ನು ತೋರಿಸಿ"</string>
     <string name="developer_options_title" msgid="700788437593726194">"ಡೆವಲಪರ್ ಆಯ್ಕೆಗಳು"</string>
     <string name="auto_add_shortcuts_label" msgid="4926805029653694105">"ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ಗೆ ಆ್ಯಪ್ ಐಕಾನ್‌ಗಳನ್ನು ಸೇರಿಸಿ"</string>
-    <string name="auto_add_shortcuts_description" msgid="7117251166066978730">"ಹೊಸ ಅಪ್ಲಿಕೇಶನ್‌ಗಳಿಗೆ"</string>
+    <string name="auto_add_shortcuts_description" msgid="7117251166066978730">"ಹೊಸ ಆ್ಯಪ್‌ಗಳಿಗೆ"</string>
     <string name="package_state_unknown" msgid="7592128424511031410">"ಅಪರಿಚಿತ"</string>
     <string name="abandoned_clean_this" msgid="7610119707847920412">"ತೆಗೆದುಹಾಕಿ"</string>
     <string name="abandoned_search" msgid="891119232568284442">"ಹುಡುಕಿ"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"ಲಾಕ್ ಮಾಡಿ"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"ಖಾಸಗಿ ಸ್ಪೇಸ್ ಪರಿವರ್ತನೆಯಾಗುತ್ತಿದೆ"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ಇನ್‌ಸ್ಟಾಲ್"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"ಸೇರಿಸಿ"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"ಆ್ಯಪ್‌ಗಳನ್ನು ಪ್ರೈವೇಟ್ ಸ್ಪೇಸ್‌ನಲ್ಲಿ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"ಪ್ರೈವೆಟ್ ಸ್ಪೇಸ್‌ಗೆ ಫೈಲ್‌ಗಳು ಮತ್ತು ಹೆಚ್ಚಿನದನ್ನು ಸೇರಿಸಿ"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"ವಲಯ"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"ಚೌಕ"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4-ಬದಿಯ ಕುಕಿ"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7-ಬದಿಯ ಕುಕಿ"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"ಕಮಾನು"</string>
 </resources>

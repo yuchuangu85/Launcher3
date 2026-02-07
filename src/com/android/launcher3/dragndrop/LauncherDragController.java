@@ -51,6 +51,8 @@ import com.android.launcher3.widget.util.WidgetDragScaleUtils;
  */
 public class LauncherDragController extends DragController<Launcher> {
 
+    public static final String TAG = "LauncherDragController";
+
     private static final boolean PROFILE_DRAWING_DURING_DRAG = false;
     private final FlingToDeleteHelper mFlingToDeleteHelper;
 
@@ -151,9 +153,7 @@ public class LauncherDragController extends DragController<Launcher> {
                         initialDragViewScale,
                         dragViewScaleOnDrop,
                         scalePx);
-        // During a drag, we don't want to expose the descendendants of drag view to a11y users,
-        // since those decendents are not a valid position in the workspace.
-        dragView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+
         dragView.setItemInfo(dragInfo);
         mDragObject.dragComplete = false;
 
@@ -161,6 +161,7 @@ public class LauncherDragController extends DragController<Launcher> {
         mDragObject.yOffset = mMotionDown.y - (dragLayerY + dragRegionTop);
 
         mDragDriver = DragDriver.create(this, mOptions, mFlingToDeleteHelper::recordMotionEvent);
+        prepareViewForAccessibility(dragView);
         if (!mOptions.isAccessibleDrag) {
             mDragObject.stateAnnouncer = DragViewStateAnnouncer.createFor(dragView);
         }
@@ -198,6 +199,21 @@ public class LauncherDragController extends DragController<Launcher> {
         return dragView;
     }
 
+    /**
+     * During a drag, we don't want to expose the descendants of drag view to a11y users,
+     * since those descendants are not a valid position in the workspace.
+     * We need to go through the children because the view itself is important for
+     * accessibility, basically we are implementing:
+     * IMPORTANT_FOR_ACCESSIBILITY_YES_HIDE_DESCENDANTS
+     */
+    void prepareViewForAccessibility(DragView dragView) {
+        for (int i = 0; i < dragView.getChildCount(); i++) {
+            dragView.getChildAt(i).setImportantForAccessibility(
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            );
+        }
+    }
+
 
     /**
      * Returns the scale in terms of pixels (to be applied on width) to scale the preview
@@ -219,6 +235,11 @@ public class LauncherDragController extends DragController<Launcher> {
 
         return WidgetDragScaleUtils.getWidgetDragScalePx(mActivity, mActivity.getDeviceProfile(),
                 draggedViewWidthPx, draggedViewHeightPx, dragInfo);
+    }
+
+    @Override
+    public String dump() {
+        return TAG;
     }
 
     @Override

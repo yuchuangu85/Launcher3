@@ -28,6 +28,7 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import androidx.core.content.ContextCompat;
 import java.util.function.Consumer;
 
 public class SimpleBroadcastReceiver extends BroadcastReceiver {
@@ -93,7 +94,8 @@ public class SimpleBroadcastReceiver extends BroadcastReceiver {
     @AnyThread
     private void registerInternal(
             @NonNull Context context, @Nullable Runnable completionCallback, String... actions) {
-        context.registerReceiver(this, getFilter(actions));
+        ContextCompat.registerReceiver(context, this, getFilter(actions),
+            ContextCompat.RECEIVER_NOT_EXPORTED);
         if (completionCallback != null) {
             completionCallback.run();
         }

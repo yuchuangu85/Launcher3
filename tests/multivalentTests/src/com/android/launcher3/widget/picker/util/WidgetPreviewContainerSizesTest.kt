@@ -134,7 +134,7 @@ class WidgetPreviewContainerSizesTest {
             )
 
         private fun getTestSizes(dp: DeviceProfile) =
-            if (dp.isTablet && !dp.isTwoPanels) {
+            if (dp.deviceProperties.isTablet && !dp.deviceProperties.isTwoPanels) {
                 TABLET_TEST_SIZES
             } else {
                 HANDHELD_TEST_SIZES

@@ -16,12 +16,14 @@
 package com.android.launcher3.taskbar.overlay;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.Flags;
 import com.android.launcher3.R;
 import com.android.launcher3.popup.PopupDataProvider;
 import com.android.launcher3.taskbar.BaseTaskbarContext;
@@ -37,7 +39,8 @@ import com.android.launcher3.util.SplitConfigurationOptions.SplitSelectSource;
 /**
  * Window context for the taskbar overlays such as All Apps and EDU.
  * <p>
- * Overlays have their own window and need a window context. Some properties are delegated to the
+ * Overlays have their own window and need a window context. Some properties are
+ * delegated to the
  * {@link TaskbarActivityContext} such as {@link PopupDataProvider}.
  */
 public class TaskbarOverlayContext extends BaseTaskbarContext {
@@ -56,13 +59,14 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
             Context windowContext,
             TaskbarActivityContext taskbarContext,
             TaskbarControllers controllers) {
-        super(windowContext, taskbarContext.isPrimaryDisplay());
+        super(windowContext, taskbarContext.getDisplayId(), taskbarContext.isPrimaryDisplay());
         mTaskbarContext = taskbarContext;
         mOverlayController = controllers.taskbarOverlayController;
         mDragController = new TaskbarDragController(this);
         mDragController.init(controllers);
         mDragLayer = new TaskbarOverlayDragLayer(this);
         mStashedTaskbarHeight = controllers.taskbarStashController.getStashedHeight();
+        updateBlurStyle();
 
         mUiController = controllers.uiController;
         onViewCreated();
@@ -90,7 +94,10 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
         return mOverlayController;
     }
 
-    /** Returns {@code true} if overlay or Taskbar windows are handling a system drag. */
+    /**
+     * Returns {@code true} if overlay or Taskbar windows are handling a system
+     * drag.
+     */
     boolean isAnySystemDragInProgress() {
         return mDragController.isSystemDragInProgress()
                 || mTaskbarContext.getDragController().isSystemDragInProgress();
@@ -119,6 +126,20 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     @Override
     public TaskbarAllAppsContainerView getAppsView() {
         return mDragLayer.findViewById(R.id.apps_view);
+    }
+
+    @Override
+    public boolean isAllAppsBackgroundBlurEnabled() {
+        return Flags.allAppsBlur() && mOverlayController != null
+                && mOverlayController.isBackgroundBlurEnabled();
+    }
+
+    /** Apply the blur or blur fallback style to the current theme. */
+    private void updateBlurStyle() {
+        if (!Flags.allAppsBlur()) {
+            return;
+        }
+        getTheme().applyStyle(getAllAppsBlurStyleResId(), true);
     }
 
     @Override
@@ -163,6 +184,11 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     }
 
     @Override
+    public boolean isTaskbarShowingDesktopTasks() {
+        return mTaskbarContext.isTaskbarShowingDesktopTasks();
+    }
+
+    @Override
     public boolean showLockedTaskbarOnHome() {
         return mTaskbarContext.showLockedTaskbarOnHome();
     }
@@ -173,12 +199,23 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     }
 
     @Override
-    public boolean isPrimaryDisplay() {
-        return mTaskbarContext.isPrimaryDisplay();
+    public Point getScreenSize() {
+        return mTaskbarContext.getScreenSize();
     }
 
     @Override
-    public void onDragStart() {}
+    public int getDisplayHeight() {
+        return mTaskbarContext.getDisplayHeight();
+    }
+
+    @Override
+    public void notifyConfigChanged() {
+        mTaskbarContext.notifyConfigChanged();
+    }
+
+    @Override
+    public void onDragStart() {
+    }
 
     @Override
     public void onDragEnd() {
@@ -186,7 +223,8 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     }
 
     @Override
-    public void onPopupVisibilityChanged(boolean isVisible) {}
+    public void onPopupVisibilityChanged(boolean isVisible) {
+    }
 
     @Override
     public void onSplitScreenMenuButtonClicked() {

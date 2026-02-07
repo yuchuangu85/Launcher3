@@ -31,9 +31,12 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.app.animation.Interpolators;
+import com.android.launcher3.DeleteDropTarget;
 import com.android.launcher3.DragSource;
 import com.android.launcher3.DropTarget;
 import com.android.launcher3.Flags;
+import com.android.launcher3.LauncherSettings;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.logging.InstanceId;
 import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.ItemInfo;
@@ -41,10 +44,15 @@ import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.TouchController;
 import com.android.launcher3.views.ActivityContext;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.function.Predicate;
+
+import app.lawnchair.LawnchairApp;
+import app.lawnchair.preferences.PreferenceManager;
+import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Class for initiating a drag within a view or across multiple views.
@@ -120,11 +128,14 @@ public abstract class DragController<T extends ActivityContext>
         void onDragEnd();
     }
 
+    private PreferenceManager2 pref2;
+
     /**
      * Used to create a new DragLayer from XML.
      */
     public DragController(T activity) {
         mActivity = activity;
+        pref2 = PreferenceManager2.getInstance(LawnchairApp.getInstance());
     }
 
     /**
@@ -412,13 +423,17 @@ public abstract class DragController<T extends ActivityContext>
         }
 
         Point dragLayerPos = getClampedDragLayerPos(getX(ev), getY(ev));
-        mLastTouch.set(dragLayerPos.x,  dragLayerPos.y);
+        mLastTouch.set(dragLayerPos.x, dragLayerPos.y);
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             // Remember location of down touch
-            mMotionDown.set(dragLayerPos.x,  dragLayerPos.y);
+            mMotionDown.set(dragLayerPos.x, dragLayerPos.y);
         }
 
-        mLastTouchClassification = ev.getClassification();
+        if (Utilities.ATLEAST_Q) {
+            mLastTouchClassification = ev.getClassification();
+        } else {
+            mLastTouchClassification = 0; // equals to MotionEvent.CLASSIFICATION_NONE;
+        }
         return mDragDriver != null && mDragDriver.onInterceptTouchEvent(ev);
     }
 
@@ -543,6 +558,10 @@ public abstract class DragController<T extends ActivityContext>
                     dropTarget.onDrop(mDragObject, mOptions);
                 }
                 accepted = true;
+                if (PreferenceExtensionsKt.firstBlocking(pref2.getDeckLayout()) && dropTarget instanceof DeleteDropTarget &&
+                        isNeedCancelDrag(mDragObject.dragInfo)) {
+                    cancelDrag();
+                }
             }
 
             final View dropTargetAsView = dropTarget.getDropView();
@@ -550,10 +569,14 @@ public abstract class DragController<T extends ActivityContext>
         }
     }
 
+    private boolean isNeedCancelDrag(ItemInfo item){
+        return (item.itemType == LauncherSettings.Favorites.ITEM_TYPE_APPLICATION ||
+                item.itemType == LauncherSettings.Favorites.ITEM_TYPE_FOLDER);
+    }
+
     private DropTarget findDropTarget(final int x, final int y) {
         mCoordinatesTemp[0] = x;
         mCoordinatesTemp[1] = y;
-
         final Rect r = mRectTemp;
         final ArrayList<DropTarget> dropTargets = mDropTargets;
         final int count = dropTargets.size();
@@ -564,8 +587,11 @@ public abstract class DragController<T extends ActivityContext>
 
             target.getHitRectRelativeToDragLayer(r);
             if (r.contains(x, y)) {
-                mActivity.getDragLayer().mapCoordInSelfToDescendant(target.getDropView(),
-                        mCoordinatesTemp);
+                View dropTargetView = target.getDropView();
+                if (dropTargetView != null) {
+                    mActivity.getDragLayer().mapCoordInSelfToDescendant(dropTargetView,
+                            mCoordinatesTemp);
+                }
                 mDragObject.x = mCoordinatesTemp[0];
                 mDragObject.y = mCoordinatesTemp[1];
                 return target;

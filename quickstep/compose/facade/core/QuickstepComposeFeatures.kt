@@ -16,4 +16,16 @@
 
 package com.android.quickstep.compose.core
 
-interface QuickstepComposeFeatures
+import android.view.View
+import com.android.quickstep.recents.ui.viewmodel.TaskViewModel
+import com.android.quickstep.views.TaskViewIcon
+
+interface QuickstepComposeFeatures {
+    fun startIconAppChip(
+        composeView: TaskViewIcon,
+        viewModel: TaskViewModel,
+        taskId: Int,
+        onClick: () -> Unit = {},
+        onLongClick: () -> Unit = {},
+    ): View
+}

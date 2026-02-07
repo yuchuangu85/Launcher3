@@ -19,7 +19,7 @@ package com.android.launcher3.dagger
 import dagger.Subcomponent
 
 /** Sub component for Dagger injection for ActivityContext. */
-@Subcomponent(modules = [LauncherActivityContextModule::class])
+@Subcomponent
 @ActivityContextSingleton
 interface ActivityContextComponent : BaseActivityContextComponent {
 

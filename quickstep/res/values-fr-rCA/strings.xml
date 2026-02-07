@@ -23,12 +23,12 @@
     <string name="recent_task_option_freeform" msgid="48863056265284071">"Forme libre"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Bureau"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Passer à un écran externe"</string>
-    <string name="recent_task_option_close" msgid="942942499021777264">"Fermer"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"Effacer"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"Bureau"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"Aucun élément récent"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"Paramètres d\'utilisation de l\'appli"</string>
     <string name="recents_clear_all" msgid="5328176793634888831">"Tout effacer"</string>
+    <string name="add_desk_button_content_description" msgid="5866025518368823735">"Ajouter un nouveau bureau"</string>
     <string name="accessibility_recent_apps" msgid="4058661986695117371">"Applis récentes"</string>
     <string name="task_contents_description_with_remaining_time" msgid="4479688746574672685">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g> : <xliff:g id="REMAINING_TIME">%2$s</xliff:g>"</string>
     <string name="shorter_duration_less_than_one_minute" msgid="4722015666335015336">"&lt; 1 min"</string>
@@ -80,7 +80,7 @@
     <string name="overview_gesture_intro_title" msgid="2902054412868489378">"Balayez pour basculer entre les applis"</string>
     <string name="overview_gesture_intro_subtitle" msgid="4968091015637850859">"Pour changer d\'appli, balayez l\'écran de bas en haut, maintenez le doigt dessus, puis relâchez-le."</string>
     <string name="overview_gesture_tutorial_title" msgid="4125835002668708720">"Changer d\'appli"</string>
-    <string name="overview_gesture_tutorial_subtitle" msgid="5253549754058973071">"Balayez l\'écran de bas en haut, maintenez le doigt en place, puis relâchez-le"</string>
+    <string name="overview_gesture_tutorial_subtitle" msgid="5253549754058973071">"Balayez l\'écran de bas en haut, maintenez le doigt en place, puis relâchez-le."</string>
     <string name="overview_gesture_tutorial_success" msgid="1910267697807973076">"Bien joué!"</string>
     <string name="gesture_tutorial_confirm_title" msgid="6201516182040074092">"Terminé"</string>
     <string name="gesture_tutorial_action_button_label" msgid="6249846312991332122">"OK"</string>
@@ -92,9 +92,16 @@
     <string name="allset_hint" msgid="459504134589971527">"Balayez l\'écran vers le haut pour accéder à l\'écran d\'accueil"</string>
     <string name="allset_button_hint" msgid="2395219947744706291">"Toucher le bouton d\'accueil pour passer sur votre écran d\'accueil"</string>
     <string name="allset_description_generic" msgid="5385500062202019855">"Vous êtes maintenant prêt à utiliser votre <xliff:g id="DEVICE">%1$s</xliff:g>"</string>
-    <string name="default_device_name" msgid="6660656727127422487">"appareil"</string>
+    <string name="allset_description_fallback" msgid="2488751930355201578">"Vous êtes maintenant prêt à utiliser votre appareil."</string>
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Paramètres de navigation du système"</annotation></string>
+    <string name="allset_title_expressive" msgid="474399969304146994">"Votre appareil <xliff:g id="DEVICE">%1$s</xliff:g> est \nprêt!"</string>
+    <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"Votre appareil est \nprêt!"</string>
+    <string name="allset_subtitle_expressive" msgid="419688197551192358">"Profitez de votre nouvel appareil <xliff:g id="DEVICE">%1$s</xliff:g>!"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"Choisir un mode de navigation"</annotation></string>
+    <string name="allset_hint_expressive" msgid="756856423510976261">"Balayez l\'écran vers le haut"</string>
+    <string name="allset_button_hint_expressive" msgid="667643693410494225">"Touchez la touche d\'accueil"</string>
+    <string name="allset_device_type_tablet" msgid="2173392009787325894">"tablette"</string>
+    <string name="allset_device_type_phone" msgid="6842334562074507337">"téléphone"</string>
     <string name="action_share" msgid="2648470652637092375">"Partager"</string>
     <string name="action_screenshot" msgid="8171125848358142917">"Capture d\'écran"</string>
     <string name="action_split" msgid="2098009717623550676">"Diviser"</string>
@@ -106,16 +113,17 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"Choisir une autre appli pour utiliser l\'écran partagé"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"L\'appli ou votre organisation n\'autorise pas cette action"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"Les widgets ne sont actuellement pas pris en charge. Veuillez sélectionner une autre appli"</string>
-    <string name="skip_tutorial_dialog_title" msgid="2725643161260038458">"Ignorer le tutoriel sur la navigation?"</string>
-    <string name="skip_tutorial_dialog_subtitle" msgid="544063326241955662">"Vous trouverez le tutoriel dans l\'appli <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="gesture_tutorial_action_button_label_cancel" msgid="3809842569351264108">"Annuler"</string>
-    <string name="gesture_tutorial_action_button_label_skip" msgid="394452764989751960">"Ignorer"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"Faire pivoter l\'écran"</string>
+    <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"Animation montrant comment la Barre des tâches s\'affiche dans la partie inférieure de l\'écran et se masque automatiquement lorsqu\'elle n\'est pas utilisée"</string>
+    <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"Animation montrant comment épingler la Barre des tâches à l\'aide d\'un commutateur, de sorte qu\'elle reste visible en permanence dans la partie inférieure de l\'écran"</string>
+    <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"Animation montrant comment créer un Écran divisé, en glissant-déposant une appli de la Barre des tâches au-dessus d\'une appli ouverte"</string>
+    <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"Animation montrant comment accéder aux applis suggérées sur votre appareil"</string>
+    <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"Animation montrant comment rechercher un élément à l\'écran, en touchant et en maintenant le doigt sur la touche d\'action et en sélectionnant la zone dans laquelle se trouve l\'élément"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"Informations sur la barre des tâches"</string>
-    <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"Faites glisser une appli sur le côté pour en utiliser deux à la fois"</string>
+    <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"Faites glisser une appli sur le côté pour en utiliser deux à la fois."</string>
     <string name="taskbar_edu_stashing" msgid="5645461372669217294">"Balayez lentement vers le haut pour voir la barre des tâches"</string>
-    <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"Obtenez des suggestions d\'applis en fonction de vos routines"</string>
-    <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Maintenez le doigt sur le séparateur pour épingler la barre des tâches"</string>
+    <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"Obtenez des suggestions d\'applis en fonction de vos routines."</string>
+    <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Maintenez le doigt sur le séparateur pour épingler la barre des tâches."</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"Faites-en plus avec la barre des tâches"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"Toujours afficher la Barre des tâches"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"Pour toujours afficher la Barre des tâches en bas de l\'écran, maintenez le doigt sur le séparateur"</string>
@@ -138,7 +146,7 @@
     <string name="always_show_taskbar" msgid="3608801276107751229">"Tjrs afficher barre des tâches"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"Changer de mode de navigation"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"Séparateur de la barre des tâches"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="7960342079198820179">"Barre des tâches à développer"</string>
+    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"Autres applis récentes"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"Déplacer vers le coin supérieur gauche de l\'écran"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"Déplacer vers le coin inférieur droit de l\'écran"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"Ouvrir l\'appli sous forme de bulle"</string>
@@ -165,5 +173,7 @@
     <string name="header_close_icon_description" msgid="5400033616675911319">"Bouton Fermer"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"Éping. (barre tâche)"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"Détacher (bar. tâc.)"</string>
+    <string name="nudge_a11y_title" msgid="2126529303123687912">"Coup de coude"</string>
+    <string name="nudge_a11y_close" msgid="4513937143817625570">"Fermer"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"Coup de coude sur l\'image"</string>
 </resources>

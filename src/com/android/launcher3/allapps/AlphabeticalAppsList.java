@@ -12,11 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modifications copyright 2025, Lawnchair
  */
 package com.android.launcher3.allapps;
 
 import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
 
+import static com.android.launcher3.Utilities.ATLEAST_BAKLAVA;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_MASK_PRIVATE_SPACE_HEADER;
 import static com.android.launcher3.allapps.SectionDecorationInfo.ROUND_BOTTOM_LEFT;
@@ -104,7 +107,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
     // The number of results in current adapter
     private int mAccessibilityResultsCount = 0;
     // The current set of adapter items
-    private final ArrayList<AdapterItem> mAdapterItems = new ArrayList<>();
+    protected final ArrayList<AdapterItem> mAdapterItems = new ArrayList<>();
     // The set of sections that we allow fast-scrolling to (includes non-merged sections)
     private final List<FastScrollSectionInfo> mFastScrollerSections = new ArrayList<>();
 
@@ -116,7 +119,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
     private AppInfoComparator mAppNameComparator;
     private int mNumAppsPerRowAllApps;
     private int mNumAppRowsInAdapter;
-    private Predicate<ItemInfo> mItemFilter;
+    public Predicate<ItemInfo> mItemFilter;
 
     public AlphabeticalAppsList(Context context, @Nullable AllAppsStore<T> appsStore,
             WorkProfileManager workProfileManager, PrivateProfileManager privateProfileManager) {
@@ -130,7 +133,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
             mAllAppsStore.addUpdateListener(this);
         }
         mPrivateProfileAppScrollerBadge = new SpannableString(" ");
-        mPrivateProfileAppScrollerBadge.setSpan(new ImageSpan(context, true/*Flags.letterFastScroller()*/
+        mPrivateProfileAppScrollerBadge.setSpan(new ImageSpan(context, Flags.letterFastScroller()
                         ? R.drawable.ic_private_profile_letter_list_fast_scroller_badge :
                         R.drawable.ic_private_profile_app_scroller_badge, ImageSpan.ALIGN_CENTER),
                 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -386,11 +389,35 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
     }
 
     private int addPrivateSpaceApps(int position) {
-        // Add Install Apps Button first.
-        if (Flags.privateSpaceAppInstallerButton() && !enableMovingContentIntoPrivateSpace()) {
-            mPrivateProviderManager.addPrivateSpaceInstallAppButton(mAdapterItems);
-            position++;
+
+        /* LC-Note: Fix for missing flags and account for NCDFE */
+        boolean enableMovingContentIntoPrivateSpace = false;
+        if (ATLEAST_BAKLAVA) {
+            try {
+                /* LC-Note: Some devices (Android 16 QPR) doesn't have or expose this flag to user.
+                 * Let's assume no, because (the flags) enableMovingContentIntoPrivateSpace seems
+                 * to be False for R8 by default.
+                 * */
+                enableMovingContentIntoPrivateSpace = enableMovingContentIntoPrivateSpace();
+            } catch (NoClassDefFoundError e) {
+                /* LC-Ignored: we already set it false by default. */
+            }
         }
+        
+        // Add Install Apps Button first.
+        if (!ATLEAST_BAKLAVA) {
+            // LC: Baklava added a new behavior for the PS app button. (enableMovingContentIntoPrivateSpace)
+            if (!enableMovingContentIntoPrivateSpace) {
+                mPrivateProviderManager.addPrivateSpaceInstallAppButton(mAdapterItems);
+                position++;
+            }
+        } else {
+            if (Flags.enablePrivateSpace()) {
+                mPrivateProviderManager.addPrivateSpaceInstallAppButton(mAdapterItems);
+                position++;
+            }
+        }
+
 
         // Split of private space apps into user-installed and system apps.
         Map<Boolean, List<AppInfo>> split = mPrivateApps.stream()
@@ -424,7 +451,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
         // Add system apps.
         position = addAppsWithSections(split.get(false), position);
 
-        if (enableMovingContentIntoPrivateSpace()) {
+        if (enableMovingContentIntoPrivateSpace) {
             // Look for the private space app via package and move it after header.
             int headerIndex = -1;
             int privateSpaceAppIndex = -1;
@@ -437,6 +464,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
                         currentItem.itemInfo.getTargetPackage(), PRIVATE_SPACE_PACKAGE)) {
                     currentItem.itemInfo.bitmap = mPrivateProviderManager.preparePSBitmapInfo();
                     currentItem.itemInfo.bitmap.creationFlags |= FLAG_NO_BADGE;
+                    currentItem.itemInfo.title = mPrivateProviderManager.getPSAppTitleOverride();
                     currentItem.itemInfo.contentDescription =
                             mPrivateProviderManager.getPsAppContentDesc();
                     privateSpaceAppIndex = i;
@@ -452,7 +480,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
         return position;
     }
 
-    private int addAppsWithSections(List<AppInfo> appList, int startPosition) {
+    protected int addAppsWithSections(List<AppInfo> appList, int startPosition) {
         String lastSectionName = null;
         boolean hasPrivateApps = false;
         int position = startPosition;
@@ -467,7 +495,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
             if (hasPrivateApps) {
                 mAdapterItems.add(AdapterItem.asAppWithDecorationInfo(info,
                         new SectionDecorationInfo(mActivityContext,
-                                getRoundRegions(i, appList.size()), true /* decorateTogether */)));
+                                getRoundRegions(i, appList.size()))));
             } else {
                 mAdapterItems.add(AdapterItem.asApp(info));
             }
@@ -478,8 +506,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
                 Log.d(TAG, "addAppsWithSections: adding sectionName: " + sectionName
                     + " with appInfoTitle: " + info.title);
                 lastSectionName = sectionName;
-                // TODO(gyc)
-                boolean usePrivateAppScrollerBadge = !true/*Flags.letterFastScroller()*/ && hasPrivateApps;
+                boolean usePrivateAppScrollerBadge = !Flags.letterFastScroller() && hasPrivateApps;
                 FastScrollSectionInfo sectionInfo = new FastScrollSectionInfo(
                         usePrivateAppScrollerBadge ?
                                 mPrivateProfileAppScrollerBadge : sectionName, position);
@@ -490,6 +517,20 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
         return position;
     }
 
+
+    /**
+     * Checks if the provided list of apps are from the work/private profile.
+     */
+    protected boolean isWorkOrPrivateSpace(List<AppInfo> appList) {
+        if (appList.isEmpty()) {
+            return false;
+        }
+        return appList.stream().anyMatch(info ->
+                (mWorkProviderManager != null && mWorkProviderManager.getItemInfoMatcher().test(info))
+                        || (mPrivateProviderManager != null
+                        && mPrivateProviderManager.getItemInfoMatcher().test(info)));
+    }
+    
     /**
      * Determines the corner regions that should be rounded for a specific app icon based on its
      * position in a grid. Apps that should only be cared about rounding are the apps in the last

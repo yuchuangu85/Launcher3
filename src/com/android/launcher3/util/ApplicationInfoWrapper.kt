@@ -34,7 +34,7 @@ import kotlin.LazyThreadSafetyMode.NONE
 /**
  * A set of utility methods around ApplicationInfo with support for fetching the actual info lazily
  */
-class ApplicationInfoWrapper private constructor(provider: () -> ApplicationInfo?) {
+class ApplicationInfoWrapper(provider: () -> ApplicationInfo?) {
 
     constructor(appInfo: ApplicationInfo?) : this({ appInfo })
 

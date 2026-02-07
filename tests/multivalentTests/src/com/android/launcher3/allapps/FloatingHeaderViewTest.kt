@@ -48,19 +48,6 @@ class FloatingHeaderViewTest {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_FLOATING_SEARCH_BAR, Flags.FLAG_MULTILINE_SEARCH_BAR)
-    fun onHeightUpdated_whenNotMultiline_thenZeroHeight() {
-        vut.setFloatingRowsCollapsed(true)
-        val beforeHeight = vut.maxTranslation
-        vut.updateSearchBarOffset(HEADER_HEIGHT_OFFSET)
-
-        vut.onHeightUpdated()
-
-        assertThat(vut.maxTranslation).isEqualTo(beforeHeight)
-    }
-
-    @Test
-    @EnableFlags(Flags.FLAG_MULTILINE_SEARCH_BAR)
     @DisableFlags(Flags.FLAG_FLOATING_SEARCH_BAR)
     fun onHeightUpdated_whenMultiline_thenHeightIsOffset() {
         vut.setFloatingRowsCollapsed(true)
@@ -72,9 +59,8 @@ class FloatingHeaderViewTest {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_MULTILINE_SEARCH_BAR)
     @EnableFlags(Flags.FLAG_FLOATING_SEARCH_BAR)
-    fun onHeightUpdated_whenFloatingRowsShownAndNotMultiline_thenAddsOnlyFloatingRow() {
+    fun onHeightUpdated_whenFloatingRowsShownAndSingleLine_thenAddsOnlyFloatingRow() {
         // Collapse floating rows and expand to trigger header height calculation
         vut.setFloatingRowsCollapsed(true)
         vut.setFloatingRowsCollapsed(false)

@@ -16,21 +16,23 @@
 package com.android.quickstep.task.thumbnail
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
-import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
+import android.platform.test.flag.junit.SetFlagsRule
 import android.view.LayoutInflater
 import android.view.Surface.ROTATION_0
-import androidx.core.graphics.set
+import com.android.launcher3.Flags
 import com.android.launcher3.R
+import com.android.launcher3.util.rule.setFlags
+import com.android.quickstep.task.thumbnail.SplashHelper.createBitmap
+import com.android.quickstep.task.thumbnail.SplashHelper.createSplash
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.BackgroundOnly
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.Snapshot
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.SnapshotSplash
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.Uninitialized
 import com.google.android.apps.nexuslauncher.imagecomparison.goldenpathmanager.ViewScreenshotGoldenPathManager
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,12 +47,19 @@ import platform.test.screenshot.getEmulatedDevicePathConfig
 @RunWith(ParameterizedAndroidJunit4::class)
 class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
 
-    @get:Rule
+    @get:Rule(order = 0) val setFlagsRule = SetFlagsRule()
+
+    @get:Rule(order = 1)
     val screenshotRule =
         ViewScreenshotTestRule(
             emulationSpec,
             ViewScreenshotGoldenPathManager(getEmulatedDevicePathConfig(emulationSpec)),
         )
+
+    @Before
+    fun setUp() {
+        setFlagsRule.setFlags(false, Flags.FLAG_ENABLE_REFACTOR_TASK_CONTENT_VIEW)
+    }
 
     @Test
     fun taskThumbnailView_uninitializedByDefault() {
@@ -65,6 +74,7 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
         screenshotRule.screenshotTest("taskThumbnailView_uninitialized") { activity ->
             activity.actionBar?.hide()
             val taskThumbnailView = createTaskThumbnailView(activity)
+            taskThumbnailView.setState(BackgroundOnly(Color.YELLOW))
             taskThumbnailView.setState(Uninitialized)
             taskThumbnailView
         }
@@ -90,23 +100,25 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
     }
 
     @Test
-    fun taskThumbnailView_liveTile_withoutHeader() {
+    fun taskThumbnailView_liveTile() {
         screenshotRule.screenshotTest("taskThumbnailView_liveTile") { activity ->
             activity.actionBar?.hide()
-            createTaskThumbnailView(activity).apply {
-                setState(TaskThumbnailUiState.LiveTile.WithoutHeader)
-            }
+            createTaskThumbnailView(activity).apply { setState(TaskThumbnailUiState.LiveTile) }
         }
     }
 
     @Test
-    fun taskThumbnailView_image_withoutHeader() {
+    fun taskThumbnailView_image() {
         screenshotRule.screenshotTest("taskThumbnailView_image") { activity ->
             activity.actionBar?.hide()
             createTaskThumbnailView(activity).apply {
                 setState(
                     SnapshotSplash(
-                        Snapshot.WithoutHeader(createBitmap(), ROTATION_0, Color.DKGRAY),
+                        Snapshot(
+                            createBitmap(VIEW_ENV_WIDTH, VIEW_ENV_HEIGHT),
+                            ROTATION_0,
+                            Color.DKGRAY,
+                        ),
                         null,
                     )
                 )
@@ -115,14 +127,14 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
     }
 
     @Test
-    fun taskThumbnailView_image_withoutHeader_withImageMatrix() {
+    fun taskThumbnailView_image_withImageMatrix() {
         screenshotRule.screenshotTest("taskThumbnailView_image_withMatrix") { activity ->
             activity.actionBar?.hide()
             createTaskThumbnailView(activity).apply {
                 val lessThanHeightMatchingAspectRatio = (VIEW_ENV_HEIGHT / 2) - 200
                 setState(
                     SnapshotSplash(
-                        Snapshot.WithoutHeader(
+                        Snapshot(
                             createBitmap(
                                 width = VIEW_ENV_WIDTH / 2,
                                 height = lessThanHeightMatchingAspectRatio,
@@ -139,13 +151,17 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
     }
 
     @Test
-    fun taskThumbnailView_splash_withoutHeader() {
+    fun taskThumbnailView_splash() {
         screenshotRule.screenshotTest("taskThumbnailView_partial_splash") { activity ->
             activity.actionBar?.hide()
             createTaskThumbnailView(activity).apply {
                 setState(
                     SnapshotSplash(
-                        Snapshot.WithoutHeader(createBitmap(), ROTATION_0, Color.DKGRAY),
+                        Snapshot(
+                            createBitmap(VIEW_ENV_WIDTH, VIEW_ENV_HEIGHT),
+                            ROTATION_0,
+                            Color.DKGRAY,
+                        ),
                         BitmapDrawable(activity.resources, createSplash()),
                     )
                 )
@@ -155,14 +171,14 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
     }
 
     @Test
-    fun taskThumbnailView_splash_withoutHeader_withImageMatrix() {
+    fun taskThumbnailView_splash_withImageMatrix() {
         screenshotRule.screenshotTest("taskThumbnailView_partial_splash_withMatrix") { activity ->
             activity.actionBar?.hide()
             createTaskThumbnailView(activity).apply {
                 val lessThanHeightMatchingAspectRatio = (VIEW_ENV_HEIGHT / 2) - 200
                 setState(
                     SnapshotSplash(
-                        Snapshot.WithoutHeader(
+                        Snapshot(
                             createBitmap(
                                 width = VIEW_ENV_WIDTH / 2,
                                 height = lessThanHeightMatchingAspectRatio,
@@ -233,27 +249,6 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
         return taskThumbnailView
     }
 
-    private fun createSplash() = createBitmap(width = 20, height = 20, rectColorRotation = 1)
-
-    private fun createBitmap(
-        width: Int = VIEW_ENV_WIDTH,
-        height: Int = VIEW_ENV_HEIGHT,
-        rectColorRotation: Int = 0,
-    ) =
-        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
-            Canvas(this).apply {
-                val paint = Paint()
-                paint.color = BITMAP_RECT_COLORS[rectColorRotation % 4]
-                drawRect(0f, 0f, width / 2f, height / 2f, paint)
-                paint.color = BITMAP_RECT_COLORS[(1 + rectColorRotation) % 4]
-                drawRect(width / 2f, 0f, width.toFloat(), height / 2f, paint)
-                paint.color = BITMAP_RECT_COLORS[(2 + rectColorRotation) % 4]
-                drawRect(0f, height / 2f, width / 2f, height.toFloat(), paint)
-                paint.color = BITMAP_RECT_COLORS[(3 + rectColorRotation) % 4]
-                drawRect(width / 2f, height / 2f, width.toFloat(), height.toFloat(), paint)
-            }
-        }
-
     companion object {
         @Parameters(name = "{0}")
         @JvmStatic
@@ -265,7 +260,6 @@ class TaskThumbnailViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
             )
 
         const val CORNER_RADIUS = 56f
-        val BITMAP_RECT_COLORS = listOf(Color.GREEN, Color.RED, Color.BLUE, Color.CYAN)
         const val VIEW_ENV_WIDTH = 1440
         const val VIEW_ENV_HEIGHT = 3120
     }

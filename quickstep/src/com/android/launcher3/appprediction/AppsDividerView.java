@@ -33,10 +33,12 @@ import android.view.accessibility.AccessibilityManager;
 import androidx.annotation.ColorInt;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.launcher3.Flags;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.FloatingHeaderRow;
 import com.android.launcher3.allapps.FloatingHeaderView;
+import com.android.launcher3.util.Themes;
 
 /**
  * A view which shows a horizontal divider
@@ -84,9 +86,10 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
                 getResources().getDimensionPixelSize(R.dimen.all_apps_divider_height)
         };
 
-        mStrokeColor = context.getColor(R.color.materialColorOutlineVariant);
-
-        mAllAppsLabelTextColor = context.getColor(R.color.materialColorOnSurfaceVariant);
+        mStrokeColor = Flags.allAppsBlur()
+                ? Themes.getAttrColor(context, R.attr.bottomSheetDragHandleColor)
+                : context.getColor(R.color.materialColorOutlineVariant);
+        mAllAppsLabelTextColor = context.getColor(R.color.materialColorOnSurface);
 
         mAccessibilityManager = AccessibilityManager.getInstance(context);
         setShowAllAppsLabel(!ALL_APPS_VISITED_COUNT.hasReachedMax(context));
@@ -211,7 +214,8 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
     private Layout getAllAppsLabelLayout() {
         if (mAllAppsLabelLayout == null) {
             mPaint.setAntiAlias(true);
-            mPaint.setTypeface(Typeface.create("google-sans", Typeface.NORMAL));
+            mPaint.setTypeface(Typeface.create(Flags.gsfRes() ? "variable-title-small"
+                    : "google-sans", Typeface.NORMAL));
             mPaint.setTextSize(
                     getResources().getDimensionPixelSize(R.dimen.all_apps_label_text_size));
 

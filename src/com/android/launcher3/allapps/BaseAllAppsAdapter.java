@@ -33,6 +33,7 @@ import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
 import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -42,7 +43,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.search.SearchAdapterProvider;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.model.data.AppInfo;
+import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.views.ActivityContext;
 
 /**
@@ -69,9 +72,12 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
     public static final int VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO = 1 << 8;
     public static final int NEXT_ID = 9;
 
+    // LC-Feature: Folder support in All Apps, can be any ID
+    public static final int VIEW_TYPE_FOLDER = 1 << 10;
+
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
-    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON;
+    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_FOLDER | VIEW_TYPE_ICON;
 
     public static final int VIEW_TYPE_MASK_PRIVATE_SPACE_HEADER =
             VIEW_TYPE_PRIVATE_SPACE_HEADER;
@@ -113,6 +119,9 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
             this.viewType = viewType;
         }
 
+        // LC-Feature: Folder support in All Apps
+        public FolderInfo folderInfo = new FolderInfo();
+
         /**
          * Factory method for AppIcon AdapterItem
          */
@@ -129,8 +138,14 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
             return item;
         }
 
+        public static AdapterItem asFolder(FolderInfo folderInfo) {
+            AdapterItem item = new AdapterItem(VIEW_TYPE_FOLDER);
+            item.folderInfo = folderInfo;
+            return item;
+        }
+
         protected boolean isCountedForAccessibility() {
-            return viewType == VIEW_TYPE_ICON;
+            return viewType == VIEW_TYPE_ICON || viewType == VIEW_TYPE_FOLDER;
         }
 
         /**
@@ -227,7 +242,7 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                 icon.setOnLongClickListener(mOnIconLongClickListener);
                 // Ensure the all apps icon height matches the workspace icons in portrait mode.
                 icon.getLayoutParams().height =
-                        mActivityContext.getDeviceProfile().allAppsCellHeightPx;
+                        mActivityContext.getDeviceProfile().getAllAppsProfile().getCellHeightPx();
                 return new ViewHolder(icon);
             case VIEW_TYPE_EMPTY_SEARCH:
                 return new ViewHolder(mLayoutInflater.inflate(R.layout.all_apps_empty_search,
@@ -246,6 +261,13 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                         R.layout.private_space_header, parent, false));
             case VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO:
                 return new ViewHolder(new View(mActivityContext));
+            case VIEW_TYPE_FOLDER:
+                // LC-Feature: Folder support in All Apps
+                FrameLayout fl = new FrameLayout(mActivityContext);
+                ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+                return new ViewHolder(fl);
             default:
                 if (mAdapterProvider.isViewSupported(viewType)) {
                     return mAdapterProvider.onCreateViewHolder(mLayoutInflater, parent, viewType);
@@ -314,14 +336,13 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                     roundRegions |= (ROUND_BOTTOM_LEFT | ROUND_BOTTOM_RIGHT);
                 }
                 adapterItem.decorationInfo =
-                        new SectionDecorationInfo(mActivityContext, roundRegions,
-                                false /* decorateTogether */);
+                        new SectionDecorationInfo(mActivityContext, roundRegions);
                 break;
             case VIEW_TYPE_PRIVATE_SPACE_SYS_APPS_DIVIDER:
                 adapterItem = mApps.getAdapterItems().get(position);
-                adapterItem.decorationInfo = mApps.getPrivateProfileManager().getCurrentState()
-                        == STATE_DISABLED ? null : new SectionDecorationInfo(mActivityContext,
-                        ROUND_NOTHING, true /* decorateTogether */);
+                adapterItem.decorationInfo =
+                        mApps.getPrivateProfileManager().getCurrentState() == STATE_DISABLED ? null
+                                : new SectionDecorationInfo(mActivityContext, ROUND_NOTHING);
                 break;
             case VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO:
             case VIEW_TYPE_ALL_APPS_DIVIDER:
@@ -330,6 +351,15 @@ public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> ex
                 break;
             case VIEW_TYPE_WORK_EDU_CARD:
                 ((WorkEduCard) holder.itemView).setPosition(position);
+                break;
+            case VIEW_TYPE_FOLDER:
+                // LC: Caddy/Folder in allapps 86b2b025a4f23a068818274020f37ad6d5268363
+                FolderInfo folderInfo = mApps.getAdapterItems().get(position).folderInfo;
+                ViewGroup container = (ViewGroup) holder.itemView;
+                container.removeAllViews();
+                container.addView(
+                    FolderIcon.inflateFolderAndIcon(R.layout.all_apps_folder_icon, mActivityContext,
+                    container, folderInfo));
                 break;
             default:
                 if (mAdapterProvider.isViewSupported(holder.getItemViewType())) {

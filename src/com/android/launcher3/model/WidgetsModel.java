@@ -3,7 +3,7 @@ package com.android.launcher3.model;
 
 import static android.appwidget.AppWidgetProviderInfo.WIDGET_FEATURE_HIDE_FROM_PICKER;
 
-import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
 import static com.android.launcher3.icons.cache.CacheLookupFlag.DEFAULT_LOOKUP_FLAG;
 import static com.android.launcher3.pm.ShortcutConfigActivityInfo.queryList;
 import static com.android.launcher3.widget.WidgetSections.NO_CATEGORY;
@@ -23,6 +23,7 @@ import androidx.annotation.Nullable;
 import androidx.collection.ArrayMap;
 
 import com.android.launcher3.AppFilter;
+import com.android.launcher3.BuildConfig;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.Utilities;
@@ -54,8 +55,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
+
+import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Widgets data model that is used by the adapters of the widget views and controllers.
@@ -71,7 +75,7 @@ public class WidgetsModel {
     private final Map<PackageItemInfo, List<WidgetItem>> mWidgetsByPackageItem = new HashMap<>();
     @Nullable private WidgetValidityCheckForPicker mWidgetValidityCheckForPicker = null;
 
-    private final Context mContext;
+    private static Context mContext = null;
     private final InvariantDeviceProfile mIdp;
     private final IconCache mIconCache;
     private final AppFilter mAppFilter;
@@ -138,16 +142,16 @@ public class WidgetsModel {
         return mWidgetsByPackageItem.entrySet().stream()
                 .collect(
                         Collectors.toMap(
-                                Map.Entry::getKey,
+                                Entry::getKey,
                                 entry -> entry.getValue().stream()
                                         .filter(widgetItem ->
                                                 mWidgetValidityCheckForPicker.test(widgetItem))
-                                        .collect(Collectors.toList())
+                                        .collect(toList())
                         )
                 )
                 .entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
     /**
@@ -296,18 +300,23 @@ public class WidgetsModel {
 
         private final InvariantDeviceProfile mIdp;
         private final AppFilter mAppFilter;
+        private PreferenceManager2 prefs;
 
         WidgetValidityCheckForPicker(InvariantDeviceProfile idp, AppFilter appFilter) {
             mIdp = idp;
             mAppFilter = appFilter;
+            prefs = PreferenceManager2.getInstance(mContext);
         }
 
         @Override
         public boolean test(WidgetItem item) {
             if (item.widgetInfo != null) {
                 if ((item.widgetInfo.getWidgetFeatures() & WIDGET_FEATURE_HIDE_FROM_PICKER) != 0) {
-                    // Widget is hidden from picker
-                    return false;
+                    boolean isSelf = item.componentName.getPackageName().equals(BuildConfig.APPLICATION_ID);
+                    if (!isSelf) {
+                        // Widget is hidden from picker
+                        return false;
+                    }
                 }
 
                 // Ensure that all widgets we show can be added on a workspace of this size

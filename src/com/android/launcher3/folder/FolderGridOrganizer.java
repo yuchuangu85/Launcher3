@@ -141,11 +141,8 @@ public class FolderGridOrganizer {
      * @return true if there was any change
      */
     public boolean updateRankAndPos(ItemInfo item, int rank) {
-        Point pos = getPosForRank(rank);
-        if (!pos.equals(item.cellX, item.cellY) || rank != item.rank) {
+        if (rank != item.rank) {
             item.rank = rank;
-            item.cellX = pos.x;
-            item.cellY = pos.y;
             return true;
         }
         return false;
@@ -156,8 +153,13 @@ public class FolderGridOrganizer {
      */
     public Point getPosForRank(int rank) {
         int pagePos = rank % mMaxItemsPerPage;
-        mPoint.x = pagePos % mCountX;
-        mPoint.y = pagePos / mCountX;
+        if (mCountX == 0) {
+            mPoint.x = 0;
+            mPoint.y = 0;
+        } else {
+            mPoint.x = pagePos % mCountX;
+            mPoint.y = pagePos / mCountX;
+        }
         return mPoint;
     }
 

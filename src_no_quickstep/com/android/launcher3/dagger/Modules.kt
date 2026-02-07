@@ -44,3 +44,7 @@ abstract class StaticObjectModule {
 
 // Module containing bindings for the final derivative app
 @Module abstract class AppModule {}
+
+@Module abstract class PerDisplayModule {}
+
+@Module abstract class LauncherConcurrencyModule {}

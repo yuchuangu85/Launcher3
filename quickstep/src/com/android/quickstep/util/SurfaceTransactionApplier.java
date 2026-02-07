@@ -15,6 +15,8 @@
  */
 package com.android.quickstep.util;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.view.SurfaceControl;
@@ -23,15 +25,17 @@ import android.view.View;
 import android.view.View.OnAttachStateChangeListener;
 import android.view.ViewRootImpl;
 
-import androidx.annotation.NonNull;
-
+import com.android.launcher3.Utilities;
 import com.android.quickstep.RemoteAnimationTargets.ReleaseCheck;
+
+import app.lawnchair.compat.LawnchairQuickstepCompat;
 
 /**
  * Helper class to apply surface transactions in sync with RenderThread similar to
  *   android.view.SyncRtSurfaceTransactionApplier
  * with some Launcher specific utility methods
  */
+@TargetApi(Build.VERSION_CODES.R)
 public class SurfaceTransactionApplier extends ReleaseCheck {
 
     private static final int MSG_UPDATE_SEQUENCE_NUMBER = 0;
@@ -47,7 +51,7 @@ public class SurfaceTransactionApplier extends ReleaseCheck {
     /**
      * @param targetView The view in the surface that acts as synchronization anchor.
      */
-    public SurfaceTransactionApplier(@NonNull View targetView) {
+    public SurfaceTransactionApplier(View targetView) {
         if (targetView.isAttachedToWindow()) {
             initialize(targetView);
         } else {
@@ -73,7 +77,11 @@ public class SurfaceTransactionApplier extends ReleaseCheck {
 
     private void initialize(View view) {
         mTargetViewRootImpl = view.getViewRootImpl();
-        mBarrierSurfaceControl = mTargetViewRootImpl.getSurfaceControl();
+        try {
+            mBarrierSurfaceControl = mTargetViewRootImpl.getSurfaceControl();
+        } catch (Throwable t) {
+            // Ignore
+        }
         mInitialized = true;
     }
 
@@ -106,12 +114,17 @@ public class SurfaceTransactionApplier extends ReleaseCheck {
         final int toApplySeqNo = mLastSequenceNumber;
         setCanRelease(false);
         mTargetViewRootImpl.registerRtFrameCallback(frame -> {
+            if (mBarrierSurfaceControl == null && !Utilities.ATLEAST_Q) return;
             if (mBarrierSurfaceControl == null || !mBarrierSurfaceControl.isValid()) {
                 Message.obtain(mApplyHandler, MSG_UPDATE_SEQUENCE_NUMBER, toApplySeqNo, 0)
                         .sendToTarget();
                 return;
             }
-            mTargetViewRootImpl.mergeWithNextTransaction(t, frame);
+            if (LawnchairQuickstepCompat.ATLEAST_S) {
+                mTargetViewRootImpl.mergeWithNextTransaction(t, frame);
+            } else {
+                t.apply();
+            }
             Message.obtain(mApplyHandler, MSG_UPDATE_SEQUENCE_NUMBER, toApplySeqNo, 0)
                     .sendToTarget();
         });

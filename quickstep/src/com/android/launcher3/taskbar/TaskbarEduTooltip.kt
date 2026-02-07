@@ -39,6 +39,8 @@ import com.android.launcher3.popup.RoundedArrowDrawable
 import com.android.launcher3.util.Themes
 import com.android.launcher3.views.ActivityContext
 
+import app.lawnchair.theme.color.tokens.ColorTokens
+
 private const val ENTER_DURATION_MS = 300L
 private const val EXIT_DURATION_MS = 150L
 
@@ -50,7 +52,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     private val activityContext: ActivityContext = ActivityContext.lookupContext(context)
 
-    private val backgroundColor = context.getColor(R.color.materialColorSurfaceBright)
+    private val backgroundColor = ColorTokens.SurfaceBrightColor.resolveColor(getContext())
 
     private val tooltipCornerRadius = Themes.getDialogCornerRadius(context)
     private val arrowWidth = resources.getDimension(R.dimen.popup_arrow_width)
@@ -85,8 +87,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         // constraint to reduce the number of lines of text and hopefully free up some height.
         activityContext.dragLayer.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
         if (
-            measuredHeight + activityContext.deviceProfile.taskbarHeight >=
-                activityContext.deviceProfile.availableHeightPx
+            measuredHeight + activityContext.deviceProfile.taskbarProfile.height >=
+                activityContext.deviceProfile.deviceProperties.availableHeightPx
         ) {
             updateLayoutParams { width = MATCH_PARENT }
         }
@@ -146,13 +148,14 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        findOnBackInvokedDispatcher()
-            ?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this)
+        // Lawnchair-TODO-Merge: This was disabled but enabled in 16r2, this function likely disable the gesture system during edu
+//        findOnBackInvokedDispatcher()
+//            ?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this)
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        findOnBackInvokedDispatcher()?.unregisterOnBackInvokedCallback(this)
+//        findOnBackInvokedDispatcher()?.unregisterOnBackInvokedCallback(this)
         Settings.Secure.putInt(mContext.contentResolver, LAUNCHER_TASKBAR_EDUCATION_SHOWING, 0)
     }
 

@@ -210,7 +210,8 @@ class BubbleBarSwipeController {
                     resources,
                     taskbarActivityContext.deviceProfile,
                 )
-            maxOverscroll = taskbarActivityContext.deviceProfile.heightPx - unstashThreshold
+            maxOverscroll =
+                taskbarActivityContext.deviceProfile.deviceProperties.heightPx - unstashThreshold
         }
     }
 }

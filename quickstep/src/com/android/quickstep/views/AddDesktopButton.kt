@@ -16,12 +16,18 @@
 
 package com.android.quickstep.views
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.FloatProperty
 import android.widget.ImageButton
+import androidx.core.animation.addListener
+import com.android.app.animation.Interpolators.LINEAR
+import com.android.launcher3.LauncherAnimUtils.DRAWABLE_ALPHA
 import com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_X
 import com.android.launcher3.R
 import com.android.launcher3.util.KFloatProperty
@@ -41,6 +47,7 @@ class AddDesktopButton @JvmOverloads constructor(context: Context, attrs: Attrib
     private val addDeskButtonAlpha = MultiValueAlpha(this, Alpha.entries.size)
     var contentAlpha by MultiPropertyDelegate(addDeskButtonAlpha, Alpha.CONTENT)
     var visibilityAlpha by MultiPropertyDelegate(addDeskButtonAlpha, Alpha.VISIBILITY)
+    var clickAlpha by MultiPropertyDelegate(addDeskButtonAlpha, Alpha.CLICK)
 
     private val multiTranslationX =
         MultiPropertyFactory(this, VIEW_TRANSLATE_X, TranslationX.entries.size) { a: Float, b: Float
@@ -73,6 +80,37 @@ class AddDesktopButton @JvmOverloads constructor(context: Context, attrs: Attrib
             focusBorderAnimator.setBorderVisibility(visible = field && isFocused, animated = true)
         }
 
+    @JvmOverloads
+    fun animateVisibility(toVisible: Boolean, onAnimationEndAction: Runnable? = null) {
+        val targetButtonAlpha = if (toVisible) 1f else 0f
+        val targetDrawableAlpha = if (toVisible) 255 else 0
+
+        val iconDrawable: Drawable = this.drawable.mutate()
+        val fadeDuration =
+            context.resources.getInteger(R.integer.add_desktop_button_fade_duration).toLong()
+        val fadeDelay =
+            context.resources.getInteger(R.integer.add_desktop_button_fade_delay).toLong()
+
+        val buttonFadeAnimator =
+            ObjectAnimator.ofFloat(this, CLICK_ALPHA, targetButtonAlpha).apply {
+                duration = fadeDuration
+                startDelay = fadeDelay
+                interpolator = LINEAR
+            }
+
+        val iconFadeAnimator =
+            ObjectAnimator.ofInt(iconDrawable, DRAWABLE_ALPHA, targetDrawableAlpha).apply {
+                duration = fadeDuration
+                interpolator = LINEAR
+            }
+
+        AnimatorSet().apply {
+            playTogether(buttonFadeAnimator, iconFadeAnimator)
+            addListener(onEnd = { onAnimationEndAction?.run() })
+            start()
+        }
+    }
+
     public override fun onFocusChanged(
         gainFocus: Boolean,
         direction: Int,
@@ -100,6 +138,7 @@ class AddDesktopButton @JvmOverloads constructor(context: Context, attrs: Attrib
         private enum class Alpha {
             CONTENT,
             VISIBILITY,
+            CLICK,
         }
 
         private enum class TranslationX {
@@ -110,5 +149,8 @@ class AddDesktopButton @JvmOverloads constructor(context: Context, attrs: Attrib
         @JvmField
         val VISIBILITY_ALPHA: FloatProperty<AddDesktopButton> =
             KFloatProperty(AddDesktopButton::visibilityAlpha)
+
+        private val CLICK_ALPHA: FloatProperty<AddDesktopButton> =
+            KFloatProperty(AddDesktopButton::clickAlpha)
     }
 }

@@ -33,6 +33,7 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.pm.PackageInstallInfo;
+import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ApplicationInfoWrapper;
@@ -141,6 +142,10 @@ public class AppInfo extends ItemInfoWithIcon implements WorkspaceItemFactory {
         return super.dumpProperties() + " componentName=" + componentName;
     }
 
+    public ComponentKey toComponentKey() {
+        return new ComponentKey(componentName, user);
+    }
+
     @Override
     public WorkspaceItemInfo makeWorkspaceItem(Context context) {
         WorkspaceItemInfo workspaceItemInfo = new WorkspaceItemInfo(this);
@@ -194,10 +199,14 @@ public class AppInfo extends ItemInfoWithIcon implements WorkspaceItemFactory {
             info.runtimeStatusFlags &= ~FLAG_DISABLED_SUSPENDED;
         }
         if (Flags.enableSupportForArchiving()) {
-            if (lai.getActivityInfo().isArchived) {
-                info.runtimeStatusFlags |= FLAG_ARCHIVED;
-            } else {
-                info.runtimeStatusFlags &= ~FLAG_ARCHIVED;
+            try {
+                if (lai.getActivityInfo().isArchived) {
+                    info.runtimeStatusFlags |= FLAG_ARCHIVED;
+                } else {
+                    info.runtimeStatusFlags &= ~FLAG_ARCHIVED;
+                }
+            } catch (Throwable t) {
+                // LC-Ignored
             }
         }
         info.runtimeStatusFlags |= appInfo.isSystem() ? FLAG_SYSTEM_YES : FLAG_SYSTEM_NO;

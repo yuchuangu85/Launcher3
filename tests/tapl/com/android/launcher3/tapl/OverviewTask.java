@@ -73,16 +73,15 @@ public final class OverviewTask {
             return getCombinedSplitTaskHeight();
         }
 
-        UiObject2 taskSnapshot1 = findObjectInTask((isDesktop() ? DESKTOP : DEFAULT).snapshotRes);
-        return taskSnapshot1.getVisibleBounds().height();
+        return getTaskSnapshot(isDesktop() ? DESKTOP : DEFAULT).getVisibleBounds().height();
     }
 
     /**
      * Calculates the visible height for split tasks, containing 2 snapshot tiles and a divider.
      */
     private int getCombinedSplitTaskHeight() {
-        UiObject2 taskSnapshot1 = findObjectInTask(SPLIT_TOP_OR_LEFT.snapshotRes);
-        UiObject2 taskSnapshot2 = findObjectInTask(SPLIT_BOTTOM_OR_RIGHT.snapshotRes);
+        UiObject2 taskSnapshot1 = getTaskSnapshot(SPLIT_TOP_OR_LEFT);
+        UiObject2 taskSnapshot2 = getTaskSnapshot(SPLIT_BOTTOM_OR_RIGHT);
 
         // If the split task is partly off screen, taskSnapshot1 can be invisible.
         if (taskSnapshot1 == null) {
@@ -95,34 +94,6 @@ public final class OverviewTask {
                 taskSnapshot1.getVisibleBounds().bottom, taskSnapshot2.getVisibleBounds().bottom);
 
         return bottom - top;
-    }
-
-    /**
-     * Returns the width of the visible task, or the combined width of two tasks in split with a
-     * divider between.
-     */
-    int getVisibleWidth() {
-        if (isGrouped()) {
-            return getCombinedSplitTaskWidth();
-        }
-
-        UiObject2 taskSnapshot1 = findObjectInTask(DEFAULT.snapshotRes);
-        return taskSnapshot1.getVisibleBounds().width();
-    }
-
-    /**
-     * Calculates the visible width for split tasks, containing 2 snapshot tiles and a divider.
-     */
-    private int getCombinedSplitTaskWidth() {
-        UiObject2 taskSnapshot1 = findObjectInTask(SPLIT_TOP_OR_LEFT.snapshotRes);
-        UiObject2 taskSnapshot2 = findObjectInTask(SPLIT_BOTTOM_OR_RIGHT.snapshotRes);
-
-        int left = Math.min(
-                taskSnapshot1.getVisibleBounds().left, taskSnapshot2.getVisibleBounds().left);
-        int right = Math.max(
-                taskSnapshot1.getVisibleBounds().right, taskSnapshot2.getVisibleBounds().right);
-
-        return right - left;
     }
 
     public int getTaskCenterX() {
@@ -139,6 +110,26 @@ public final class OverviewTask {
 
     UiObject2 getUiObject() {
         return mTask;
+    }
+
+    /**
+     * Returns the task snapshot (thumbnail) for the given `OverviewTaskContainer`.
+     * If there are no `taskContentView`'s, then the `enableRefactorTaskContentView` feature flag is
+     * off, in that case fallback to the `snapshotViewRes` id.
+     */
+    private UiObject2 getTaskSnapshot(OverviewTaskContainer overviewTaskContainer) {
+        UiObject2 taskContentView = mTask.findObject(
+                mLauncher.getOverviewObjectSelector(overviewTaskContainer.taskContentViewRes));
+        if (taskContentView != null) {
+            BySelector snapshotSelector = mLauncher.getOverviewObjectSelector("snapshot");
+            UiObject2 snapshot = mTask.findObject(snapshotSelector);
+            if (snapshot != null) {
+                return snapshot;
+            }
+        }
+
+        return mTask.findObject(
+                mLauncher.getOverviewObjectSelector(overviewTaskContainer.snapshotViewRes));
     }
 
     /**
@@ -193,9 +184,18 @@ public final class OverviewTask {
         // Dismiss the task via flinging it up.
         final Rect taskBounds = mLauncher.getVisibleBounds(mTask);
         final int centerX = taskBounds.centerX();
-        final int centerY = taskBounds.bottom - 1;
+        final int centerY = taskBounds.centerY();
+        // Magnetic detach interpolates during the attached region with y = 0.3x. We must account
+        // for this in the dismiss length to ensure the task is dragged far enough to dismiss.
+        int magneticDetachLength = mLauncher.getMagneticDetachThreshold();
+        int lengthTaskWillTravel =
+                (int) ((magneticDetachLength * 0.3f) + (centerY - magneticDetachLength));
+        int minimumDismissLength = taskBounds.bottom / 2;
+        int extraDismissLength = Math.max(minimumDismissLength - lengthTaskWillTravel, 0);
+        // Bound touch to a max of the bottom of the task, account for extra required dismiss length
+        final int startY = Math.min(centerY + extraDismissLength, taskBounds.bottom);
         mLauncher.executeAndWaitForLauncherEvent(
-                () -> mLauncher.linearGesture(centerX, centerY, centerX, 0, 10, false,
+                () -> mLauncher.linearGesture(centerX, startY, centerX, 0, 10, false,
                         LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER),
                 event -> TestProtocol.DISMISS_ANIMATION_ENDS_MESSAGE.equals(event.getClassName()),
                 () -> "Didn't receive a dismiss animation ends message: " + centerX + ", "
@@ -223,14 +223,13 @@ public final class OverviewTask {
 
             final Rect taskBounds = mLauncher.getVisibleBounds(mTask);
             final int centerX = taskBounds.centerX();
-            final int centerY = taskBounds.bottom - 1;
+            final int centerY = taskBounds.centerY();
             final int endCenterY = centerY - (taskBounds.height() / 4);
             mLauncher.executeAndWaitForLauncherEvent(
                     // Set slowDown to true so we do not fling the task at the end of the drag, as
-                    // we want it to cancel and return back to the origin. We use 30 steps to
-                    // perform the gesture slowly as well, to avoid flinging.
+                    // we want it to cancel and return back to the origin.
                     () -> mLauncher.linearGesture(centerX, centerY, centerX, endCenterY,
-                            /* steps= */ 30, /* slowDown= */ true,
+                            /* steps= */ 10, /* slowDown= */ true,
                             LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER),
                     event -> TestProtocol.DISMISS_ANIMATION_ENDS_MESSAGE.equals(
                             event.getClassName()),
@@ -304,17 +303,13 @@ public final class OverviewTask {
         }
     }
 
-    private UiObject2 findObjectInTask(String resName) {
-        return mTask.findObject(mLauncher.getOverviewObjectSelector(resName));
-    }
-
     /**
      * Returns whether the given String is contained in this Task's contentDescription. Also returns
      * true if both Strings are null.
      */
     public boolean containsContentDescription(String expected,
             OverviewTaskContainer overviewTaskContainer) {
-        String actual = findObjectInTask(overviewTaskContainer.snapshotRes).getContentDescription();
+        String actual = getTaskSnapshot(overviewTaskContainer).getContentDescription();
         if (actual == null && expected == null) {
             return true;
         }
@@ -360,19 +355,25 @@ public final class OverviewTask {
      */
     public enum OverviewTaskContainer {
         // The main task when the task is not split.
-        DEFAULT("snapshot", "icon"),
+        DEFAULT("task_content_view", "snapshot", "icon"),
         // The first task in split task.
-        SPLIT_TOP_OR_LEFT("snapshot", "icon"),
+        SPLIT_TOP_OR_LEFT("task_content_view", "snapshot", "icon"),
         // The second task in split task.
-        SPLIT_BOTTOM_OR_RIGHT("bottomright_snapshot", "bottomRight_icon"),
+        SPLIT_BOTTOM_OR_RIGHT("bottomright_task_content_view", "bottomright_snapshot",
+                "bottomRight_icon"),
         // The desktop task.
-        DESKTOP("background", "icon");
+        DESKTOP("background", "background", "icon");
 
-        public final String snapshotRes;
+        public final String taskContentViewRes;
+        // TODO (b/409248525) Delete `snapshotViewRes` when cleaning up
+        //  enableRefactorTaskContentView flag.
+        public final String snapshotViewRes;
         public final String iconAppRes;
 
-        OverviewTaskContainer(String snapshotRes, String iconAppRes) {
-            this.snapshotRes = snapshotRes;
+        OverviewTaskContainer(String taskContentViewRes, String snapshotViewRes,
+                String iconAppRes) {
+            this.taskContentViewRes = taskContentViewRes;
+            this.snapshotViewRes = snapshotViewRes;
             this.iconAppRes = iconAppRes;
         }
     }

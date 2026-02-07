@@ -4,6 +4,7 @@ import static com.android.launcher3.CellLayout.SPRING_LOADED_PROGRESS;
 import static com.android.launcher3.LauncherAnimUtils.LAYOUT_HEIGHT;
 import static com.android.launcher3.LauncherAnimUtils.LAYOUT_WIDTH;
 import static com.android.launcher3.LauncherPrefs.RECONFIGURABLE_WIDGET_EDUCATION_TIP_SEEN;
+import static com.android.launcher3.Utilities.ATLEAST_Q;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_RESIZE_COMPLETED;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_RESIZE_STARTED;
 import static com.android.launcher3.views.BaseDragLayer.LAYOUT_X;
@@ -42,6 +43,7 @@ import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.logging.InstanceId;
 import com.android.launcher3.logging.InstanceIdSequence;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.util.PendingRequestArgs;
 import com.android.launcher3.views.ArrowTipView;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
@@ -52,12 +54,18 @@ import com.android.launcher3.widget.util.WidgetSizes;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.theme.drawable.DrawableTokens;
+
 public class AppWidgetResizeFrame extends AbstractFloatingView implements View.OnKeyListener {
     private static final int SNAP_DURATION_MS = 150;
     private static final float DIMMED_HANDLE_ALPHA = 0f;
     private static final float RESIZE_THRESHOLD = 0.66f;
     private static final int RESIZE_TRANSITION_DURATION_MS = 150;
 
+    private static final String KEY_RECONFIGURABLE_WIDGET_EDUCATION_TIP_SEEN = "launcher.reconfigurable_widget_education_tip_seen";
     private static final Rect sTmpRect = new Rect();
     private static final Rect sTmpRect2 = new Rect();
 
@@ -191,6 +199,11 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
         mDragHandles[INDEX_TOP] = findViewById(R.id.widget_resize_top_handle);
         mDragHandles[INDEX_RIGHT] = findViewById(R.id.widget_resize_right_handle);
         mDragHandles[INDEX_BOTTOM] = findViewById(R.id.widget_resize_bottom_handle);
+
+        int workspaceAccentColor = ColorTokens.WorkspaceAccentColor.resolveColor(getContext());
+        for (int i = 0; i < HANDLE_COUNT; i++) {
+            ((ImageView) mDragHandles[i]).setColorFilter(workspaceAccentColor);
+        }
     }
 
     @Override
@@ -201,10 +214,15 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
             mSystemGestureExclusionRects.get(i).set(dragHandle.getLeft(), dragHandle.getTop(),
                     dragHandle.getRight(), dragHandle.getBottom());
         }
+        if (!ATLEAST_Q) return;
         setSystemGestureExclusionRects(mSystemGestureExclusionRects);
     }
 
     public static void showForWidget(LauncherAppWidgetHostView widget, CellLayout cellLayout) {
+        PreferenceManager2 pref2 = PreferenceManager2.getInstance(widget.getContext());
+        boolean force = PreferenceExtensionsKt.firstBlocking(pref2.getForceWidgetResize());
+        boolean unlimited = PreferenceExtensionsKt.firstBlocking(pref2.getWidgetUnlimitedSize());
+
         // If widget is not added to view hierarchy, we cannot show resize frame at correct location
         if (widget.getParent() == null) {
             return;
@@ -215,7 +233,7 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
         DragLayer dl = launcher.getDragLayer();
         AppWidgetResizeFrame frame = (AppWidgetResizeFrame) launcher.getLayoutInflater()
                 .inflate(R.layout.app_widget_resize_frame, dl, false);
-        frame.setupForWidget(widget, cellLayout, dl);
+        frame.setupForWidget(widget, cellLayout, dl, force, unlimited);
         // Save widget item info as tag on resize frame; so that, the accessibility delegate can
         // attach actions that typically happen on widget (e.g. resize, move) also on the resize
         // frame.
@@ -250,30 +268,59 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
     }
 
     private void setupForWidget(LauncherAppWidgetHostView widgetView, CellLayout cellLayout,
-            DragLayer dragLayer) {
+            DragLayer dragLayer, boolean force, boolean unlimited) {
         mCellLayout = cellLayout;
         mWidgetView = widgetView;
         LauncherAppWidgetProviderInfo info = (LauncherAppWidgetProviderInfo)
                 widgetView.getAppWidgetInfo();
         mDragLayer = dragLayer;
-
-        mMinHSpan = info.minSpanX;
-        mMinVSpan = info.minSpanY;
-        mMaxHSpan = info.maxSpanX;
-        mMaxVSpan = info.maxSpanY;
-
-        // Only show resize handles for the directions in which resizing is possible.
         InvariantDeviceProfile idp = LauncherAppState.getIDP(cellLayout.getContext());
-        mVerticalResizeActive = (info.resizeMode & AppWidgetProviderInfo.RESIZE_VERTICAL) != 0
-                && mMinVSpan < idp.numRows && mMaxVSpan > 1
-                && mMinVSpan < mMaxVSpan;
+
+        int resizeMode;
+        if (force) {
+            resizeMode = AppWidgetProviderInfo.RESIZE_BOTH;
+        } else {
+            resizeMode = info.resizeMode;
+        }
+
+
+        if (unlimited) {
+            mMinHSpan = 1;
+            mMinVSpan = 1;
+            mMaxHSpan = idp.numColumns;
+            mMaxVSpan = idp.numRows;
+            // If widget is resizable in any direction, make it resizable in both
+            if (resizeMode != AppWidgetProviderInfo.RESIZE_NONE) {
+                resizeMode = AppWidgetProviderInfo.RESIZE_BOTH;
+            }
+        } else {
+            mMinHSpan = info.minSpanX;
+            mMinVSpan = info.minSpanY;
+            mMaxHSpan = info.maxSpanX;
+            mMaxVSpan = info.maxSpanY;
+        }
+
+        LauncherAppWidgetInfo widgetInfoOnView = (LauncherAppWidgetInfo) mWidgetView.getTag();
+        // Only show resize handles for the directions in which resizing is possible.
+
+        // on font / display change, the dp/px size of a cell changes, which means, existing spans
+        // may be invalid. User should be able to resize to the correct widget size.
+        boolean isWidgetVSpanInvalid = widgetInfoOnView.spanY < mMinVSpan;
+        mVerticalResizeActive = (info.resizeMode & AppWidgetProviderInfo.RESIZE_VERTICAL) != 0 && (
+                (mMinVSpan < idp.numRows && mMaxVSpan > 1 && mMinVSpan < mMaxVSpan)
+                        || isWidgetVSpanInvalid);
         if (!mVerticalResizeActive) {
             mDragHandles[INDEX_TOP].setVisibility(GONE);
             mDragHandles[INDEX_BOTTOM].setVisibility(GONE);
         }
-        mHorizontalResizeActive = (info.resizeMode & AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0
-                && mMinHSpan < idp.numColumns && mMaxHSpan > 1
-                && mMinHSpan < mMaxHSpan;
+
+        // on font / display change, the dp/px size of a cell changes, which means, existing spans
+        // may be invalid. User should be able to resize to the correct widget size.
+        boolean isWidgetHSpanInvalid = widgetInfoOnView.spanX < mMinHSpan;
+        mHorizontalResizeActive =
+                (info.resizeMode & AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0 && (
+                        (mMinHSpan < idp.numColumns && mMaxHSpan > 1 && mMinHSpan < mMaxHSpan)
+                                || isWidgetHSpanInvalid);
         if (!mHorizontalResizeActive) {
             mDragHandles[INDEX_LEFT].setVisibility(GONE);
             mDragHandles[INDEX_RIGHT].setVisibility(GONE);

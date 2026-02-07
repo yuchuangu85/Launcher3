@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"సెటప్‌ను ముగించడానికి ట్యాప్ చేయండి"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"ఇది సిస్టమ్ యాప్ మరియు దీన్ని అన్‌ఇన్‌స్టాల్ చేయడం సాధ్యపడదు."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"పేరును ఎడిట్ చేయండి"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"పేజీని ఎడమ వైపునకు స్క్రోల్ చేయండి"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"పేజీని కుడి వైపునకు స్క్రోల్ చేయండి"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> నిలిపివేయబడింది"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name}లో # నోటిఫికేషన్ ఉంది}other{{app_name}లో # నోటిఫికేషన్‌లు ఉన్నాయి}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$dలో %1$dవ పేజీ"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"మొదటి స్క్రీన్ రొటేషన్‌ను అనుమతించండి"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"ఫోన్‌‌ను తిప్పినప్పుడు"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"ల్యాండ్‌స్కేప్ మోడ్"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ఫోన్‌ను ల్యాండ్‌స్కేప్ మోడ్‌కు సెట్ చేయండి"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"మొదటి స్క్రీన్‌ను ల్యాండ్‌స్కేప్ మోడ్‌లోకి సెట్ చేయండి"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"నోటిఫికేషన్ డాట్‌లు"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"ఆన్"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ఆఫ్"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"లాక్ చేయండి"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"ప్రైవేట్ స్పేస్ కేటాయించడం జరుగుతుంది"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ఇన్‌స్టాల్ చేయండి"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"జోడించు"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"ప్రైవేట్ స్పేస్‌కు యాప్‌లను ఇన్‌స్టాల్ చేయండి"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"ప్రైవేట్ స్పేస్‌కు ఫైళ్లను, మరిన్నింటిని జోడించండి"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"సర్కిల్"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"చతురస్రం"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 వైపులా త్రిభుజాలు కలిగిన కుక్కీ"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 వైపులా త్రిభుజాలు కలిగిన కుక్కీ"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"ఆర్చ్"</string>
 </resources>

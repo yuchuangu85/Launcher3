@@ -30,11 +30,13 @@ import android.graphics.RectF
 import android.graphics.Region
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.ColorDrawable
+import android.util.FloatProperty
 import android.util.Log
 import android.view.View
 import android.view.ViewOutlineProvider
 import androidx.annotation.VisibleForTesting
 import androidx.core.graphics.PathParser
+import androidx.dynamicanimation.animation.DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE
 import androidx.graphics.shapes.CornerRounding
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
@@ -42,6 +44,8 @@ import androidx.graphics.shapes.SvgPathParser
 import androidx.graphics.shapes.rectangle
 import androidx.graphics.shapes.toPath
 import androidx.graphics.shapes.transformed
+import com.android.launcher3.Flags
+import com.android.launcher3.anim.SpringAnimationBuilder
 import com.android.launcher3.icons.GraphicsUtils
 import com.android.launcher3.views.ClipPathView
 
@@ -89,7 +93,6 @@ interface ShapeDelegate {
     }
 
     /** Rounded square with [radiusRatio] as a ratio of its half edge size */
-    @VisibleForTesting
     open class RoundedSquare(val radiusRatio: Float) : ShapeDelegate {
 
         override fun drawShape(
@@ -128,7 +131,7 @@ interface ShapeDelegate {
             isReversed: Boolean,
         ): ValueAnimator where T : View, T : ClipPathView {
             val startRadius = (startRect.width() / 2f) * radiusRatio
-            return ClipAnimBuilder(target) { progress, path ->
+            val pathProvider = { progress: Float, path: Path ->
                 val radius = (1 - progress) * startRadius + progress * endRadius
                 path.addRoundRect(
                     (1 - progress) * startRect.left + progress * endRect.left,
@@ -140,7 +143,13 @@ interface ShapeDelegate {
                     Path.Direction.CW,
                 )
             }
-                .toAnim(isReversed)
+            val shouldUseSpringAnimation =
+                Flags.enableLauncherIconShapes() && Flags.enableExpressiveFolderExpansion()
+            return if (shouldUseSpringAnimation) {
+                ClipSpringAnimBuilder(target, pathProvider).toAnim(isReversed)
+            } else {
+                ClipAnimBuilder(target, pathProvider).toAnim(isReversed)
+            }
         }
 
         override fun equals(other: Any?) =
@@ -223,8 +232,13 @@ interface ShapeDelegate {
                             cornerR = endRadius,
                         ),
                 )
-
-            return ClipAnimBuilder(target, morph::toPath).toAnim(isReversed)
+            val shouldUseSpringAnimation =
+                Flags.enableLauncherIconShapes() && Flags.enableExpressiveFolderExpansion()
+            return if (shouldUseSpringAnimation) {
+                ClipSpringAnimBuilder(target, morph::toPath).toAnim(isReversed)
+            } else {
+                ClipAnimBuilder(target, morph::toPath).toAnim(isReversed)
+            }
         }
     }
 
@@ -264,11 +278,66 @@ interface ShapeDelegate {
                 }
     }
 
-    companion object {
+    private class ClipSpringAnimBuilder<T>(val target: T, val pathProvider: (Float, Path) -> Unit) :
+        AnimatorListenerAdapter() where T : View, T : ClipPathView {
 
+        private var oldOutlineProvider: ViewOutlineProvider? = null
+        val path = Path()
+        private val animatorBuilder = SpringAnimationBuilder(target.context)
+        private val progressProperty =
+            object : FloatProperty<ClipSpringAnimBuilder<T>>("progress") {
+                override fun setValue(obj: ClipSpringAnimBuilder<T>, value: Float) {
+                    // Don't want to go below 0 or above 1 for progress.
+                    val clampedValue = minOf(maxOf(value, 0f), 1f)
+                    path.reset()
+                    pathProvider.invoke(clampedValue, path)
+                    target.setClipPath(path)
+                }
+
+                override fun get(obj: ClipSpringAnimBuilder<T>): Float {
+                    return 0f
+                }
+            }
+
+        override fun onAnimationStart(animation: Animator) {
+            target.apply {
+                oldOutlineProvider = outlineProvider
+                outlineProvider = null
+                translationZ = -target.elevation
+            }
+        }
+
+        override fun onAnimationEnd(animation: Animator) {
+            target.apply {
+                translationZ = 0f
+                outlineProvider = oldOutlineProvider
+            }
+        }
+
+        fun toAnim(isReversed: Boolean): ValueAnimator {
+            val mStartValue = if (isReversed) 1f else 0f
+            val mEndValue = if (isReversed) 0f else 1f
+            pathProvider.invoke(mStartValue, path)
+            target.setClipPath(path)
+            val animator =
+                animatorBuilder
+                    .setStiffness(SPRING_STIFFNESS_SHAPE_POSITION)
+                    .setDampingRatio(SPRING_DAMPING_SHAPE_POSITION)
+                    .setStartValue(mStartValue)
+                    .setEndValue(mEndValue)
+                    .setMinimumVisibleChange(MIN_VISIBLE_CHANGE_SCALE)
+                    .build(this, progressProperty)
+            animator.addListener(this)
+            return animator
+        }
+    }
+
+    companion object {
         const val TAG = "IconShape"
         const val DEFAULT_PATH_SIZE = 100f
         const val AREA_CALC_SIZE = 1000
+        private const val SPRING_STIFFNESS_SHAPE_POSITION = 380f
+        private const val SPRING_DAMPING_SHAPE_POSITION = 0.8f
         // .1% error margin
         const val AREA_DIFF_THRESHOLD = AREA_CALC_SIZE * AREA_CALC_SIZE / 1000
 

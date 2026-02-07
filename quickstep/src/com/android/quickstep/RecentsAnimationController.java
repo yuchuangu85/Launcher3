@@ -57,8 +57,6 @@ public class RecentsAnimationController {
     private boolean mFinishRequested = false;
     // Only valid when mFinishRequested == true.
     private boolean mFinishTargetIsLauncher;
-    // Only valid when mFinishRequested == true
-    private boolean mLauncherIsVisibleAtFinish;
     private RunnableList mPendingFinishCallbacks = new RunnableList();
 
     public RecentsAnimationController(RecentsAnimationControllerCompat controller,
@@ -133,27 +131,13 @@ public class RecentsAnimationController {
     }
 
     @UiThread
-    public void finish(boolean toRecents, boolean launcherIsVisibleAtFinish,
-            Runnable onFinishComplete, boolean sendUserLeaveHint) {
-        Preconditions.assertUIThread();
-        finishController(toRecents, launcherIsVisibleAtFinish, onFinishComplete, sendUserLeaveHint,
-                false);
-    }
-
-    @UiThread
     public void finishController(boolean toRecents, Runnable callback, boolean sendUserLeaveHint) {
-        finishController(toRecents, false, callback, sendUserLeaveHint, false /* forceFinish */);
+        finishController(toRecents, callback, sendUserLeaveHint, false /* forceFinish */);
     }
 
     @UiThread
     public void finishController(boolean toRecents, Runnable callback, boolean sendUserLeaveHint,
             boolean forceFinish) {
-        finishController(toRecents, toRecents, callback, sendUserLeaveHint, forceFinish);
-    }
-
-    @UiThread
-    public void finishController(boolean toRecents, boolean launcherIsVisibleAtFinish,
-            Runnable callback, boolean sendUserLeaveHint, boolean forceFinish) {
         mPendingFinishCallbacks.add(callback);
         if (!forceFinish && mFinishRequested) {
             // If finish has already been requested, then add the callback to the pending list.
@@ -165,7 +149,6 @@ public class RecentsAnimationController {
         // Finish not yet requested
         mFinishRequested = true;
         mFinishTargetIsLauncher = toRecents;
-        mLauncherIsVisibleAtFinish = launcherIsVisibleAtFinish;
         mOnFinishedListener.accept(this);
         Runnable finishCb = () -> {
             mController.finish(toRecents, sendUserLeaveHint, new IResultReceiver.Stub() {
@@ -240,14 +223,6 @@ public class RecentsAnimationController {
      */
     public boolean getFinishTargetIsLauncher() {
         return mFinishTargetIsLauncher;
-    }
-
-    /**
-     * RecentsAnimationListeners can check this in onRecentsAnimationFinished() to determine whether
-     * the animation was finished to launcher vs an app.
-     */
-    public boolean getLauncherIsVisibleAtFinish() {
-        return mLauncherIsVisibleAtFinish;
     }
 
     public void dump(String prefix, PrintWriter pw) {

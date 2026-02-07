@@ -64,8 +64,8 @@ class DropTargetHandler(launcher: Launcher) {
         mLauncher.modelWriter.prepareToUndoDelete()
     }
 
-    fun onDeleteComplete(item: ItemInfo) {
-        removeItemAndStripEmptyScreens(null /* view */, item)
+    fun onDeleteComplete(item: ItemInfo, view: View?) {
+        removeItemAndStripEmptyScreens(view, item)
         AbstractFloatingView.closeOpenViews(
             mLauncher,
             false,

@@ -16,11 +16,11 @@
 
 package com.android.launcher3.taskbar.bubbles.animation
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
 import android.view.View
 import android.view.View.VISIBLE
-import androidx.core.animation.Animator
-import androidx.core.animation.AnimatorListenerAdapter
-import androidx.core.animation.ObjectAnimator
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import com.android.launcher3.R
@@ -728,7 +728,7 @@ constructor(
     }
 
     private fun expandBubbleBar() {
-        bubbleBarView.isExpanded = true
+        bubbleBarView.animateExpanded(true)
         onExpanded.run()
     }
 

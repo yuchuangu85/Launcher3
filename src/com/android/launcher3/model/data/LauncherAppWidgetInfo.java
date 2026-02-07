@@ -21,6 +21,7 @@ import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_BOTTOM_
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_PIN_WIDGETS;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_PREDICTION;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_TRAY;
+import static com.android.launcher3.Utilities.ATLEAST_S;
 
 import android.appwidget.AppWidgetHostView;
 import android.content.ComponentName;
@@ -233,16 +234,16 @@ public class LauncherAppWidgetInfo extends ItemInfo {
         if (providerInfo.isConfigurationOptional()) {
             widgetFeatures |= FEATURE_OPTIONAL_CONFIGURATION;
         }
-        if (providerInfo.previewLayout != Resources.ID_NULL) {
+        if (ATLEAST_S && (providerInfo.previewLayout != Resources.ID_NULL)) {
             widgetFeatures |= FEATURE_PREVIEW_LAYOUT;
         }
-        if (providerInfo.targetCellWidth > 0 || providerInfo.targetCellHeight > 0) {
+        if (ATLEAST_S && (providerInfo.targetCellWidth > 0 || providerInfo.targetCellHeight > 0)) {
             widgetFeatures |= FEATURE_TARGET_CELL_SIZE;
         }
         if (providerInfo.minResizeWidth > 0 || providerInfo.minResizeHeight > 0) {
             widgetFeatures |= FEATURE_MIN_SIZE;
         }
-        if (providerInfo.maxResizeWidth > 0 || providerInfo.maxResizeHeight > 0) {
+        if (ATLEAST_S && (providerInfo.maxResizeWidth > 0 || providerInfo.maxResizeHeight > 0)) {
             widgetFeatures |= FEATURE_MAX_SIZE;
         }
         if (hostView instanceof LauncherAppWidgetHostView &&

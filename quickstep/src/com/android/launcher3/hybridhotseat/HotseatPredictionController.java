@@ -29,7 +29,6 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.ComponentName;
-import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,14 +46,15 @@ import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
 import com.android.launcher3.anim.AnimationSuccessListener;
+import com.android.launcher3.celllayout.CellLayoutLayoutParams;
 import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.graphics.DragPreviewProvider;
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo;
 import com.android.launcher3.logger.LauncherAtom.PredictedHotseatContainer;
 import com.android.launcher3.logging.InstanceId;
-import com.android.launcher3.model.BgDataModel.FixedContainerItems;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.PredictedContainerInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.popup.SystemShortcut;
@@ -81,11 +81,9 @@ public class HotseatPredictionController implements DragController.DragListener,
         SystemShortcut.Factory<QuickstepLauncher>, DeviceProfile.OnDeviceProfileChangeListener,
         DragSource, ViewGroup.OnHierarchyChangeListener {
 
-    private static final String TAG = "HotseatPredictionController";
-    private static final int FLAG_UPDATE_PAUSED = 1 << 0;
-    private static final int FLAG_DRAG_IN_PROGRESS = 1 << 1;
-    private static final int FLAG_FILL_IN_PROGRESS = 1 << 2;
-    private static final int FLAG_REMOVING_PREDICTED_ICON = 1 << 3;
+    private static final int FLAG_DRAG_IN_PROGRESS = 1 << 0;
+    private static final int FLAG_FILL_IN_PROGRESS = 1 << 1;
+    private static final int FLAG_REMOVING_PREDICTED_ICON = 1 << 2;
 
     private int mHotSeatItemsCount;
 
@@ -232,7 +230,7 @@ public class HotseatPredictionController implements DragController.DragListener,
                 if (icon.applyFromWorkspaceItemWithAnimation(predictedItem, numViewsAnimated)) {
                     numViewsAnimated++;
                 }
-                icon.finishBinding(mPredictionLongClickListener);
+                finishBinding(icon);
             } else {
                 newItems.add(predictedItem);
             }
@@ -246,9 +244,9 @@ public class HotseatPredictionController implements DragController.DragListener,
     private void bindItems(List<WorkspaceItemInfo> itemsToAdd, boolean animate) {
         AnimatorSet animationSet = new AnimatorSet();
         for (WorkspaceItemInfo item : itemsToAdd) {
-            PredictedAppIcon icon = PredictedAppIcon.createIcon(mHotseat, item);
+            View icon = mLauncher.getItemInflater().inflateItem(item, mHotseat);
             mLauncher.getWorkspace().addInScreenFromBind(icon, item);
-            icon.finishBinding(mPredictionLongClickListener);
+            finishBinding(icon);
             if (animate) {
                 animationSet.play(ObjectAnimator.ofFloat(icon, SCALE_PROPERTY, 0.2f, 1));
             }
@@ -260,6 +258,11 @@ public class HotseatPredictionController implements DragController.DragListener,
         } else {
             removeOutlineDrawings();
         }
+    }
+
+    private void finishBinding(View view) {
+        view.setOnLongClickListener(mPredictionLongClickListener);
+        ((CellLayoutLayoutParams) view.getLayoutParams()).canReorder = false;
     }
 
     private void removeOutlineDrawings() {
@@ -280,32 +283,10 @@ public class HotseatPredictionController implements DragController.DragListener,
     }
 
     /**
-     * start and pauses predicted apps update on the hotseat
-     */
-    public void setPauseUIUpdate(boolean paused) {
-        mPauseFlags = paused
-                ? (mPauseFlags | FLAG_UPDATE_PAUSED)
-                : (mPauseFlags & ~FLAG_UPDATE_PAUSED);
-        if (!paused) {
-            fillGapsWithPrediction();
-        }
-    }
-
-    /**
-     * Ensures that if the flag FLAG_UPDATE_PAUSED is active we set it to false.
-     */
-    public void verifyUIUpdateNotPaused() {
-        if ((mPauseFlags & FLAG_UPDATE_PAUSED) != 0) {
-            setPauseUIUpdate(false);
-            Log.e(TAG, "FLAG_UPDATE_PAUSED should not be set to true (see b/339700174)");
-        }
-    }
-
-    /**
      * Sets or updates the predicted items
      */
-    public void setPredictedItems(FixedContainerItems items) {
-        mPredictedItems = new ArrayList(items.items);
+    public void setPredictedItems(PredictedContainerInfo items) {
+        mPredictedItems = items.getContents();
         if (mPredictedItems.isEmpty()) {
             HotseatRestoreHelper.restoreBackup(mLauncher);
         }
@@ -503,8 +484,16 @@ public class HotseatPredictionController implements DragController.DragListener,
     private class PinPrediction extends SystemShortcut<QuickstepLauncher> {
 
         private PinPrediction(QuickstepLauncher target, ItemInfo itemInfo, View originalView) {
-            super(R.drawable.ic_pin, R.string.pin_prediction, target,
+            super(getDrawableId(), R.string.pin_prediction, target,
                     itemInfo, originalView);
+        }
+
+        public static int getDrawableId() {
+            if (Flags.enableLauncherVisualRefresh()) {
+                return R.drawable.keep_24px;
+            } else {
+                return R.drawable.ic_pin;
+            }
         }
 
         @Override
@@ -522,7 +511,6 @@ public class HotseatPredictionController implements DragController.DragListener,
 
     private static String getStateString(int flags) {
         StringJoiner str = new StringJoiner("|");
-        appendFlag(str, flags, FLAG_UPDATE_PAUSED, "FLAG_UPDATE_PAUSED");
         appendFlag(str, flags, FLAG_DRAG_IN_PROGRESS, "FLAG_DRAG_IN_PROGRESS");
         appendFlag(str, flags, FLAG_FILL_IN_PROGRESS, "FLAG_FILL_IN_PROGRESS");
         appendFlag(str, flags, FLAG_REMOVING_PREDICTED_ICON,

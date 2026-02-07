@@ -22,6 +22,7 @@ import static android.graphics.Paint.FILTER_BITMAP_FLAG;
 
 import static com.android.launcher3.graphics.PreloadIconDrawable.newPendingIcon;
 import static com.android.launcher3.model.data.LauncherAppWidgetInfo.FLAG_PROVIDER_NOT_READY;
+import static com.android.launcher3.icons.cache.CacheLookupFlag.DEFAULT_LOOKUP_FLAG;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import android.appwidget.AppWidgetProviderInfo;
@@ -69,6 +70,8 @@ import com.android.launcher3.util.Themes;
 import com.android.launcher3.widget.ListenableAppWidgetHost.ProviderChangedListener;
 
 import java.util.List;
+
+import app.lawnchair.theme.color.tokens.ColorTokens;
 
 public class PendingAppWidgetHostView extends LauncherAppWidgetHostView
         implements OnClickListener, ItemInfoUpdateReceiver {
@@ -130,7 +133,7 @@ public class PendingAppWidgetHostView extends LauncherAppWidgetHostView
             info.pendingItemInfo = new PackageItemInfo(info.providerName.getPackageName(),
                     info.user);
             LauncherAppState.getInstance(context).getIconCache()
-                    .updateIconInBackground(this, info.pendingItemInfo);
+                    .updateIconInBackground(this, info.pendingItemInfo, DEFAULT_LOOKUP_FLAG);
         } else {
             reapplyItemInfo(info.pendingItemInfo);
         }
@@ -300,12 +303,12 @@ public class PendingAppWidgetHostView extends LauncherAppWidgetHostView
         mDragFlags = FLAG_DRAW_ICON;
 
         // The view displays three modes,
-        //   1) App icon in the center
-        //   2) Preload icon in the center
-        //   3) App icon in the center with a setup icon on the top left corner.
+            //   1) App icon in the center
+            //   2) Preload icon in the center
+            //   3) App icon in the center with a setup icon on the top left corner.
         if (mDisabledForSafeMode) {
             FastBitmapDrawable disabledIcon = info.newIcon(getContext());
-            disabledIcon.setIsDisabled(true);
+            disabledIcon.setDisabled(true);
             mCenterDrawable = disabledIcon;
             mSettingIconDrawable = null;
         } else if (isReadyForClickSetup()) {

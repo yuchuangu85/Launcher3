@@ -36,8 +36,10 @@ import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.popup.PopupContainerWithArrow;
-import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.BubbleTextHolder;
+
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.util.DrawableUtilsKt;
 
 /**
  * A {@link android.widget.FrameLayout} that contains an icon and a {@link BubbleTextView} for text.
@@ -98,11 +100,11 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
         }
         GradientDrawable background = (GradientDrawable) getBackground();
 
-        int color = Themes.getAttrColor(getContext(), android.R.attr.colorControlHighlight);
+        int color = ColorTokens.PopupColorTertiary.resolveColor(getContext());
         GradientDrawable backgroundMask = new GradientDrawable();
         backgroundMask.setColor(color);
         backgroundMask.setShape(GradientDrawable.RECTANGLE);
-        if (background.getCornerRadii() != null) {
+        if (DrawableUtilsKt.getCornerRadiiCompat(background) != null) {
             backgroundMask.setCornerRadii(background.getCornerRadii());
         } else {
             backgroundMask.setCornerRadius(background.getCornerRadius());

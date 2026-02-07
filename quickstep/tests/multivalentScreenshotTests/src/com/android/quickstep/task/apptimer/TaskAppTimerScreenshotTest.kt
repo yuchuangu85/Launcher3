@@ -18,30 +18,41 @@ package com.android.quickstep.task.apptimer
 
 import android.content.Context
 import android.graphics.Color
+import android.platform.test.flag.junit.SetFlagsRule
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import com.android.launcher3.Flags
 import com.android.launcher3.R
-import com.android.launcher3.imagecomparison.ViewBasedImageTest
 import com.android.launcher3.util.Themes
 import com.android.launcher3.util.rule.setFlags
 import com.android.quickstep.task.thumbnail.TaskContentView
 import com.android.quickstep.task.thumbnail.TaskHeaderUiState
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.BackgroundOnly
+import com.google.android.apps.nexuslauncher.imagecomparison.goldenpathmanager.ViewScreenshotGoldenPathManager
 import java.time.Duration
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import platform.test.runner.parameterized.ParameterizedAndroidJunit4
 import platform.test.runner.parameterized.Parameters
 import platform.test.screenshot.DeviceEmulationSpec
 import platform.test.screenshot.Displays
+import platform.test.screenshot.ViewScreenshotTestRule
+import platform.test.screenshot.getEmulatedDevicePathConfig
 
 /** Screenshot tests for the digital wellbeing timer shown in the task content view */
 @RunWith(ParameterizedAndroidJunit4::class)
-class TaskAppTimerScreenshotTest(emulationSpec: DeviceEmulationSpec) :
-    ViewBasedImageTest(emulationSpec) {
+class TaskAppTimerScreenshotTest(emulationSpec: DeviceEmulationSpec) {
+    @get:Rule(order = 0) val setFlagsRule = SetFlagsRule()
+
+    @get:Rule(order = 1)
+    val screenshotRule =
+        ViewScreenshotTestRule(
+            emulationSpec,
+            ViewScreenshotGoldenPathManager(getEmulatedDevicePathConfig(emulationSpec)),
+        )
 
     @Before
     fun setUp() {
@@ -55,7 +66,8 @@ class TaskAppTimerScreenshotTest(emulationSpec: DeviceEmulationSpec) :
 
     @Test
     fun taskAppTimer_iconAndFullText() {
-        screenshotRule.screenshotTest("iconAndFullText") { activity ->
+        screenshotRule.screenshotTest("taskAppTimer_iconAndFullText") { activity ->
+            activity.actionBar?.hide()
             val container = createContainer(activity)
             val taskContentView = createTaskContentView(activity)
             container.addView(taskContentView, CONTAINER_WIDTH_WIDE, CONTAINER_HEIGHT)
@@ -73,7 +85,8 @@ class TaskAppTimerScreenshotTest(emulationSpec: DeviceEmulationSpec) :
 
     @Test
     fun taskAppTimer_iconAndShortText() {
-        screenshotRule.screenshotTest("iconAndShortText") { activity ->
+        screenshotRule.screenshotTest("taskAppTimer_iconAndShortText") { activity ->
+            activity.actionBar?.hide()
             val container = createContainer(activity)
             val taskContentView = createTaskContentView(activity)
             container.addView(taskContentView, CONTAINER_WIDTH_MEDIUM, CONTAINER_HEIGHT)
@@ -91,7 +104,8 @@ class TaskAppTimerScreenshotTest(emulationSpec: DeviceEmulationSpec) :
 
     @Test
     fun taskAppTimer_iconOnly() {
-        screenshotRule.screenshotTest("iconOnly") { activity ->
+        screenshotRule.screenshotTest("taskAppTimer_iconOnly") { activity ->
+            activity.actionBar?.hide()
             val container = createContainer(activity)
             val taskContentView = createTaskContentView(activity)
             container.addView(taskContentView, CONTAINER_WIDTH_NARROW, CONTAINER_HEIGHT)
@@ -131,7 +145,7 @@ class TaskAppTimerScreenshotTest(emulationSpec: DeviceEmulationSpec) :
     companion object {
         private const val CONTAINER_HEIGHT = 700
         private const val CONTAINER_WIDTH_WIDE = 800
-        private const val CONTAINER_WIDTH_MEDIUM = 500
+        private const val CONTAINER_WIDTH_MEDIUM = 400
         private const val CONTAINER_WIDTH_NARROW = 150
 
         private val TIMER_UI_STATE =

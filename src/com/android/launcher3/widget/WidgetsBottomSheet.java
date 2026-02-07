@@ -46,6 +46,9 @@ import com.android.launcher3.widget.util.WidgetsTableUtils;
 
 import java.util.List;
 
+import app.lawnchair.font.FontManager;
+import app.lawnchair.theme.drawable.DrawableTokens;
+
 /**
  * Bottom sheet for the "Widgets" system shortcut in the long-press popup.
  */
@@ -53,7 +56,8 @@ public class WidgetsBottomSheet extends BaseWidgetSheet {
     private static final int DEFAULT_CLOSE_DURATION = 200;
 
     private ItemInfo mOriginalItemInfo;
-    @Px private int mMaxHorizontalSpan;
+    @Px
+    private int mMaxHorizontalSpan;
 
     public WidgetsBottomSheet(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
@@ -68,8 +72,12 @@ public class WidgetsBottomSheet extends BaseWidgetSheet {
     protected void onFinishInflate() {
         super.onFinishInflate();
         mContent = findViewById(R.id.widgets_bottom_sheet);
-        setContentBackgroundWithParent(
-                getContext().getDrawable(R.drawable.bg_rounded_corner_bottom_sheet), mContent);
+        TextView mTitle = findViewById(R.id.title);
+
+        FontManager fontManager = FontManager.INSTANCE.get(getContext());
+        fontManager.setCustomFont(mTitle, R.id.font_heading);
+
+        mContent.setBackground(DrawableTokens.WidgetsBottomSheetBackground.resolve(getContext()));
     }
 
     @Override
@@ -82,9 +90,11 @@ public class WidgetsBottomSheet extends BaseWidgetSheet {
 
     /** Returns {@code true} if the max spans have been updated. */
     private boolean updateMaxSpansPerRow() {
-        if (getMeasuredWidth() == 0) return false;
+        if (getMeasuredWidth() == 0)
+            return false;
 
-        @Px int maxHorizontalSpan = mContent.getMeasuredWidth() - (2 * mContentHorizontalMargin);
+        @Px
+        int maxHorizontalSpan = mContent.getMeasuredWidth() - (2 * mContentHorizontalMargin);
         if (mMaxHorizontalSpan != maxHorizontalSpan) {
             // Ensure the table layout is showing widgets in the right column after measure.
             mMaxHorizontalSpan = maxHorizontalSpan;
@@ -140,7 +150,7 @@ public class WidgetsBottomSheet extends BaseWidgetSheet {
                 .forEach(row -> {
                     WidgetTableRow tableRow = new WidgetTableRow(getContext());
                     tableRow.setGravity(Gravity.TOP);
-                    tableRow.setupRow(row.size(), /*resizeDelayMs=*/ 0);
+                    tableRow.setupRow(row.size(), /* resizeDelayMs= */ 0);
                     row.forEach(widgetItem -> {
                         WidgetCell widget = addItemCell(tableRow);
                         widget.applyFromCellItem(widgetItem);
@@ -220,15 +230,15 @@ public class WidgetsBottomSheet extends BaseWidgetSheet {
 
     @Override
     protected void onContentHorizontalMarginChanged(int contentHorizontalMarginInPx) {
-        ViewGroup.MarginLayoutParams layoutParams =
-                ((ViewGroup.MarginLayoutParams) findViewById(R.id.widgets_table).getLayoutParams());
+        ViewGroup.MarginLayoutParams layoutParams = ((ViewGroup.MarginLayoutParams) findViewById(R.id.widgets_table)
+                .getLayoutParams());
         layoutParams.setMarginStart(contentHorizontalMarginInPx);
         layoutParams.setMarginEnd(contentHorizontalMarginInPx);
     }
 
     @Override
     protected Pair<View, String> getAccessibilityTarget() {
-        return Pair.create(findViewById(R.id.title),  getContext().getString(
+        return Pair.create(findViewById(R.id.title), getContext().getString(
                 mIsOpen ? R.string.widgets_list : R.string.widgets_list_closed));
     }
 

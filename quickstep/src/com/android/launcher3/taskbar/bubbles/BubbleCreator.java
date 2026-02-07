@@ -70,7 +70,7 @@ public class BubbleCreator {
         mIconFactory = new BubbleIconFactory(context,
                 context.getResources().getDimensionPixelSize(R.dimen.bubblebar_icon_size),
                 context.getResources().getDimensionPixelSize(R.dimen.bubblebar_badge_size),
-                context.getResources().getColor(com.android.launcher3.icons.R.color.important_conversation),
+                context.getResources().getColor(R.color.important_conversation),
                 context.getResources().getDimensionPixelSize(
                         com.android.internal.R.dimen.importance_ring_stroke_width));
     }

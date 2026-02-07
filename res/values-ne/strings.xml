@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"सेटअप पूरा गर्न ट्याप गर्नुहोस्"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"यो सिस्टम एप हो र यसलाई स्थापना रद्द गर्न सकिँदैन।"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"नाम सम्पादन गर्नुहोस्"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"बायाँतिर पेजिनेट गर्नुहोस्"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"दायाँतिर पेजिनेट गर्नुहोस्"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"असक्षम पारिएको <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} सँग सम्बन्धित # सूचना छ}other{{app_name} सँग सम्बन्धित # वटा सूचना छन्}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"पृष्ठ %2$d को %1$d"</string>
@@ -136,10 +138,10 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"होम स्क्रिन रोटेट हुन दिइयोस्"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"फोन घुमाउँदा"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"ल्यान्डस्केप मोड"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"फोनमा ल्यान्डस्केप मोड अन गर्नुहोस्"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"होम स्क्रिनलाई ल्यान्डस्केप मोडमा सेट गर्नुहोस्"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"नोटिफिकेसन डट"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"अन छ"</string>
-    <string name="notification_dots_desc_off" msgid="1760796511504341095">"निष्क्रिय"</string>
+    <string name="notification_dots_desc_off" msgid="1760796511504341095">"अफ"</string>
     <string name="title_missing_notification_access" msgid="7503287056163941064">"सूचनासम्बन्धी पहुँच आवश्यक हुन्छ"</string>
     <string name="msg_missing_notification_access" msgid="281113995110910548">"नोटिफिकेसन डट देखाउन <xliff:g id="NAME">%1$s</xliff:g> को एपसम्बन्धी सूचनाहरूलाई अन गर्नुहोस्"</string>
     <string name="title_change_settings" msgid="1376365968844349552">"सेटिङहरू बदल्नुहोस्"</string>
@@ -193,7 +195,7 @@
     <string name="all_apps_work_tab" msgid="4884822796154055118">"कामसम्बन्धी"</string>
     <string name="all_apps_personal_tab_content_description" msgid="6286808898381807242">"\"व्यक्तिगत एपहरू\" ट्याब"</string>
     <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"\"कामसम्बन्धी एपहरू\" ट्याब"</string>
-    <string name="work_profile_toggle_label" msgid="3081029915775481146">"कार्य प्रोफाइल"</string>
+    <string name="work_profile_toggle_label" msgid="3081029915775481146">"वर्क प्रोफाइल"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"कामसम्बन्धी एपहरूमा ब्याज अङ्कित हुन्छ र तपाईंका IT एड्मिन ती एप हेर्न सक्छन्"</string>
     <string name="work_profile_edu_accept" msgid="6069788082535149071">"बुझेँ"</string>
     <string name="work_apps_paused_title" msgid="3040901117349444598">"कामसम्बन्धी एपहरू पज गरिएका छन्"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"लक गर्नुहोस्"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"निजी स्पेस ट्रान्जिसन गरिँदै छ"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"इन्स्टल गर्नुहोस्"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"हाल्नुहोस्"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"निजी स्पेसमा एपहरू इन्स्टल गर्नुहोस्"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"निजी स्पेसमा फाइल र अन्य कुरा हाल्नुहोस्"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"वृत्त"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"वर्ग"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"४ वटा साइड भएको कुकी"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"७ वटा साइड भएको कुकी"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"आर्क"</string>
 </resources>

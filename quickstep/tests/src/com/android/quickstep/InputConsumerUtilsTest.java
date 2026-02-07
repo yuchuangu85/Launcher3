@@ -55,6 +55,7 @@ import com.android.launcher3.taskbar.bubbles.BubbleDismissController;
 import com.android.launcher3.taskbar.bubbles.BubbleDragController;
 import com.android.launcher3.taskbar.bubbles.BubblePinController;
 import com.android.launcher3.taskbar.bubbles.BubbleStashedHandleViewController;
+import com.android.launcher3.taskbar.bubbles.DragToBubbleController;
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController;
 import com.android.launcher3.util.LockedUserState;
 import com.android.launcher3.util.SandboxApplication;
@@ -113,6 +114,7 @@ public class InputConsumerUtilsTest {
     @NonNull @Mock private TaskbarActivityContext mTaskbarActivityContext;
     @NonNull @Mock private OverviewComponentObserver mOverviewComponentObserver;
     @NonNull @Mock private RecentsAnimationDeviceState mDeviceState;
+    @NonNull @Mock private RotationTouchHelper mRotationTouchHelper;
     @NonNull @Mock private AbsSwipeUpHandler.Factory mSwipeUpHandlerFactory;
     @NonNull @Mock private TaskbarManager mTaskbarManager;
     @NonNull @Mock private OverviewCommandHelper mOverviewCommandHelper;
@@ -128,7 +130,7 @@ public class InputConsumerUtilsTest {
 
     @Before
     public void setupTaskAnimationManager() {
-        mTaskAnimationManager = new TaskAnimationManager(mContext, mDeviceState, mDisplayId);
+        mTaskAnimationManager = new TaskAnimationManager(mContext, mDisplayId);
     }
 
     @Before
@@ -136,8 +138,7 @@ public class InputConsumerUtilsTest {
         mContext.initDaggerComponent(DaggerInputConsumerUtilsTest_TestComponent
                 .builder()
                 .bindLockedState(mLockedUserState)
-                .bindRotationHelper(mock(RotationTouchHelper.class))
-                .bindRecentsState(mDeviceState));
+        );
     }
 
     @Before
@@ -201,8 +202,10 @@ public class InputConsumerUtilsTest {
 
     @After
     public void cleanUp() {
-        mInputMonitorCompat.dispose();
-        mInputEventReceiver.dispose();
+        runOnMainSync(() -> {
+            mInputMonitorCompat.dispose();
+            mInputEventReceiver.dispose();
+        });
     }
 
     @Test
@@ -295,7 +298,8 @@ public class InputConsumerUtilsTest {
     @Test
     public void testNewBaseConsumer_launcherChildActivityResumed_returnsDefaultInputConsumer() {
         when(mRunningTask.isHomeTask()).thenReturn(true);
-        when(mOverviewComponentObserver.isHomeAndOverviewSameActivity()).thenReturn(true);
+        when(mOverviewComponentObserver.isHomeAndOverviewSame()).thenReturn(true);
+        when(mContainerInterface.isLauncherOverlayShowing()).thenReturn(true);
 
         assertEqualsDefaultInputConsumer(this::createBaseInputConsumer);
     }
@@ -502,7 +506,8 @@ public class InputConsumerUtilsTest {
                 mTaskbarManager,
                 mSwipeUpProxyProvider,
                 mOverviewCommandHelper,
-                event);
+                event,
+                mRotationTouchHelper);
 
         event.recycle();
 
@@ -525,7 +530,8 @@ public class InputConsumerUtilsTest {
                 otherActivityInputConsumer -> {},
                 mInputEventReceiver,
                 event,
-                ActiveGestureLog.CompoundString.NO_OP);
+                ActiveGestureLog.CompoundString.NO_OP,
+                mRotationTouchHelper);
 
         event.recycle();
 
@@ -597,6 +603,7 @@ public class InputConsumerUtilsTest {
         BubbleBarPinController bubbleBarPinController = mock(BubbleBarPinController.class);
         BubblePinController bubblePinController = mock(BubblePinController.class);
         BubbleBarSwipeController bubbleBarSwipeController = mock(BubbleBarSwipeController.class);
+        DragToBubbleController dragToBubbleController = mock(DragToBubbleController.class);
         BubbleCreator bubbleCreator = mock(BubbleCreator.class);
         BubbleControllers bubbleControllers = new BubbleControllers(
                 bubbleBarController,
@@ -608,6 +615,7 @@ public class InputConsumerUtilsTest {
                 bubbleBarPinController,
                 bubblePinController,
                 Optional.of(bubbleBarSwipeController),
+                dragToBubbleController,
                 bubbleCreator);
 
         when(bubbleBarViewController.hasBubbles()).thenReturn(true);
@@ -625,8 +633,6 @@ public class InputConsumerUtilsTest {
         @Component.Builder
         interface Builder extends LauncherAppComponent.Builder {
             @BindsInstance Builder bindLockedState(LockedUserState state);
-            @BindsInstance Builder bindRotationHelper(RotationTouchHelper helper);
-            @BindsInstance Builder bindRecentsState(RecentsAnimationDeviceState state);
 
             @Override
             TestComponent build();

@@ -40,6 +40,7 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.icons.cache.BaseIconCache;
 import com.android.launcher3.icons.cache.CachedObject;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
@@ -134,7 +135,7 @@ public abstract class ShortcutConfigActivityInfo implements CachedObject {
     @TargetApi(26)
     public static class ShortcutConfigActivityInfoVO extends ShortcutConfigActivityInfo {
 
-        private final LauncherActivityInfo mInfo;
+        public final LauncherActivityInfo mInfo;
 
         public ShortcutConfigActivityInfoVO(LauncherActivityInfo info) {
             super(info.getComponentName(), info.getUser(),
@@ -149,7 +150,11 @@ public abstract class ShortcutConfigActivityInfo implements CachedObject {
 
         @Override
         public Drawable getFullResIcon(BaseIconCache cache) {
-            return cache.getFullResIcon(mInfo.getActivityInfo());
+            if (Utilities.ATLEAST_S) {
+                return cache.getFullResIcon(mInfo.getActivityInfo());
+            } else {
+                return cache.getFullResIcon(mInfo.getComponentName().getPackageName());
+            }
         }
 
         @Override

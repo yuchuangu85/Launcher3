@@ -1,9 +1,5 @@
 pluginManagement {
     repositories {
-//        maven { url 'https://maven.aliyun.com/repository/jcenter' }
-//        maven { url 'https://maven.aliyun.com/repository/google' }
-//        maven { url 'https://maven.aliyun.com/repository/central' }
-//        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -11,19 +7,32 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        google()
-        mavenCentral()
         gradlePluginPortal()
     }
 }
+
+// https://docs.gradle.com/enterprise/gradle-plugin/
+plugins {
+    id "com.gradle.develocity" version "4.3.2"
+}
+
+def isCI = providers.environmentVariable('CI').present
+
+develocity {
+    buildScan {
+        termsOfUseUrl = "https://gradle.com/terms-of-service"
+        termsOfUseAgree = "yes"
+        publishing {
+            onlyIf { isCI }
+        }
+    }
+}
+
+rootProject.name = "lawnchair"
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-//        maven { url 'https://maven.aliyun.com/repository/jcenter' }
-//        maven { url 'https://maven.aliyun.com/repository/google' }
-//        maven { url 'https://maven.aliyun.com/repository/central' }
-//        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -31,13 +40,10 @@ dependencyResolutionManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        google()
         mavenCentral()
         maven { url 'https://jitpack.io' }
-        gradlePluginPortal()
     }
 }
-
 
 enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
@@ -92,8 +98,6 @@ project(':unfold').projectDir = new File(rootDir, 'systemUI/unfold')
 include ':utils'
 project(':utils').projectDir = new File(rootDir, 'systemUI/utils')
 
-//include ':flags'
-//project(':flags').projectDir = new File(rootDir, 'flagslib')
 
 include ':compatLib'
 include ':compatLib:compatLibVQ'
@@ -113,3 +117,4 @@ include ':dagger'
 include ':concurrent'
 //include ':compose'
 include ':modules:widgetpicker'
+

@@ -111,7 +111,7 @@ class AllAppsRecyclerViewPoolTest<T> where T : Context, T : ActivityContext {
 
     private fun awaitTasksCompleted() {
         Executors.VIEW_PREINFLATION_EXECUTOR.submit<Any> { null }.get()
-        Executors.MAIN_EXECUTOR.submit<Any> { null }.get()
+        Executors.MAIN_EXECUTOR.submit<Any?> { null }.get()
     }
 
     companion object {

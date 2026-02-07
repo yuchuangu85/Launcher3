@@ -44,6 +44,7 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppComponent;
 import com.android.launcher3.dagger.LauncherAppSingleton;
@@ -107,7 +108,9 @@ public class ContextualSearchStateManager  {
                 || !context.getPackageManager().hasSystemFeature(FEATURE_CONTEXTUAL_SEARCH)) {
             // If we had previously registered a SystemAction which is no longer valid, we need to
             // unregister it here.
-            unregisterSearchScreenSystemAction();
+            if (Utilities.ATLEAST_R) {
+                unregisterSearchScreenSystemAction();
+            }
             // Don't listen for stuff we aren't gonna use.
             return;
         }

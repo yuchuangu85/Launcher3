@@ -21,6 +21,7 @@ import com.android.launcher3.Flags
 import com.android.launcher3.LauncherModel.ModelUpdateTask
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
 import com.android.launcher3.icons.CacheableShortcutInfo
+import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.shortcuts.ShortcutKey
 import com.android.launcher3.shortcuts.ShortcutRequest
@@ -41,21 +42,25 @@ class ShortcutsChangedTask(
         apps: AllAppsList,
     ) {
         val context = taskController.context
-        // Find WorkspaceItemInfo's that have changed on the workspace.
-        val matchingWorkspaceItems = ArrayList<WorkspaceItemInfo>()
-
-        synchronized(dataModel) {
-            dataModel.forAllWorkspaceItemInfos(user) { wai: WorkspaceItemInfo ->
-                if (
-                    (wai.itemType == ITEM_TYPE_DEEP_SHORTCUT) &&
-                        packageName == wai.getIntent().getPackage()
-                ) {
-                    matchingWorkspaceItems.add(wai)
-                }
-            }
+        val itemFilter: (WorkspaceItemInfo) -> Boolean = {
+            it.itemType == ITEM_TYPE_DEEP_SHORTCUT && packageName == it.targetPackage
         }
 
-        if (matchingWorkspaceItems.isNotEmpty()) {
+        // Find WorkspaceItemInfo's that have changed on the workspace.
+        val matchingShortcutIds = mutableSetOf<String>()
+        synchronized(dataModel) {
+            dataModel.updateAndCollectWorkspaceItemInfos(
+                user,
+                {
+                    if (itemFilter.invoke(it)) matchingShortcutIds.add(it.deepShortcutId)
+
+                    // We don't care about the returned list
+                    false
+                },
+            )
+        }
+
+        if (matchingShortcutIds.isNotEmpty()) {
             val infoWrapper = ApplicationInfoWrapper(context, packageName, user)
             if (shortcuts.isEmpty()) {
                 // Verify that the app is indeed installed.
@@ -68,40 +73,45 @@ class ShortcutsChangedTask(
                 }
             }
             // Update the workspace to reflect the changes to updated shortcuts residing on it.
-            val allLauncherKnownIds =
-                matchingWorkspaceItems.map { item -> item.deepShortcutId }.distinct()
-            val shortcuts: List<ShortcutInfo> =
+            val pinnedShortcuts: Map<String, ShortcutInfo> =
                 ShortcutRequest(context, user)
-                    .forPackage(packageName, allLauncherKnownIds)
+                    .forPackage(packageName, matchingShortcutIds.filterNotNullTo(mutableListOf()))
                     .query(ShortcutRequest.ALL)
+                    .associateBy { it.id }
+            val nonPinnedIds = matchingShortcutIds.toMutableSet()
+            val updatedWorkspaceItemInfos: List<ItemInfo>
+            synchronized(dataModel) {
+                updatedWorkspaceItemInfos =
+                    dataModel.updateAndCollectWorkspaceItemInfos(
+                        user,
+                        {
+                            if (!itemFilter.invoke(it))
+                                return@updateAndCollectWorkspaceItemInfos false
+                            val shortcutId =
+                                it.deepShortcutId ?: return@updateAndCollectWorkspaceItemInfos false
+                            val fullDetails =
+                                pinnedShortcuts[shortcutId]
+                                    ?: return@updateAndCollectWorkspaceItemInfos false
 
-            val nonPinnedIds: MutableSet<String> = HashSet(allLauncherKnownIds)
-            val updatedWorkspaceItemInfos = ArrayList<WorkspaceItemInfo>()
-            for (fullDetails in shortcuts) {
-                if (!fullDetails.isPinned && !Flags.restoreArchivedShortcuts()) {
-                    continue
-                }
-                val shortcutId = fullDetails.id
-                nonPinnedIds.remove(shortcutId)
-                matchingWorkspaceItems
-                    .filter { itemInfo: WorkspaceItemInfo -> shortcutId == itemInfo.deepShortcutId }
-                    .forEach { workspaceItemInfo: WorkspaceItemInfo ->
-                        workspaceItemInfo.updateFromDeepShortcutInfo(fullDetails, context)
-                        taskController.iconCache.getShortcutIcon(
-                            workspaceItemInfo,
-                            CacheableShortcutInfo(fullDetails, infoWrapper),
-                        )
-                        updatedWorkspaceItemInfos.add(workspaceItemInfo)
-                    }
+                            if (!fullDetails.isPinned && !Flags.restoreArchivedShortcuts())
+                                return@updateAndCollectWorkspaceItemInfos false
+
+                            nonPinnedIds.remove(shortcutId)
+                            it.updateFromDeepShortcutInfo(fullDetails, context)
+                            taskController.iconCache.getShortcutIcon(
+                                it,
+                                CacheableShortcutInfo(fullDetails, infoWrapper),
+                            )
+                            true
+                        },
+                    )
             }
 
             taskController.bindUpdatedWorkspaceItems(updatedWorkspaceItemInfos)
             if (nonPinnedIds.isNotEmpty()) {
                 taskController.deleteAndBindComponentsRemoved(
                     ItemInfoMatcher.ofShortcutKeys(
-                        nonPinnedIds
-                            .map { id: String? -> ShortcutKey(packageName, user, id) }
-                            .toSet()
+                        nonPinnedIds.mapTo(mutableSetOf()) { ShortcutKey(packageName, user, it) }
                     ),
                     "removed because the shortcut is no longer available in shortcut service",
                 )

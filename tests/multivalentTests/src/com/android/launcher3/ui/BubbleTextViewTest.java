@@ -69,11 +69,10 @@ import com.android.launcher3.search.StringMatcherUtility;
 import com.android.launcher3.util.ActivityContextWrapper;
 import com.android.launcher3.util.FlagOp;
 import com.android.launcher3.util.IntArray;
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext;
+import com.android.launcher3.util.SandboxApplication;
 import com.android.launcher3.util.TestUtil;
 import com.android.launcher3.views.BaseDragLayer;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -119,7 +118,7 @@ public class BubbleTextViewTest {
     private static final float SPACE_MULTIPLIER = 1;
     private static final float SPACE_EXTRA = 0;
 
-    private SandboxModelContext mModelContext;
+    @Rule public SandboxApplication mModelContext = new SandboxApplication();
 
     private BubbleTextView mBubbleTextView;
     private ItemInfoWithIcon mItemInfoWithIcon;
@@ -131,7 +130,6 @@ public class BubbleTextViewTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         Utilities.enableRunningInTestHarnessForTests();
-        mModelContext = new SandboxModelContext();
         LauncherPrefs.get(mModelContext).put(ENABLE_TWOLINE_ALLAPPS_TOGGLE, true);
 
         mContext = new ActivityContextWrapper(mModelContext);
@@ -158,11 +156,6 @@ public class BubbleTextViewTest {
         ComponentName componentName = new ComponentName(mContext,
                 "com.android.launcher3.tests.Activity" + "Gmail");
         mGmailAppInfo = new AppInfo(componentName, "Gmail", WORK_HANDLE, new Intent());
-    }
-
-    @After
-    public void tearDown() {
-        mModelContext.onDestroy();
     }
 
     @Test

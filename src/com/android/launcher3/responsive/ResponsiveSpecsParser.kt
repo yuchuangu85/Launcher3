@@ -22,9 +22,9 @@ import android.util.Xml
 import com.android.launcher3.R
 import com.android.launcher3.responsive.ResponsiveSpec.Companion.ResponsiveSpecType
 import com.android.launcher3.util.ResourceHelper
-import java.io.IOException
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
+import java.io.IOException
 
 class ResponsiveSpecsParser(private val resourceHelper: ResourceHelper) {
 
@@ -34,8 +34,8 @@ class ResponsiveSpecsParser(private val resourceHelper: ResourceHelper) {
             (
                 responsiveSpecType: ResponsiveSpecType,
                 attributes: TypedArray,
-                sizeSpecs: Map<String, SizeSpec>
-            ) -> T
+                sizeSpecs: Map<String, SizeSpec>,
+            ) -> T,
     ): List<ResponsiveSpecGroup<T>> {
         val parser: XmlResourceParser = resourceHelper.getXml()
 
@@ -52,7 +52,7 @@ class ResponsiveSpecsParser(private val resourceHelper: ResourceHelper) {
                         groupAttrs =
                             resourceHelper.obtainStyledAttributes(
                                 Xml.asAttributeSet(parser),
-                                R.styleable.ResponsiveSpecGroup
+                                R.styleable.ResponsiveSpecGroup,
                             )
                     }
                     parser ends ResponsiveSpecGroup.XML_GROUP_NAME -> {
@@ -67,7 +67,7 @@ class ResponsiveSpecsParser(private val resourceHelper: ResourceHelper) {
                         val attrs =
                             resourceHelper.obtainStyledAttributes(
                                 Xml.asAttributeSet(parser),
-                                R.styleable.ResponsiveSpec
+                                responsiveSpecType.styleId,
                             )
 
                         val sizeSpecs = parseSizeSpecs(parser)

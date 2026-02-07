@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Реттеуді аяқтау үшін түртіңіз."</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Бұл жүйе қолданбасы, сондықтан оны алу мүмкін емес."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Атын өңдеу"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Солға қарай бетке бөлу"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Оңға қарай бетке бөлу"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> өшірілді"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} қолданбасында # хабарландыру бар}other{{app_name} қолданбасында # хабарландыру бар}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%1$d бет, барлығы %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Негізгі экранды бұруға рұқсат ету"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Телефон бұрылғанда"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Альбом режимі"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Телефонды альбом режиміне қою"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Негізгі экранды альбом режиміне орнату"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Хабарландыру белгілері"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Қосулы"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Өшірулі"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Құлыптау"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Жеке бөлмеге өту"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Орнату"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Қосу"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Қолданбаларды \"Құпия кеңістікке\" орнатыңыз."</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Құпия кеңістікке файлдар мен басқа да элементтерді қосыңыз"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Шеңбер"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Шаршы"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 жақты печенье"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 жақты печенье"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Арка"</string>
 </resources>

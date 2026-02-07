@@ -27,7 +27,6 @@ import com.android.launcher3.model.data.PackageItemInfo
 import com.android.launcher3.pm.ShortcutConfigActivityInfo.ShortcutConfigActivityInfoVO
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.Executors.MODEL_EXECUTOR
-import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.widget.DatabaseWidgetPreviewLoader
 import com.android.launcher3.widget.picker.util.WidgetPreviewContainerSize
 import com.android.launcher3.widget.util.WidgetSizes
@@ -50,7 +49,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -80,33 +78,20 @@ constructor(
     private val _widgetItemsByPackage = MutableStateFlow<List<WidgetApp>>(emptyList())
     private val databaseWidgetPreviewLoader = DatabaseWidgetPreviewLoader(appContext, deviceProfile)
 
-    override fun initialize(options: WidgetsRepository.InitializationOptions) {
-        val packageUserKeyOrAll =
-            options.widgetAppId?.let {
-                checkNotNull(it.packageName) { "invalid package name passed" }
-                PackageUserKey(it.packageName, it.userHandle)
-            }
-
+    override fun initialize() {
         // TODO(b/419495339): Remove the model executor requirement from widgets model and replace
         // with scope.launch
         MODEL_EXECUTOR.execute {
-            widgetsModel.update(/* packageUser= */ packageUserKeyOrAll)
+            widgetsModel.update(/* packageUser= */ null)
             _widgetItemsByPackage.update {
                 widgetsModel.widgetsByPackageItemForPicker.toPickableWidgets(deviceProfile)
             }
         }
 
-        if (options.loadFeaturedWidgets) {
-            backgroundScope.launch { featuredWidgetsDataSource.initialize() }
-        }
+        backgroundScope.launch { featuredWidgetsDataSource.initialize() }
     }
 
     override fun observeWidgets(): Flow<List<WidgetApp>> = _widgetItemsByPackage.asStateFlow()
-
-    override fun observeWidgetApp(widgetAppId: WidgetAppId): Flow<WidgetApp?> =
-        _widgetItemsByPackage
-            .map { apps -> apps.firstOrNull { it.id == widgetAppId } }
-            .distinctUntilChanged()
 
     override suspend fun getWidgetPreview(id: WidgetId): WidgetPreview {
         val componentKey = ComponentKey(id.componentName, id.userHandle)
@@ -114,7 +99,8 @@ constructor(
             widgetsModel.widgetsByComponentKey[componentKey]
                 ?: return WidgetPreview.PlaceholderWidgetPreview
 
-        val previewSizePx = WidgetSizes.getWidgetItemSizePx(appContext, deviceProfile, widgetItem)
+        val previewSizePx =
+            WidgetSizes.getWidgetSizePx(deviceProfile, widgetItem.spanX, widgetItem.spanY)
         val preview =
             withContext(backgroundContext) {
                 val result =

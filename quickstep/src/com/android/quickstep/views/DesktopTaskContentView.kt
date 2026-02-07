@@ -37,6 +37,7 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
 
     init {
         clipToOutline = true
+        clipChildren = false
         outlineProvider =
             object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {

@@ -20,6 +20,7 @@ import android.app.TaskInfo
 import android.content.ComponentName
 import android.content.res.Resources
 import android.window.DesktopExperienceFlags
+import com.android.launcher3.Utilities
 import com.android.systemui.shared.recents.model.Task
 
 class DesksUtils {
@@ -29,8 +30,13 @@ class DesksUtils {
 
         @JvmStatic
         fun areMultiDesksFlagsEnabled() =
-            DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_BACKEND.isTrue &&
-                DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_FRONTEND.isTrue
+            if (false) {
+                // LC-Ignored: Intentional, all Android desktop flags are disabled
+                DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_BACKEND.isTrue &&
+                    DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_FRONTEND.isTrue
+            } else {
+                false
+            }
 
         /** Returns true if this [task] contains the [DesktopWallpaperActivity]. */
         @JvmStatic

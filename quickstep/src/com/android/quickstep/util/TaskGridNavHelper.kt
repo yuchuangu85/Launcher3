@@ -59,6 +59,10 @@ class TaskGridNavHelper(
         cycle: Boolean,
     ): Int {
         val inTop = topRowIds.contains(currentPageTaskViewId)
+        val inBottom = bottomRowIds.contains(currentPageTaskViewId)
+        if (!inTop && !inBottom) {
+            return currentPageTaskViewId
+        }
         val index =
             if (inTop) topRowIds.indexOf(currentPageTaskViewId)
             else bottomRowIds.indexOf(currentPageTaskViewId)

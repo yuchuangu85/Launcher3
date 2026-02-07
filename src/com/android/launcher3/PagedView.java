@@ -65,6 +65,9 @@ import com.android.launcher3.views.ActivityContext;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
+import app.lawnchair.preferences.PreferenceManager;
+import app.lawnchair.ui.StretchEdgeEffect;
+
 /**
  * An abstraction of the original Workspace which supports browsing through a
  * sequential list of "pages"
@@ -83,6 +86,8 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
     private static final float SIGNIFICANT_MOVE_THRESHOLD = 0.4f;
 
     private static final float MAX_SCROLL_PROGRESS = 1.0f;
+    
+    private PreferenceManager prefs = PreferenceManager.getInstance(getContext());
 
     private boolean mFreeScroll = false;
 
@@ -192,8 +197,8 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
     }
 
     protected void initEdgeEffect() {
-        mEdgeGlowLeft = new EdgeEffectCompat(getContext());
-        mEdgeGlowRight = new EdgeEffectCompat(getContext());
+        mEdgeGlowLeft = EdgeEffectCompat.create(getContext(), this);
+        mEdgeGlowRight = EdgeEffectCompat.create(getContext(), this);
     }
 
     public void initParentViews(View parent) {
@@ -788,13 +793,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
         }
 
         if (mScroller.isFinished() && pageScrollChanged) {
-            // TODO(b/246283207): Remove logging once root cause of flake detected.
-            if (Utilities.isRunningInTestHarness() && !(this instanceof Workspace)) {
-                Log.d("b/246283207", TAG + "#onLayout() -> "
-                        + "if(mScroller.isFinished() && pageScrollChanged) -> getNextPage(): "
-                        + getNextPage() + ", getScrollForPage(getNextPage()): "
-                        + getScrollForPage(getNextPage()));
-            }
             setCurrentPage(getNextPage());
         }
         onPageScrollsInitialized();
@@ -1421,19 +1419,27 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
                     // test for a large move if a fling has been registered. That is, a large
                     // move to the left and fling to the right will register as a fling to the right.
 
+                    boolean infiniteScroll = prefs.getInstance(getContext()).getInfiniteScrolling().get();
+
                     if (((isSignificantMove && !isDeltaLeft && !isFling) ||
                             (isFling && !isVelocityLeft)) && mCurrentPage > 0) {
                         finalPage = returnToOriginalPage
                                 ? mCurrentPage : mCurrentPage - getPanelCount();
                         runOnPageScrollsInitialized(
-                                () -> snapToPageWithVelocity(finalPage, velocity));
-                    } else if (((isSignificantMove && isDeltaLeft && !isFling) ||
-                            (isFling && isVelocityLeft)) &&
-                            mCurrentPage < getChildCount() - 1) {
-                        finalPage = returnToOriginalPage
-                                ? mCurrentPage : mCurrentPage + getPanelCount();
-                        runOnPageScrollsInitialized(
-                                () -> snapToPageWithVelocity(finalPage, velocity));
+                                () -> snapToPageWithVelocity(finalPage, velocity));		
+                    } else if (((isSignificantMove && isDeltaLeft && !isFling) || (isFling && isVelocityLeft)) && mCurrentPage < getChildCount() - 1) {
+												
+                        finalPage = returnToOriginalPage ? mCurrentPage : mCurrentPage + getPanelCount();
+                        runOnPageScrollsInitialized(() -> snapToPageWithVelocity(finalPage, velocity));
+					} else if (mCurrentPage == getChildCount() - 1 && infiniteScroll) {
+                        finalPage = returnToOriginalPage ? mCurrentPage : 0;
+                        snapToPageWithVelocity(finalPage, velocity);
+						
+						
+                    } else if (mCurrentPage == 0 && infiniteScroll) {
+                        finalPage = returnToOriginalPage ? mCurrentPage : getChildCount() - 1;
+                        snapToPageWithVelocity(finalPage, velocity);						
+	
                     } else {
                         runOnPageScrollsInitialized(this::snapToDestination);
                     }
@@ -1468,10 +1474,12 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
 
             // Detect if user tries to swipe to -1 page but gets disallowed by checking if there was
             // left-over values in mEdgeGlowLeft (or mEdgeGlowRight in RLT).
-            final int layoutDir = getLayoutDirection();
-            if ((mEdgeGlowLeft.getDistance() > 0 && layoutDir == LAYOUT_DIRECTION_LTR)
-                    || (mEdgeGlowRight.getDistance() > 0 && layoutDir == LAYOUT_DIRECTION_RTL)) {
-                onDisallowSwipeToMinusOnePage();
+            if (Utilities.ATLEAST_S) {
+                final int layoutDir = getLayoutDirection();
+                if ((mEdgeGlowLeft.getDistance() > 0 && layoutDir == LAYOUT_DIRECTION_LTR)
+                        || (mEdgeGlowRight.getDistance() > 0 && layoutDir == LAYOUT_DIRECTION_RTL)) {
+                    onDisallowSwipeToMinusOnePage();
+                }
             }
 
             mEdgeGlowLeft.onRelease(ev);
@@ -1846,18 +1854,22 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
             info.addAction(pagesFlipped ?
                     AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_BACKWARD
                     : AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_FORWARD);
-            info.addAction(mIsRtl ?
-                AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_LEFT
-                : AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_RIGHT);
+            if (Utilities.ATLEAST_Q) {
+                info.addAction(mIsRtl ?
+                        AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_LEFT
+                        : AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_RIGHT);
+            }
         }
         if (getCurrentPage() > 0
                 || (getCurrentPage() == 0 && primaryScroll != getScrollForPage(0))) {
             info.addAction(pagesFlipped ?
                     AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_FORWARD
                     : AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_BACKWARD);
-            info.addAction(mIsRtl ?
-                AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_RIGHT
-                : AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_LEFT);
+            if (Utilities.ATLEAST_Q) {
+                info.addAction(mIsRtl ?
+                        AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_RIGHT
+                        : AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_LEFT);
+            }
         }
         // Accessibility-wise, PagedView doesn't support long click, so disabling it.
         // Besides disabling the accessibility long-click, this also prevents this view from getting
@@ -1968,9 +1980,26 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
 
     @Override
     public void draw(Canvas canvas) {
+        if (!Utilities.ATLEAST_S) drawStretchEdgeEffect(canvas);
         super.draw(canvas);
-        drawEdgeEffect(canvas);
+        if (Utilities.ATLEAST_S) drawEdgeEffect(canvas);
         pageEndTransition();
+    }
+
+    protected void drawStretchEdgeEffect(Canvas canvas) {
+        if (mAllowOverScroll && (!mEdgeGlowRight.isFinished() || !mEdgeGlowLeft.isFinished())) {
+            final int width = getWidth();
+            final int height = getHeight();
+            if (!mEdgeGlowLeft.isFinished() && mEdgeGlowLeft instanceof StretchEdgeEffect) {
+                mEdgeGlowLeft.setSize(width, height);
+                ((StretchEdgeEffect) mEdgeGlowLeft).applyStretch(canvas, StretchEdgeEffect.POSITION_LEFT);
+            }
+            if (!mEdgeGlowRight.isFinished() && mEdgeGlowRight instanceof StretchEdgeEffect) {
+                mEdgeGlowRight.setSize(width, height);
+                ((StretchEdgeEffect) mEdgeGlowRight).applyStretch(canvas, StretchEdgeEffect.POSITION_RIGHT,
+                        -Math.max(mMaxScroll, getScrollX()), 0);
+            }
+        }
     }
 
     protected void drawEdgeEffect(Canvas canvas) {

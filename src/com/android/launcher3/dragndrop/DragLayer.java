@@ -124,6 +124,7 @@ public class DragLayer extends BaseDragLayer<Launcher> implements LauncherOverla
 
     @Override
     public void recreateControllers() {
+        super.recreateControllers();
         mControllers = mContainer.createTouchControllers();
     }
 

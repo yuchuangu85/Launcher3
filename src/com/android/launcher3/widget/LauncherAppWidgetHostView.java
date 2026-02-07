@@ -16,6 +16,8 @@
 
 package com.android.launcher3.widget;
 
+import static com.android.launcher3.Utilities.ATLEAST_Q;
+
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Context;
 import android.graphics.Rect;
@@ -126,8 +128,10 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
         super.setAppWidget(appWidgetId, info);
         if (!mTrackingWidgetUpdate && appWidgetId != -1) {
             mTrackingWidgetUpdate = true;
-            Trace.beginAsyncSection(TRACE_METHOD_NAME + info.provider, appWidgetId);
             Log.i(TAG, "App widget created with id: " + appWidgetId);
+            if (ATLEAST_Q) {
+                Trace.beginAsyncSection(TRACE_METHOD_NAME + info.provider, appWidgetId);
+            }
         }
     }
 
@@ -135,8 +139,10 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
     public void updateAppWidget(RemoteViews remoteViews) {
         if (mTrackingWidgetUpdate && remoteViews != null) {
             Log.i(TAG, "App widget with id: " + getAppWidgetId() + " loaded");
-            Trace.endAsyncSection(
+            if (ATLEAST_Q) {
+                Trace.endAsyncSection(
                     TRACE_METHOD_NAME + getAppWidgetInfo().provider, getAppWidgetId());
+            }
             mTrackingWidgetUpdate = false;
         }
         mLastRemoteViews = remoteViews;
@@ -390,6 +396,11 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
             return item.spanX == 1 && item.spanY == 1;
         }
         return false;
+    }
+
+    @Override
+    public void onColorsChanged(SparseIntArray colors) {
+        post(() -> setColorResources(colors));
     }
 
     /**

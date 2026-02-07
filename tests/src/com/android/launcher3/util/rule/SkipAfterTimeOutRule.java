@@ -25,7 +25,6 @@ import org.junit.runners.model.TestTimedOutException;
 /** Makes sure that tests are skipped after a timed-out test to avoid test execution overlap. */
 public class SkipAfterTimeOutRule implements TestRule {
     private static boolean sHadTimeoutException = false;
-    private static String sTimeoutCulpritTestName;
 
     @Override
     public Statement apply(Statement base, Description description) {
@@ -35,15 +34,11 @@ public class SkipAfterTimeOutRule implements TestRule {
                 try {
                     if (sHadTimeoutException) {
                         throw new AssumptionViolatedException(
-                                "An earlier test had TestTimedOutException."
-                                + " Last executed test was "
-                                + sTimeoutCulpritTestName + ".");
+                                "An earlier test had TestTimedOutException");
                     }
                     base.evaluate();
                 } catch (TestTimedOutException e) {
                     sHadTimeoutException = true;
-                    sTimeoutCulpritTestName = description.getClassName()
-                            + '#' + description.getMethodName();
                     throw e;
                 }
             }

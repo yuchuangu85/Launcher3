@@ -20,6 +20,7 @@ import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_PACKAGE;
+import static com.android.launcher3.util.ModelTestExtensions.getBgDataModel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -32,15 +33,18 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.launcher3.LauncherAppState;
+import com.android.launcher3.LauncherModel;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.icons.BitmapInfo;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.util.LauncherLayoutBuilder;
-import com.android.launcher3.util.LauncherModelHelper;
+import com.android.launcher3.util.ModelTestExtensions;
+import com.android.launcher3.util.SandboxApplication;
+import com.android.launcher3.util.rule.LayoutProviderRule;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -53,23 +57,11 @@ import java.util.List;
 @RunWith(AndroidJUnit4.class)
 public class DefaultLayoutProviderTest {
 
-    private LauncherModelHelper mModelHelper;
-    private LauncherModelHelper.SandboxModelContext mTargetContext;
-
-    @Before
-    public void setUp() {
-        mModelHelper = new LauncherModelHelper();
-        mTargetContext = mModelHelper.sandboxContext;
-    }
-
-    @After
-    public void tearDown() {
-        mModelHelper.destroy();
-    }
+    @Rule public SandboxApplication mTargetContext = new SandboxApplication().withModelDependency();
+    @Rule public LayoutProviderRule mLayoutProvider = new LayoutProviderRule(mTargetContext);
 
     private List<ItemInfo> getWorkspaceItems() {
-        return mModelHelper
-                .getBgDataModel()
+        return getBgDataModel(getModel())
                 .itemsIdMap
                 .stream()
                 .filter(i -> i.container == CONTAINER_DESKTOP || i.container == CONTAINER_HOTSEAT)
@@ -177,6 +169,11 @@ public class DefaultLayoutProviderTest {
     }
 
     private void writeLayoutAndLoad(LauncherLayoutBuilder builder) throws Exception {
-        mModelHelper.setupDefaultLayoutProvider(builder).loadModelSync();
+        mLayoutProvider.setupDefaultLayoutProvider(builder);
+        ModelTestExtensions.INSTANCE.loadModelSync(getModel());
+    }
+
+    private LauncherModel getModel() {
+        return LauncherAppState.getInstance(mTargetContext).getModel();
     }
 }

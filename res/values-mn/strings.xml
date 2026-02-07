@@ -63,7 +63,7 @@
     <string name="widget_button_text" msgid="2880537293434387943">"Виджет"</string>
     <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Хайх"</string>
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Хайх хэсгээс текстийг арилгах"</string>
-    <string name="no_widgets_available" msgid="4337693382501046170">"Жижиг хэрэгсэл болон товчлол боломжгүй байна"</string>
+    <string name="no_widgets_available" msgid="4337693382501046170">"Виджет болон товчлол боломжгүй байна"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Виджет эсвэл товчлол олдсонгүй"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Хувийн виджетүүд"</string>
     <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Ажил"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Тохируулгыг дуусгахын тулд товшино уу"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Энэ апп нь системийн апп ба устгах боломжгүй."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Нэр засах"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Зүүн тийш хуудас болгож хуваах"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Баруун тийш хуудас болгож хуваах"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g>-г идэвхгүй болгосон"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} дээр # мэдэгдэл байна}other{{app_name} дээр # мэдэгдэл байна}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$d-н %1$d хуудас"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Үндсэн нүүрийг эргүүлэхийг зөвшөөрөх"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Утсыг эргүүлсэн үед"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Хэвтээ горим"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Утсыг хэвтээ горимд тохируулах"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Үндсэн нүүрийг хэвтээ горим болгож тохируулна уу"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Мэдэгдлийн цэг"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Асаалттай"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Унтраалттай"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Түгжээ"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Private Space-н шилжилт"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Суулгах"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Нэмэх"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Хувийн орон зайд аппууд суулгана уу"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Хаалттай орон зайд файл болон бусад зүйлийг нэмэх"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Тойрог"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Дөрвөлжин"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4 талт жигнэмэг"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7 талт жигнэмэг"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Нум"</string>
 </resources>

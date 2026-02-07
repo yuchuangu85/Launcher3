@@ -348,7 +348,7 @@ object FirstScreenBroadcastHelper {
      * always modified on UI thread.
      */
     @AnyThread
-    private fun cloneOnMainThread(list: ArrayList<WorkspaceItemInfo>): List<WorkspaceItemInfo> {
+    private fun cloneOnMainThread(list: List<WorkspaceItemInfo>): List<WorkspaceItemInfo> {
         return try {
             return Executors.MAIN_EXECUTOR.submit<ArrayList<WorkspaceItemInfo>> { ArrayList(list) }
                 .get()

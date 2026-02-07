@@ -27,6 +27,9 @@ import androidx.annotation.Nullable;
 import com.android.launcher3.ExtendedEditText;
 import com.android.launcher3.R;
 
+import app.lawnchair.font.FontManager;
+import app.lawnchair.theme.drawable.DrawableTokens;
+
 /**
  * View for a search bar with an edit text with a cancel button.
  */
@@ -67,6 +70,10 @@ public class LauncherWidgetsSearchBar extends LinearLayout implements WidgetsSea
         super.onFinishInflate();
         mEditText = findViewById(R.id.widgets_search_bar_edit_text);
         mCancelButton = findViewById(R.id.widgets_search_cancel_button);
+        setBackground(DrawableTokens.BgWidgetsSearchbox.resolve(getContext()));
+
+        FontManager fontManager = FontManager.INSTANCE.get(getContext());
+        fontManager.setCustomFont(mEditText, R.id.font_body_medium);
     }
 
     @Override

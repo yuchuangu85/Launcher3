@@ -18,7 +18,7 @@ package com.android.launcher3.taskbar;
 import static com.android.app.animation.Interpolators.FAST_OUT_SLOW_IN;
 import static com.android.launcher3.AbstractFloatingView.TYPE_TASKBAR_ALL_APPS;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS;
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_PREDICTION;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_SEARCH_ACTION;
 import static com.android.launcher3.logger.LauncherAtom.ContainerInfo.ContainerCase.EXTENDED_CONTAINERS;
@@ -131,14 +131,14 @@ public class TaskbarDragController extends DragController<BaseTaskbarContext> im
 
     public void init(TaskbarControllers controllers) {
         mControllers = controllers;
-        mControllers.bubbleControllers.ifPresent(
-                c -> c.bubbleBarViewController.addBubbleBarDropTargets(this));
+        mControllers.runAfterInit(() -> mControllers.bubbleControllers.ifPresent(
+                c -> c.dragToBubbleController.addBubbleBarDropTargets(this)));
     }
 
     /** Called when the controller is destroyed. */
     public void onDestroy() {
         mControllers.bubbleControllers.ifPresent(
-                c -> c.bubbleBarViewController.removeBubbleBarDropTargets(this));
+                c -> c.dragToBubbleController.removeBubbleBarDropTargets(this));
     }
 
     public void setDisallowGlobalDrag(boolean disallowGlobalDrag) {
@@ -685,7 +685,7 @@ public class TaskbarDragController extends DragController<BaseTaskbarContext> im
         if (tag instanceof ItemInfo) {
             ItemInfo item = (ItemInfo) tag;
             if (item.container == CONTAINER_ALL_APPS
-                    || item.container == CONTAINER_PREDICTION
+                    || item.container == CONTAINER_ALL_APPS_PREDICTION
                     || isInSearchResultContainer(item)) {
                 if (mDisallowGlobalDrag) {
                     // We're dragging in taskbarAllApps, we don't have folders or shortcuts

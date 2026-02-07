@@ -20,6 +20,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import com.android.launcher3.LauncherApplication
 
+
 /**
  * Utility class to extract LauncherAppComponent from a context.
  *
@@ -31,6 +32,8 @@ object LauncherComponentProvider {
     @JvmStatic
     fun get(c: Context): LauncherAppComponent {
         val app = c.applicationContext
+        val isSafeMode = c.packageManager.isSafeMode // Lawnchair-Notice: Whatever you do, just don't set safe mode to true, thanks.
+
         if (app is LauncherApplication) return app.appComponent
 
         val inflater = LayoutInflater.from(app)
@@ -41,7 +44,7 @@ object LauncherComponentProvider {
         return Holder(
                 DaggerLauncherAppComponent.builder()
                     .appContext(app)
-                    .setSafeModeEnabled(true)
+                    .setSafeModeEnabled(isSafeMode)
                     .build() as LauncherAppComponent,
                 existingFilter,
             )

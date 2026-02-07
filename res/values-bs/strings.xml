@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Dodirnite da završite postavljanje"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Ovo je sistemska aplikacija i ne može se deinstalirati."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Uređivanje naziva"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Razdvajanje stranica ulijevo"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Razdvajanje stranica udesno"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Aplikacija <xliff:g id="APP_NAME">%1$s</xliff:g> je onemogućena"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{Aplikacija {app_name} ima # obavještenje}one{Aplikacija {app_name} ima # obavještenje}few{Aplikacija {app_name} ima # obavještenja}other{Aplikacija {app_name} ima # obavještenja}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Strana %1$d od %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Dozvoli rotiranje početnog ekrana"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Kada se telefon zarotira"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Vodoravni način"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Postavite telefon u vodoravni način"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Postavite početni ekran u vodoravni način"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Tačke za obavještenja"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Uključeno"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Isključeno"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Zaključaj"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Prelazak u privatan prostor"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Instalirajte"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Dodajte"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instaliranje aplikacija u privatni prostor"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Dodavanje fajlova i drugih stavki u privatni prostor"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Krug"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4-strani kolačić"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7-strani kolačić"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Luk"</string>
 </resources>

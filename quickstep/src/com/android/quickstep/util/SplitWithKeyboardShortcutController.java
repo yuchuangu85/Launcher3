@@ -37,6 +37,7 @@ import com.android.launcher3.R;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.taskbar.LauncherTaskbarUIController;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
+import com.android.quickstep.BaseContainerInterface;
 import com.android.quickstep.OverviewComponentObserver;
 import com.android.quickstep.RecentsAnimationCallbacks;
 import com.android.quickstep.RecentsAnimationController;
@@ -72,13 +73,18 @@ public class SplitWithKeyboardShortcutController {
     }
 
     @BinderThread
-    public void enterStageSplit(boolean leftOrTop) {
+    public void enterStageSplit(boolean leftOrTop, int displayId) {
         if (TopTaskTracker.INSTANCE.get(mLauncher).getRunningSplitTaskIds().length == 2) {
             // Do not enter stage split from keyboard shortcuts if the user is already in split
             return;
         }
+        BaseContainerInterface<?, ?> containerInterface =
+                mOverviewComponentObserver.getContainerInterface(displayId);
+        if (containerInterface == null) {
+            return;
+        }
         RecentsAnimationCallbacks callbacks = new RecentsAnimationCallbacks(
-                SystemUiProxy.INSTANCE.get(mLauncher.getApplicationContext()));
+                containerInterface.getCreatedContainer());
         SplitWithKeyboardShortcutRecentsAnimationListener listener =
                 new SplitWithKeyboardShortcutRecentsAnimationListener(leftOrTop);
 
@@ -94,7 +100,7 @@ public class SplitWithKeyboardShortcutController {
                 SystemUiProxy.INSTANCE.get(mLauncher.getApplicationContext())
                         .startRecentsActivity(mOverviewComponentObserver.getOverviewIntent(),
                                 ActivityOptions.makeBasic(), callbacks,
-                                false /* useSyntheticRecentsTransition */);
+                                false /* useSyntheticRecentsTransition */, null, displayId);
             });
         });
     }

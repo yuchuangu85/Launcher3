@@ -65,8 +65,8 @@
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"מחיקת טקסט מתיבת החיפוש"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"אין ווידג\'טים או קיצורי דרך"</string>
     <string name="no_search_results" msgid="3787956167293097509">"לא נמצאו ווידג\'טים או קיצורי דרך"</string>
-    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"ווידג\'טים אישיים"</string>
-    <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"ווידג\'טים לעבודה"</string>
+    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"אישיים"</string>
+    <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"לעבודה"</string>
     <string name="widget_category_conversations" msgid="8894438636213590446">"שיחות"</string>
     <string name="widget_category_note_taking" msgid="3469689394504266039">"כתיבת הערות"</string>
     <string name="widget_cell_tap_to_show_add_button_label" msgid="4354194214317043581">"הצגת כפתור ההוספה"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"צריך ללחוץ כדי לסיים את תהליך ההגדרה"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"זוהי אפליקציית מערכת ולא ניתן להסיר את התקנתה."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"עריכת השם"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"הגדרה של מעבר עמוד שמאלה"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"הגדרה של מעבר עמוד ימינה"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> מושבתת"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{לאפליקציה {app_name} יש התראה אחת}one{לאפליקציה {app_name} יש # התראות}two{לאפליקציה {app_name} יש # התראות}other{לאפליקציה {app_name} יש # התראות}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"‏דף %1$d מתוך %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"סיבוב מסך הבית"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"כאשר מסובבים את הטלפון"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"פריסה לרוחב"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"העברת הטלפון לפריסה לרוחב"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"הגדרת פריסה לרוחב במסך הבית"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"סימני ההתראות"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"מופעל"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"כבוי"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"נעילה"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"מעבר למרחב הפרטי"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"התקנה"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"הוספה"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"התקנת אפליקציות במרחב הפרטי"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"הוספת קבצים ופריטים נוספים למרחב הפרטי"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"צורת עיגול"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"ריבוע"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"עוגייה עם 4 צלעות"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"עוגייה עם 7 צלעות"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"קשת"</string>
 </resources>

@@ -136,7 +136,7 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
         mWidgetRecommendationsView.initParentViews(mWidgetRecommendationsContainer);
         mWidgetRecommendationsView.setWidgetCellLongClickListener(this);
         mWidgetRecommendationsView.setWidgetCellOnClickListener(this);
-        if (!mDeviceProfile.isTwoPanels) {
+        if (!mDeviceProfile.getDeviceProperties().isTwoPanels()) {
             mWidgetRecommendationsView.enableFullPageViewIfLowDensity();
         }
         // To save the currently displayed page, so that, it can be requested when rebinding
@@ -242,7 +242,7 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
-        if (changed && mDeviceProfile.isTwoPanels) {
+        if (changed && mDeviceProfile.getDeviceProperties().isTwoPanels()) {
             LinearLayout layout = mContent.findViewById(R.id.linear_layout_container);
             FrameLayout leftPane = layout.findViewById(R.id.recycler_view_container);
             LinearLayout.LayoutParams layoutParams = (LayoutParams) leftPane.getLayoutParams();
@@ -379,7 +379,9 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
                 // is likely a programmatic header click.
                 if (mSelectedHeader != null && !mOpenCloseAnimation.getAnimationPlayer().isRunning()
                         && !getAccessibilityInitialFocusView().isAccessibilityFocused()) {
-                    mRightPaneScrollView.setAccessibilityPaneTitle(suggestionsRightPaneTitle);
+                    if (Utilities.ATLEAST_P) {
+                        mRightPaneScrollView.setAccessibilityPaneTitle(suggestionsRightPaneTitle);
+                    }
                     focusOnFirstWidgetCell(mWidgetRecommendationsView);
                 }
                 // If switching from another header, unselect any WidgetCells. This is necessary
@@ -403,7 +405,8 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
             return Float.MAX_VALUE;
         }
 
-        return (mDeviceProfile.heightPx - mDeviceProfile.bottomSheetTopPadding)
+        return (mDeviceProfile.getDeviceProperties().getHeightPx()
+                - mDeviceProfile.getBottomSheetProfile().getBottomSheetTopPadding())
                 * RECOMMENDATION_SECTION_HEIGHT_RATIO_TWO_PANE;
     }
 
@@ -412,7 +415,7 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
     protected int getAvailableWidthForSuggestions(int pickerAvailableWidth) {
         int rightPaneWidth = (int) Math.ceil(0.67 * pickerAvailableWidth);
 
-        if (mDeviceProfile.isTwoPanels) {
+        if (mDeviceProfile.getDeviceProperties().isTwoPanels()) {
             // See onLayout
             int leftPaneWidth = (int) (0.33 * pickerAvailableWidth);
             @Px int minLeftPaneWidthPx = Utilities.dpToPx(MINIMUM_WIDTH_LEFT_PANE_FOLDABLE_DP);
@@ -565,9 +568,11 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
                 mRightPane.removeAllViews();
                 mRightPane.addView(widgetsRowViewHolder.itemView);
                 if (isUserClick) {
-                    mRightPaneScrollView.setAccessibilityPaneTitle(getContext().getString(
-                            R.string.widget_picker_right_pane_accessibility_title,
-                            contentEntry.mPkgItem.title));
+                    if (Utilities.ATLEAST_P) {
+                        mRightPaneScrollView.setAccessibilityPaneTitle(getContext().getString(
+                                R.string.widget_picker_right_pane_accessibility_title,
+                                contentEntry.mPkgItem.title));
+                    }
                     postDelayed(() -> focusOnFirstWidgetCell(widgetsRowViewHolder.tableContainer),
                             WIDGET_LIST_ITEM_APPEARANCE_DELAY);
                 }

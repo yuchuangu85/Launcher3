@@ -16,8 +16,6 @@
 package com.android.launcher3.icons
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -50,8 +48,6 @@ internal constructor(
     @Assisted private val pool: ConcurrentLinkedQueue<LauncherIcons>,
 ) : BaseIconFactory(context, idp.fillResIconDpi, idp.iconBitmapSize), AutoCloseable {
 
-    private val iconScale = themeManager.iconState.iconScale
-
     init {
         mThemeController = themeManager.themeController
     }
@@ -69,33 +65,6 @@ internal constructor(
     override fun getShapePath(drawable: AdaptiveIconDrawable, iconBounds: Rect): Path {
         if (!Flags.enableLauncherIconShapes()) return super.getShapePath(drawable, iconBounds)
         return themeManager.iconShape.getPath(iconBounds)
-    }
-
-    override fun getIconScale(): Float {
-        if (!Flags.enableLauncherIconShapes()) return super.getIconScale()
-        return themeManager.iconState.iconScale
-    }
-
-    override fun drawAdaptiveIcon(
-        canvas: Canvas,
-        drawable: AdaptiveIconDrawable,
-        overridePath: Path,
-    ) {
-        if (!Flags.enableLauncherIconShapes()) {
-            super.drawAdaptiveIcon(canvas, drawable, overridePath)
-            return
-        }
-        canvas.clipPath(overridePath)
-        canvas.drawColor(Color.BLACK)
-        canvas.save()
-        canvas.scale(iconScale, iconScale, canvas.width / 2f, canvas.height / 2f)
-        if (drawable.background != null) {
-            drawable.background.draw(canvas)
-        }
-        if (drawable.foreground != null) {
-            drawable.foreground.draw(canvas)
-        }
-        canvas.restore()
     }
 
     override fun close() {

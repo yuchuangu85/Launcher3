@@ -66,7 +66,7 @@
     <string name="no_widgets_available" msgid="4337693382501046170">"Հասանելի վիջեթներ և դյուրանցումներ չկան"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Ոչ մի վիջեթ կամ դյուրանցում չի գտնվել"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Անձնական"</string>
-    <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Աշխատանքային"</string>
+    <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Աշխատանք"</string>
     <string name="widget_category_conversations" msgid="8894438636213590446">"Զրույցներ"</string>
     <string name="widget_category_note_taking" msgid="3469689394504266039">"Նշումների ստեղծում"</string>
     <string name="widget_cell_tap_to_show_add_button_label" msgid="4354194214317043581">"Ցույց տալ «Ավելացնել» կոճակը"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Հպեք՝ կարգավորումն ավարտելու համար"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Սա համակարգային ծրագիր է և չի կարող ապատեղադրվել:"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Փոխել անունը"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Բաժանել էջերի դեպի ձախ"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Բաժանել էջերի դեպի աջ"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> հավելվածն անջատված է"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{«{app_name}» հավելվածն ունի # ծանուցում}one{«{app_name}» հավելվածն ունի # ծանուցում}other{«{app_name}» հավելվածն ունի # ծանուցում}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Էջ %1$d՝ %2$d-ից"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Թույլ տալ հիմնական էկրանի պտտումը"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Հեռախոսը պտտելու դեպքում"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Հորիզոնական"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Հեռախոսն օգտագործել հորիզոնական ռեժիմում"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Հիմնական էկրանի համար սահմանեք հորիզոնական ռեժիմը"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Ծանուցումների կետիկներ"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Միացված է"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Անջատված է"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Կողպում"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Անցում մասնավոր տարածք"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Տեղադրել"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Ավելացնել"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Հավելվածների տեղադրում անձնական տարածքում"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Ձեր մասնավոր տարածքում ավելացրեք ֆայլեր և ավելին"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Շրջան"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Քառակուսի"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Քառակողմ բլիթ"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Յոթակողմ բլիթ"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Կամար"</string>
 </resources>

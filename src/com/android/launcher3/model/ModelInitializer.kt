@@ -19,21 +19,19 @@ package com.android.launcher3.model
 import android.app.admin.DevicePolicyManager.ACTION_DEVICE_POLICY_RESOURCE_UPDATED
 import android.content.ComponentName
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.LauncherApps
 import android.content.pm.LauncherApps.ArchiveCompatibilityParams
-import com.android.launcher3.BuildConfig
+import app.lawnchair.icons.LawnchairIconProvider
+import com.android.launcher3.BuildConfigs
 import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.InvariantDeviceProfile.OnIDPChangeListener
 import com.android.launcher3.LauncherModel
-import com.android.launcher3.LauncherPrefs.Companion.getPrefs
 import com.android.launcher3.Utilities
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.graphics.ThemeManager
 import com.android.launcher3.graphics.ThemeManager.ThemeChangeListener
 import com.android.launcher3.icons.IconCache
-import com.android.launcher3.icons.LauncherIconProvider
 import com.android.launcher3.icons.LauncherIcons.IconPool
 import com.android.launcher3.notification.NotificationListener
 import com.android.launcher3.pm.InstallSessionHelper
@@ -59,30 +57,14 @@ constructor(
     private val themeManager: ThemeManager,
     private val userCache: UserCache,
     private val settingsCache: SettingsCache,
-    private val iconProvider: LauncherIconProvider,
+    private val iconProvider: LawnchairIconProvider,
     private val customWidgetManager: CustomWidgetManager,
     private val installSessionHelper: InstallSessionHelper,
     private val lifeCycle: DaggerSingletonTracker,
 ) {
 
     fun initialize(model: LauncherModel) {
-        fun refreshAndReloadLauncher() {
-            iconPool.clear()
-            iconCache.updateIconParams(idp.fillResIconDpi, idp.iconBitmapSize)
-            model.forceReload()
-        }
-
-        // IDP changes
-        val idpChangeListener = OnIDPChangeListener { modelChanged ->
-            if (modelChanged) refreshAndReloadLauncher()
-        }
-        idp.addOnChangeListener(idpChangeListener)
-        lifeCycle.addCloseable { idp.removeOnChangeListener(idpChangeListener) }
-
-        // Theme changes
-        val themeChangeListener = ThemeChangeListener { refreshAndReloadLauncher() }
-        themeManager.addChangeListener(themeChangeListener)
-        lifeCycle.addCloseable { themeManager.removeChangeListener(themeChangeListener) }
+        initializeDisplayEvents(model)
 
         // System changes
         val modelCallbacks = model.newModelCallbacks()
@@ -94,19 +76,21 @@ constructor(
             launcherApps.setArchiveCompatibility(
                 ArchiveCompatibilityParams().apply {
                     setEnableUnarchivalConfirmation(false)
-                    setEnableIconOverlay(true/*!Flags.useNewIconForArchivedApps()*/)
+                    setEnableIconOverlay(!Flags.useNewIconForArchivedApps())
                 }
             )
         }
 
         // Device profile policy changes
         val dpUpdateReceiver =
-            SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR) { model.reloadStringCache() }
+            SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR) {
+                model.enqueueModelUpdateTask(ReloadStringCacheTask())
+            }
         dpUpdateReceiver.register(ACTION_DEVICE_POLICY_RESOURCE_UPDATED)
         lifeCycle.addCloseable { dpUpdateReceiver.unregisterReceiverSafely() }
 
         // Development helper
-        if (BuildConfig.IS_STUDIO_BUILD) {
+        if (BuildConfigs.IS_STUDIO_BUILD) {
             val reloadReceiver =
                 SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR) { model.forceReload() }
             reloadReceiver.register(Context.RECEIVER_EXPORTED, ACTION_FORCE_RELOAD)
@@ -137,28 +121,36 @@ constructor(
             settingsCache.unregister(NOTIFICATION_BADGING_URI, notificationChanges)
         }
 
-        // removable smartspace
-        if (Flags.enableSmartspaceRemovalToggle()) {
-            val smartSpacePrefChanges =
-                SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                    if (LoaderTask.SMARTSPACE_ON_HOME_SCREEN == key) model.forceReload()
-                }
-            getPrefs(context).registerOnSharedPreferenceChangeListener(smartSpacePrefChanges)
-            lifeCycle.addCloseable {
-                getPrefs(context).unregisterOnSharedPreferenceChangeListener(smartSpacePrefChanges)
-            }
-        }
-
         // Custom widgets
         lifeCycle.addCloseable(customWidgetManager.addWidgetRefreshCallback(model::rebindCallbacks))
+
+        // Install session changes
+        lifeCycle.addCloseable(installSessionHelper.registerInstallTracker(modelCallbacks))
+    }
+
+    fun initializeDisplayEvents(model: LauncherModel) {
+        fun refreshAndReloadLauncher() {
+            iconPool.clear()
+            iconCache.updateIconParams(idp.fillResIconDpi, idp.iconBitmapSize)
+            model.forceReload()
+        }
+
+        // IDP changes
+        val idpChangeListener = OnIDPChangeListener { modelChanged ->
+            if (modelChanged) refreshAndReloadLauncher()
+        }
+        idp.addOnChangeListener(idpChangeListener)
+        lifeCycle.addCloseable { idp.removeOnChangeListener(idpChangeListener) }
+
+        // Theme changes
+        val themeChangeListener = ThemeChangeListener { refreshAndReloadLauncher() }
+        themeManager.addChangeListener(themeChangeListener)
+        lifeCycle.addCloseable { themeManager.removeChangeListener(themeChangeListener) }
 
         // Icon changes
         lifeCycle.addCloseable(
             iconProvider.registerIconChangeListener(model::onAppIconChanged, MODEL_EXECUTOR.handler)
         )
-
-        // Install session changes
-        lifeCycle.addCloseable(installSessionHelper.registerInstallTracker(modelCallbacks))
     }
 
     companion object {

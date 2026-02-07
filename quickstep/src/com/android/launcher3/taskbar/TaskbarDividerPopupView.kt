@@ -29,14 +29,17 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.Switch
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.postDelayed
 import com.android.app.animation.Interpolators.EMPHASIZED_ACCELERATE
 import com.android.launcher3.Flags
+import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.R
 import com.android.launcher3.popup.ArrowPopup
 import com.android.launcher3.popup.RoundedArrowDrawable
 import com.android.launcher3.util.Themes
 import com.android.launcher3.views.ActivityContext
+import com.android.wm.shell.Flags.enableGsf
 import kotlin.math.max
 import kotlin.math.min
 
@@ -79,8 +82,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private val minPaddingFromScreenEdge =
         resources.getDimension(R.dimen.taskbar_pinning_popup_menu_min_padding_from_screen_edge)
 
-    // TODO: add test for isTransientTaskbar & long presses divider and ensures the popup shows up.
-    private var alwaysShowTaskbarOn = !taskbarActivityContext.isTransientTaskbar
+    private var alwaysShowTaskbarOn =
+        if (taskbarActivityContext.isTaskbarShowingDesktopTasks) {
+            LauncherPrefs.TASKBAR_PINNING_IN_DESKTOP_MODE.get(context)
+        } else {
+            !taskbarActivityContext.isTransientTaskbar
+        }
+
     private var didPreferenceChange = false
     private var verticalOffsetForPopupView =
         resources.getDimensionPixelSize(R.dimen.taskbar_pinning_popup_menu_vertical_margin)
@@ -108,6 +116,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         val taskbarSwitchOption = requireViewById<LinearLayout>(R.id.taskbar_switch_option)
         val alwaysShowTaskbarSwitch = requireViewById<Switch>(R.id.taskbar_pinning_switch)
         val taskbarVisibilityIcon = requireViewById<View>(R.id.taskbar_pinning_visibility_icon)
+
+        if (enableGsf()) {
+            taskbarVisibilityIcon.background =
+                ResourcesCompat.getDrawable(
+                    context.resources,
+                    R.drawable.ic_visibility_filled,
+                    context.theme,
+                )
+        }
 
         alwaysShowTaskbarSwitch.isChecked = alwaysShowTaskbarOn
         alwaysShowTaskbarSwitch.setOnTouchListener { view, event ->
@@ -250,8 +267,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     override fun getExtraVerticalOffset(): Int {
-        return (mActivityContext.deviceProfile.taskbarHeight -
-            mActivityContext.deviceProfile.taskbarIconSize) / 2 + verticalOffsetForPopupView
+        return (mActivityContext.deviceProfile.taskbarProfile.height -
+            mActivityContext.deviceProfile.taskbarProfile.iconSize) / 2 + verticalOffsetForPopupView
     }
 
     override fun onCreateCloseAnimation(anim: AnimatorSet?) {

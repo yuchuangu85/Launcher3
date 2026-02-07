@@ -59,7 +59,9 @@ class SetupNavLayoutter(
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
         val SUWTheme = SystemProperties.get(SUW_THEME_SYSTEM_PROPERTY, "")
-        if (SUWTheme == GLIF_EXPRESSIVE_THEME || SUWTheme == GLIF_EXPRESSIVE_LIGHT_THEME) {
+        val expressiveThemeEnabled =
+            SUWTheme == GLIF_EXPRESSIVE_THEME || SUWTheme == GLIF_EXPRESSIVE_LIGHT_THEME
+        if (expressiveThemeEnabled && !context.isSimpleViewEnabled) {
             return
         }
         // Since setup wizard only has back button enabled, it looks strange to be
@@ -70,15 +72,15 @@ class SetupNavLayoutter(
         val deviceProfile: DeviceProfile = context.deviceProfile
 
         navButtonsLayoutParams.marginEnd = 0
-        navButtonsLayoutParams.gravity = Gravity.START
+        navButtonsLayoutParams.gravity = Gravity.START or Gravity.CENTER_VERTICAL
         context.setTaskbarWindowSize(context.setupWindowSize)
 
         // If SUW is on a large screen device that is landscape (or has a square aspect
         // ratio) the back button has to be placed accordingly
         if (
-            deviceProfile.isTablet && deviceProfile.isLandscape ||
-                (deviceProfile.aspectRatio > SQUARE_ASPECT_RATIO_BOTTOM_BOUND &&
-                    deviceProfile.aspectRatio < SQUARE_ASPECT_RATIO_UPPER_BOUND)
+            deviceProfile.deviceProperties.isTablet && deviceProfile.deviceProperties.isLandscape ||
+                (deviceProfile.deviceProperties.aspectRatio > SQUARE_ASPECT_RATIO_BOTTOM_BOUND &&
+                    deviceProfile.deviceProperties.aspectRatio < SQUARE_ASPECT_RATIO_UPPER_BOUND)
         ) {
             navButtonsLayoutParams.marginStart =
                 resources.getDimensionPixelSize(R.dimen.taskbar_back_button_suw_start_margin)

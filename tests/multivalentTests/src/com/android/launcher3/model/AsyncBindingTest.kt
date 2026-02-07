@@ -17,42 +17,52 @@
 package com.android.launcher3.model
 
 import android.os.Looper
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.annotations.EnableFlags
 import android.platform.test.flag.junit.SetFlagsRule
-import android.util.Pair
 import android.util.SparseArray
 import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.launcher3.Flags
-import com.android.launcher3.model.BgDataModel.Callbacks
+import com.android.launcher3.InvariantDeviceProfile
+import com.android.launcher3.Launcher
+import com.android.launcher3.LauncherAppState
+import com.android.launcher3.LauncherModel
+import com.android.launcher3.ModelCallbacks
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.pageindicators.PageIndicatorDots
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.MODEL_EXECUTOR
-import com.android.launcher3.util.IntArray
 import com.android.launcher3.util.IntSet
 import com.android.launcher3.util.ItemInflater
 import com.android.launcher3.util.LauncherLayoutBuilder
-import com.android.launcher3.util.LauncherModelHelper
 import com.android.launcher3.util.LauncherModelHelper.TEST_PACKAGE
-import com.android.launcher3.util.RunnableList
-import org.junit.After
+import com.android.launcher3.util.ModelTestExtensions.loadModelSync
+import com.android.launcher3.util.SandboxApplication
+import com.android.launcher3.util.TestUtil.runOnExecutorSync
+import com.android.launcher3.util.rule.LayoutProviderRule
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Answers
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
-import org.mockito.Spy
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.atLeastOnce
+import org.mockito.kotlin.clearInvocations
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.never
-import org.mockito.kotlin.reset
+import org.mockito.kotlin.spy
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -63,29 +73,42 @@ import org.mockito.kotlin.whenever
 class AsyncBindingTest {
 
     @get:Rule val setFlagsRule = SetFlagsRule()
+    @get:Rule val context = SandboxApplication().withModelDependency()
+    @get:Rule val layoutProvider = LayoutProviderRule(context)
 
-    @Spy private var callbacks = MyCallbacks()
     @Mock private lateinit var itemInflater: ItemInflater<*>
+    // PageIndicatorDots need to be mocked separately as Workspace uses generics and doesn't define
+    // the actual class of PageIndicator being used
+    @Mock private lateinit var pageIndicatorDots: PageIndicatorDots
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS) private lateinit var launcher: Launcher
+
+    private lateinit var callbacks: ModelCallbacks
 
     private val inflationLooper = SparseArray<Looper>()
 
-    private lateinit var modelHelper: LauncherModelHelper
+    private val model: LauncherModel
+        get() = LauncherAppState.getInstance(context).model
 
     @Before
     fun setUp() {
-        setFlagsRule.enableFlags(Flags.FLAG_ENABLE_WORKSPACE_INFLATION)
         MockitoAnnotations.initMocks(this)
-        modelHelper = LauncherModelHelper()
 
         doAnswer { i ->
                 inflationLooper[(i.arguments[0] as ItemInfo).id] = Looper.myLooper()
-                View(modelHelper.sandboxContext)
+                View(context)
             }
             .whenever(itemInflater)
-            .inflateItem(any(), any(), isNull())
+            .inflateItem(any(), isNull(), any())
+
+        doReturn(itemInflater).whenever(launcher).itemInflater
+        doReturn(InvariantDeviceProfile.INSTANCE.get(context).getDeviceProfile(context))
+            .whenever(launcher)
+            .deviceProfile
+        launcher.workspace.apply { doReturn(pageIndicatorDots).whenever(this).getPageIndicator() }
+        doReturn(context).whenever(launcher).applicationContext
 
         // Set up the workspace with 3 pages of apps
-        modelHelper.setupDefaultLayoutProvider(
+        layoutProvider.setupDefaultLayoutProvider(
             LauncherLayoutBuilder()
                 .atWorkspace(0, 1, 0)
                 .putApp(TEST_PACKAGE, TEST_PACKAGE)
@@ -98,35 +121,29 @@ class AsyncBindingTest {
                 .atWorkspace(0, 1, 2)
                 .putApp(TEST_PACKAGE, TEST_PACKAGE)
         )
-    }
-
-    @After
-    fun tearDown() {
-        modelHelper.destroy()
+        callbacks =
+            spy(ModelCallbacks(launcher).apply { pagesToBindSynchronously = IntSet.wrap(0) })
     }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_WORKSPACE_INFLATION)
     fun test_bind_normally_without_itemInflater() {
-        MAIN_EXECUTOR.execute { modelHelper.model.addCallbacksAndLoad(callbacks) }
+        MAIN_EXECUTOR.execute { model.addCallbacksAndLoad(callbacks) }
         waitForLoaderAndTempMainThread()
 
-        verify(callbacks, never()).bindInflatedItems(any())
         verify(callbacks, atLeastOnce()).bindItems(any(), any())
     }
 
     @Test
+    @EnableFlags(Flags.FLAG_ENABLE_WORKSPACE_INFLATION)
     fun test_bind_inflates_item_on_background() {
-        callbacks.inflater = itemInflater
-        MAIN_EXECUTOR.execute { modelHelper.model.addCallbacksAndLoad(callbacks) }
+        MAIN_EXECUTOR.execute { model.addCallbacksAndLoad(callbacks) }
         waitForLoaderAndTempMainThread()
 
         verify(callbacks, never()).bindItems(any(), any())
-        verify(callbacks, times(1)).bindInflatedItems(argThat { t -> t.size == 2 })
-
-        // Verify remaining items are bound using pendingTasks
-        reset(callbacks)
-        MAIN_EXECUTOR.submit(callbacks.pendingTasks!!::executeAllAndDestroy).get()
-        verify(callbacks, times(1)).bindInflatedItems(argThat { t -> t.size == 3 })
+        // First 2 items were bound and eventually remaining items were bound
+        verify(launcher, times(1)).bindInflatedItems(argThat { size == 2 }, anyOrNull())
+        verify(launcher, times(1)).bindInflatedItems(argThat { size == 3 }, anyOrNull())
 
         // Verify that all items were inflated on the background thread
         assertEquals(5, inflationLooper.size())
@@ -134,31 +151,34 @@ class AsyncBindingTest {
     }
 
     @Test
+    @EnableFlags(Flags.FLAG_ENABLE_WORKSPACE_INFLATION)
     fun test_bind_sync_partially_inflates_on_background() {
-        modelHelper.loadModelSync()
-        assertTrue(modelHelper.model.isModelLoaded())
-        callbacks.inflater = itemInflater
+        model.loadModelSync()
+        assertTrue(model.isModelLoaded())
 
-        val firstPageBindIds = IntSet()
+        val firstPageBindIds = mutableSetOf<Int>()
+        runOnExecutorSync(MAIN_EXECUTOR) {
+            model.addCallbacksAndLoad(callbacks)
+            verify(callbacks, never()).bindItems(any(), any())
+            verify(launcher, times(1))
+                .bindInflatedItems(
+                    argThat {
+                        firstPageBindIds.addAll(map { it.first.id })
+                        size == 2
+                    },
+                    anyOrNull(),
+                )
 
-        MAIN_EXECUTOR.submit {
-                modelHelper.model.addCallbacksAndLoad(callbacks)
-                verify(callbacks, never()).bindItems(any(), any())
-                verify(callbacks, times(1))
-                    .bindInflatedItems(
-                        argThat { t ->
-                            t.forEach { firstPageBindIds.add(it.first.id) }
-                            t.size == 2
-                        }
-                    )
-
-                // Verify that onInitialBindComplete is called and the binding is not yet complete
-                assertFalse(callbacks.onCompleteSignal!!.isDestroyed)
-            }
-            .get()
+            // Verify that onInitialBindComplete is called and the binding is not yet complete
+            assertNotNull(callbacks.pendingExecutor)
+            clearInvocations(launcher)
+        }
 
         waitForLoaderAndTempMainThread()
-        assertTrue(callbacks.onCompleteSignal!!.isDestroyed)
+
+        // Verify remaining 3 times are bound using pending tasks
+        assertNull(callbacks.pendingExecutor)
+        verify(launcher, times(1)).bindInflatedItems(argThat { t -> t.size == 3 }, anyOrNull())
 
         // Verify that firstPageBindIds are loaded on the main thread and remaining
         // on the background thread.
@@ -168,45 +188,12 @@ class AsyncBindingTest {
                 assertEquals(MAIN_EXECUTOR.looper, inflationLooper.valueAt(i))
             else assertEquals(MODEL_EXECUTOR.looper, inflationLooper.valueAt(i))
         }
-
-        MAIN_EXECUTOR.submit {
-                reset(callbacks)
-                callbacks.pendingTasks!!.executeAllAndDestroy()
-                // Verify remaining 3 times are bound using pending tasks
-                verify(callbacks, times(1)).bindInflatedItems(argThat { t -> t.size == 3 })
-            }
-            .get()
     }
 
     private fun waitForLoaderAndTempMainThread() {
-        MAIN_EXECUTOR.submit {}.get()
-        MODEL_EXECUTOR.submit {}.get()
-        MAIN_EXECUTOR.submit {}.get()
-    }
-
-    class MyCallbacks : Callbacks {
-
-        var inflater: ItemInflater<*>? = null
-        var pendingTasks: RunnableList? = null
-        var onCompleteSignal: RunnableList? = null
-
-        override fun bindItems(shortcuts: MutableList<ItemInfo>, forceAnimateIcons: Boolean) {}
-
-        override fun bindInflatedItems(items: MutableList<Pair<ItemInfo, View>>) {}
-
-        override fun getPagesToBindSynchronously(orderedScreenIds: IntArray?) = IntSet.wrap(0)
-
-        override fun onInitialBindComplete(
-            boundPages: IntSet,
-            pendingTasks: RunnableList,
-            onCompleteSignal: RunnableList,
-            workspaceItemCount: Int,
-            isBindSync: Boolean,
-        ) {
-            this.pendingTasks = pendingTasks
-            this.onCompleteSignal = onCompleteSignal
+        repeat(5) {
+            runOnExecutorSync(MAIN_EXECUTOR) {}
+            runOnExecutorSync(MODEL_EXECUTOR) {}
         }
-
-        override fun getItemInflater() = inflater
     }
 }

@@ -16,21 +16,21 @@
 package com.android.quickstep;
 
 import static android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS;
+import static android.view.Display.DEFAULT_DISPLAY;
 
 import static androidx.test.InstrumentationRegistry.getInstrumentation;
 
-import static com.android.launcher3.Flags.enableFallbackOverviewInWindow;
 import static com.android.launcher3.tapl.LauncherInstrumentation.WAIT_TIME_MS;
 import static com.android.launcher3.tapl.TestHelpers.getHomeIntentInPackage;
 import static com.android.launcher3.tapl.TestHelpers.getLauncherInMyProcess;
-import static com.android.launcher3.ui.AbstractLauncherUiTest.DEFAULT_BROADCAST_TIMEOUT_SECS;
-import static com.android.launcher3.ui.AbstractLauncherUiTest.resolveSystemApp;
-import static com.android.launcher3.ui.AbstractLauncherUiTest.startAppFast;
-import static com.android.launcher3.ui.AbstractLauncherUiTest.startTestActivity;
 import static com.android.launcher3.ui.TaplTestsLauncher3Test.getAppPackageName;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.rule.ShellCommandRule.disableHeadsUpNotification;
 import static com.android.launcher3.util.rule.ShellCommandRule.getLauncherCommand;
+import static com.android.launcher3.util.ui.AbstractLauncherUiTest.DEFAULT_BROADCAST_TIMEOUT_SECS;
+import static com.android.launcher3.util.ui.AbstractLauncherUiTest.resolveSystemApp;
+import static com.android.launcher3.util.ui.AbstractLauncherUiTest.startAppFast;
+import static com.android.launcher3.util.ui.AbstractLauncherUiTest.startTestActivity;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -41,6 +41,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.RemoteException;
+import android.platform.test.rule.ExtendedLongPressTimeoutRule;
 
 import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
@@ -54,17 +55,17 @@ import com.android.launcher3.tapl.LauncherInstrumentation;
 import com.android.launcher3.tapl.OverviewTask;
 import com.android.launcher3.tapl.TestHelpers;
 import com.android.launcher3.testcomponent.TestCommandReceiver;
-import com.android.launcher3.ui.AbstractLauncherUiTest;
 import com.android.launcher3.util.TestUtil;
 import com.android.launcher3.util.Wait;
-import com.android.launcher3.util.rule.ExtendedLongPressTimeoutRule;
 import com.android.launcher3.util.rule.FailureWatcher;
 import com.android.launcher3.util.rule.SamplerRule;
 import com.android.launcher3.util.rule.ScreenRecordRule;
+import com.android.launcher3.util.rule.SkipAfterTimeOutRule;
 import com.android.launcher3.util.rule.TestIsolationRule;
 import com.android.launcher3.util.rule.TestStabilityRule;
-import com.android.launcher3.util.rule.ViewCaptureRule;
+import com.android.launcher3.util.ui.AbstractLauncherUiTest;
 import com.android.quickstep.OverviewComponentObserver.OverviewChangeListener;
+import com.android.quickstep.fallback.window.RecentsWindowFlags;
 import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.RecentsViewContainer;
@@ -110,6 +111,9 @@ public class FallbackRecentsTest {
     @Rule
     public ExtendedLongPressTimeoutRule mLongPressTimeoutRule = new ExtendedLongPressTimeoutRule();
 
+    @Rule(order = -1000) // This should be the outermost rule
+    public SkipAfterTimeOutRule mSkipAfterTimeOutRule = new SkipAfterTimeOutRule();
+
     public FallbackRecentsTest() throws RemoteException {
         Instrumentation instrumentation = getInstrumentation();
         Context context = instrumentation.getContext();
@@ -132,6 +136,7 @@ public class FallbackRecentsTest {
                         getLauncherCommand(mOtherLauncherActivity));
                 updateHandler.mChangeCounter
                         .await(DEFAULT_BROADCAST_TIMEOUT_SECS, TimeUnit.SECONDS);
+                mLauncher.setTestLauncherPackage(mOtherLauncherActivity.packageName);
                 try {
                     base.evaluate();
                 } finally {
@@ -139,19 +144,17 @@ public class FallbackRecentsTest {
                     TestCommandReceiver.callCommand(TestCommandReceiver.DISABLE_TEST_LAUNCHER);
                     UiDevice.getInstance(getInstrumentation()).executeShellCommand(
                             getLauncherCommand(getLauncherInMyProcess()));
+                    mLauncher.setTestLauncherPackage(null);
                     pressHomeAndWaitForOverviewClose();
                 }
             }
         };
 
-        final ViewCaptureRule viewCaptureRule = new ViewCaptureRule(
-                RecentsActivity.ACTIVITY_TRACKER::getCreatedContext);
         mOrderSensitiveRules = RuleChain
                 .outerRule(new SamplerRule())
                 .around(new TestStabilityRule())
                 .around(new NavigationModeSwitchRule(mLauncher))
-                .around(new FailureWatcher(mLauncher, viewCaptureRule::getViewCaptureData))
-                // .around(viewCaptureRule) b/315482167
+                .around(new FailureWatcher(mLauncher))
                 .around(new TestIsolationRule(mLauncher, false))
                 .around(setLauncherCommand);
 
@@ -211,9 +214,10 @@ public class FallbackRecentsTest {
         if (!TestHelpers.isInLauncherProcess()) return null;
         Object[] result = new Object[1];
         Wait.atMost("Failed to get from recents", () -> MAIN_EXECUTOR.submit(() -> {
-            RecentsViewContainer recentsViewContainer = enableFallbackOverviewInWindow()
-                    ? RecentsWindowManager.getRecentsWindowTracker().getCreatedContext()
-                    : RecentsActivity.ACTIVITY_TRACKER.getCreatedContext();
+            RecentsViewContainer recentsViewContainer =
+                    RecentsWindowFlags.enableFallbackOverviewInWindow.isTrue()
+                            ? RecentsWindowManager.getRecentsWindowTracker().getCreatedContext()
+                            : RecentsActivity.ACTIVITY_TRACKER.getCreatedContext();
             if (recentsViewContainer == null) {
                 return false;
             }
@@ -236,9 +240,10 @@ public class FallbackRecentsTest {
     private void waitForRecentsClosed() {
         try {
             final boolean isRecentsContainerNUll = MAIN_EXECUTOR.submit(() -> {
-                RecentsViewContainer recentsViewContainer = enableFallbackOverviewInWindow()
-                        ? RecentsWindowManager.getRecentsWindowTracker().getCreatedContext()
-                        : RecentsActivity.ACTIVITY_TRACKER.getCreatedContext();
+                RecentsViewContainer recentsViewContainer =
+                        RecentsWindowFlags.enableFallbackOverviewInWindow.isTrue()
+                                ? RecentsWindowManager.getRecentsWindowTracker().getCreatedContext()
+                                : RecentsActivity.ACTIVITY_TRACKER.getCreatedContext();
 
                 return recentsViewContainer == null;
             }).get();
@@ -340,7 +345,7 @@ public class FallbackRecentsTest {
             Context ctx = getInstrumentation().getTargetContext();
             mObserver = OverviewComponentObserver.INSTANCE.get(ctx);
             mChangeCounter = new CountDownLatch(1);
-            if (mObserver.getHomeIntent().getComponent()
+            if (mObserver.getHomeIntent(DEFAULT_DISPLAY).getComponent()
                     .getPackageName().equals(mOtherLauncherActivity.packageName)) {
                 // Home already same
                 mChangeCounter.countDown();

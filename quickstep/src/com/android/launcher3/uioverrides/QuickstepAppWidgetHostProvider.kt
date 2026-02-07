@@ -19,7 +19,7 @@ package com.android.launcher3.uioverrides
 import android.app.ActivityThread
 import android.content.Context
 import android.content.ContextWrapper
-import com.android.launcher3.BuildConfig
+import com.android.launcher3.BuildConfigs
 import com.android.launcher3.util.LooperExecutor
 import com.android.launcher3.widget.LauncherWidgetHolder
 import com.android.launcher3.widget.ListenableAppWidgetHost
@@ -36,7 +36,7 @@ object QuickstepAppWidgetHostProvider {
                 ),
                 LauncherWidgetHolder.APPWIDGET_HOST_ID,
             )
-            .apply { if (BuildConfig.WIDGETS_ENABLED) startListening() }
+            .apply { if (BuildConfigs.WIDGETS_ENABLED) startListening() }
     }
 
     private class LooperContext(ctx: Context, val executor: LooperExecutor) : ContextWrapper(ctx) {

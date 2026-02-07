@@ -31,6 +31,7 @@ import static com.android.launcher3.util.RotationUtils.deltaRotation;
 import static com.android.launcher3.util.RotationUtils.rotateRect;
 import static com.android.launcher3.util.RotationUtils.rotateSize;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -38,6 +39,7 @@ import android.graphics.Insets;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
+import android.os.Build;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.view.Display;
@@ -50,11 +52,14 @@ import android.view.WindowMetrics;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.launcher3.Flags;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
 import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.util.DaggerSingletonObject;
+import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.WindowBounds;
 
@@ -114,6 +119,13 @@ public class WindowManagerProxy {
     }
 
     /**
+     * Returns if the display is in desktop-first mode.
+     */
+    public boolean isDisplayDesktopFirst(Context displayInfoContext) {
+        return false;
+    }
+
+    /**
      * Returns if the pinned taskbar should be shown when home is visible.
      */
     public boolean showLockedTaskbarOnHome(Context displayInfoContext) {
@@ -131,7 +143,7 @@ public class WindowManagerProxy {
     /**
      * Returns if the home is visible.
      */
-    public boolean isHomeVisible(Context context) {
+    public boolean isHomeVisible() {
         return false;
     }
 
@@ -142,16 +154,30 @@ public class WindowManagerProxy {
         WindowMetrics windowMetrics = displayInfoContext.getSystemService(WindowManager.class)
                 .getMaximumWindowMetrics();
         Rect insets = new Rect();
-        normalizeWindowInsets(displayInfoContext, windowMetrics.getWindowInsets(), insets);
+        // NOTE: Unable to use `normalizeWindowInsets(Context, WidnowInsets, Rect)` because
+        // uses DisplayController instance to determine whether taskbar is shown on home, and this
+        // method gets called while initializing DisaplayController.
+        normalizeWindowInsets(displayInfoContext,
+                showLockedTaskbarOnHome(displayInfoContext) || showDesktopTaskbarForFreeformDisplay(
+                        displayInfoContext), windowMetrics.getWindowInsets(), insets);
         return new WindowBounds(windowMetrics.getBounds(), insets, info.rotation);
     }
 
     /**
      * Returns an updated insets, accounting for various Launcher UI specific overrides like taskbar
      */
-    public WindowInsets normalizeWindowInsets(Context context, WindowInsets oldInsets,
+    public WindowInsets normalizeWindowInsets(Context context,
+            WindowInsets oldInsets,
             Rect outInsets) {
-        if (!mTaskbarDrawnInProcess) {
+        return normalizeWindowInsets(context,
+                DisplayController.showLockedTaskbarOnHome(context)
+                        || DisplayController.showDesktopTaskbarForFreeformDisplay(context),
+                oldInsets, outInsets);
+    }
+
+    WindowInsets normalizeWindowInsets(Context context, boolean taskbarShownOnHome,
+            WindowInsets oldInsets, Rect outInsets) {
+        if (!Utilities.ATLEAST_R || !mTaskbarDrawnInProcess) {
             outInsets.set(oldInsets.getSystemWindowInsetLeft(), oldInsets.getSystemWindowInsetTop(),
                     oldInsets.getSystemWindowInsetRight(), oldInsets.getSystemWindowInsetBottom());
             return oldInsets;
@@ -202,7 +228,7 @@ public class WindowManagerProxy {
 
         // Override the tappable insets to be 0 on the bottom for gesture nav (otherwise taskbar
         // would count towards it). This is used for the bottom protection in All Apps for example.
-        if (isGesture) {
+        if (isGesture && !taskbarShownOnHome) {
             Insets oldTappableInsets = oldInsets.getInsets(WindowInsets.Type.tappableElement());
             Insets newTappableInsets = Insets.of(oldTappableInsets.left, oldTappableInsets.top,
                     oldTappableInsets.right, 0);
@@ -224,7 +250,7 @@ public class WindowManagerProxy {
      * For large screen, when display cutout is at bottom left/right corner of screen, override
      * display cutout's bottom inset to 0, because launcher allows drawing content over that area.
      */
-    private static void applyDisplayCutoutBottomInsetOverrideOnLargeScreen(
+    public void applyDisplayCutoutBottomInsetOverrideOnLargeScreen(
             @NonNull Context context,
             boolean isLargeScreen,
             int screenWidthPx,
@@ -361,7 +387,7 @@ public class WindowManagerProxy {
             DisplayCutout rotatedCutout = rotateCutout(
                     displayInfo.cutout, displayInfo.size.x, displayInfo.size.y, rotation, i);
             Rect insets = getSafeInsets(rotatedCutout);
-            if (areBottomDisplayCutoutsSmallAndAtCorners(
+            if (rotatedCutout != null && areBottomDisplayCutoutsSmallAndAtCorners(
                     rotatedCutout.getBoundingRectBottom(),
                     bounds.width(),
                     context.getResources())) {
@@ -407,9 +433,16 @@ public class WindowManagerProxy {
      */
     public CachedDisplayInfo getDisplayInfo(Context displayInfoContext) {
         int rotation = getRotation(displayInfoContext);
-        WindowMetrics windowMetrics = displayInfoContext.getSystemService(WindowManager.class)
-                .getMaximumWindowMetrics();
-        return getDisplayInfo(windowMetrics, rotation);
+        if (Utilities.ATLEAST_S) {
+            WindowMetrics windowMetrics = displayInfoContext.getSystemService(WindowManager.class)
+                    .getMaximumWindowMetrics();
+            return getDisplayInfo(windowMetrics, rotation);
+        } else {
+            Point size = new Point();
+            Display display = getDisplay(displayInfoContext);
+            display.getRealSize(size);
+            return new CachedDisplayInfo(size, rotation);
+        }
     }
 
     /**
@@ -447,7 +480,7 @@ public class WindowManagerProxy {
      * Returns the display associated with the context, or DEFAULT_DISPLAY if the context isn't
      * associated with a display.
      */
-    protected Display getDisplay(Context displayInfoContext) {
+    public Display getDisplay(Context displayInfoContext) {
         try {
             return displayInfoContext.getDisplay();
         } catch (UnsupportedOperationException e) {
@@ -455,6 +488,14 @@ public class WindowManagerProxy {
         }
         return displayInfoContext.getSystemService(DisplayManager.class).getDisplay(
                 DEFAULT_DISPLAY);
+    }
+
+    private int getDisplayId(Context displayInfoContext) {
+        try {
+            return displayInfoContext.getDisplay().getDisplayId();
+        } catch (UnsupportedOperationException e) {
+            return DEFAULT_DISPLAY;
+        }
     }
 
     /**
@@ -468,11 +509,18 @@ public class WindowManagerProxy {
     }
 
     /**
-     * Returns the current navigation mode from resource.
+     * Returns the current navigation mode from resource if the context is for the default or a non-
+     * display context. Otherwise, return NavigationMode.THREE_BUTTONS.
      */
-    public NavigationMode getNavigationMode(Context context) {
+    public NavigationMode getNavigationMode(Context displayInfoContext) {
+        // Always assume 3-button nav for external displays
+        int displayId = getDisplayId(displayInfoContext);
+        if (displayId != DEFAULT_DISPLAY) {
+            return NavigationMode.THREE_BUTTONS;
+        }
+        // Otherwise get from Resource
         int modeInt = ResourceUtils.getIntegerByName(NAV_BAR_INTERACTION_MODE_RES_NAME,
-                context.getResources(), INVALID_RESOURCE_HANDLE);
+                displayInfoContext.getResources(), INVALID_RESOURCE_HANDLE);
 
         if (modeInt == INVALID_RESOURCE_HANDLE) {
             Log.e(TAG, "Failed to get system resource ID. Incompatible framework version?");
@@ -483,15 +531,23 @@ public class WindowManagerProxy {
                 }
             }
         }
-        return NavigationMode.NO_BUTTON;
+        return Utilities.ATLEAST_S ? NavigationMode.NO_BUTTON : NavigationMode.THREE_BUTTONS;
+    }
+
+    /** Returns whether overview on connected displays is enabled */
+    public boolean enableOverviewOnConnectedDisplays() {
+        return Flags.enableOverviewOnConnectedDisplays();
     }
 
     /**
      * @see DisplayCutout#getSafeInsets
      */
     public static Rect getSafeInsets(DisplayCutout cutout) {
-        return new Rect(cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
-                cutout.getSafeInsetRight(), cutout.getSafeInsetBottom());
+        if (Utilities.ATLEAST_Q) {
+            return new Rect(cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
+                    cutout.getSafeInsetRight(), cutout.getSafeInsetBottom());
+        }
+        return new Rect();
     }
 
     /** Registers a listener for Taskbar changes in Desktop Mode.  */

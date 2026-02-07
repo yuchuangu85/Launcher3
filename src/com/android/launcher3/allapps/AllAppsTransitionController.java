@@ -187,6 +187,8 @@ public class AllAppsTransitionController
 
     private boolean mHasScaleEffect;
     private final MSDLPlayerWrapper mMSDLPlayerWrapper;
+    // Indicates whether this transition should scale the allapps header in addition to its content.
+    private boolean mShouldScaleHeader;
 
     public AllAppsTransitionController(Launcher l) {
         mLauncher = l;
@@ -233,7 +235,7 @@ public class AllAppsTransitionController
         boolean fromBackground =
                 mLauncher.getStateManager().getCurrentStableState() == BACKGROUND_APP;
         // Allow apps panel to shift the full screen if coming from another app.
-        float shiftRange = fromBackground ? mLauncher.getDeviceProfile().heightPx : mShiftRange;
+        float shiftRange = fromBackground ? mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx() : mShiftRange;
         getAppsViewProgressTranslationY().setValue(mProgress * shiftRange);
         mLauncher.onAllAppsTransition(1 - progress);
 
@@ -274,6 +276,11 @@ public class AllAppsTransitionController
     }
 
     @Override
+    public void onBackStarted(LauncherState toState) {
+        setShouldScaleHeader(!mLauncher.getAppsView().shouldBackExitSearch());
+    }
+
+    @Override
     public void onBackProgressed(
             LauncherState toState, @FloatRange(from = 0.0, to = 1.0) float backProgress) {
         if (!mLauncher.isInState(ALL_APPS) || !NORMAL.equals(toState)) {
@@ -290,8 +297,8 @@ public class AllAppsTransitionController
     private void onScaleProgressChanged() {
         final float scaleProgress = mAllAppScale.value;
         SCALE_PROPERTY.set(mLauncher.getAppsView(), scaleProgress);
-        if (!mLauncher.getAppsView().isSearching()
-                || !mLauncher.getDeviceProfile().shouldShowAllAppsOnSheet()) {
+
+        if (mShouldScaleHeader || !mShouldShowAllAppsOnSheet) {
             mLauncher.getScrimView().setScrimHeaderScale(scaleProgress);
         }
 
@@ -313,6 +320,21 @@ public class AllAppsTransitionController
         }
     }
 
+    /**
+     * @return AnimatedFloat for all apps scale. This will scale the allapps content by default.
+     * @see #setShouldScaleHeader(boolean)
+     */
+    public AnimatedFloat getAllAppScale() {
+        return mAllAppScale;
+    }
+
+    /**
+     * Specify whether this transition should scale the allapps header in addition to its content.
+     */
+    public void setShouldScaleHeader(boolean shouldScaleHeader) {
+        mShouldScaleHeader = shouldScaleHeader;
+    }
+
     /** Set {@link Animator.AnimatorListener} for scaling all apps scale to 1 animation. */
     public void setAllAppsSearchBackAnimationListener(Animator.AnimatorListener listener) {
         mAllAppsSearchBackAnimationListener = listener;
@@ -324,7 +346,7 @@ public class AllAppsTransitionController
      */
     public void animateAllAppsToNoScale() {
         if (mAllAppScale.isAnimating()) {
-            return;
+            mAllAppScale.cancelAnimation();
         }
         Animator animator = mAllAppScale.animateToValue(1f)
                 .setDuration(REVERT_SWIPE_ALL_APPS_TO_HOME_ANIMATION_DURATION_MS);
@@ -379,8 +401,7 @@ public class AllAppsTransitionController
         setAlphas(toState, config, builder);
         // This controls both haptics for tapping on QSB and going to all apps.
         if (ALL_APPS.equals(toState) && mLauncher.isInState(NORMAL)) {
-            // TODO(gyc)
-            if (true/*Flags.msdlFeedback()*/) {
+            if (Flags.msdlFeedback()) {
                 if (config.isUserControlled()) {
                     mMSDLPlayerWrapper.playToken(MSDLToken.SWIPE_THRESHOLD_INDICATOR);
                 } else {

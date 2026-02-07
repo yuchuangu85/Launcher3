@@ -19,9 +19,15 @@
 
     <!-- Attributes used for launcher theme -->
     <attr name="allAppsScrimColor" format="color" />
-    <attr name="allAppsScrimColorOverBlur" format="color" />
     <attr name="allappsHeaderProtectionColor" format="color" />
     <attr name="allAppsNavBarScrimColor" format="color" />
+    <attr name="allAppsSurfaceLow" format="color" />
+    <attr name="allAppsSurfaceHighest" format="color" />
+    <attr name="allAppsUnselectedTab" format="color" />
+    <attr name="allAppsSearchIconBackground" format="color" />
+    <attr name="privateSpaceSettingsColor" format="color" />
+    <attr name="privateSpaceDividerColor" format="color" />
+    <attr name="bottomSheetDragHandleColor" format="color" />
     <attr name="allAppsTheme" format="reference" />
     <attr name="popupColorPrimary" format="color" />
     <attr name="popupColorSecondary" format="color" />
@@ -40,12 +46,24 @@
     <attr name="iconOnlyShortcutColor" format="color" />
     <attr name="eduHalfSheetBGColor" format="color" />
     <attr name="overviewScrimColor" format="color" />
-    <attr name="overviewScrimColorOverBlur" format="color" />
+    <attr name="overviewScrimColorFallback" format="color" />
+    <attr name="overviewScrimColorBlur" format="color" />
+    <attr name="overviewScrimForegroundPrimaryBlur" format="color" />
+    <attr name="overviewScrimForegroundPrimary" format="color" />
+    <attr name="overviewScrimForegroundSecondaryBlur" format="color" />
+    <attr name="overviewScrimForegroundSecondary" format="color" />
+    <attr name="overviewActionsContainerStyle" format="reference" />
+    <attr name="overviewActionButtonStyle" format="reference" />
+    <attr name="addDesktopButtonBackgroundDrawable" format="reference" />
     <attr name="popupNotificationDotColor" format="color" />
     <attr name="notificationDotColor" format="color" />
     <attr name="focusOutlineColor" format="color" />
     <attr name="focusInnerOutlineColor" format="color" />
 
+    <!-- Device search related attributes -->
+    <attr name="focusHighlight" format="color" />
+    <attr name="groupHighlight" format="color" />
+    <attr name="searchboxHighlight" format="color" />
 
     <attr name="pageIndicatorDotColor" format="color" />
     <attr name="pageIndicatorArrowBgColor" format="color" />
@@ -101,6 +119,7 @@
             <enum name="search_result_small" value="7" />
             <enum name="prediction_row" value="8" />
             <enum name="search_result_app_row" value="9" />
+            <enum name="drawer_folder" value="10"/>
         </attr>
         <attr name="centerVertically" format="boolean" />
     </declare-styleable>
@@ -165,14 +184,18 @@
         <attr name="layout_sticky" format="boolean" />
     </declare-styleable>
 
+    <declare-styleable name="AllAppsSize">
+        <attr name="minDeviceWidthDp" format="float" />
+        <attr name="alignWithWorkspaceRow" format="integer" />
+    </declare-styleable>
+
     <declare-styleable name="GridSize">
-        <attr name="minDeviceWidthPx" format="float"/>
-        <attr name="minDeviceHeightPx" format="float"/>
+        <attr name="minDeviceWidthPx" format="integer"/>
+        <attr name="minDeviceHeightPx" format="integer"/>
         <attr name="numGridRows" format="integer"/>
         <attr name="numGridColumns" format="integer"/>
         <attr name="dbFile" />
         <attr name="defaultLayoutId"/>
-        <attr name="demoModeLayoutId"/>
     </declare-styleable>
 
     <declare-styleable name="GridDisplayOption">
@@ -234,7 +257,6 @@
 
         <attr name="dbFile" format="string" />
         <attr name="defaultLayoutId" format="reference" />
-        <attr name="demoModeLayoutId" format="reference" />
         <attr name="isScalable" format="boolean" />
         <attr name="devicePaddingId" format="reference" />
 
@@ -267,6 +289,9 @@
         Needs FeatureFlags.ENABLE_RESPONSIVE_WORKSPACE enabled -->
         <attr name="allAppsCellSpecsId" format="reference" />
         <attr name="gridSizeSpecsId" format="reference" />
+        <!-- File that contains specs describing the all apps container height. If not specified,
+        all apps container will vertically expand to fill available space. -->
+        <attr name="allAppsSizeSpecsId" format="reference" />
         <!-- defaults to allAppsCellSpecsId, if not specified -->
         <attr name="allAppsCellSpecsTwoPanelId" format="reference" />
         <!-- defaults to false, if not specified -->
@@ -287,6 +312,8 @@
             <flag name="tablet" value="2" />
             <!-- Enable on multi display devices only -->
             <flag name="multi_display" value="4" />
+            <!-- Enable on desktop devices only -->
+            <flag name="desktop" value="8" />
         </attr>
 
         <!-- By default all are false -->
@@ -353,6 +380,8 @@
     <declare-styleable name="CellSpec">
         <attr name="dimensionType" />
         <attr name="maxAvailableSize" />
+        <attr name="maxLineCount" format="integer" />
+        <attr name="maxLineCountMatchesWorkspace" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="SizeSpec">

@@ -19,7 +19,7 @@ package com.android.quickstep.util;
 import static com.android.quickstep.util.QuickstepProtoLogGroup.RECENTS_WINDOW;
 import static com.android.quickstep.util.QuickstepProtoLogGroup.isProtoLogInitialized;
 
-import android.window.DesktopModeFlags;
+import android.window.DesktopExperienceFlags;
 
 import androidx.annotation.NonNull;
 
@@ -37,8 +37,13 @@ import com.android.launcher3.Flags;
  * method. Or, if an existing entry needs to be modified, simply update it here.
  */
 public class RecentsWindowProtoLogProxy {
-    private static final DesktopModeFlags.DesktopModeFlag ENABLE_RECENTS_WINDOW_PROTO_LOG =
-            new DesktopModeFlags.DesktopModeFlag(Flags::enableRecentsWindowProtoLog, true);
+    private static final DesktopExperienceFlags.DesktopExperienceFlag
+            ENABLE_RECENTS_WINDOW_PROTO_LOG =
+                    new DesktopExperienceFlags.DesktopExperienceFlag(
+                            Flags::enableRecentsWindowProtoLog,
+                            false,
+                            Flags.FLAG_ENABLE_RECENTS_WINDOW_PROTO_LOG);
+
     public static void logOnStateSetStart(@NonNull String stateName) {
         if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
         ProtoLog.d(RECENTS_WINDOW, "onStateSetStart: %s", stateName);
@@ -47,6 +52,11 @@ public class RecentsWindowProtoLogProxy {
     public static void logOnStateSetEnd(@NonNull String stateName) {
         if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
         ProtoLog.d(RECENTS_WINDOW, "onStateSetEnd: %s", stateName);
+    }
+
+    public static void logOnRepeatStateSetAborted(@NonNull String stateName) {
+        if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
+        ProtoLog.d(RECENTS_WINDOW, "onRepeatStateSetAborted: %s", stateName);
     }
 
     public static void logStartRecentsWindow(boolean isShown, boolean windowViewIsNull) {

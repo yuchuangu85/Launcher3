@@ -23,6 +23,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import com.android.app.animation.Interpolators
+import com.android.launcher3.Flags
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.Utilities.mapRange
@@ -30,6 +31,7 @@ import com.android.launcher3.Utilities.mapToRange
 import com.android.launcher3.icons.GraphicsUtils.setColorAlphaBound
 import com.android.launcher3.taskbar.TaskbarPinningController.Companion.PINNING_PERSISTENT
 import com.android.launcher3.taskbar.TaskbarPinningController.Companion.PINNING_TRANSIENT
+import com.android.launcher3.taskbar.Utilities.getShapedTaskbarRadius
 import kotlin.math.min
 
 /** Helps draw the taskbar background, made up of a rectangle plus two inverted rounded corners. */
@@ -38,9 +40,9 @@ class TaskbarBackgroundRenderer(private val context: TaskbarActivityContext) {
     private val isInSetup: Boolean = !context.isUserSetupComplete
 
     private val maxTransientTaskbarHeight =
-        context.transientTaskbarDeviceProfile.taskbarHeight.toFloat()
+        context.transientTaskbarDeviceProfile.taskbarProfile.height.toFloat()
     private val maxPersistentTaskbarHeight =
-        context.persistentTaskbarDeviceProfile.taskbarHeight.toFloat()
+        context.persistentTaskbarDeviceProfile.taskbarProfile.height.toFloat()
     var backgroundProgress =
         if (context.isTransientTaskbar) {
             PINNING_TRANSIENT
@@ -55,7 +57,7 @@ class TaskbarBackgroundRenderer(private val context: TaskbarActivityContext) {
     val paint = Paint()
     private val strokePaint = Paint()
     val lastDrawnTransientRect = RectF()
-    var backgroundHeight = context.deviceProfile.taskbarHeight.toFloat()
+    var backgroundHeight = context.deviceProfile.taskbarProfile.height.toFloat()
     var translationYForSwipe = 0f
     var translationYForStash = 0f
     var translationXForBubbleBar = 0f
@@ -222,7 +224,12 @@ class TaskbarBackgroundRenderer(private val context: TaskbarActivityContext) {
 
         val newWidth = mapRange(progress, backgroundWidthWhileAnimating, fullWidth.toFloat())
         val halfWidthDelta = (fullWidth - newWidth) / 2f
-        val radius = newBackgroundHeight / 2f
+        val radius =
+            if (Flags.enableLauncherIconShapes()) {
+                getShapedTaskbarRadius(context)
+            } else {
+                newBackgroundHeight / 2f
+            }
         val bottomMarginProgress = bottomMargin * ((1f - progress) / 2f)
 
         // Aligns the bottom with the bottom of the stashed handle.

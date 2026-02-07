@@ -34,7 +34,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.quickstep.RemoteAnimationTargets
 import com.android.quickstep.util.TransformParams.BuilderProxy.NO_OP
-import com.android.window.flags.Flags.FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX
+import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

@@ -23,12 +23,12 @@
     <string name="recent_task_option_freeform" msgid="48863056265284071">"មុខងារទម្រង់សេរី"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"ដែសថប"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"ផ្លាស់ទីទៅផ្ទាំងអេក្រង់ខាងក្រៅ"</string>
-    <string name="recent_task_option_close" msgid="942942499021777264">"បិទ"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"សម្អាត"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"អេក្រង់ដើម"</string>
     <string name="recents_empty_message" msgid="7040467240571714191">"មិនមានធាតុថ្មីៗទេ"</string>
     <string name="accessibility_app_usage_settings" msgid="6312864233673544149">"ការកំណត់​ការប្រើប្រាស់​កម្មវិធី"</string>
     <string name="recents_clear_all" msgid="5328176793634888831">"សម្អាត​ទាំងអស់"</string>
+    <string name="add_desk_button_content_description" msgid="5866025518368823735">"បញ្ចូល​តុថ្មី"</string>
     <string name="accessibility_recent_apps" msgid="4058661986695117371">"កម្មវិធី​ថ្មីៗ"</string>
     <string name="task_contents_description_with_remaining_time" msgid="4479688746574672685">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, <xliff:g id="REMAINING_TIME">%2$s</xliff:g>"</string>
     <string name="shorter_duration_less_than_one_minute" msgid="4722015666335015336">"&lt; 1 នាទី"</string>
@@ -92,11 +92,18 @@
     <string name="allset_hint" msgid="459504134589971527">"អូស​ឡើង​លើ ​ដើម្បី​ចូលទៅកាន់អេក្រង់ដើម"</string>
     <string name="allset_button_hint" msgid="2395219947744706291">"ចុចប៊ូតុងដើម ដើម្បីចូលទៅកាន់អេក្រង់ដើមរបស់អ្នក"</string>
     <string name="allset_description_generic" msgid="5385500062202019855">"អ្នកអាចចាប់ផ្ដើមប្រើ<xliff:g id="DEVICE">%1$s</xliff:g>របស់អ្នកបានហើយ"</string>
-    <string name="default_device_name" msgid="6660656727127422487">"ឧបករណ៍"</string>
+    <string name="allset_description_fallback" msgid="2488751930355201578">"អ្នកអាចចាប់ផ្ដើមប្រើឧបករណ៍របស់អ្នកបានហើយ"</string>
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"ការកំណត់​ការរុករក​ប្រព័ន្ធ"</annotation></string>
+    <string name="allset_title_expressive" msgid="474399969304146994">"អាចប្រើ <xliff:g id="DEVICE">%1$s</xliff:g> របស់អ្នក\nបានហើយ!"</string>
+    <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"អាចប្រើឧបករណ៍​របស់អ្នក\nបានហើយ!"</string>
+    <string name="allset_subtitle_expressive" msgid="419688197551192358">"រីករាយជាមួយ <xliff:g id="DEVICE">%1$s</xliff:g> ថ្មីរបស់អ្នក!"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"ជ្រើសរើសរបៀបរុករក"</annotation></string>
+    <string name="allset_hint_expressive" msgid="756856423510976261">"អូស​ឡើងលើ"</string>
+    <string name="allset_button_hint_expressive" msgid="667643693410494225">"ចុចប៊ូតុងដើម"</string>
+    <string name="allset_device_type_tablet" msgid="2173392009787325894">"ថេប្លេត"</string>
+    <string name="allset_device_type_phone" msgid="6842334562074507337">"ទូរសព្ទ"</string>
     <string name="action_share" msgid="2648470652637092375">"ចែករំលែក"</string>
-    <string name="action_screenshot" msgid="8171125848358142917">"រូបថតអេក្រង់"</string>
+    <string name="action_screenshot" msgid="8171125848358142917">"ថតរូបអេក្រង់"</string>
     <string name="action_split" msgid="2098009717623550676">"បំបែក"</string>
     <string name="action_save_app_pair" msgid="5974823919237645229">"រក្សាទុកគូកម្មវិធី"</string>
     <string name="toast_split_select_app" msgid="8464310533320556058">"ចុចកម្មវិធី​ផ្សេងទៀត ដើម្បីប្រើ​មុខងារបំបែកអេក្រង់"</string>
@@ -106,11 +113,12 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"ជ្រើសរើសកម្មវិធីផ្សេងទៀត ដើម្បីប្រើមុខងារ​បំបែកអេក្រង់"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"សកម្មភាពនេះ​មិនត្រូវបានអនុញ្ញាតដោយកម្មវិធី​ ឬ​ស្ថាប័ន​របស់អ្នកទេ"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"បច្ចុប្បន្ន ធាតុ​ក្រាហ្វិកមិនអាចប្រើបានទេ សូមជ្រើសរើសកម្មវិធីផ្សេងទៀត"</string>
-    <string name="skip_tutorial_dialog_title" msgid="2725643161260038458">"រំលង​មេរៀន​អំពី​ការរុករក​ឬ?"</string>
-    <string name="skip_tutorial_dialog_subtitle" msgid="544063326241955662">"អ្នកអាចស្វែងរកមេរៀននេះនៅពេលក្រោយក្នុងកម្មវិធី <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="gesture_tutorial_action_button_label_cancel" msgid="3809842569351264108">"បោះបង់"</string>
-    <string name="gesture_tutorial_action_button_label_skip" msgid="394452764989751960">"រំលង"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"បង្វិលអេក្រង់"</string>
+    <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"រូបមានចលនាដែលបង្ហាញអំពីរបៀបដែលរបារកិច្ចការចូលទៅក្នុងទិដ្ឋភាពពីផ្នែកខាងក្រោមនៃអេក្រង់ និងលាក់ដោយស្វ័យប្រវត្តិ នៅពេលមិនកំពុងប្រើ"</string>
+    <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"រូបមានចលនាដែលបង្ហាញអំពីរបៀបខ្ទាស់របារកិច្ចការរបស់អ្នកដោយប្រើប៊ូតុងបិទ/បើក ដូច្នេះរបារកិច្ចការនៅតែអាចមើលឃើញជាអចិន្ត្រៃយ៍នៅផ្នែកខាងក្រោមនៃអេក្រង់"</string>
+    <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"រូបមានចលនាដែលមានបង្ហាញអំពីរបៀបបង្កើតអេក្រង់បំបែក ដោយអូស​ហើយ​ទម្លាក់កម្មវិធីពីរបារកិច្ចការនៅខាងលើកម្មវិធីដែលកំពុងបើក"</string>
+    <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"រូបមានចលនាដែលបង្ហាញអំពីរបៀបចូលប្រើកម្មវិធីដែលបានណែនាំនៅលើឧបករណ៍របស់អ្នក"</string>
+    <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"រូបមានចលនាដែលបង្ហាញអំពីរបៀបស្វែងរកធាតុនៅលើអេក្រង់ ដោយចុចគ្រាប់ចុចសកម្មភាពឱ្យជាប់ និងជ្រើសរើសតំបន់ដែលធាតុនោះស្ថិតនៅ"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"ការអប់រំលើរបារកិច្ចការ"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"អូសកម្មវិធីទៅចំហៀង ដើម្បីប្រើកម្មវិធី 2 ក្នុងពេលតែមួយ"</string>
     <string name="taskbar_edu_stashing" msgid="5645461372669217294">"អូសឡើងលើយឺតៗ ដើម្បីបង្ហាញរបារកិច្ចការ"</string>
@@ -138,7 +146,7 @@
     <string name="always_show_taskbar" msgid="3608801276107751229">"បង្ហាញរបារកិច្ចការជានិច្ច"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"ប្ដូរ​មុខងាររុករក"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"បន្ទាត់​ខណ្ឌចែករបារកិច្ចការ"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="7960342079198820179">"ម៉ឺនុយបន្ថែមរបារកិច្ចការ"</string>
+    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"កម្មវិធីថ្មីៗផ្សេងទៀត"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"ផ្លាស់ទីទៅខាងលើ/ឆ្វេង"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"ផ្លាស់ទីទៅខាងក្រោម/ស្ដាំ"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"បើកកម្មវិធីជាផ្ទាំងសារ"</string>
@@ -165,5 +173,7 @@
     <string name="header_close_icon_description" msgid="5400033616675911319">"ប៊ូតុងបិទ"</string>
     <string name="pin_to_taskbar" msgid="6607778046321626950">"ខ្ទាស់ទៅរបារកិច្ចការ"</string>
     <string name="unpin_from_taskbar" msgid="2178811773165572676">"ដកខ្ទាស់ពីរបារកិច្ចការ"</string>
+    <string name="nudge_a11y_title" msgid="2126529303123687912">"ជំរុញ"</string>
+    <string name="nudge_a11y_close" msgid="4513937143817625570">"បិទ"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"រូបភាពជំរុញ"</string>
 </resources>

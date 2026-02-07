@@ -28,16 +28,13 @@ import androidx.test.annotation.UiThreadTest
 import androidx.test.filters.SmallTest
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING
-import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING_IN_DESKTOP_MODE
 import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.DisplayController.CHANGE_DENSITY
-import com.android.launcher3.util.DisplayController.CHANGE_DESKTOP_MODE
 import com.android.launcher3.util.DisplayController.CHANGE_ROTATION
 import com.android.launcher3.util.DisplayController.CHANGE_SHOW_LOCKED_TASKBAR
 import com.android.launcher3.util.DisplayController.CHANGE_TASKBAR_PINNING
 import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
 import com.android.launcher3.util.window.CachedDisplayInfo
 import com.android.launcher3.util.window.WindowManagerProxy
 import dagger.BindsInstance
@@ -47,6 +44,7 @@ import junit.framework.Assert.assertTrue
 import kotlin.math.min
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
@@ -65,7 +63,7 @@ import org.mockito.stubbing.Answer
 @RunWith(LauncherMultivalentJUnit::class)
 class DisplayControllerTest {
 
-    private val context = spy(SandboxModelContext())
+    @get:Rule val context = spy(SandboxApplication())
     private val windowManagerProxy: MyWmProxy = mock()
     private val launcherPrefs: LauncherPrefs = mock()
     private lateinit var displayManager: DisplayManager
@@ -105,7 +103,6 @@ class DisplayControllerTest {
         displayManager = context.spyService(DisplayManager::class.java)
 
         whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
-        whenever(launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)).thenReturn(true)
 
         // Mock WindowManagerProxy
         val displayInfo = CachedDisplayInfo(Point(width, height), Surface.ROTATION_0)
@@ -149,7 +146,6 @@ class DisplayControllerTest {
         // We need to reset the taskbar mode preference override even if a test throws an exception.
         // Otherwise, it may break the following tests' assumptions.
         DisplayController.enableTaskbarModePreferenceForTests(false)
-        context.onDestroy()
     }
 
     @Test
@@ -192,18 +188,9 @@ class DisplayControllerTest {
 
     @Test
     @UiThreadTest
-    fun testTaskbarPinningChangeInDesktopMode() {
-        whenever(launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)).thenReturn(false)
-        displayController.notifyConfigChange()
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(any(), any(), eq(CHANGE_TASKBAR_PINNING))
-    }
-
-    @Test
-    @UiThreadTest
     fun testTaskbarPinningChangeInLockedTaskbarChange() {
         whenever(windowManagerProxy.showLockedTaskbarOnHome(any())).thenReturn(true)
-        whenever(windowManagerProxy.isHomeVisible(any())).thenReturn(true)
+        whenever(windowManagerProxy.isHomeVisible()).thenReturn(true)
         whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(false)
         whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
         DisplayController.enableTaskbarModePreferenceForTests(true)
@@ -224,7 +211,7 @@ class DisplayControllerTest {
     @UiThreadTest
     fun testLockedTaskbarChangeOnConfigurationChanged() {
         whenever(windowManagerProxy.showLockedTaskbarOnHome(any())).thenReturn(true)
-        whenever(windowManagerProxy.isHomeVisible(any())).thenReturn(true)
+        whenever(windowManagerProxy.isHomeVisible()).thenReturn(true)
         whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(false)
         whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
         DisplayController.enableTaskbarModePreferenceForTests(true)
@@ -238,63 +225,6 @@ class DisplayControllerTest {
                 any(),
                 eq(CHANGE_TASKBAR_PINNING or CHANGE_SHOW_LOCKED_TASKBAR),
             )
-        assertFalse(displayController.getInfo().isTransientTaskbar())
-    }
-
-    @Test
-    @UiThreadTest
-    fun testTaskbarPinnedForDesktopTaskbar_inDesktopMode() {
-        whenever(windowManagerProxy.showDesktopTaskbarForFreeformDisplay(any())).thenReturn(true)
-        whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
-        whenever(launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)).thenReturn(false)
-        whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(true)
-        whenever(windowManagerProxy.isHomeVisible(any())).thenReturn(false)
-        DisplayController.enableTaskbarModePreferenceForTests(true)
-
-        assertTrue(displayController.getInfo().isTransientTaskbar())
-
-        displayController.onConfigurationChanged(configuration)
-
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(any(), any(), eq(CHANGE_TASKBAR_PINNING or CHANGE_DESKTOP_MODE))
-        assertFalse(displayController.getInfo().isTransientTaskbar())
-    }
-
-    @Test
-    @UiThreadTest
-    fun testTaskbarPinnedForDesktopTaskbar_notInDesktopMode() {
-        whenever(windowManagerProxy.showDesktopTaskbarForFreeformDisplay(any())).thenReturn(true)
-        whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
-        whenever(launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)).thenReturn(false)
-        whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(false)
-        whenever(windowManagerProxy.isHomeVisible(any())).thenReturn(false)
-        DisplayController.enableTaskbarModePreferenceForTests(true)
-
-        assertTrue(displayController.getInfo().isTransientTaskbar())
-
-        displayController.onConfigurationChanged(configuration)
-
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(any(), any(), eq(CHANGE_TASKBAR_PINNING))
-        assertFalse(displayController.getInfo().isTransientTaskbar())
-    }
-
-    @Test
-    @UiThreadTest
-    fun testTaskbarPinnedForDesktopTaskbar_onHome() {
-        whenever(windowManagerProxy.showDesktopTaskbarForFreeformDisplay(any())).thenReturn(true)
-        whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
-        whenever(launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)).thenReturn(false)
-        whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(false)
-        whenever(windowManagerProxy.isHomeVisible(any())).thenReturn(true)
-        DisplayController.enableTaskbarModePreferenceForTests(true)
-
-        assertTrue(displayController.getInfo().isTransientTaskbar())
-
-        displayController.onConfigurationChanged(configuration)
-
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(any(), any(), eq(CHANGE_TASKBAR_PINNING))
         assertFalse(displayController.getInfo().isTransientTaskbar())
     }
 }

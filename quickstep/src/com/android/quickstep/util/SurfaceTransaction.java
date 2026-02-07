@@ -20,6 +20,8 @@ import android.graphics.Rect;
 import android.view.SurfaceControl;
 import android.view.SurfaceControl.Transaction;
 
+import com.android.launcher3.Utilities;
+
 /**
  * Helper class for building a {@link Transaction}.
  */
@@ -103,7 +105,18 @@ public class SurfaceTransaction {
          * @return this Builder
          */
         public SurfaceProperties setShadowRadius(float radius) {
-            mTransaction.setShadowRadius(mSurface, radius);
+            if (Utilities.ATLEAST_R) {
+                mTransaction.setShadowRadius(mSurface, radius);
+            }
+            return this;
+        }
+
+        /**
+         * @param radius The radius for the background blur to apply to the surface.
+         * @return this Builder
+         */
+        public SurfaceProperties setBackgroundBlurRadius(int radius) {
+            mTransaction.setBackgroundBlurRadius(mSurface, radius);
             return this;
         }
 
@@ -113,6 +126,15 @@ public class SurfaceTransaction {
          */
         public SurfaceProperties setShow() {
             mTransaction.show(mSurface);
+            return this;
+        }
+
+        /**
+         * Requests to remove the given surface.
+         * @return this Builder
+         */
+        public SurfaceProperties setRemove() {
+            mTransaction.remove(mSurface);
             return this;
         }
     }
@@ -127,6 +149,7 @@ public class SurfaceTransaction {
         public Rect windowCrop = null;
         public float cornerRadius = 0;
         public float shadowRadius = 0;
+        public int backgroundBlurRadius = 0;
 
         protected MockProperties() {
             super(null);
@@ -168,7 +191,18 @@ public class SurfaceTransaction {
         }
 
         @Override
+        public SurfaceProperties setBackgroundBlurRadius(int radius) {
+            this.backgroundBlurRadius = radius;
+            return this;
+        }
+
+        @Override
         public SurfaceProperties setShow() {
+            return this;
+        }
+
+        @Override
+        public SurfaceProperties setRemove() {
             return this;
         }
     }

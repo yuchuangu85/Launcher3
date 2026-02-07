@@ -33,15 +33,15 @@ import com.android.app.displaylib.PerDisplayInstanceRepositoryImpl
 import com.android.app.displaylib.PerDisplayRepository
 import com.android.app.displaylib.SingleInstanceRepositoryImpl
 import com.android.app.displaylib.createDisplayLibComponent
+import com.android.launcher3.Utilities
 import com.android.launcher3.util.coroutines.DispatcherProvider
 import com.android.quickstep.FallbackWindowInterface
 import com.android.quickstep.RecentsAnimationDeviceState
 import com.android.quickstep.RotationTouchHelper
 import com.android.quickstep.TaskAnimationManager
-import com.android.quickstep.window.RecentsWindowFlags.enableOverviewOnConnectedDisplays
-import com.android.quickstep.window.RecentsWindowManager
-import com.android.quickstep.window.RecentsWindowManagerInstanceProvider
-import com.android.quickstep.window.RecentsWindowTracker
+import com.android.quickstep.fallback.window.RecentsWindowFlags.enableOverviewOnConnectedDisplays
+import com.android.quickstep.fallback.window.RecentsWindowManager
+import com.android.quickstep.fallback.window.RecentsWindowManagerInstanceProvider
 import com.android.systemui.dagger.qualifiers.Background
 import dagger.Binds
 import dagger.Module
@@ -95,9 +95,9 @@ object PerDisplayRepositoriesModule {
         return if (enableOverviewOnConnectedDisplays()) {
             repositoryFactory.create("TaskAnimationManagerRepo", instanceFactory::create)
         } else {
-            DefaultDisplayOnlyInstanceRepositoryImpl(
+            SingleInstanceRepositoryImpl(
                 "TaskAnimationManager",
-                instanceFactory::create,
+                instanceFactory.create(DEFAULT_DISPLAY),
             )
         }
     }
@@ -127,21 +127,15 @@ object PerDisplayRepositoriesModule {
     @Provides
     @LauncherAppSingleton
     fun provideFallbackWindowInterfaceRepo(
-        repositoryFactory: PerDisplayInstanceRepositoryImpl.Factory<FallbackWindowInterface>,
-        recentsWindowTrackerRepository: PerDisplayRepository<RecentsWindowTracker>,
+        repositoryFactory: PerDisplayInstanceRepositoryImpl.Factory<FallbackWindowInterface>
     ): PerDisplayRepository<FallbackWindowInterface> {
         return if (enableOverviewOnConnectedDisplays()) {
             repositoryFactory.create(
                 "FallbackWindowInterfaceRepo",
-                { displayId ->
-                    recentsWindowTrackerRepository[displayId]?.let { FallbackWindowInterface(it) }
-                },
+                { _ -> FallbackWindowInterface() },
             )
         } else {
-            SingleInstanceRepositoryImpl(
-                "FallbackWindowInterfaceRepo",
-                FallbackWindowInterface(recentsWindowTrackerRepository[DEFAULT_DISPLAY]!!),
-            )
+            SingleInstanceRepositoryImpl("FallbackWindowInterfaceRepo", FallbackWindowInterface())
         }
     }
 
@@ -155,21 +149,6 @@ object PerDisplayRepositoriesModule {
             repositoryFactory.create("RecentsWindowManagerRepo", instanceProvider)
         } else {
             DefaultDisplayOnlyInstanceRepositoryImpl("RecentsWindowManagerRepo", instanceProvider)
-        }
-    }
-
-    @Provides
-    @LauncherAppSingleton
-    fun provideRecentsWindowTrackerRepo(
-        repositoryFactory: PerDisplayInstanceRepositoryImpl.Factory<RecentsWindowTracker>
-    ): PerDisplayRepository<RecentsWindowTracker> {
-        return if (enableOverviewOnConnectedDisplays()) {
-            repositoryFactory.create("RecentsWindowTrackerRepo", { _ -> RecentsWindowTracker() })
-        } else {
-            DefaultDisplayOnlyInstanceRepositoryImpl(
-                "RecentsWindowTrackerRepo",
-                { _ -> RecentsWindowTracker() },
-            )
         }
     }
 
@@ -211,22 +190,30 @@ object PerDisplayRepositoriesModule {
                 "DisplayContextRepo",
                 { displayId ->
                     displayRepository.getDisplay(displayId)?.let {
-                        context.createWindowContext(
-                            it,
-                            TYPE_APPLICATION_OVERLAY,
-                            /* options=*/ null,
-                        )
+                        if (Utilities.ATLEAST_S) {
+                            context.createWindowContext(
+                                it,
+                                TYPE_APPLICATION_OVERLAY,
+                                /* options=*/ null,
+                            )
+                        } else {
+                            context.createDisplayContext(it)
+                        }
                     }
                 },
             )
         } else {
             SingleInstanceRepositoryImpl(
                 "DisplayContextRepo",
-                context.createWindowContext(
-                    displayRepository.getDisplay(DEFAULT_DISPLAY)!!,
-                    TYPE_APPLICATION_OVERLAY,
-                    /* options=*/ null,
-                ),
+                if (Utilities.ATLEAST_S) {
+                    context.createWindowContext(
+                        displayRepository.getDisplay(DEFAULT_DISPLAY)!!,
+                        TYPE_APPLICATION_OVERLAY,
+                        /* options=*/ null,
+                    )
+                } else {
+                    context.createDisplayContext(displayRepository.getDisplay(DEFAULT_DISPLAY)!!)
+                }
             )
         }
     }

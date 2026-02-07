@@ -786,6 +786,17 @@ class TaskGridNavHelperTest {
             .isEqualTo(ADD_DESK_PLACEHOLDER_ID)
     }
 
+    /*
+                  5   3   1     |
+       CLEAR_ALL                |       Invalid ID:
+                  6   4   2     |       [25] --> [25]
+    */
+    @Test
+    fun nextGridPage_invalidId_pressTab_noCycle_returnsCurrentPage() {
+        assertThat(getNextGridPage(currentPageTaskViewId = 25, TAB, delta = -1, cycle = false))
+            .isEqualTo(25)
+    }
+
     // Col offset:  0   1   2
     //             -----------
     // ID grid:     4   2   0  start

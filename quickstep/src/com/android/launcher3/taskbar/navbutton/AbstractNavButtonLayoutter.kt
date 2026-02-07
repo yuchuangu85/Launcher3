@@ -90,7 +90,7 @@ abstract class AbstractNavButtonLayoutter(
             resources.getDimensionPixelSize(R.dimen.taskbar_contextual_button_suw_margin)
         nearestTouchFrameLayoutParams.marginStart = phoneOrPortraitSetupMargin
         nearestTouchFrameLayoutParams.bottomMargin =
-            if (!deviceProfile.isLandscape) 0
+            if (!deviceProfile.deviceProperties.isLandscape) 0
             else
                 phoneOrPortraitSetupMargin -
                     resources.getDimensionPixelSize(R.dimen.taskbar_nav_buttons_size) / 2

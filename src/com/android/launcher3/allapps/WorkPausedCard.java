@@ -27,8 +27,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.model.StringCache;
 import com.android.launcher3.views.ActivityContext;
+
+import app.lawnchair.font.FontManager;
+import app.lawnchair.theme.color.tokens.ColorTokens;
 
 /**
  * Work profile toggle switch shown at the bottom of AllApps work tab
@@ -64,19 +68,25 @@ public class WorkPausedCard extends LinearLayout implements View.OnClickListener
     public void updateStringFromCache() {
         StringCache cache = mActivityContext.getStringCache();
         if (cache != null) {
-            setWorkProfilePausedResources(cache);
+            setWorkProfilePausedResources();
         }
     }
 
-    private void setWorkProfilePausedResources(StringCache cache) {
+    public void setWorkProfilePausedResources() {
         TextView title = findViewById(R.id.work_apps_paused_title);
-        title.setText(cache.workProfilePausedTitle);
+        title.setText(R.string.work_apps_paused_title);
+        title.setTextColor(ColorTokens.TextColorPrimary.resolveColor(getContext()));
+        FontManager.INSTANCE.get(getContext()).setCustomFont(title, R.id.font_heading);
 
         TextView body = findViewById(R.id.work_apps_paused_content);
-        body.setText(cache.workProfilePausedDescription);
+        body.setText(R.string.work_apps_paused_body);
+        body.setTextColor(ColorTokens.TextColorPrimary.resolveColor(getContext()));
+        FontManager.INSTANCE.get(getContext()).setCustomFont(title, R.id.font_body_medium);
 
-        TextView button = findViewById(R.id.enable_work_apps);
-        button.setText(cache.workProfileEnableButton);
+        Button button = findViewById(R.id.enable_work_apps);
+        button.setText(R.string.work_apps_enable_btn_text);
+        FontManager.INSTANCE.get(getContext()).setCustomFont(title, R.id.font_button);
+        button.setOnClickListener(this);
     }
 
     @Override
@@ -90,7 +100,8 @@ public class WorkPausedCard extends LinearLayout implements View.OnClickListener
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int orientation = getResources().getConfiguration().orientation;
         getLayoutParams().height = orientation == Configuration.ORIENTATION_PORTRAIT
-                ? LayoutParams.MATCH_PARENT : LayoutParams.WRAP_CONTENT;
+                ? LayoutParams.MATCH_PARENT
+                : LayoutParams.WRAP_CONTENT;
         super.onLayout(changed, l, t, r, b);
     }
 }

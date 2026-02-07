@@ -24,6 +24,7 @@ import android.util.Log
 import android.util.SparseArray
 import androidx.annotation.AnyThread
 import com.android.launcher3.BuildConfig
+import com.android.launcher3.BuildConfigs
 import com.android.launcher3.Flags
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
@@ -36,9 +37,6 @@ import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.model.data.PredictedContainerInfo
-import com.android.launcher3.model.data.WorkspaceChangeEvent.AddEvent
-import com.android.launcher3.model.data.WorkspaceChangeEvent.RemoveEvent
-import com.android.launcher3.model.data.WorkspaceChangeEvent.UpdateEvent
 import com.android.launcher3.model.data.WorkspaceData
 import com.android.launcher3.model.data.WorkspaceData.MutableWorkspaceData
 import com.android.launcher3.model.data.WorkspaceItemInfo
@@ -50,7 +48,6 @@ import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.DaggerSingletonTracker
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.IntSparseArrayMap
-import com.android.launcher3.util.ItemInfoMatcher
 import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.widget.model.WidgetsListBaseEntry
 import java.io.PrintWriter
@@ -71,7 +68,7 @@ class BgDataModel
 constructor(
     /** Entire list of widgets. */
     @JvmField val widgetsModel: WidgetsModel,
-    private val repo: Provider<HomeScreenRepository>,
+    homeDataProvider: Provider<HomeScreenRepository?>,
     dumpManager: DumpManager,
     lifeCycle: DaggerSingletonTracker,
 ) : LauncherDumpable {
@@ -90,12 +87,12 @@ constructor(
     val extraItems = IntSparseArrayMap<FixedContainerItems>()
 
     /** Maps all launcher activities to counts of their shortcuts. */
-    var deepShortcutMap: Map<ComponentKey, Int> = emptyMap()
-        private set
+    @JvmField val deepShortcutMap = HashMap<ComponentKey, Int>()
 
     /** Cache for strings used in launcher */
-    var stringCache = StringCache.EMPTY
-        private set
+    @JvmField val stringCache = StringCache()
+
+    private val repo = if (Flags.modelRepository()) homeDataProvider.get() else null
 
     /** Id when the model was last bound */
     @JvmField var lastBindId: Int = 0
@@ -110,7 +107,7 @@ constructor(
     /** Clears all the data */
     @Synchronized
     fun clear() {
-        deepShortcutMap = emptyMap()
+        deepShortcutMap.clear()
         extraItems.clear()
     }
 
@@ -133,7 +130,7 @@ constructor(
     @Synchronized
     @JvmOverloads
     fun removeItem(context: Context, items: Collection<ItemInfo>, owner: Any? = null) {
-        if (BuildConfig.IS_STUDIO_BUILD) {
+        if (BuildConfigs.IS_STUDIO_BUILD) {
             items
                 .asSequence()
                 .filter { it.itemType == ITEM_TYPE_FOLDER || it.itemType == ITEM_TYPE_APP_PAIR }
@@ -152,22 +149,20 @@ constructor(
                 }
         }
 
-        mutableWorkspaceData.modifyItems { items.forEach { remove(it.id) } }
-
-        if (Flags.modelRepository()) {
-            repo
-                .get()
-                .dispatchWorkspaceDataChange(
-                    mutableWorkspaceData.copy(),
-                    RemoveEvent(ItemInfoMatcher.ofItems(items), owner),
-                )
-        }
-
+        mutableWorkspaceData.removeItems(items, owner)
         items
             .asSequence()
             .map { it.user }
             .distinct()
             .forEach { updateShortcutPinnedState(context, it) }
+
+        updateHomeRepository()
+    }
+
+    private fun updateHomeRepository() {
+        if (Flags.modelRepository() && repo != null) {
+            repo.dispatchChange(mutableWorkspaceData.copy())
+        }
     }
 
     @JvmOverloads
@@ -178,49 +173,31 @@ constructor(
     @Synchronized
     @JvmOverloads
     fun addItems(context: Context, items: List<ItemInfo>, owner: Any? = null) {
-        mutableWorkspaceData.modifyItems { items.forEach { put(it.id, it) } }
-
-        if (Flags.modelRepository()) {
-            repo
-                .get()
-                .dispatchWorkspaceDataChange(mutableWorkspaceData.copy(), AddEvent(items, owner))
-        }
+        mutableWorkspaceData.addItems(items, owner)
         items
             .filter { it.itemType == ITEM_TYPE_DEEP_SHORTCUT }
             .map { it.user }
             .distinct()
             .forEach { updateShortcutPinnedState(context, it) }
+        updateHomeRepository()
     }
 
     @Synchronized
     fun updateAndDispatchItem(item: ItemInfo, owner: Any?) {
-        mutableWorkspaceData.modifyItems { put(item.id, item) }
-        if (Flags.modelRepository()) {
-            repo
-                .get()
-                .dispatchWorkspaceDataChange(
-                    mutableWorkspaceData.copy(),
-                    UpdateEvent(listOf(item), owner),
-                )
-        }
+        mutableWorkspaceData.replaceItem(item, owner)
+        updateHomeRepository()
     }
 
     @Synchronized
     fun updateItems(items: List<ItemInfo>, owner: Any?) {
-        mutableWorkspaceData.modifyItems {}
-        if (Flags.modelRepository()) {
-            repo
-                .get()
-                .dispatchWorkspaceDataChange(mutableWorkspaceData.copy(), UpdateEvent(items, owner))
-        }
+        mutableWorkspaceData.notifyItemsUpdated(items, owner)
+        updateHomeRepository()
     }
 
     @Synchronized
     fun dataLoadComplete(allItems: SparseArray<ItemInfo>) {
         mutableWorkspaceData.replaceDataMap(allItems)
-        if (Flags.modelRepository()) {
-            repo.get().dispatchWorkspaceDataChange(mutableWorkspaceData.copy(), null)
-        }
+        updateHomeRepository()
     }
 
     /**
@@ -233,23 +210,13 @@ constructor(
         }
     }
 
-    /** Reloads the [stringCache] */
-    fun updateStringCache(context: Context) {
-        stringCache = StringCache.fromContext(context)
-        if (Flags.modelRepository()) repo.get().dispatchStringCacheChange(stringCache)
-    }
-
-    fun notifyWidgetsUpdate(allWidgets: List<WidgetsListBaseEntry>) {
-        if (Flags.modelRepository()) repo.get().dispatchWidgetsChange(allWidgets)
-    }
-
     /**
      * Updates the deep shortcuts state in system to match out internal model, pinning any missing
      * shortcuts and unpinning any extra shortcuts.
      */
     @Synchronized
     fun updateShortcutPinnedState(context: Context, user: UserHandle) {
-        if (!BuildConfig.WIDGETS_ENABLED) {
+        if (!BuildConfigs.WIDGETS_ENABLED) {
             return
         }
 
@@ -310,7 +277,7 @@ constructor(
                 try {
                     FileLog.d(
                         TAG,
-                        "updateShortcutPinnedState: Pinning Shortcuts: $key: $modelShortcuts",
+                        ("updateShortcutPinnedState:" + " Pinning Shortcuts: $key: $modelShortcuts"),
                     )
                     context
                         .getSystemService(LauncherApps::class.java)
@@ -329,7 +296,8 @@ constructor(
             try {
                 FileLog.d(
                     TAG,
-                    "updateShortcutPinnedState: Unpinning extra Shortcuts for package: $packageName: ${systemMap[packageName]}",
+                    ("updateShortcutPinnedState:" +
+                        " Unpinning extra Shortcuts for package: $packageName: ${systemMap[packageName]}"),
                 )
                 context
                     .getSystemService(LauncherApps::class.java)
@@ -346,13 +314,15 @@ constructor(
      * Clear all the deep shortcut counts for the given package, and re-add the new shortcut counts.
      */
     @Synchronized
-    @JvmOverloads
     fun updateDeepShortcutCounts(
+        packageName: String?,
+        user: UserHandle,
         shortcuts: List<ShortcutInfo>,
-        keysToRemove: ((ComponentKey) -> Boolean)? = null,
     ) {
-        if (keysToRemove != null) {
-            deepShortcutMap = deepShortcutMap.filterKeys { !keysToRemove.invoke(it) }
+        if (packageName != null) {
+            deepShortcutMap.keys.removeAll {
+                it.componentName.packageName == packageName && it.user == user
+            }
         }
 
         // Now add the new shortcuts to the map.
@@ -373,7 +343,6 @@ constructor(
      * synchronized over the model, that should be handled by the caller.
      */
     @JvmOverloads
-    @Synchronized
     fun updateAndCollectWorkspaceItemInfos(
         userHandle: UserHandle,
         workspaceItemOp: (WorkspaceItemInfo) -> Boolean,
@@ -436,6 +405,8 @@ constructor(
 
         /** Binds the app widgets to the providers that share widgets with the UI. */
         fun bindAllWidgets(widgets: List<@JvmSuppressWildcards WidgetsListBaseEntry>) {}
+
+        fun bindDeepShortcutMap(deepShortcutMap: HashMap<ComponentKey, Int>) {}
 
         /** Binds extra item provided any external source */
         fun bindExtraContainerItems(item: FixedContainerItems) {}

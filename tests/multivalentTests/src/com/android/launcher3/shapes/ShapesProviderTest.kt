@@ -27,7 +27,6 @@ import com.android.launcher3.shapes.ShapesProvider.ARCH_KEY
 import com.android.launcher3.shapes.ShapesProvider.CIRCLE_KEY
 import com.android.launcher3.shapes.ShapesProvider.FOUR_SIDED_COOKIE_KEY
 import com.android.launcher3.shapes.ShapesProvider.SEVEN_SIDED_COOKIE_KEY
-import com.android.launcher3.shapes.ShapesProvider.SQUARE_KEY
 import com.android.systemui.shared.Flags.FLAG_NEW_CUSTOMIZATION_PICKER_UI
 import org.junit.Rule
 import org.junit.Test
@@ -91,50 +90,6 @@ class ShapesProviderTest {
             .run {
                 GenericPathShape(pathString)
                 PathParser.createPathFromPathData(pathString)
-            }
-    }
-
-    @Test
-    @EnableFlags(FLAG_ENABLE_LAUNCHER_ICON_SHAPES, FLAG_NEW_CUSTOMIZATION_PICKER_UI)
-    fun `verify valid folder path clover`() {
-        ShapesProvider.iconShapes
-            .find { it.key == CIRCLE_KEY }!!
-            .run {
-                GenericPathShape(folderPathString)
-                PathParser.createPathFromPathData(folderPathString)
-            }
-    }
-
-    @Test
-    @EnableFlags(FLAG_ENABLE_LAUNCHER_ICON_SHAPES, FLAG_NEW_CUSTOMIZATION_PICKER_UI)
-    fun `verify valid folder path complexClover`() {
-        ShapesProvider.iconShapes
-            .find { it.key == FOUR_SIDED_COOKIE_KEY }!!
-            .run {
-                GenericPathShape(folderPathString)
-                PathParser.createPathFromPathData(folderPathString)
-            }
-    }
-
-    @Test
-    @EnableFlags(FLAG_ENABLE_LAUNCHER_ICON_SHAPES, FLAG_NEW_CUSTOMIZATION_PICKER_UI)
-    fun `verify valid folder path arch`() {
-        ShapesProvider.iconShapes
-            .find { it.key == ARCH_KEY }!!
-            .run {
-                GenericPathShape(folderPathString)
-                PathParser.createPathFromPathData(folderPathString)
-            }
-    }
-
-    @Test
-    @EnableFlags(FLAG_ENABLE_LAUNCHER_ICON_SHAPES, FLAG_NEW_CUSTOMIZATION_PICKER_UI)
-    fun `verify valid folder path square`() {
-        ShapesProvider.iconShapes
-            .find { it.key == SQUARE_KEY }!!
-            .run {
-                GenericPathShape(folderPathString)
-                PathParser.createPathFromPathData(folderPathString)
             }
     }
 }

@@ -19,7 +19,7 @@ import static com.android.app.animation.Interpolators.FINAL_FRAME;
 import static com.android.app.animation.Interpolators.INSTANT;
 import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.launcher3.Flags.enableDesktopExplodedView;
-import static com.android.launcher3.Flags.enableGridOnlyOverview;
+import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
 import static com.android.launcher3.Flags.enableLargeDesktopWindowingTile;
 import static com.android.launcher3.states.StateAnimationConfig.ANIM_OVERVIEW_MODAL;
 import static com.android.launcher3.states.StateAnimationConfig.ANIM_OVERVIEW_SCALE;
@@ -140,7 +140,7 @@ public class FallbackRecentsStateController implements StateHandler<RecentsState
                     getOverviewInterpolator(state));
         }
 
-        setter.setViewBackgroundColor(mRecentsViewContainer.getScrimView(),
+        setter.setScrimColors(mRecentsViewContainer.getScrimView(),
                 state.getScrimColor(mRecentsViewContainer.asContext()),
                 config.getInterpolator(ANIM_SCRIM_FADE, LINEAR));
         if (isSplitSelectionState(state)) {

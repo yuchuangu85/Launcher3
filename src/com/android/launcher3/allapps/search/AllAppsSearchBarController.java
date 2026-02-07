@@ -98,7 +98,6 @@ public class AllAppsSearchBarController
     public void afterTextChanged(final Editable s) {
         mQuery = s.toString();
         if (mQuery.isEmpty()) {
-            mSearchAlgorithm.cancel(true);
             mCallback.clearSearchResult();
         } else {
             mSearchAlgorithm.cancel(false);
@@ -136,7 +135,7 @@ public class AllAppsSearchBarController
     public boolean onBackKey() {
         // Only hide the search field if there is no query
         String query = Utilities.trim(mInput.getEditableText().toString());
-        if (query.isEmpty()) {
+        if (!query.isEmpty()) {
             reset();
             return true;
         }

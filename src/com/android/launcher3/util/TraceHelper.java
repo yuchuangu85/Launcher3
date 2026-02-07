@@ -20,6 +20,8 @@ import android.os.Trace;
 
 import androidx.annotation.MainThread;
 
+import com.android.launcher3.Utilities;
+
 import kotlin.random.Random;
 
 import java.util.function.Supplier;
@@ -77,8 +79,11 @@ public class TraceHelper {
     @SuppressLint("NewApi")
     public SafeCloseable allowIpcs(String rpcName) {
         int cookie = Random.Default.nextInt();
-        Trace.beginAsyncSection(rpcName, cookie);
-        return () -> Trace.endAsyncSection(rpcName, cookie);
+        if (Utilities.ATLEAST_Q) {
+            Trace.beginAsyncSection(rpcName, cookie);
+            return () -> Trace.endAsyncSection(rpcName, cookie);
+        }
+        return () -> {};
     }
 
     /**

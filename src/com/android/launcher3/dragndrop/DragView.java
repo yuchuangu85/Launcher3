@@ -20,6 +20,8 @@ import static android.view.View.MeasureSpec.EXACTLY;
 import static android.view.View.MeasureSpec.makeMeasureSpec;
 
 import static com.android.launcher3.LauncherAnimUtils.VIEW_ALPHA;
+import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET;
+import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
 import static com.android.launcher3.icons.FastBitmapDrawable.getDisabledColorFilter;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 
@@ -58,6 +60,7 @@ import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 
 import com.android.app.animation.Interpolators;
+import com.android.launcher3.Flags;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.graphics.ThemeManager;
@@ -67,6 +70,8 @@ import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.util.RunnableList;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BaseDragLayer;
+
+import app.lawnchair.icons.CustomAdaptiveIconDrawable;
 
 /** A custom view for rendering an icon, folder, shortcut or widget during drag-n-drop. */
 public abstract class DragView<T extends Context & ActivityContext> extends FrameLayout {
@@ -116,6 +121,7 @@ public abstract class DragView<T extends Context & ActivityContext> extends Fram
     private SpringFloatValue mTranslateX, mTranslateY;
     private Path mScaledMaskPath;
     private Drawable mBadge;
+    private int mItemType;
 
     public DragView(T launcher, Drawable drawable, int registrationX,
             int registrationY, final float initialScale, final float scaleOnDrop,
@@ -244,6 +250,7 @@ public abstract class DragView<T extends Context & ActivityContext> extends Fram
      */
     @TargetApi(Build.VERSION_CODES.O)
     public void setItemInfo(final ItemInfo info) {
+        mItemType = info.itemType;
         // Load the adaptive icon on a background thread and add the view in ui thread.
         MODEL_EXECUTOR.getHandler().postAtFrontOfQueue(() -> {
             ThemeManager themeManager = ThemeManager.INSTANCE.get(getContext());
@@ -627,7 +634,14 @@ public abstract class DragView<T extends Context & ActivityContext> extends Fram
         for (int i = dragLayer.getChildCount() - 1; i >= 0; i--) {
             View child = dragLayer.getChildAt(i);
             if (child instanceof DragView) {
-                dragLayer.removeView(child);
+                // Widgets uses a listener to remove views.
+                // When widgets are dropped from another window, we don't want to remove the
+                // dragView on resume of launcher.
+                if (Flags.enableWidgetPickerRefactor()
+                        && ((DragView<?>) child).mItemType != ITEM_TYPE_APPWIDGET
+                        && ((DragView<?>) child).mItemType != ITEM_TYPE_DEEP_SHORTCUT) {
+                    dragLayer.removeView(child);
+                }
             }
         }
     }

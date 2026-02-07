@@ -32,7 +32,7 @@ import com.android.launcher3.util.Executors;
 /**
  * Launcher AppWidgetHostView with support for rounded corners and a fallback View.
  */
-public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHostView {
+public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHostView implements LocalColorExtractor.Listener {
 
     private static final ViewOutlineProvider VIEW_OUTLINE_PROVIDER = new ViewOutlineProvider() {
         @Override
@@ -61,6 +61,9 @@ public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHo
     };
 
     private boolean mIsCornerRadiusEnforced;
+    
+    // Lawnchair: LocalColorExtractor
+    private final LocalColorExtractor mColorExtractor;
 
     public BaseLauncherAppWidgetHostView(Context context) {
         super(context);
@@ -70,6 +73,7 @@ public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHo
 
         mInflater = LayoutInflater.from(context);
         mEnforcedCornerRadius = RoundedCornerEnforcement.computeEnforcedRadius(getContext());
+        mColorExtractor = LocalColorExtractor.newInstance(getContext());
     }
 
     @Override
@@ -83,6 +87,18 @@ public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHo
     public void switchToErrorView() {
         // Update the widget with 0 Layout id, to reset the view to error view.
         updateAppWidget(new RemoteViews(getAppWidgetInfo().provider.getPackageName(), 0));
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        mColorExtractor.setListener(this);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mColorExtractor.setListener(null);
     }
 
     @Override

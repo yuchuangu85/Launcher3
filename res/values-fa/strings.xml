@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"برای تمام کردن راه‌اندازی تک‌ضرب بزنید"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"این برنامه سیستمی است و حذف نصب نمی‌شود."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"ویرایش نام"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"صفحه‌بندی به‌چپ"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"صفحه‌بندی به‌راست"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> غیرفعال شد"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ‏# اعلان دارد}one{{app_name} ‏# اعلان دارد}other{{app_name} ‏# اعلان دارد}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"‏صفحه %1$d از %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"مجاز کردن چرخش صفحه اصلی"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"وقتی تلفن چرخانده می‌شود"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"حالت افقی"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"تنظیم تلفن روی حالت افقی"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"تنظیم صفحه اصلی روی حالت افقی"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"نقطه‌های اعلان"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"روشن"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"خاموش"</string>
@@ -191,8 +193,8 @@
     <string name="accessibility_close" msgid="2277148124685870734">"بستن"</string>
     <string name="all_apps_personal_tab" msgid="4190252696685155002">"شخصی"</string>
     <string name="all_apps_work_tab" msgid="4884822796154055118">"کاری"</string>
-    <string name="all_apps_personal_tab_content_description" msgid="6286808898381807242">"برگه برنامه‌های شخصی"</string>
-    <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"برگه برنامه‌های کاری"</string>
+    <string name="all_apps_personal_tab_content_description" msgid="6286808898381807242">"زبانه برنامه‌های شخصی"</string>
+    <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"زبانه برنامه‌های کاری"</string>
     <string name="work_profile_toggle_label" msgid="3081029915775481146">"نمایه کاری"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"برنامه‌های کاری نشان‌دار هستند و سرپرست فناوری اطلاعات می‌تواند آن‌ها را ببیند"</string>
     <string name="work_profile_edu_accept" msgid="6069788082535149071">"متوجهم"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"قفل کردن"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"انتقال «فضای خصوصی»"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"نصب"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"افزودن"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"نصب برنامه‌ها در «فضای خصوصی»"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"افزودن فایل‌ها و موارد دیگر به «فضای خصوصی»"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"دایره"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"مربع"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"کلوچه ۴ ضلعی"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"کلوچه ۷ ضلعی"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"طاق"</string>
 </resources>

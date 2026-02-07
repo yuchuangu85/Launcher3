@@ -41,10 +41,20 @@ import java.util.stream.Collectors;
  */
 public final class Taskbar {
 
-    private final LauncherInstrumentation mLauncher;
+    /** The TaskbarLocation */
+    enum TaskbarLocation {
+        /** Launched application. */
+        LAUNCHED_APP,
+        /** Overview screen with recent apps. */
+        OVERVIEW,
+    }
 
-    Taskbar(LauncherInstrumentation launcher) {
+    private final LauncherInstrumentation mLauncher;
+    private final TaskbarLocation mTaskbarLocation;
+
+    Taskbar(LauncherInstrumentation launcher, TaskbarLocation taskbarLocation) {
         mLauncher = launcher;
+        mTaskbarLocation = taskbarLocation;
         try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                 "expect new taskbar to be visible")) {
             mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID);
@@ -65,7 +75,7 @@ public final class Taskbar {
                 "want to get a taskbar icon")) {
             return new TaskbarAppIcon(mLauncher, mLauncher.waitForObjectInContainer(
                     mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID),
-                    AppIcon.getAppIconSelector(appName, mLauncher)));
+                    AppIcon.getAppIconSelector(appName, mLauncher)), mTaskbarLocation);
         }
     }
 
@@ -147,7 +157,7 @@ public final class Taskbar {
     public TaskbarAllApps getAllApps() {
         try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                 "want to get taskbar all apps object")) {
-            return new TaskbarAllApps(mLauncher);
+            return new TaskbarAllApps(mLauncher, mTaskbarLocation);
         }
     }
 

@@ -33,17 +33,21 @@ import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.launcher3.helper.NavigateDownTabEvent
-import com.android.launcher3.imagecomparison.ComposableBasedImageTest
+import com.google.android.apps.nexuslauncher.imagecomparison.goldenpathmanager.ViewScreenshotGoldenPathManager
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import platform.test.runner.parameterized.ParameterizedAndroidJunit4
 import platform.test.runner.parameterized.Parameters
 import platform.test.screenshot.DeviceEmulationSpec
 import platform.test.screenshot.Displays
+import platform.test.screenshot.getEmulatedDevicePathConfig
+import platform.test.screenshot.utils.compose.ComposeScreenshotTestRule
 
 @RunWith(ParameterizedAndroidJunit4::class)
-class AppChipScreenshotTest(emulationSpec: DeviceEmulationSpec) :
-    ComposableBasedImageTest(emulationSpec) {
+class AppChipScreenshotTest(emulationSpec: DeviceEmulationSpec) {
+
+    @get:Rule val screenshotRule = composeScreenshotTestRule(emulationSpec)
 
     @Composable
     private fun AppChipForTest(expanded: Boolean, onClick: () -> Unit = {}) {
@@ -70,15 +74,16 @@ class AppChipScreenshotTest(emulationSpec: DeviceEmulationSpec) :
 
     @Test
     fun collapsed() =
-        screenshotRule.screenshotTest("collapsed") { AppChipForTest(expanded = false) }
+        screenshotRule.screenshotTest("appchip_collapsed") { AppChipForTest(expanded = false) }
 
     @Test
-    fun expanded() = screenshotRule.screenshotTest("expanded") { AppChipForTest(expanded = true) }
+    fun expanded() =
+        screenshotRule.screenshotTest("appchip_expanded") { AppChipForTest(expanded = true) }
 
     @Test
     fun focusableState() {
         screenshotRule.screenshotTest(
-            "focusable",
+            "appchip_focusable",
             beforeScreenshot = {
                 val composeTestRule = screenshotRule.composeRule
                 composeTestRule.onNodeWithTag("appChip").assertIsNotFocused()
@@ -124,4 +129,20 @@ class AppChipScreenshotTest(emulationSpec: DeviceEmulationSpec) :
             return DeviceEmulationSpec.forDisplays(Displays.Phone, isLandscape = false)
         }
     }
+}
+
+/**
+ * Create a [ComposeScreenshotTestRule] for screenshot tests of Compose-based UI. If
+ * [enforcePerfectPixelMatch] is true, enables a strict pixel-by-pixel comparison to detect any
+ * visual differences between images.
+ */
+fun composeScreenshotTestRule(
+    emulationSpec: DeviceEmulationSpec,
+    enforcePerfectPixelMatch: Boolean = false,
+): ComposeScreenshotTestRule {
+    return ComposeScreenshotTestRule(
+        emulationSpec = emulationSpec,
+        pathManager = ViewScreenshotGoldenPathManager(getEmulatedDevicePathConfig(emulationSpec)),
+        enforcePerfectPixelMatch = enforcePerfectPixelMatch,
+    )
 }

@@ -52,7 +52,6 @@ import com.android.quickstep.BaseContainerInterface;
 import com.android.quickstep.DeviceConfigWrapper;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.TopTaskTracker;
-import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.RecentsViewContainer;
 
@@ -83,7 +82,6 @@ public class ContextualSearchInvokerTest {
     private @Mock BaseContainerInterface mMockContainerInterface;
     private @Mock RecentsViewContainer mMockRecentsViewContainer;
     private @Mock RecentsView mMockRecentsView;
-    private @Mock RecentsPagedOrientationHandler mMockOrientationHandler;
     private ContextualSearchInvoker mContextualSearchInvoker;
 
     @Before
@@ -189,15 +187,6 @@ public class ContextualSearchInvokerTest {
 
         // Attempt is logged regardless.
         verify(mMockStatsLogger).log(LAUNCHER_LAUNCH_OMNI_ATTEMPTED_SPLITSCREEN);
-    }
-
-    @Test
-    public void runContextualSearchInvocationChecksAndLogFailures_isFakeLandscape() {
-        when(mMockRecentsView.getPagedOrientationHandler()).thenReturn(mMockOrientationHandler);
-        when(mMockOrientationHandler.isLayoutNaturalToLauncher()).thenReturn(false);
-        assertFalse("Expect invocation checks to fail in fake landscape.",
-                mContextualSearchInvoker.runContextualSearchInvocationChecksAndLogFailures());
-        verifyNoMoreInteractions(mMockStatsLogManager);
     }
 
     @Test

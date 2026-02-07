@@ -16,17 +16,23 @@
 
 package com.android.launcher3.util;
 
+import static com.android.launcher3.Utilities.ATLEAST_R;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_INSTALL_SESSION_ACTIVE;
 
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Rect;
+import android.net.Uri;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.UserHandle;
@@ -39,6 +45,7 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.PendingAddItemInfo;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
@@ -48,6 +55,7 @@ import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 
@@ -86,7 +94,11 @@ public class PackageManagerHelper {
      */
     public String getAppInstallerPackage(@NonNull final String packageName) {
         try {
-            return mPm.getInstallSourceInfo(packageName).getInstallingPackageName();
+            if (ATLEAST_R) {
+                return mPm.getInstallSourceInfo(packageName).getInstallingPackageName();
+            } else {
+                return null;
+            }
         } catch (NameNotFoundException e) {
             Log.e(TAG, "Failed to get installer package for app package:" + packageName, e);
             return null;
@@ -110,6 +122,34 @@ public class PackageManagerHelper {
             @NonNull final UserHandle user) {
         List<LauncherActivityInfo> activities = mLauncherApps.getActivityList(pkg, user);
         return activities.isEmpty() ? null : activities.get(0);
+    }
+
+    /**
+     * Creates a new market search intent.
+     */
+    public static Intent getMarketSearchIntent(Context context, String query) {
+        try {
+            Intent intent = Intent.parseUri(context.getString(R.string.market_search_intent), 0);
+            if (!TextUtils.isEmpty(query)) {
+                intent.setData(
+                    intent.getData().buildUpon().appendQueryParameter("q", query).build());
+            }
+            return intent;
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Lawnchair
+    public static Intent getStyleWallpapersIntent(Context context) {
+        return getStyleWallpapersAltIntent(context);
+    }
+
+    // Lawnchair
+    public static Intent getStyleWallpapersAltIntent(Context context) {
+        return new Intent(Intent.ACTION_SET_WALLPAPER).setComponent(
+            new ComponentName(context.getString(R.string.wallpaper_picker_package_alt),
+                "com.android.customization.picker.CustomizationPickerActivity"));
     }
 
     /**
@@ -182,7 +222,11 @@ public class PackageManagerHelper {
 
     /** Returns the incremental download progress for the given shortcut's app. */
     public static int getLoadingProgress(LauncherActivityInfo info) {
-        return (int) (100 * info.getLoadingProgress());
+        if (Utilities.ATLEAST_S) {
+            return (int) (100 * info.getLoadingProgress());
+        } else {
+            return 100;
+        }
     }
 
     /**

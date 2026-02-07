@@ -18,6 +18,7 @@ package com.android.quickstep
 
 import android.content.Context
 import android.util.Log
+import com.android.app.displaylib.DisplayDecorationListener
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.DaggerSingletonObject
@@ -36,14 +37,6 @@ class SystemDecorationChangeObserver @Inject constructor(@ApplicationContext con
             DaggerSingletonObject<SystemDecorationChangeObserver>(
                 QuickstepBaseAppComponent::getSystemDecorationChangeObserver
             )
-    }
-
-    interface DisplayDecorationListener {
-        fun onDisplayAddSystemDecorations(displayId: Int)
-
-        fun onDisplayRemoved(displayId: Int)
-
-        fun onDisplayRemoveSystemDecorations(displayId: Int)
     }
 
     fun notifyAddSystemDecorations(displayId: Int) {

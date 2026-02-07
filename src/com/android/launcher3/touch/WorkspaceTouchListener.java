@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modifications copyright 2025, Lawnchair
  */
 package com.android.launcher3.touch;
 
@@ -21,13 +23,16 @@ import static android.view.MotionEvent.ACTION_MOVE;
 import static android.view.MotionEvent.ACTION_POINTER_UP;
 import static android.view.MotionEvent.ACTION_UP;
 
-import static com.android.launcher3.Flags.enableMouseInteractionChanges;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
+import static com.android.launcher3.Utilities.shouldEnableMouseInteractionChanges;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_CLOSE_TAP_OUTSIDE;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORKSPACE_LONGPRESS;
 
+import android.content.Intent;
+import android.app.admin.DevicePolicyManager;
+import android.content.Context;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.view.GestureDetector;
@@ -48,6 +53,8 @@ import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.util.TouchUtil;
+
+import app.lawnchair.LawnchairLauncher;
 
 /**
  * Helper class to handle touch on empty space in workspace and show options popup on long press
@@ -76,6 +83,8 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
     private final GestureDetector mGestureDetector;
 
+    DevicePolicyManager mDpm;
+
     public WorkspaceTouchListener(Launcher launcher, Workspace<?> workspace) {
         mLauncher = launcher;
         mWorkspace = workspace;
@@ -83,6 +92,7 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
         // likely to cause movement.
         mTouchSlop = 2 * ViewConfiguration.get(launcher).getScaledTouchSlop();
         mGestureDetector = new GestureDetector(workspace.getContext(), this);
+        mDpm = (DevicePolicyManager) workspace.getContext().getSystemService(Context.DEVICE_POLICY_SERVICE);
     }
 
     @Override
@@ -112,6 +122,15 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
                 // Mouse right button's ACTION_DOWN should immediately show menu
                 if (TouchUtil.isMouseRightClickDownOrMove(ev)) {
                     maybeShowMenu();
+                    return true;
+                }
+
+                // When home is shown behind tasks, then a touch on the workspace should go home.
+                if (mLauncher.shouldShowHomeBehindDesktop() && !mLauncher.isTopResumedActivity()) {
+                    Intent intent = new Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_HOME)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    mLauncher.startActivity(intent);
                     return true;
                 }
             }
@@ -149,8 +168,8 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
             result = true;
         } else {
             // We don't want to handle touch unless we're in AllApps bottom sheet, let workspace
-            // handle it as usual.
-            result = isInAllAppsBottomSheet;
+            // handle it as usual. Also, let workspace handle cancel/up events to settle correctly.
+            result = isInAllAppsBottomSheet && action != ACTION_CANCEL && action != ACTION_UP;
         }
 
         if (action == ACTION_UP || action == ACTION_POINTER_UP) {
@@ -194,7 +213,8 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
     @Override
     public void onLongPress(MotionEvent event) {
-        if (event.getSource() == InputDevice.SOURCE_MOUSE && enableMouseInteractionChanges()) {
+        if (event.getSource() == InputDevice.SOURCE_MOUSE && shouldEnableMouseInteractionChanges(
+                mWorkspace.getContext())) {
             // Stop mouse long press events from showing the menu.
             return;
         }
@@ -219,5 +239,13 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
                 cancelLongPress();
             }
         }
+    }
+
+    @Override
+    public boolean onDoubleTap(MotionEvent event) {
+        Context context = mWorkspace.getContext();
+        LawnchairLauncher launcher = Launcher.fromContext(context);
+        launcher.getGestureController().onDoubleTap();
+        return true;
     }
 }

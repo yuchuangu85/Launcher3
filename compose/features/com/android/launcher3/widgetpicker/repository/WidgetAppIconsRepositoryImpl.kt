@@ -16,7 +16,6 @@
 
 package com.android.launcher3.widgetpicker.repository
 
-import com.android.launcher3.icons.BitmapInfo
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.icons.cache.CacheLookupFlag
 import com.android.launcher3.model.data.PackageItemInfo
@@ -60,11 +59,7 @@ class WidgetAppIconsRepositoryImpl @Inject constructor(
                 } else {
                     trySend(
                         WidgetAppIcon(
-                            icon = AppIcon.HighResBitmapIcon(
-                                bitmap = itemInfoWithIcon.bitmap.icon,
-                                isFullBleed = itemInfoWithIcon.bitmap.flags and
-                                        BitmapInfo.FLAG_FULL_BLEED == BitmapInfo.FLAG_FULL_BLEED
-                            ),
+                            icon = AppIcon.HighResBitmapIcon(itemInfoWithIcon.bitmap.icon),
                             badge = itemInfoWithIcon.bitmap.getBadgeDrawableInfo()?.let {
                                 AppIconBadge.DrawableBadge(
                                     it.drawableRes,

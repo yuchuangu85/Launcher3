@@ -16,6 +16,8 @@
 
 package com.android.quickstep;
 
+import static com.android.quickstep.fallback.window.RecentsWindowFlags.enableOverviewOnConnectedDisplays;
+
 import androidx.annotation.Nullable;
 
 import com.android.quickstep.util.DesksUtils;
@@ -120,14 +122,17 @@ public class RecentsFilterState {
      * @param packageName package name to filter GroupTasks by
      *                    if null, Predicate filters out desktop tasks with no non-minimized tasks,
      *                    unless the multiple desks feature is enabled, which allows empty desks.
+     * @param displayId filter out tasks not on this display
      */
-    public static Predicate<GroupTask> getFilter(@Nullable String packageName) {
-        if (packageName == null) {
-            return getDesktopTaskFilter();
+    public static Predicate<GroupTask> getFilter(@Nullable String packageName, int displayId) {
+        Predicate<GroupTask> filter = getDesktopTaskFilter();
+        if (packageName != null) {
+            filter = filter.and(groupTask -> groupTask.containsPackage(packageName));
         }
-
-        return (groupTask) -> (groupTask.containsPackage(packageName)
-                && shouldKeepGroupTask(groupTask));
+        if (enableOverviewOnConnectedDisplays()) {
+            filter = filter.and(groupTask -> groupTask.matchesDisplayId(displayId));
+        }
+        return filter;
     }
 
     /**
@@ -135,7 +140,7 @@ public class RecentsFilterState {
      * unless the multiple desks feature is enabled, which allows empty desks.
      */
     public static Predicate<GroupTask> getDesktopTaskFilter() {
-        return (groupTask -> shouldKeepGroupTask(groupTask));
+        return RecentsFilterState::shouldKeepGroupTask;
     }
 
     /**

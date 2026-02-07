@@ -59,4 +59,9 @@ public class UnfoldMoveFromCenterHotseatAnimator extends BaseUnfoldMoveFromCente
         restoreClippings();
         super.onTransitionFinished();
     }
+
+    @Override
+    public void onTransitionFinishing() {
+
+    }
 }

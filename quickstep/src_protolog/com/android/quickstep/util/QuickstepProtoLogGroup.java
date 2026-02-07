@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 import com.android.internal.protolog.ProtoLog;
 import com.android.internal.protolog.common.IProtoLogGroup;
 
+import com.android.launcher3.Utilities;
 import java.util.UUID;
 
 /** Enums used to interface with the ProtoLog API. */
@@ -30,7 +31,9 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
 
     ACTIVE_GESTURE_LOG(true, true, Constants.DEBUG_ACTIVE_GESTURE, "ActiveGestureLog"),
     RECENTS_WINDOW(true, true, Constants.DEBUG_RECENTS_WINDOW, "RecentsWindow"),
-    LAUNCHER_STATE_MANAGER(true, true, Constants.DEBUG_STATE_MANAGER, "LauncherStateManager");
+    LAUNCHER_STATE_MANAGER(true, true, Constants.DEBUG_STATE_MANAGER, "LauncherStateManager"),
+    OVERVIEW_COMMAND_HELPER(true, true, Constants.DEBUG_OVERVIEW_COMMAND_HELPER,
+            "OverviewCommandHelper");
 
     private final boolean mEnabled;
     private volatile boolean mLogToProto;
@@ -38,6 +41,12 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
     private final @NonNull String mTag;
 
     public static boolean isProtoLogInitialized() {
+        // LC-Note: This is workaround for skipping Android 11 Release 41. 
+        //          Not the best solutions but this is not significant enough to Lawnchair.
+        // 
+        // Originally was !Utilities.ATLEAST_R
+        if (!Utilities.ATLEAST_S) return false;
+
         if (!Variables.sIsInitialized) {
             Log.w(Constants.TAG,
                     "Attempting to log to ProtoLog before initializing it.",
@@ -125,6 +134,7 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
         private static final boolean DEBUG_ACTIVE_GESTURE = false;
         private static final boolean DEBUG_RECENTS_WINDOW = false;
         private static final boolean DEBUG_STATE_MANAGER = true; // b/279059025, b/325463989
+        private static final boolean DEBUG_OVERVIEW_COMMAND_HELPER = true;
 
         private static final int LOG_START_ID =
                 (int) (UUID.nameUUIDFromBytes(QuickstepProtoLogGroup.class.getName().getBytes())

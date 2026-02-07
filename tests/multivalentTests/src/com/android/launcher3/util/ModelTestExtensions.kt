@@ -3,6 +3,7 @@ package com.android.launcher3.util
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.os.Process
+import android.util.SparseArray
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.launcher3.Flags
 import com.android.launcher3.LauncherModel
@@ -13,6 +14,7 @@ import com.android.launcher3.LauncherSettings.Favorites.CELLX
 import com.android.launcher3.LauncherSettings.Favorites.CELLY
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
+import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT
 import com.android.launcher3.LauncherSettings.Favorites.INTENT
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
@@ -25,6 +27,8 @@ import com.android.launcher3.LauncherSettings.Favorites.TITLE
 import com.android.launcher3.LauncherSettings.Favorites._ID
 import com.android.launcher3.model.BgDataModel
 import com.android.launcher3.model.ModelDbController
+import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.util.Executors.MODEL_EXECUTOR
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -105,6 +109,19 @@ object ModelTestExtensions {
         }
     }
 
+    @JvmStatic
+    val LauncherModel.bgDataModel: BgDataModel
+        get() {
+            var data: BgDataModel? = null
+            enqueueModelUpdateTask { _, dataModel, _ -> data = dataModel }
+            TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {}
+            return data!!
+        }
+
+    /** Total number of items belonging to a non-predicted container */
+    @JvmStatic
+    fun Iterable<ItemInfo>.nonPredictedItemCount() = count { it.container >= CONTAINER_HOTSEAT }
+
     /** Creates an in-memory sqlite DB and initializes with the data in [insertFile] */
     fun createInMemoryDb(insertFile: String): SQLiteDatabase =
         SQLiteDatabase.createInMemory(SQLiteDatabase.OpenParams.Builder().build()).also { db ->
@@ -116,4 +133,9 @@ object ModelTestExtensions {
                 .lines()
                 .forEach { sqlStatement -> db.execSQL(sqlStatement) }
         }
+
+    /** Initializes [BgDataModel.itemsIdMap] with provided [items] */
+    fun BgDataModel.initItems(vararg items: ItemInfo) {
+        dataLoadComplete(SparseArray<ItemInfo>().apply { items.forEach { this[it.id] = it } })
+    }
 }

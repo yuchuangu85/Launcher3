@@ -20,34 +20,18 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.view.Display
 import android.view.Display.DEFAULT_DISPLAY
 import androidx.test.core.app.ApplicationProvider
-import com.android.launcher3.LauncherPrefs
-import com.android.launcher3.dagger.ApplicationContext
-import com.android.launcher3.dagger.LauncherAppComponent
-import com.android.launcher3.dagger.LauncherAppSingleton
-import com.android.launcher3.statehandlers.DesktopVisibilityController
-import com.android.launcher3.util.AllModulesMinusWMProxy
-import com.android.launcher3.util.DaggerSingletonTracker
-import com.android.launcher3.util.DisplayController
-import com.android.launcher3.util.FakePrefsModule
 import com.android.launcher3.util.SandboxApplication
-import com.android.launcher3.util.SettingsCache
 import com.android.launcher3.util.SettingsCacheSandbox
-import com.android.launcher3.util.window.WindowManagerProxy
 import com.android.quickstep.SystemUiProxy
-import dagger.Binds
-import dagger.BindsInstance
-import dagger.Component
-import dagger.Module
-import dagger.Provides
-import javax.inject.Inject
 import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
-import org.mockito.kotlin.spy
+import org.mockito.kotlin.whenever
 
 /**
  * [SandboxApplication] for running Taskbar tests.
@@ -69,6 +53,20 @@ private constructor(
             override fun after() = virtualDisplay.release()
         }
 
+    // Filter out DEFAULT_DISPLAY in case code accesses displays property. The primary virtual
+    // display has a different ID.
+    private val sandboxDisplayManagerRule =
+        object : ExternalResource() {
+            override fun before() {
+                val dm = base.spyService(DisplayManager::class.java)
+                whenever(dm.displays).thenAnswer { i ->
+                    @Suppress("UNCHECKED_CAST")
+                    val displays = i.callRealMethod() as? Array<Display> ?: emptyArray<Display>()
+                    displays.filter { it.displayId != DEFAULT_DISPLAY }.toTypedArray()
+                }
+            }
+        }
+
     private val singletonSetupRule =
         object : ExternalResource() {
             override fun before() {
@@ -84,6 +82,7 @@ private constructor(
     override fun apply(statement: Statement, description: Description): Statement {
         return RuleChain.outerRule(virtualDisplayRule)
             .around(base)
+            .around(sandboxDisplayManagerRule)
             .around(singletonSetupRule)
             .apply(statement, description)
     }
@@ -109,69 +108,11 @@ private constructor(
                 }
 
             return TaskbarWindowSandboxContext(
-                SandboxApplication(base.createDisplayContext(virtualDisplay.display)),
+                SandboxApplication(base = base.createDisplayContext(virtualDisplay.display)),
                 virtualDisplay,
                 params,
             )
         }
-    }
-}
-
-/** A wrapper over display controller which allows modifying the underlying info */
-@LauncherAppSingleton
-class DisplayControllerSpy
-@Inject
-constructor(
-    @ApplicationContext context: Context,
-    wmProxy: WindowManagerProxy,
-    prefs: LauncherPrefs,
-    lifecycle: DaggerSingletonTracker,
-) : DisplayController(context, wmProxy, prefs, lifecycle) {
-
-    var infoModifier: ((Info) -> Info)? = null
-
-    override fun getInfo(): Info = infoModifier?.invoke(super.getInfo()) ?: super.getInfo()
-}
-
-@Module
-abstract class DisplayControllerModule {
-    @Binds abstract fun bindDisplayController(controller: DisplayControllerSpy): DisplayController
-}
-
-@Module
-object DesktopVisibilityControllerModule {
-    @JvmStatic
-    @Provides
-    @LauncherAppSingleton
-    fun provideDesktopVisibilityController(
-        @ApplicationContext context: Context,
-        systemUiProxy: SystemUiProxy,
-        lifecycleTracker: DaggerSingletonTracker,
-    ): DesktopVisibilityController {
-        return spy(DesktopVisibilityController(context, systemUiProxy, lifecycleTracker))
-    }
-}
-
-@LauncherAppSingleton
-@Component(
-    modules =
-        [
-            AllModulesMinusWMProxy::class,
-            FakePrefsModule::class,
-            DisplayControllerModule::class,
-            TaskbarSandboxModule::class,
-            DesktopVisibilityControllerModule::class,
-        ]
-)
-interface TaskbarSandboxComponent : LauncherAppComponent {
-
-    @Component.Builder
-    interface Builder : LauncherAppComponent.Builder {
-        @BindsInstance fun bindSystemUiProxy(proxy: SystemUiProxy): Builder
-
-        @BindsInstance fun bindSettingsCache(settingsCache: SettingsCache): Builder
-
-        override fun build(): TaskbarSandboxComponent
     }
 }
 

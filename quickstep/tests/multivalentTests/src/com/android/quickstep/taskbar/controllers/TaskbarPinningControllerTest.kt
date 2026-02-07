@@ -76,6 +76,19 @@ class TaskbarPinningControllerTest : TaskbarBaseTestCase() {
                 )
             )
             .thenAnswer { _ -> isInDesktopMode }
+        whenever(
+                taskbarControllers.taskbarDesktopModeController.isInDesktopMode(
+                    taskbarActivityContext.displayId
+                )
+            )
+            .thenAnswer { _ -> isInDesktopMode }
+        whenever(
+                taskbarControllers.taskbarDesktopModeController.shouldShowDesktopTasksInTaskbar(
+                    taskbarActivityContext.displayId
+                )
+            )
+            .thenAnswer { _ -> isInDesktopMode }
+
         pinningController = spy(TaskbarPinningController(taskbarActivityContext))
         pinningController.init(taskbarControllers, taskbarSharedState)
     }
@@ -115,6 +128,14 @@ class TaskbarPinningControllerTest : TaskbarBaseTestCase() {
 
         verify(taskbarSharedState, times(1)).taskbarWasPinned = false
         verify(pinningController, times(1)).animateTaskbarPinning(PINNING_PERSISTENT)
+    }
+
+    @Test
+    fun testOnCloseCallback_whenLauncherPreferenceChanged_shouldNotAnimateToTaskbarInDesktopMode() {
+        isInDesktopMode = true
+        whenever(launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)).thenReturn(false)
+        pinningController.onCloseCallback(true)
+        verify(pinningController, never()).animateTaskbarPinning(any())
     }
 
     @Test
@@ -210,14 +231,5 @@ class TaskbarPinningControllerTest : TaskbarBaseTestCase() {
         verify(taskbarDragLayer, times(1)).setAnimatingTaskbarPinning(false)
         assertThat(pinningController.isAnimatingTaskbarPinning).isFalse()
         verify(launcherPrefs, times(1)).put(TASKBAR_PINNING, true)
-    }
-
-    @Test
-    fun testRecreateTaskbarAndUpdatePinningValue_whenAnimationEnds_shouldUpdateTaskbarPinningDesktopModePref() {
-        isInDesktopMode = true
-        pinningController.recreateTaskbarAndUpdatePinningValue()
-        verify(taskbarDragLayer, times(1)).setAnimatingTaskbarPinning(false)
-        assertThat(pinningController.isAnimatingTaskbarPinning).isFalse()
-        verify(launcherPrefs, times(1)).put(TASKBAR_PINNING_IN_DESKTOP_MODE, true)
     }
 }

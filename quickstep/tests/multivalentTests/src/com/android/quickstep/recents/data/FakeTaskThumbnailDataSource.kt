@@ -20,7 +20,7 @@ import android.graphics.Bitmap
 import com.android.quickstep.task.thumbnail.data.TaskThumbnailDataSource
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.delay
 import org.mockito.kotlin.mock
 
 class FakeTaskThumbnailDataSource : TaskThumbnailDataSource {
@@ -37,7 +37,8 @@ class FakeTaskThumbnailDataSource : TaskThumbnailDataSource {
         getThumbnailCalls[task.key.id] = (getThumbnailCalls[task.key.id] ?: 0) + 1
 
         while (task.key.id in completionPrevented) {
-            yield()
+            // yield doesn't work here with an UnconfinedTestDispatcher
+            delay(1L)
         }
         return ThumbnailData(
             thumbnail = taskIdToBitmap[task.key.id],
@@ -53,5 +54,9 @@ class FakeTaskThumbnailDataSource : TaskThumbnailDataSource {
 
     fun completeLoadingForTask(taskId: Int) {
         completionPrevented.remove(taskId)
+    }
+
+    fun completeLoading() {
+        completionPrevented.clear()
     }
 }

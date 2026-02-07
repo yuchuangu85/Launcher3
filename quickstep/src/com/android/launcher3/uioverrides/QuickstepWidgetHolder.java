@@ -15,11 +15,12 @@
  */
 package com.android.launcher3.uioverrides;
 
-import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
 import static com.android.launcher3.uioverrides.QuickstepAppWidgetHostProvider.getStaticQuickstepHost;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.ListenableAppWidgetHost.getWidgetHolderExecutor;
 
+import android.appwidget.AppWidgetEvent;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetProviderInfo;
@@ -44,6 +45,8 @@ import dagger.assisted.AssistedInject;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
 /**
@@ -57,6 +60,10 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
             AppWidgetHostView::updateAppWidget;
     private static final UpdateKey<Integer> KEY_VIEW_DATA_CHANGED =
             AppWidgetHostView::onViewDataChanged;
+    private static final UpdateKey<AppWidgetEvent.Builder> KEY_COLLECT_WIDGET_EVENT =
+            (view, event) -> {
+                event.merge(view.collectWidgetEvent());
+            };
 
     private static final SparseArray<QuickstepWidgetHolderListener> sListeners =
             new SparseArray<>();
@@ -264,6 +271,25 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
         @AnyThread
         public void onViewDataChanged(int viewId) {
             executeOnMainExecutor(KEY_VIEW_DATA_CHANGED, viewId);
+        }
+
+        @Nullable
+        @Override
+        public AppWidgetEvent collectWidgetEvent() {
+            if (!android.appwidget.flags.Flags.engagementMetrics()) return null;
+
+            CompletableFuture<AppWidgetEvent> future = new CompletableFuture<>();
+            MAIN_EXECUTOR.execute(() -> {
+                AppWidgetEvent.Builder event = new AppWidgetEvent.Builder();
+                mListeningHolders.forEach(holder ->
+                        holder.onWidgetUpdate(mWidgetId, KEY_COLLECT_WIDGET_EVENT, event));
+                future.complete(event.isEmpty() ? null : event.build());
+            });
+            try {
+                return future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                return null;
+            }
         }
 
         private <T> void executeOnMainExecutor(UpdateKey<T> key, T data) {

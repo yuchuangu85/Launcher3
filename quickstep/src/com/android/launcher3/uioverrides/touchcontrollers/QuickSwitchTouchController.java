@@ -161,6 +161,6 @@ public class QuickSwitchTouchController extends AbstractStateChangeTouchControll
 
     @Override
     protected float getShiftRange() {
-        return mLauncher.getDeviceProfile().widthPx / 2f;
+        return mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() / 2f;
     }
 }

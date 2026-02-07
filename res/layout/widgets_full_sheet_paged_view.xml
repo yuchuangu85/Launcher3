@@ -53,6 +53,7 @@
 
         <TextView
             android:id="@+id/title"
+            style="@style/WidgetsTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
@@ -96,7 +97,6 @@
             android:orientation="horizontal"
             android:paddingBottom="8dp"
             android:paddingHorizontal="@dimen/widget_list_horizontal_margin"
-            android:background="?attr/widgetPickerPrimarySurfaceColor"
             style="@style/TextHeadline"
             launcher:layout_sticky="true">
 

@@ -272,6 +272,8 @@
 
     <!-- Default folder title -->
     <string name="folder_hint_text">Edit Name</string>
+    <string name="paginate_left">Paginate left</string>
+    <string name="paginate_right">Paginate right</string>
 
     <!-- Accessibility -->
     <!-- The format string for when an app is temporarily disabled. -->
@@ -321,7 +323,7 @@
     <!-- Text for wallpaper change button [CHAR LIMIT=30]-->
     <string name="styles_wallpaper_button_text">Wallpaper &amp; style</string>
     <!-- Text for edit home screen button [CHAR LIMIT=30]-->
-    <string name="edit_home_screen">Edit Home Screen</string>
+    <string name="edit_home_screen">Edit home screen</string>
     <!-- Text for settings button [CHAR LIMIT=20]-->
     <string name="settings_button_text">Home settings</string>
     <!-- Message shown when a feature is disabled by the administrator -->
@@ -335,8 +337,9 @@
 
     <!-- Title for Landscape Mode setting. [CHAR LIMIT=50] -->
     <string name="landscape_mode_title">Landscape mode</string>
+
     <!--  [CHAR LIMIT=100] -->
-    <string name="landscape_mode_desc">Set phone into landscape mode</string>
+    <string name="landscape_mode_desc">Set home screen into landscape mode</string>
 
     <!-- Title for Notification dots setting. Tapping this will link to the system Notifications settings screen where the user can turn off notification dots globally. [CHAR LIMIT=50] -->
     <string name="notification_dots_title">Notification dots</string>
@@ -546,7 +549,21 @@
     <string name="ps_container_transition">Private Space Transitioning</string>
     <!-- Title for Private Space install app icon -->
     <string name="ps_add_button_label">Install</string>
+    <!-- Title for Private Space app icon to add files and more to Private Space -->
+    <string name="ps_app_label_override">Add</string>
     <!-- Content description for install app icon -->
     <string name="ps_add_button_content_description">Install apps to Private Space</string>
     <string name="ps_app_content_description">Add files and more to Private Space</string>
+
+    <!-- Strings for icon shapes -->
+    <!-- label for circle shape option in customization picker -->
+    <string name="circle_shape_title">Circle</string>
+    <!-- label for square shape option in customization picker -->
+    <string name="square_shape_title">Square</string>
+    <!-- label for 4-sided cookie option shape in customization picker -->
+    <string name="four_sided_cookie_shape_title">4-sided cookie</string>
+    <!-- label for 7-sided cookie option shape in customization picker -->
+    <string name="seven_sided_cookie_shape_title">7-sided cookie</string>
+    <!-- label for arch shape option in customization picker -->
+    <string name="arch_shape_title">Arch</string>
 </resources>

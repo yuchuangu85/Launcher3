@@ -22,6 +22,8 @@ import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY2;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY3;
 import static com.android.launcher3.util.LauncherModelHelper.TEST_PACKAGE;
+import static com.android.launcher3.util.ModelTestExtensions.getBgDataModel;
+import static com.android.launcher3.util.ModelTestExtensions.nonPredictedItemCount;
 import static com.android.launcher3.util.TestUtil.runOnExecutorSync;
 
 import static org.junit.Assert.assertEquals;
@@ -29,7 +31,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import android.content.Context;
 import android.content.pm.PackageInstaller;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -37,16 +38,19 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
 import com.android.launcher3.LauncherAppState;
+import com.android.launcher3.LauncherModel;
 import com.android.launcher3.icons.BitmapInfo;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.LauncherLayoutBuilder;
-import com.android.launcher3.util.LauncherModelHelper;
+import com.android.launcher3.util.ModelTestExtensions;
 import com.android.launcher3.util.PackageUserKey;
+import com.android.launcher3.util.SandboxApplication;
+import com.android.launcher3.util.rule.InstallerSessionRule;
+import com.android.launcher3.util.rule.LayoutProviderRule;
 import com.android.launcher3.util.rule.TestStabilityRule;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -65,21 +69,19 @@ import java.util.List;
 public class CacheDataUpdatedTaskTest {
 
     @Rule public TestRule testStabilityRule = new TestStabilityRule();
+    @Rule public SandboxApplication mContext = new SandboxApplication();
+    @Rule public LayoutProviderRule mLayoutProvider = new LayoutProviderRule(mContext);
+    @Rule public InstallerSessionRule mInstallerSessionRule = new InstallerSessionRule();
 
     private static final String PENDING_APP_1 = TEST_PACKAGE + ".pending1";
     private static final String PENDING_APP_2 = TEST_PACKAGE + ".pending2";
-
-    private LauncherModelHelper mModelHelper;
-    private Context mContext;
 
     private int mSession1;
 
     @Before
     public void setup() throws Exception {
-        mModelHelper = new LauncherModelHelper();
-        mContext = mModelHelper.sandboxContext;
-        mSession1 = mModelHelper.createInstallerSession(PENDING_APP_1);
-        mModelHelper.createInstallerSession(PENDING_APP_2);
+        mSession1 = mInstallerSessionRule.createInstallerSession(PENDING_APP_1);
+        mInstallerSessionRule.createInstallerSession(PENDING_APP_2);
 
         LauncherLayoutBuilder builder = new LauncherLayoutBuilder()
                 .atHotseat(1).putFolder("MyFolder")
@@ -97,14 +99,10 @@ public class CacheDataUpdatedTaskTest {
                 .addApp(PENDING_APP_2, TEST_ACTIVITY2)  // 9
                 .addApp(PENDING_APP_2, TEST_ACTIVITY3)  // 10
                 .build();
-        mModelHelper.setupDefaultLayoutProvider(builder);
-        mModelHelper.loadModelSync();
-        assertEquals(10, mModelHelper.getBgDataModel().itemsIdMap.size());
-    }
-
-    @After
-    public void tearDown() {
-        mModelHelper.destroy();
+        mLayoutProvider.setupDefaultLayoutProvider(builder);
+        ModelTestExtensions.INSTANCE.loadModelSync(getModel());
+        // Items on homescreen and folders:
+        assertEquals(10, nonPredictedItemCount(getBgDataModel(getModel()).itemsIdMap));
     }
 
     private CacheDataUpdatedTask newTask(int op, String... pkg) {
@@ -119,7 +117,7 @@ public class CacheDataUpdatedTaskTest {
             // Clear all icons from apps list so that its easy to check what was updated
             allItems().forEach(wi -> wi.bitmap = BitmapInfo.LOW_RES_INFO);
 
-            mModelHelper.getModel().enqueueModelUpdateTask(
+            getModel().enqueueModelUpdateTask(
                     newTask(CacheDataUpdatedTask.OP_CACHE_UPDATE, TEST_PACKAGE));
 
             // Verify that only the app icons of TEST_PACKAGE (id 2, 3, 4) are updated.
@@ -134,7 +132,7 @@ public class CacheDataUpdatedTaskTest {
             // Clear all icons from apps list so that its easy to check what was updated
             allItems().forEach(wi -> wi.bitmap = BitmapInfo.LOW_RES_INFO);
 
-            mModelHelper.getModel().enqueueModelUpdateTask(
+            getModel().enqueueModelUpdateTask(
                     newTask(CacheDataUpdatedTask.OP_SESSION_UPDATE, TEST_PACKAGE));
 
             // TEST_PACKAGE has no restored shortcuts. Verify that nothing was updated.
@@ -156,7 +154,7 @@ public class CacheDataUpdatedTaskTest {
             // Clear all icons from apps list so that its easy to check what was updated
             allItems().forEach(wi -> wi.bitmap = BitmapInfo.LOW_RES_INFO);
 
-            mModelHelper.getModel().enqueueModelUpdateTask(
+            getModel().enqueueModelUpdateTask(
                     newTask(CacheDataUpdatedTask.OP_SESSION_UPDATE, PENDING_APP_1));
 
             // Only restored apps from PENDING_APP_1 (id 5, 6, 7) are updated
@@ -176,6 +174,10 @@ public class CacheDataUpdatedTaskTest {
     }
 
     private List<WorkspaceItemInfo> allItems() {
-        return ((FolderInfo) mModelHelper.getBgDataModel().itemsIdMap.get(1)).getAppContents();
+        return ((FolderInfo) getBgDataModel(getModel()).itemsIdMap.get(1)).getAppContents();
+    }
+
+    private LauncherModel getModel() {
+        return LauncherAppState.getInstance(mContext).getModel();
     }
 }

@@ -26,6 +26,7 @@ import static com.android.launcher3.taskbar.TaskbarAutohideSuspendController.FLA
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.graphics.Rect;
+import android.text.TextUtils;
 import android.view.ContextThemeWrapper;
 import android.view.MotionEvent;
 import android.view.View;
@@ -50,7 +51,6 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
     private final TaskbarView mTaskbarView;
     private final View mHoverView;
     private final ArrowTipView mHoverToolTipView;
-    private final String mToolTipText;
     private final int mYOffset;
 
     public TaskbarHoverToolTipController(TaskbarActivityContext activity, TaskbarView taskbarView,
@@ -58,17 +58,6 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
         mActivity = activity;
         mTaskbarView = taskbarView;
         mHoverView = hoverView;
-
-        if (mHoverView instanceof BubbleTextView) {
-            mToolTipText = ((BubbleTextView) mHoverView).getText().toString();
-        } else if (mHoverView instanceof FolderIcon
-                && ((FolderIcon) mHoverView).mInfo.title != null) {
-            mToolTipText = ((FolderIcon) mHoverView).mInfo.title.toString();
-        } else if (mHoverView instanceof AppPairIcon) {
-            mToolTipText = ((AppPairIcon) mHoverView).getTitleTextView().getText().toString();
-        } else {
-            mToolTipText = null;
-        }
 
         ContextThemeWrapper arrowContextWrapper = new ContextThemeWrapper(mActivity,
                 R.style.ArrowTipTaskbarStyle);
@@ -111,9 +100,15 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
     }
 
     private void maybeRevealHoverToolTip() {
-        if (mHoverView == null || mToolTipText == null) {
+        if (mHoverView == null) {
             return;
         }
+
+        final String toolTipText = getToolTipText();
+        if (TextUtils.isEmpty(toolTipText)) {
+            return;
+        }
+
         // Do not show tooltip if taskbar icons are transitioning to hotseat.
         if (mActivity.isIconAlignedWithHotseat()) {
             return;
@@ -128,7 +123,21 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
         }
 
         Rect iconViewBounds = Utilities.getViewBounds(mHoverView);
-        mHoverToolTipView.showAtLocation(mToolTipText, iconViewBounds.centerX(),
+        mHoverToolTipView.showAtLocation(toolTipText, iconViewBounds.centerX(),
                 mTaskbarView.getTop() - mYOffset, /* shouldAutoClose= */ false);
+    }
+
+    private String getToolTipText() {
+        if (mHoverView instanceof BubbleTextView btv) {
+            return btv.getText().toString();
+        } else if (mHoverView instanceof FolderIcon icon && icon.mInfo.title != null) {
+            return icon.mInfo.title.toString();
+        } else if (mHoverView instanceof AppPairIcon icon) {
+            return icon.getTitleTextView().getText().toString();
+        } else if (mHoverView instanceof TaskbarOverflowView icon) {
+            return icon.getTextForTooltipPopup();
+        } else {
+            return null;
+        }
     }
 }

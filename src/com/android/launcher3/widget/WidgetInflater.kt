@@ -17,7 +17,7 @@
 package com.android.launcher3.widget
 
 import android.content.Context
-import com.android.launcher3.BuildConfig
+import com.android.launcher3.BuildConfigs
 import com.android.launcher3.Launcher
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger.RestoreError
 import com.android.launcher3.dagger.ApplicationContext
@@ -59,7 +59,7 @@ constructor(
             // The widget id is not valid. Try to find the widget based on the provider info.
             appWidgetInfo = widgetHelper.findProvider(item.providerName, item.user)
             if (appWidgetInfo == null) {
-                if (!BuildConfig.WIDGETS_ENABLED) {
+                if (!BuildConfigs.WIDGETS_ENABLED) {
                     removalReason = "widgets are disabled on go device."
                     logReason = RestoreError.WIDGETS_DISABLED
                 } else {
@@ -88,6 +88,13 @@ constructor(
                     logReason = RestoreError.INVALID_WIDGET_ID
                 }
             }
+        }
+
+        // Use requested spans instead of the default widget size for the grid.
+        // See b/408934352
+        if (appWidgetInfo != null) {
+            appWidgetInfo.spanX = item.spanX
+            appWidgetInfo.spanY = item.spanY
         }
 
         // If the provider is ready, but the widget is not yet restored, try to restore it.

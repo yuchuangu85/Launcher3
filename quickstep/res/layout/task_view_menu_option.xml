@@ -30,7 +30,7 @@
       android:layout_width="@dimen/system_shortcut_icon_size"
       android:layout_height="@dimen/system_shortcut_icon_size"
       android:layout_marginStart="@dimen/task_menu_option_start_margin"
-      android:layout_gravity="center_horizontal"
+      android:layout_gravity="center"
       android:backgroundTint="@color/materialColorOnSurface"/>
 
     <TextView
@@ -42,7 +42,7 @@
         android:textSize="14sp"
         android:textColor="@color/materialColorOnSurface"
         android:focusable="false"
-        android:gravity="start"
+        android:gravity="start|center_vertical"
         android:ellipsize="end" />
 
 </LinearLayout>

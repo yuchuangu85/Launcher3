@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Ýttu til að ljúka við uppsetningu"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Þetta er kerfisforrit sem ekki er hægt að fjarlægja."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Breyta nafni"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Birta blaðsíðutal til vinstri"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Birta blaðsíðutal til hægri"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Óvirkt <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} er með # tilkynningu}one{{app_name} er með # tilkynningu}other{{app_name} er með # tilkynningar}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Síða %1$d af %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Leyfa snúning á heimaskjá"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Þegar símanum er snúið"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Langsnið"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Stilla síma á langsnið"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Stilla heimaskjá á langsnið"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Tilkynningapunktar"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Kveikt"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Slökkt"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Læsa"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Leynirými að breytast"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Setja upp"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Bæta við"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Setja upp forrit í leynirými"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Bættu skrám og fleiru við leynirými"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Hringur"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Ferningur"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Fjögurra hliða smákaka"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Sjö hliða smákaka"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Bogi"</string>
 </resources>

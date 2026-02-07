@@ -21,7 +21,6 @@ import com.android.app.animation.Interpolators.FINAL_FRAME
 import com.android.app.animation.Interpolators.INSTANT
 import com.android.app.animation.Interpolators.LINEAR
 import com.android.launcher3.Flags.enableDesktopExplodedView
-import com.android.launcher3.Flags.enableGridOnlyOverview
 import com.android.launcher3.Flags.enableLargeDesktopWindowingTile
 import com.android.launcher3.LauncherState
 import com.android.launcher3.anim.AnimatedFloat
@@ -37,6 +36,7 @@ import com.android.launcher3.states.StateAnimationConfig.ANIM_OVERVIEW_SCALE
 import com.android.launcher3.states.StateAnimationConfig.ANIM_OVERVIEW_TRANSLATE_X
 import com.android.launcher3.states.StateAnimationConfig.ANIM_OVERVIEW_TRANSLATE_Y
 import com.android.launcher3.states.StateAnimationConfig.SKIP_OVERVIEW
+import com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview
 import com.android.quickstep.util.AnimUtils
 import com.android.quickstep.views.AddDesktopButton
 import com.android.quickstep.views.ClearAllButton
@@ -246,7 +246,10 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
                 launcher.deviceProfile,
             )
 
-        val timings = AnimUtils.getDeviceOverviewToSplitTimings(launcher.deviceProfile.isTablet)
+        val timings =
+            AnimUtils.getDeviceOverviewToSplitTimings(
+                launcher.deviceProfile.getDeviceProperties().isTablet
+            )
         if (!goingToOverviewFromWorkspaceContextual) {
             // This animation is already done for the contextual case, don't redo it
             recentsView.createSplitSelectInitAnimation(

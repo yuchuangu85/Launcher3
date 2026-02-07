@@ -94,10 +94,10 @@
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"တစ်ကိုယ်ရေသုံး အက်ပ်စာရင်း"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"အလုပ်သုံး အက်ပ်စာရင်း"</string>
     <string name="remove_drop_target_label" msgid="7812859488053230776">"ဖယ်ရှားမည်"</string>
-    <string name="uninstall_drop_target_label" msgid="4722034217958379417">"ဖယ်ရှားရန်"</string>
+    <string name="uninstall_drop_target_label" msgid="4722034217958379417">"ဖြုတ်ရန်"</string>
     <string name="app_info_drop_target_label" msgid="692894985365717661">"အက်ပ်အချက်အလက်"</string>
     <string name="install_private_system_shortcut_label" msgid="1616889277073184841">"သီးသန့်တွင် ထည့်သွင်းရန်"</string>
-    <string name="uninstall_private_system_shortcut_label" msgid="8423460530441627982">"အက်ပ်ကို ဖယ်ရှားရန်"</string>
+    <string name="uninstall_private_system_shortcut_label" msgid="8423460530441627982">"အက်ပ်ကို ဖြုတ်ရန်"</string>
     <string name="install_drop_target_label" msgid="2539096853673231757">"ထည့်သွင်းရန်"</string>
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"အက်ပ်အကြံမပြုပါနှင့်"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"ခန့်မှန်းချက်ကို ပင်ထိုးရန်"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"စနစ်ထည့်သွင်းခြင်း အပြီးသတ်ရန် တို့ပါ"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"ဤအပ်ပလီကေးရှင်းမှာ စစ်စတန်ပိုင်းဆိုင်ရာ အပ်ပလီကေးရှင်းဖြစ်ပါသည်။ ထုတ်ပစ်၍ မရပါ"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"အမည်ကို တည်းဖြတ်ပါ"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"ဘယ်ဘက်သို့ စာမျက်နှာများအဖြစ် ခွဲထုတ်ရန်"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"ညာဘက်သို့ စာမျက်နှာများအဖြစ် ခွဲထုတ်ရန်"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> ကို ပိတ်ထားသည်"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} တွင် အကြောင်းကြားချက် # ခု ရှိသည်}other{{app_name} တွင် အကြောင်းကြားချက် # ခု ရှိသည်}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"စာမျက်နှာ %1$d မှ %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"ပင်မစာမျက်နှာလှည့်ခြင်းကို ခွင့်ပြုခြင်း"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"ဖုန်းကိုလှည့်ထားစဉ်"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"အလျားလိုက်"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"ဖုန်းကို အလျားလိုက်သို့ သတ်မှတ်နိုင်သည်"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"ပင်မစာမျက်နှာကို အလျားလိုက်မုဒ်သို့ သတ်မှတ်နိုင်သည်"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"သတိပေးချက် အစက်များ"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"ဖွင့်"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ပိတ်"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"လော့ခ်ချခြင်း"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"သီးသန့်ချတ်ခန်း အပြောင်းအလဲ"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ထည့်သွင်းရန်"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"ထည့်ရန်"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"‘သီးသန့်နေရာ’ တွင် အက်ပ်များ ထည့်သွင်းနိုင်သည်"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"‘သီးသန့်နေရာ’ တွင် ဖိုင်နှင့် အခြားအရာများ ထည့်နိုင်သည်"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"စက်ဝိုင်း"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"စတုရန်း"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"စတုဂံကွတ်ကီး"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"သတ္တဂံကွတ်ကီး"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"အခုံး"</string>
 </resources>

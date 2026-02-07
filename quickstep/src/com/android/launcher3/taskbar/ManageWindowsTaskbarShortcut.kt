@@ -225,7 +225,7 @@ class ManageWindowsTaskbarShortcut<T>(
 
             // Calculate the Y position to place the carousel above the taskbar
             menuView.rootView.y =
-                deviceProfile.availableHeightPx -
+                deviceProfile.deviceProperties.availableHeightPx -
                     menuView.menuHeight -
                     controllers.taskbarStashController.touchableHeight -
                     margin
@@ -234,9 +234,12 @@ class ManageWindowsTaskbarShortcut<T>(
             // but avoid clashing with the screen edge
             menuView.rootView.translationX =
                 if (Utilities.isRtl(context.resources)) {
-                    -(deviceProfile.availableWidthPx - menuView.menuWidth) / 2f
+                    -(deviceProfile.deviceProperties.availableWidthPx - menuView.menuWidth) / 2f
                 } else {
-                    val maxX = deviceProfile.availableWidthPx - menuView.menuWidth - margin
+                    val maxX =
+                        deviceProfile.deviceProperties.availableWidthPx -
+                            menuView.menuWidth -
+                            margin
                     minOf(originalView.x, maxX)
                 }
         }

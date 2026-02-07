@@ -24,6 +24,7 @@ import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
 import android.util.Log
 import com.android.launcher3.LauncherModel
+import com.android.launcher3.Utilities
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.graphics.ShapeDelegate.Circle
@@ -50,7 +51,6 @@ constructor(
     @ApplicationContext ctx: Context,
     themeManager: ThemeManager,
     private val modelProvider: Provider<LauncherModel>,
-    private val iconChangeTracker: IconChangeTracker,
     private val iconCacheProvider: Provider<IconCache>,
     pluginManagerWrapper: PluginManagerWrapper,
     lifecycle: DaggerSingletonTracker,
@@ -86,7 +86,7 @@ constructor(
             // Load the fallback app icon
             if (appInfo.icon != 0) {
                 // Tries to load the round icon res, if the app defines it as an adaptive icon
-                if (mThemeManager.iconShape is Circle) {
+                if (Utilities.ATLEAST_R && mThemeManager.iconShape is Circle) {
                     if (appInfo.roundIconRes != 0 && appInfo.roundIconRes != appInfo.icon) {
                         try {
                             val d =
@@ -112,7 +112,7 @@ constructor(
         manager: PluginLifecycleManager<IconProcessorPlugin>?,
     ) {
         plugin?.setIconChangeNotifier { pkg, userHandle ->
-            iconChangeTracker.notifyIconChanged(pkg, userHandle)
+            modelProvider.get().onAppIconChanged(pkg, userHandle)
         }
         processor = plugin
         Log.d(TAG, "Plugin connected $plugin")

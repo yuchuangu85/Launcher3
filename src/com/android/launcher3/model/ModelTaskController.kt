@@ -23,12 +23,12 @@ import com.android.launcher3.celllayout.CellPosMapper
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.model.BgDataModel.FixedContainerItems
+import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
-import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.widget.model.WidgetsListBaseEntriesBuilder
-import java.util.Objects
 import java.util.function.Predicate
+import java.util.stream.Collectors
 import javax.inject.Inject
 
 /** Class with utility methods and properties for running a LauncherModel Task */
@@ -63,15 +63,7 @@ constructor(
         if (workspaceUpdates.isNotEmpty()) {
             scheduleCallbackTask { it.bindItemsUpdated(workspaceUpdates) }
         }
-
-        // Bind extra items if any
-        allUpdates
-            .stream()
-            .mapToInt { it.container }
-            .distinct()
-            .mapToObj { dataModel.extraItems.get(it) }
-            .filter { Objects.nonNull(it) }
-            .forEach { bindExtraContainerItems(it) }
+        dataModel.updateItems(allUpdates.toList(), null)
     }
 
     fun bindExtraContainerItems(item: FixedContainerItems) {
@@ -99,14 +91,19 @@ constructor(
 
     fun bindApplicationsIfNeeded() {
         if (allAppsList.getAndResetChangeFlag()) {
-            val apps = allAppsList.copyData()
-            val flags = allAppsList.flags
-            val packageUserKeyToUidMap =
-                apps.associateBy(
-                    keySelector = { PackageUserKey(it.componentName!!.packageName, it.user) },
-                    valueTransform = { it.uid },
-                )
-            scheduleCallbackTask { it.bindAllApplications(apps, flags, packageUserKeyToUidMap) }
+            // shallow copy
+            val data = allAppsList.immutableData
+            scheduleCallbackTask {
+                it.bindAllApplications(data.apps, data.flags, data.packageUserKeyToUidMap)
+            }
+        }
+    }
+
+    fun bindIncrementalUpdates(updatedAppInfos: List<AppInfo>) {
+        if (updatedAppInfos.isNotEmpty()) {
+            updatedAppInfos.forEach { info ->
+                scheduleCallbackTask { it.bindIncrementalDownloadProgressUpdated(info) }
+            }
         }
     }
 }

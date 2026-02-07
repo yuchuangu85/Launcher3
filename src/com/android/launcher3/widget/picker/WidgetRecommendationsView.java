@@ -19,6 +19,8 @@ package com.android.launcher3.widget.picker;
 import static com.android.launcher3.widget.picker.WidgetRecommendationCategory.DEFAULT_WIDGET_RECOMMENDATION_CATEGORY;
 import static com.android.launcher3.widget.util.WidgetsTableUtils.groupWidgetItemsUsingRowPxWithReordering;
 
+import static java.util.stream.Collectors.toList;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
@@ -174,7 +176,7 @@ public final class WidgetRecommendationsView extends PagedView<PageIndicatorDots
      * <p>In case of a single category, no title is displayed for it.</p>
      *
      * @param recommendations a map of widget items per recommendation category
-     * @param deviceProfile   the current {@link DeviceProfile}
+     * @param deviceProfile   the current {@link deviceprofile}
      * @param availableHeight height in px that can be used to display the recommendations;
      *                        recommendations that don't fit in this height won't be shown
      * @param availableWidth  width in px that the recommendations should display in

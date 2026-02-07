@@ -22,7 +22,6 @@ import android.content.SharedPreferences.Editor
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Manages [Item] preferences through [InMemorySharedPreferences].
@@ -40,9 +39,8 @@ class InMemoryLauncherPrefs(context: Context, private val copyRealPrefs: Boolean
 
         val realPrefs = super.getSharedPrefs(item)
         copiedPrefs.computeIfAbsent(realPrefs) { _ ->
-            val existingValues =
+            backingPrefs.values +=
                 realPrefs.all.filterValues { it != null }.mapValues { (_, v) -> checkNotNull(v) }
-            synchronized(backingPrefs.editorLock) { backingPrefs.values += existingValues }
             true
         }
 
@@ -53,10 +51,8 @@ class InMemoryLauncherPrefs(context: Context, private val copyRealPrefs: Boolean
 /** A [SharedPreferences] where the values are stored in memory instead of storage. */
 private class InMemorySharedPreferences : SharedPreferences {
 
-    val editorLock = Any()
-    var values = mapOf<String, Any>()
-
-    private val listeners = CopyOnWriteArrayList<OnSharedPreferenceChangeListener>()
+    val values = mutableMapOf<String, Any>()
+    private val listeners = mutableSetOf<OnSharedPreferenceChangeListener>()
 
     override fun getAll(): Map<String, *> = values
 
@@ -124,13 +120,9 @@ private class InMemorySharedPreferences : SharedPreferences {
         }
 
         override fun commit(): Boolean {
-            synchronized(editorLock) {
-                val newValues = values.toMutableMap()
-                if (clear) newValues.clear()
-                newValues -= keysToRemove
-                newValues += valuesToAdd
-                values = newValues.toMap()
-            }
+            if (clear) values.clear()
+            values -= keysToRemove
+            values += valuesToAdd
 
             MAIN_EXECUTOR.execute {
                 for (k in keysToRemove.union(valuesToAdd.keys)) {

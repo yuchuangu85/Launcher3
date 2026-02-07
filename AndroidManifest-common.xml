@@ -15,12 +15,13 @@
 ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ** See the License for the specific language governing permissions and
 ** limitations under the License.
+**
+** Modifications copyright 2021, Lawnchair
 */
 -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.android.launcher3">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!--
     The manifest defines the common entries that should be present in any derivative of Launcher3.
@@ -40,8 +41,11 @@
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <uses-permission android:name="android.permission.ACCESS_RESTRICTED_SETTINGS" />
+    
     <!-- for rotating surface by arbitrary degree -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.ROTATE_SURFACE_FLINGER" />
     <uses-permission android:name="android.permission.WAKEUP_SURFACE_FLINGER" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -61,13 +65,18 @@
         android:protectionLevel="signatureOrSystem"
         android:label="@string/permlab_write_settings"
         android:description="@string/permdesc_write_settings"/>
+    <permission
+        android:name="${applicationId}.permission.GRID_CONTROL"
+        android:knownCerts="@array/grid_control_known_signers"
+        android:protectionLevel="signature|knownSigner"/>
 
     <uses-permission android:name="${applicationId}.permission.READ_SETTINGS" />
     <uses-permission android:name="${applicationId}.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="${applicationId}.permission.GRID_CONTROL" />
 
     <application
         android:backupAgent="com.android.launcher3.LauncherBackupAgent"
-        android:name="com.android.launcher3.LauncherApplication"
+        android:name="app.lawnchair.LawnchairApp"
         android:fullBackupOnly="true"
         android:backupInForeground="true"
         android:fullBackupContent="@xml/backupscheme"
@@ -76,7 +85,8 @@
         android:label="@string/derived_app_name"
         android:largeHeap="@bool/config_largeHeap"
         android:restoreAnyVersion="true"
-        android:supportsRtl="true" >
+        android:supportsRtl="true"
+        tools:replace="android:label">
 
         <!-- Intent received when a session is committed -->
         <receiver
@@ -131,11 +141,15 @@
             android:writePermission="${applicationId}.permission.WRITE_SETTINGS"
             android:readPermission="${applicationId}.permission.READ_SETTINGS" />
 
-        <!-- The content provider for exposing various launcher grid options. -->
+        <!--
+          The content provider for exposing various launcher grid options.
+          The caller should hold one of the following permissions:
+             - android.permission.BIND_WALLPAPER
+             - ${applicationId}.permission.GRID_CONTROL
+         -->
         <provider
             android:name="com.android.launcher3.graphics.LauncherCustomizationProvider"
             android:authorities="${applicationId}.grid_control"
-            android:permission="android.permission.BIND_WALLPAPER"
             android:exported="true" />
 
         <!--
@@ -147,7 +161,7 @@
             android:theme="@style/HomeSettings.Theme"
             android:exported="true"
             android:autoRemoveFromRecents="true">
-            <intent-filter>
+            <intent-filter android:priority="-1">
                 <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>

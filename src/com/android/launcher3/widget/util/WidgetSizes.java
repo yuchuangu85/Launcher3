@@ -15,8 +15,6 @@
  */
 package com.android.launcher3.widget.util;
 
-import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
-
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
@@ -32,6 +30,8 @@ import android.util.SizeF;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.R;
+import com.android.launcher3.dagger.LauncherComponentProvider;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.model.WidgetItem;
 
 import java.util.ArrayList;
@@ -79,7 +79,7 @@ public final class WidgetSizes {
     public static Size getWidgetItemSizePx(Context context, DeviceProfile profile,
             WidgetItem widgetItem) {
         if (widgetItem.isShortcut()) {
-            int dimension = profile.allAppsIconSizePx + 2 * context.getResources()
+            int dimension = profile.getAllAppsProfile().getIconSizePx() + 2 * context.getResources()
                     .getDimensionPixelSize(R.dimen.widget_preview_shortcut_padding);
             return new Size(dimension, dimension);
         }
@@ -110,17 +110,8 @@ public final class WidgetSizes {
             return;
         }
 
-        UI_HELPER_EXECUTOR.execute(() -> {
-            AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
-            Bundle sizeOptions = getWidgetSizeOptions(context, info.provider, spanX, spanY);
-            if (sizeOptions.<SizeF>getParcelableArrayList(
-                    AppWidgetManager.OPTION_APPWIDGET_SIZES).equals(
-                    widgetManager.getAppWidgetOptions(widgetId).<SizeF>getParcelableArrayList(
-                            AppWidgetManager.OPTION_APPWIDGET_SIZES))) {
-                return;
-            }
-            widgetManager.updateAppWidgetOptions(widgetId, sizeOptions);
-        });
+        LauncherComponentProvider.get(context).getWidgetSizeHandler()
+                .updateSizeRangesAsync(widgetId, info, spanX, spanY);
     }
 
     /**
@@ -129,6 +120,10 @@ public final class WidgetSizes {
     public static Bundle getWidgetSizeOptions(Context context, ComponentName provider, int spanX,
             int spanY) {
         ArrayList<SizeF> paddedSizes = getWidgetSizesDp(context, spanX, spanY);
+        if (paddedSizes == null || paddedSizes.isEmpty()) {
+            Log.e("LC-WidgetSizes", "Failed to get widget sizes for provider: " + provider);
+            return null;
+        }
 
         Rect rect = getMinMaxSizes(paddedSizes);
         Bundle options = new Bundle();
@@ -136,9 +131,9 @@ public final class WidgetSizes {
         options.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, rect.top);
         options.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, rect.right);
         options.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, rect.bottom);
-        options.putParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, paddedSizes);
-        Log.d("b/267448330", "provider: " + provider + ", paddedSizes: " + paddedSizes
-                + ", getMinMaxSizes: " + rect);
+        if (Utilities.ATLEAST_S) {
+            options.putParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, paddedSizes);
+        }
         return options;
     }
 

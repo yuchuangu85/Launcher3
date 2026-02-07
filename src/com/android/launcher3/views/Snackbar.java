@@ -37,6 +37,9 @@ import com.android.launcher3.R;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
 import com.android.launcher3.dragndrop.DragLayer;
 
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.theme.drawable.DrawableTokens;
+
 /**
  * A toast-like UI at the bottom of the screen with a label, button action, and dismiss action.
  */
@@ -94,7 +97,7 @@ public class Snackbar extends AbstractFloatingView {
         snackbar.setElevation(res.getDimension(R.dimen.snackbar_elevation));
         int padding = res.getDimensionPixelSize(R.dimen.snackbar_padding);
         snackbar.setPadding(padding, padding, padding, padding);
-        snackbar.setBackgroundResource(R.drawable.round_rect_primary);
+        snackbar.setBackground(DrawableTokens.RoundRectPrimary.resolve(((Context)activity).getApplicationContext()));
 
         snackbar.mIsOpen = true;
         BaseDragLayer dragLayer = activity.getDragLayer();
@@ -118,13 +121,15 @@ public class Snackbar extends AbstractFloatingView {
         DeviceProfile deviceProfile = activity.getDeviceProfile();
         params.setMargins(0, 0, 0, marginBottom
                 + (deviceProfile.isTaskbarPresent
-                ? deviceProfile.taskbarHeight + deviceProfile.getTaskbarOffsetY()
+                ? deviceProfile.getTaskbarProfile().getHeight() + deviceProfile.getTaskbarOffsetY()
                 : insets.bottom));
 
         TextView labelView = snackbar.findViewById(R.id.label);
         labelView.setText(labelString);
 
         TextView actionView = snackbar.findViewById(R.id.action);
+        labelView.setTextColor(ColorTokens.TextColorPrimary.resolveColor(((Context) activity).getApplicationContext()));
+        actionView.setTextColor(ColorTokens.ColorAccent.resolveColor(((Context) activity).getApplicationContext()));
         float actionWidth;
         if (actionStringResId != NO_ID) {
             String actionText = res.getString(actionStringResId);

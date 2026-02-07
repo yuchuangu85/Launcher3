@@ -36,7 +36,7 @@
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"Xestionar ventás"</string>
     <string name="save_app_pair" msgid="5647523853662686243">"Gardar parella de apps"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
-    <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"O dispositivo non admite este emparellamento de aplicacións"</string>
+    <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"O dispositivo non é compatible con este emparellamento de aplicacións"</string>
     <string name="app_pair_needs_unfold" msgid="4588897528143807002">"Desprega o dispositivo para usar este emparellamento de aplicacións"</string>
     <string name="app_pair_not_available" msgid="3556767440808032031">"Non está dispoñible o emparellamento de aplicacións"</string>
     <string name="long_press_widget_to_add" msgid="3587712543577675817">"Mantén premido un widget para movelo."</string>
@@ -65,7 +65,7 @@
     <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Borrar texto da caixa de busca"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Non hai widgets nin atallos dispoñibles"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Non se atoparon widgets nin atallos"</string>
-    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Widgets persoais"</string>
+    <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Persoal"</string>
     <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Widgets do traballo"</string>
     <string name="widget_category_conversations" msgid="8894438636213590446">"Conversas"</string>
     <string name="widget_category_note_taking" msgid="3469689394504266039">"Toma de notas"</string>
@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Toca para rematar a configuración"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Esta aplicación é do sistema e non se pode desinstalar."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Edita o nome"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Paxinación á esquerda"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Paxinación á dereita"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Desactivouse <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ten # notificación}other{{app_name} ten # notificacións}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Páxina %1$d de %2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Permitir xirar a pantalla de inicio"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Ao xirar o teléfono"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Modo horizontal"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Pon o teléfono no modo horizontal"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Establecer modo horizontal para a pantalla de inicio"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Puntos de notificacións"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Opción activada"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Desactivados"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Bloquear"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Transición ao espazo privado"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Instalar"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Engadir"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instalar as aplicacións no espazo privado"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Engade ficheiros e máis elementos ao espazo privado"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Círculo"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Cadrado"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Galleta cadrada"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Galleta heptagonal"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Arco"</string>
 </resources>

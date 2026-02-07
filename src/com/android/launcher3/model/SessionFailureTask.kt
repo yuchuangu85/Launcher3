@@ -38,21 +38,23 @@ class SessionFailureTask(val packageName: String, val user: UserHandle) : ModelU
             ApplicationInfoWrapper(taskController.context, packageName, user).isArchived()
         synchronized(dataModel) {
             if (isAppArchived) {
-                val updatedItems = mutableListOf<WorkspaceItemInfo>()
                 // Remove package icon cache entry for archived app in case of a session
                 // failure.
                 iconCache.remove(
                     ComponentName(packageName, packageName + BaseIconCache.EMPTY_CLASS_NAME),
                     user,
                 )
-                for (info in dataModel.itemsIdMap) {
-                    if (info is WorkspaceItemInfo && info.isArchived && user == info.user) {
-                        // Refresh icons on the workspace for archived apps.
-                        iconCache.getTitleAndIcon(info, info.matchingLookupFlag)
-                        updatedItems.add(info)
-                    }
-                }
-
+                val updatedItems =
+                    dataModel.updateAndCollectWorkspaceItemInfos(
+                        user,
+                        { info ->
+                            if (info.isArchived) {
+                                // Refresh icons on the workspace for archived apps.
+                                iconCache.getTitleAndIcon(info, info.matchingLookupFlag)
+                                true
+                            } else false
+                        },
+                    )
                 if (updatedItems.isNotEmpty()) {
                     taskController.bindUpdatedWorkspaceItems(updatedItems)
                 }

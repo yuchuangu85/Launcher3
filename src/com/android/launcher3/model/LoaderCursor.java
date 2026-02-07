@@ -18,10 +18,10 @@ package com.android.launcher3.model;
 
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT;
+import static com.android.launcher3.LauncherSettings.Favorites.DESKTOP_ICON_FLAG;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
-import static com.android.launcher3.Utilities.SHOULD_SHOW_FIRST_PAGE_WIDGET;
 import static com.android.launcher3.icons.cache.CacheLookupFlag.DEFAULT_LOOKUP_FLAG;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_ARCHIVED;
 
@@ -31,6 +31,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.CursorWrapper;
 import android.os.UserHandle;
@@ -42,6 +43,8 @@ import android.util.LongSparseArray;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.launcher3.BuildConfig;
+import com.android.launcher3.BuildConfigs;
 import com.android.launcher3.Flags;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherModel;
@@ -51,7 +54,6 @@ import com.android.launcher3.Utilities;
 import com.android.launcher3.Workspace;
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger;
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger.RestoreError;
-import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.logging.FileLog;
@@ -77,6 +79,10 @@ import dagger.assisted.AssistedInject;
 
 import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
+
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.LawnchairApp;
+import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Extension of {@link Cursor} with utility methods for workspace loading.
@@ -124,6 +130,8 @@ public class LoaderCursor extends CursorWrapper {
     private final int mOptionsIndex;
     private final int mAppWidgetSourceIndex;
 
+    private final PackageManager mPM;
+
     @Nullable
     private LauncherActivityInfo mActivityInfo;
 
@@ -134,6 +142,7 @@ public class LoaderCursor extends CursorWrapper {
     public int container;
     public int itemType;
     public int restoreFlag;
+    private PreferenceManager2 preferenceManager2;
 
     @AssistedInject
     public LoaderCursor(
@@ -154,6 +163,9 @@ public class LoaderCursor extends CursorWrapper {
 
         allUsers = userManagerState.allUsers;
         mRestoreEventLogger = restoreEventLogger;
+
+        preferenceManager2 = PreferenceManager2.getInstance(mContext);
+        mPM = mContext.getPackageManager();
 
         // Init column indices
         mIconIndex = getColumnIndexOrThrow(Favorites.ICON);
@@ -236,7 +248,8 @@ public class LoaderCursor extends CursorWrapper {
         byte[] iconBlob = itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT || restoreFlag != 0
                 || (wai.isInactiveArchive() && Flags.restoreArchivedAppIconsFromDb())
                 ? getIconBlob() : null;
-        return new IconRequestInfo<>(wai, mActivityInfo, iconBlob, useLowResIcon);
+        return new IconRequestInfo<>(wai, mActivityInfo, iconBlob,
+                DESKTOP_ICON_FLAG.withUseLowRes(useLowResIcon));
     }
 
     /**
@@ -344,7 +357,7 @@ public class LoaderCursor extends CursorWrapper {
             throw new InvalidParameterException("Invalid restoreType " + restoreFlag);
         }
 
-        info.contentDescription = mIconCache.getUserBadgedLabel(info.title, info.user);
+        info.contentDescription = mPM.getUserBadgedLabel(info.title, info.user);
         info.itemType = itemType;
         info.status = restoreFlag;
         if (isArchived) info.runtimeStatusFlags |= FLAG_ARCHIVED;
@@ -410,7 +423,7 @@ public class LoaderCursor extends CursorWrapper {
             }
         }
 
-        info.contentDescription = mIconCache.getUserBadgedLabel(info.title, info.user);
+        info.contentDescription = mPM.getUserBadgedLabel(info.title, info.user);
         return info;
     }
 
@@ -420,9 +433,8 @@ public class LoaderCursor extends CursorWrapper {
             boolean loadIconFromCache,
             WorkspaceItemInfo info
     ) {
-        // TODO(gyc)
-        boolean isPreArchived = true/*Flags.enableSupportForArchiving()*/
-                && true/*Flags.restoreArchivedAppIconsFromDb()*/
+        boolean isPreArchived = Flags.enableSupportForArchiving()
+                && Flags.restoreArchivedAppIconsFromDb()
                 && info.isInactiveArchive()
                 && LauncherPrefs.get(mContext).get(LauncherPrefs.IS_FIRST_LOAD_AFTER_RESTORE);
         boolean preArchivedIconNotFound = isPreArchived && !loadIconFromDb(info);
@@ -530,9 +542,9 @@ public class LoaderCursor extends CursorWrapper {
      * Return an existing FolderInfo object if we have encountered this ID previously,
      * or make a new one.
      */
-    public CollectionInfo findOrMakeFolder(int id, BgDataModel dataModel) {
+    public CollectionInfo findOrMakeFolder(int id, IntSparseArrayMap<ItemInfo> loadedItems) {
         // See if a placeholder was created for us already
-        ItemInfo info = dataModel.itemsIdMap.get(id);
+        ItemInfo info = loadedItems.get(id);
         if (info instanceof CollectionInfo c) return c;
 
         CollectionInfo pending = mPendingCollectionInfo.get(id);
@@ -553,13 +565,13 @@ public class LoaderCursor extends CursorWrapper {
      * otherwise marks it for deletion.
      */
     public void checkAndAddItem(
-            ItemInfo info, BgDataModel dataModel, LoaderMemoryLogger logger) {
+            ItemInfo info, IntSparseArrayMap<ItemInfo> loadedItems, LoaderMemoryLogger logger) {
         if (info.itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT) {
             // Ensure that it is a valid intent. An exception here will
             // cause the item loading to get skipped
             ShortcutKey.fromItemInfo(info);
         }
-        if (checkItemPlacement(info, dataModel.isFirstPagePinnedItemEnabled)) {
+        if (checkItemPlacement(info)) {
             if (logger != null) {
                 logger.addLog(
                         Log.DEBUG,
@@ -567,13 +579,13 @@ public class LoaderCursor extends CursorWrapper {
                         String.format("Adding item to ID map: %s", info),
                         /* stackTrace= */ null);
             }
-            dataModel.addItem(mContext, info, false);
+            loadedItems.put(info.id, info);
             if ((info.itemType == ITEM_TYPE_APP_PAIR
                     || info.itemType == ITEM_TYPE_DEEP_SHORTCUT
                     || info.itemType == ITEM_TYPE_APPLICATION)
                     && info.container != CONTAINER_DESKTOP
                     && info.container != CONTAINER_HOTSEAT) {
-                findOrMakeFolder(info.container, dataModel).add(info);
+                findOrMakeFolder(info.container, loadedItems).add(info);
             }
             if (mRestoreEventLogger != null) {
                 mRestoreEventLogger.logSingleFavoritesItemRestored(itemType);
@@ -586,7 +598,7 @@ public class LoaderCursor extends CursorWrapper {
     /**
      * check & update map of what's occupied; used to discard overlapping/invalid items
      */
-    protected boolean checkItemPlacement(ItemInfo item, boolean isFirstPagePinnedItemEnabled) {
+    protected boolean checkItemPlacement(ItemInfo item) {
         int containerIndex = item.screenId;
         if (item.container == Favorites.CONTAINER_HOTSEAT) {
             final GridOccupancy hotseatOccupancy =
@@ -634,9 +646,7 @@ public class LoaderCursor extends CursorWrapper {
 
         if (!mOccupied.containsKey(item.screenId)) {
             GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
-            if (item.screenId == Workspace.FIRST_SCREEN_ID && (FeatureFlags.QSB_ON_FIRST_SCREEN
-                    && !SHOULD_SHOW_FIRST_PAGE_WIDGET
-                    && isFirstPagePinnedItemEnabled)) {
+            if (item.screenId == Workspace.FIRST_SCREEN_ID && PreferenceExtensionsKt.firstBlocking(preferenceManager2.getEnableSmartspace())) {
                 // Mark the first X columns (X is width of the search container) in the first row as
                 // occupied (if the feature is enabled) in order to account for the search
                 // container.
@@ -657,7 +667,7 @@ public class LoaderCursor extends CursorWrapper {
                     + " into cell (" + containerIndex + "-" + item.screenId + ":"
                     + item.cellX + "," + item.cellX + "," + item.spanX + "," + item.spanY
                     + ") already occupied");
-            return false;
+            return PreferenceExtensionsKt.firstBlocking(preferenceManager2.getAllowWidgetOverlap());
         }
     }
 

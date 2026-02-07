@@ -45,5 +45,5 @@
         android:layout_marginStart="@dimen/work_fab_text_start_margin"
         android:layout_marginEnd="@dimen/work_fab_text_end_margin"
         android:maxLines="1"
-        style="@style/TextHeadline"/>
+        style="@style/WorkModeFabTextStyle"/>
 </LinearLayout>

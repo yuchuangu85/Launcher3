@@ -48,7 +48,8 @@ import com.android.launcher3.util.StartActivityParams;
 import java.util.function.Supplier;
 
 /**
- * Extension of ShortcutConfigActivityInfo to be used in the confirmation prompt for pin item
+ * Extension of ShortcutConfigActivityInfo to be used in the confirmation prompt
+ * for pin item
  * request.
  */
 @TargetApi(Build.VERSION_CODES.O)

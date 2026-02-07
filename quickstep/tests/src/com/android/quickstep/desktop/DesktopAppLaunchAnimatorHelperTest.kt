@@ -40,7 +40,7 @@ import com.android.internal.jank.Cuj
 import com.android.launcher3.desktop.DesktopAppLaunchAnimatorHelper
 import com.android.launcher3.desktop.DesktopAppLaunchTransition.AppLaunchType
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
-import com.android.window.flags.Flags
+import com.android.window.flags2.Flags
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Rule

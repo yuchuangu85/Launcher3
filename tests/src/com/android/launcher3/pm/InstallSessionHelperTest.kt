@@ -31,25 +31,25 @@ import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.PROMISE_ICON_IDS
 import com.android.launcher3.util.Executors.MODEL_EXECUTOR
 import com.android.launcher3.util.IntArray
-import com.android.launcher3.util.LauncherModelHelper
+import com.android.launcher3.util.SandboxApplication
 import com.android.launcher3.util.TestUtil
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class InstallSessionHelperTest {
 
-    private val launcherModelHelper = LauncherModelHelper()
-    private val sandboxContext = spy(launcherModelHelper.sandboxContext)
+    @get:Rule val sandboxContext = SandboxApplication()
+
     private val packageManager = sandboxContext.packageManager
     private val expectedAppPackage = "expectedAppPackage"
     private val expectedInstallerPackage = sandboxContext.packageName

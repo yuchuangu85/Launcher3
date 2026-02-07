@@ -25,8 +25,13 @@ import android.content.res.Resources;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.android.launcher3.Utilities;
+
 import com.android.launcher3.BuildConfig;
 import com.android.launcher3.Flags;
+
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Defines a set of flags used to control various launcher behaviors.
@@ -42,15 +47,7 @@ public final class FeatureFlags {
      * @deprecated Use {@link BuildConfig#IS_STUDIO_BUILD} directly
      */
     @Deprecated
-    public static final boolean IS_STUDIO_BUILD = BuildConfig.IS_STUDIO_BUILD;
-
-    /**
-     * Enable moving the QSB on the 0th screen of the workspace. This is not a configuration feature
-     * and should be modified at a project level.
-     * @deprecated Use {@link BuildConfig#QSB_ON_FIRST_SCREEN} directly
-     */
-    @Deprecated
-    public static final boolean QSB_ON_FIRST_SCREEN = BuildConfig.QSB_ON_FIRST_SCREEN;
+    public static final boolean IS_STUDIO_BUILD = false;
 
     /**
      * Feature flag to handle define config changes dynamically instead of killing the process.
@@ -160,7 +157,7 @@ public final class FeatureFlags {
 
     // TODO(Block 22): Clean up flags
     public static final BooleanFlag ENABLE_WIDGET_TRANSITION_FOR_RESIZING = getDebugFlag(268553314,
-            "ENABLE_WIDGET_TRANSITION_FOR_RESIZING", DISABLED,
+            "ENABLE_WIDGET_TRANSITION_FOR_RESIZING", ENABLED,
             "Enable widget transition animation when resizing the widgets");
 
     // TODO(Block 27): Clean up flags
@@ -208,7 +205,7 @@ public final class FeatureFlags {
     // Aconfig migration complete for ENABLE_RESPONSIVE_WORKSPACE.
     @VisibleForTesting
     public static final BooleanFlag ENABLE_RESPONSIVE_WORKSPACE = getDebugFlag(241386436,
-            "ENABLE_RESPONSIVE_WORKSPACE", DISABLED,
+            "ENABLE_RESPONSIVE_WORKSPACE", ENABLED,
             "Enables new workspace grid calculations method.");
     public static boolean enableResponsiveWorkspace() {
         return ENABLE_RESPONSIVE_WORKSPACE.get() || Flags.enableResponsiveWorkspace();

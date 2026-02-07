@@ -45,7 +45,6 @@ import com.android.launcher3.util.DisplayController.Info
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.ModelTestExtensions.clearModelDb
-import com.android.launcher3.util.NavigationMode
 import com.android.launcher3.util.TestUtil
 import com.android.launcher3.util.launcheremulator.DensityPicker.Density
 import com.android.launcher3.util.launcheremulator.models.DeviceEmulationData
@@ -88,7 +87,7 @@ object LauncherCustomizer {
             if (params.isRtl) RTL_ON else RTL_OFF,
         )
 
-        emulate(context, params.device, params.density, params.navigationMode)
+        emulate(context, params.device, params.density)
 
         applyFixedLandscape(params.isFixedLandscape)
 
@@ -193,12 +192,7 @@ object LauncherCustomizer {
 
     /** @param device data required to emulate a given device display */
     @Throws(Exception::class)
-    private fun emulate(
-        context: Context,
-        device: DeviceEmulationData,
-        densityScale: Density,
-        navigationMode: NavigationMode? = null,
-    ) {
+    private fun emulate(context: Context, device: DeviceEmulationData, densityScale: Density) {
         val densities = DensityPicker.getDisplayEntries(device)
 
         // Set up emulation
@@ -215,8 +209,6 @@ object LauncherCustomizer {
                     .getMethod(it.method.name, *it.method.parameterTypes)
                     .invoke(wmpOverride, *it.arguments)
             }
-
-            wmpOverride.setNavigationMode(navigationMode ?: wmp.getNavigationMode(context))
 
             doAnswer(answer).whenever(wmp).isTaskbarDrawnInProcess
             doAnswer(answer).whenever(wmp).estimateInternalDisplayBounds(any())

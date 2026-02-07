@@ -24,6 +24,7 @@ import android.util.Log
 import android.view.Display.DEFAULT_DISPLAY
 import androidx.annotation.VisibleForTesting
 import com.android.internal.app.AssistUtils
+import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.logging.StatsLogManager
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_LAUNCH_ASSISTANT_FAILED_SERVICE_ERROR
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_LAUNCH_OMNI_ATTEMPTED_OVER_KEYGUARD
@@ -39,6 +40,7 @@ import com.android.quickstep.SystemUiProxy
 import com.android.quickstep.TopTaskTracker
 import com.android.quickstep.views.RecentsView
 import com.android.systemui.shared.system.QuickStepContract
+import javax.inject.Inject
 
 /** Handles invocations and checks for Contextual Search. */
 class ContextualSearchInvoker
@@ -60,6 +62,24 @@ internal constructor(
         SystemUiProxy.INSTANCE[context],
         StatsLogManager.newInstance(context),
         ContextualSearchHapticManager.INSTANCE[context],
+        context.getSystemService(ContextualSearchManager::class.java),
+    )
+
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        contextualSearchStateManager: ContextualSearchStateManager,
+        topTaskTracker: TopTaskTracker,
+        systemUiProxy: SystemUiProxy,
+        logManagerFactory: StatsLogManager.StatsLogManagerFactory,
+        hapticManager: ContextualSearchHapticManager,
+    ) : this(
+        context,
+        contextualSearchStateManager,
+        topTaskTracker,
+        systemUiProxy,
+        logManagerFactory.create(context),
+        hapticManager,
         context.getSystemService(ContextualSearchManager::class.java),
     )
 
@@ -163,11 +183,7 @@ internal constructor(
             statsLogManager.logger().log(LAUNCHER_LAUNCH_OMNI_FAILED_NOT_AVAILABLE)
             return false
         }
-        if (isFakeLandscape()) {
-            // TODO (b/383421642): Fake landscape is to be removed in 25Q3 and this entire block
-            // can be removed when that happens.
-            return false
-        }
+
         return true
     }
 
@@ -202,13 +218,6 @@ internal constructor(
         }
         return true
     }
-
-    private fun isFakeLandscape(): Boolean =
-        getRecentsContainerInterface()
-            ?.getCreatedContainer()
-            ?.getOverviewPanel<RecentsView<*, *>>()
-            ?.getPagedOrientationHandler()
-            ?.isLayoutNaturalToLauncher == false
 
     private fun isInSplitscreen(): Boolean {
         return topTaskTracker.getRunningSplitTaskIds().isNotEmpty()

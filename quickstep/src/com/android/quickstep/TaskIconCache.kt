@@ -24,7 +24,6 @@ import android.graphics.drawable.Drawable
 import android.os.UserHandle
 import android.util.SparseArray
 import androidx.annotation.WorkerThread
-import com.android.launcher3.Flags.enableOverviewIconMenu
 import com.android.launcher3.Flags.enableRefactorTaskThumbnail
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -38,7 +37,11 @@ import com.android.launcher3.util.DisplayController
 import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.FlagOp
+import com.android.launcher3.util.OverviewReleaseFlags.enableOverviewIconMenu
 import com.android.launcher3.util.Preconditions
+import com.android.launcher3.util.coroutines.DispatcherProvider
+import com.android.quickstep.recents.di.RecentsDependencies
+import com.android.quickstep.recents.di.inject
 import com.android.quickstep.task.thumbnail.data.TaskIconDataSource
 import com.android.quickstep.util.IconLabelUtil.getBadgedContentDescription
 import com.android.quickstep.util.TaskKeyLruCache
@@ -47,6 +50,7 @@ import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.Task.TaskKey
 import com.android.systemui.shared.system.PackageManagerWrapper
 import java.util.concurrent.Executor
+import kotlinx.coroutines.withContext
 
 /** Manages the caching of task icons and related data. */
 class TaskIconCache(
@@ -70,6 +74,7 @@ class TaskIconCache(
             else _iconFactory ?: createIconFactory().also { _iconFactory = it }
 
     var taskVisualsChangeListener: TaskVisualsChangeListener? = null
+    val dispatcherProvider: DispatcherProvider by RecentsDependencies.inject()
 
     init {
         // TODO (b/397205964): this will need to be updated when we support caches for different
@@ -85,18 +90,25 @@ class TaskIconCache(
 
     // TODO(b/387496731): Add ensureActive() calls if they show performance benefit
     override suspend fun getIcon(task: Task): TaskCacheEntry {
-        task.icon?.let {
+        task.icon?.let { icon ->
             // Nothing to load, the icon is already loaded
-            return TaskCacheEntry(it, task.titleDescription ?: "", task.title)
+            return TaskCacheEntry(icon, task.titleDescription ?: "", task.title ?: "")
         }
 
-        val entry = getCacheEntry(task)
-        task.icon = entry.icon
-        task.titleDescription = entry.contentDescription
-        task.title = entry.title
+        // Return from cache if present
+        iconCache.getAndInvalidateIfModified(task.key)?.let {
+            return it
+        }
 
-        dispatchIconUpdate(task.key.id)
-        return entry
+        return withContext(dispatcherProvider.ioBackground) {
+            val entry = getCacheEntry(task)
+            task.icon = entry.icon
+            task.titleDescription = entry.contentDescription
+            task.title = entry.title
+
+            dispatchIconUpdate(task.key.id)
+            return@withContext entry
+        }
     }
 
     /**
@@ -111,6 +123,14 @@ class TaskIconCache(
         task.icon?.let {
             // Nothing to load, the icon is already loaded
             callback.onTaskIconReceived(it, task.titleDescription ?: "", task.title ?: "")
+            return null
+        }
+        iconCache.getAndInvalidateIfModified(task.key)?.let {
+            task.icon = it.icon
+            task.titleDescription = it.contentDescription
+            task.title = it.title
+
+            callback.onTaskIconReceived(it.icon, it.contentDescription, it.title)
             return null
         }
         val request =
@@ -161,10 +181,6 @@ class TaskIconCache(
 
     @WorkerThread
     private fun getCacheEntry(task: Task): TaskCacheEntry {
-        iconCache.getAndInvalidateIfModified(task.key)?.let {
-            return it
-        }
-
         val desc = task.taskDescription
         val key = task.key
         var activityInfo: ActivityInfo? = null

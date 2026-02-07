@@ -19,6 +19,7 @@ package com.android.quickstep;
 import static com.android.launcher3.Flags.enableRefactorTaskThumbnail;
 import static com.android.quickstep.views.OverviewActionsView.DISABLED_NO_THUMBNAIL;
 import static com.android.quickstep.views.OverviewActionsView.DISABLED_ROTATED;
+import static com.android.quickstep.views.RecentsViewContainer.containerFromContext;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -34,7 +35,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.android.launcher3.BaseActivity;
 import com.android.launcher3.R;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
@@ -65,8 +65,7 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
     public static List<SystemShortcut> getEnabledShortcuts(TaskView taskView,
             TaskContainer taskContainer) {
         final ArrayList<SystemShortcut> shortcuts = new ArrayList<>();
-        final RecentsViewContainer container =
-                RecentsViewContainer.containerFromContext(taskView.getContext());
+        final RecentsViewContainer container = containerFromContext(taskView.getContext());
         for (TaskShortcutFactory menuOption : MENU_OPTIONS) {
             if (taskView instanceof GroupedTaskView && !menuOption.showForGroupedTask()) {
                 continue;
@@ -123,7 +122,7 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
             TaskShortcutFactory.SAVE_APP_PAIR,
             TaskShortcutFactory.SCREENSHOT,
             TaskShortcutFactory.MODAL,
-            TaskShortcutFactory.CLOSE,
+            TaskShortcutFactory.REMOVE_TASK,
     };
 
     /**
@@ -184,10 +183,14 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
 
         protected T getActionsView() {
             if (mActionsView == null) {
-                mActionsView = (T) RecentsViewContainer.containerFromContext(
+                mActionsView = (T) containerFromContext(
                         mTaskContainer.getTaskView().getContext()).getActionsView();
             }
             return mActionsView;
+        }
+
+        public TaskContainer getTaskContainer() {
+            return mTaskContainer;
         }
 
         public TaskView getTaskView() {
@@ -260,6 +263,7 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
          * Called when the overlay is no longer used.
          */
         public void reset() {
+            setThumbnailState(null);
         }
 
         /**
@@ -267,6 +271,11 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
          */
         public void resetModalVisuals() {
         }
+
+        /**
+         * Called when Recents wants to reset the share UI in Overview.
+         */
+        public void resetShareUI() {}
 
         /**
          * Gets the modal state system shortcut.
@@ -343,9 +352,9 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
             RectF boundsInBitmapSpace = new RectF();
             boundsToBitmapSpace.mapRect(boundsInBitmapSpace, viewRect);
 
-            RecentsViewContainer container = RecentsViewContainer.containerFromContext(
+            RecentsViewContainer container = containerFromContext(
                     getTaskView().getContext());
-            int bottomInset = container.getDeviceProfile().isTablet
+            int bottomInset = container.getDeviceProfile().getDeviceProperties().isTablet()
                     ? Math.round(bitmapRect.bottom - boundsInBitmapSpace.bottom) : 0;
             return Insets.of(0, 0, 0, bottomInset);
         }
@@ -364,7 +373,7 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
                     : mTaskContainer.getTaskView().getContext().getString(
                             R.string.blocked_by_policy);
 
-            Snackbar.show(BaseActivity.fromContext(
+            Snackbar.show(containerFromContext(
                     mTaskContainer.getTaskView().getContext()), message, null);
         }
 

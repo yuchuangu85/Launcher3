@@ -24,9 +24,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import com.android.launcher3.util.DaggerSingletonTracker
-import com.android.launcher3.util.LauncherModelHelper.SandboxModelContext
 import com.android.launcher3.util.PluginManagerWrapper
 import com.android.launcher3.util.SafeCloseable
+import com.android.launcher3.util.SandboxApplication
 import com.android.launcher3.util.WidgetUtils
 import com.android.launcher3.widget.LauncherAppWidgetHostView
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo
@@ -55,7 +55,7 @@ class CustomWidgetManagerTest {
 
     @get:Rule val setFlagsRule = SetFlagsRule()
 
-    private val context = SandboxModelContext()
+    @get:Rule val context = SandboxApplication()
     private lateinit var underTest: CustomWidgetManager
 
     @Mock private lateinit var pluginManager: PluginManagerWrapper

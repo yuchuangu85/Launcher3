@@ -15,8 +15,6 @@
  */
 package com.android.launcher3.widget.picker;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -24,12 +22,10 @@ import static org.junit.Assert.assertTrue;
 import android.platform.test.annotations.DisableFlags;
 import android.platform.test.flag.junit.SetFlagsRule;
 
-import androidx.test.espresso.intent.Intents;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 
 import com.android.launcher3.AbstractFloatingView;
-import com.android.launcher3.Flags;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.util.BaseLauncherActivityTest;
 import com.android.launcher3.util.rule.ScreenRecordRule;
@@ -40,6 +36,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
+
+import com.android.launcher3.Flags;
 
 /**
  * Make sure the basic interactions with the WidgetPicker works.
@@ -99,26 +97,5 @@ public class WidgetPickerTest extends BaseLauncherActivityTest<Launcher> {
                 "Widgets were not closed",
                 launcher -> getWidgetsView(launcher) == null
         );
-    }
-
-
-    /**
-     * Open Widget picker, and make sure an intent was launched for the case where
-     * TopResumedActivity is false and shouldShowHomeBehindDesktop() is set to return true.
-     */
-    @Test
-    public void openWidgetPickerSheet_launchesIntent() {
-        loadLauncherSync();
-        Intents.init();
-
-        getLauncherActivity().executeOnLauncher(launcher -> {
-            Launcher spiedLauncher = spy(launcher);
-            doReturn(true).when(spiedLauncher).shouldShowHomeBehindDesktop();
-            spiedLauncher.onTopResumedActivityChanged(false);
-            spiedLauncher.openWidgetsFullSheet();
-        });
-
-        assertEquals(Intents.getIntents().size(), 1);
-        Intents.release();
     }
 }

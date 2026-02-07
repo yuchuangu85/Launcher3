@@ -20,7 +20,7 @@ import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APP
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION;
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_PREDICTION;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_SETTINGS;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_SHORTCUTS;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_TASKSWITCHER;
@@ -72,6 +72,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import app.lawnchair.LawnchairApp;
 
 /**
  * Represents an item in the launcher.
@@ -331,7 +333,8 @@ public class ItemInfo {
      * Returns if an Item is a predicted item
      */
     public boolean isPredictedItem() {
-        return container == CONTAINER_HOTSEAT_PREDICTION || container == CONTAINER_PREDICTION;
+        return container == CONTAINER_HOTSEAT_PREDICTION
+                || container == CONTAINER_ALL_APPS_PREDICTION;
     }
 
     /**
@@ -436,8 +439,10 @@ public class ItemInfo {
     @NonNull
     protected LauncherAtom.ItemInfo.Builder getDefaultItemInfoBuilder(Context context) {
         LauncherAtom.ItemInfo.Builder itemBuilder = LauncherAtom.ItemInfo.newBuilder();
-        itemBuilder.setIsKidsMode(
+        if (LawnchairApp.isRecentsEnabled()) {
+            itemBuilder.setIsKidsMode(
                 SettingsCache.INSTANCE.get(context).getValue(NAV_BAR_KIDS_MODE, 0));
+        }
         itemBuilder.setUserType(getUserType(UserCache.INSTANCE.get(context).getUserInfo(user)));
         itemBuilder.setRank(rank);
         itemBuilder.addAllItemAttributes(mAttributeList);
@@ -476,7 +481,7 @@ public class ItemInfo {
                         .setWidgetsContainer(
                                 LauncherAtom.WidgetsContainer.getDefaultInstance())
                         .build();
-            case CONTAINER_PREDICTION:
+            case CONTAINER_ALL_APPS_PREDICTION:
                 return ContainerInfo.newBuilder()
                         .setPredictionContainer(PredictionContainer.getDefaultInstance())
                         .build();
@@ -507,7 +512,8 @@ public class ItemInfo {
     }
 
     /**
-     * Sets extra container info wrapped by {@link ExtendedContainers} object.
+     * Returns non-AOSP container wrapped by {@link ExtendedContainers} object. Should be overridden
+     * by build variants.
      */
     public void setExtendedContainers(@NonNull ExtendedContainers extendedContainers) {
         mExtendedContainers = extendedContainers;

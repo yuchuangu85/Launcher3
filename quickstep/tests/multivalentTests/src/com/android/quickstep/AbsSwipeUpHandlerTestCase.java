@@ -18,12 +18,16 @@ package com.android.quickstep;
 
 import static android.view.Display.DEFAULT_DISPLAY;
 
+import static com.android.launcher3.BaseActivity.EVENT_DESTROYED;
+import static com.android.launcher3.statehandlers.DesktopVisibilityController.INACTIVE_DESK_ID;
 import static com.android.quickstep.AbsSwipeUpHandler.STATE_HANDLER_INVALIDATED;
 import static com.android.wm.shell.shared.ShellSharedConstants.KEY_EXTRA_SHELL_CAN_HAND_OFF_ANIMATION;
 import static com.android.wm.shell.shared.split.SplitBounds.KEY_EXTRA_SPLIT_BOUNDS;
 import static com.android.wm.shell.shared.split.SplitScreenConstants.SNAP_TO_2_50_50;
 
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -33,7 +37,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -51,7 +57,6 @@ import android.os.SystemClock;
 import android.platform.test.annotations.DisableFlags;
 import android.platform.test.annotations.EnableFlags;
 import android.platform.test.flag.junit.SetFlagsRule;
-import android.view.Display;
 import android.view.RemoteAnimationTarget;
 import android.view.SurfaceControl;
 import android.view.ViewTreeObserver;
@@ -63,9 +68,10 @@ import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.LauncherRootView;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.statemanager.BaseState;
+import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.statemanager.StatefulContainer;
-import com.android.launcher3.util.LauncherModelHelper;
 import com.android.launcher3.util.MSDLPlayerWrapper;
+import com.android.launcher3.util.SandboxApplication;
 import com.android.launcher3.util.SystemUiController;
 import com.android.quickstep.util.ContextInitListener;
 import com.android.quickstep.util.MotionPauseDetector;
@@ -78,6 +84,7 @@ import com.android.wm.shell.shared.split.SplitBounds;
 import com.google.android.msdl.data.model.MSDLToken;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -95,17 +102,23 @@ public abstract class AbsSwipeUpHandlerTestCase<
         SWIPE_HANDLER extends AbsSwipeUpHandler<RECENTS_CONTAINER, RECENTS_VIEW, STATE_TYPE>,
         CONTAINER_INTERFACE extends BaseContainerInterface<STATE_TYPE, RECENTS_CONTAINER>> {
 
-    protected final LauncherModelHelper mLauncherModelHelper = new LauncherModelHelper();
-    protected final LauncherModelHelper.SandboxModelContext mContext =
-            mLauncherModelHelper.sandboxContext;
+    @Rule
+    public final MockitoRule mMockitoRule = MockitoJUnit.rule();
+
+    @Rule
+    public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
+
+    @Rule
+    public final SandboxApplication mContext = new SandboxApplication();
+
     protected final InputConsumerController mInputConsumerController =
             InputConsumerController.getRecentsAnimationInputConsumer();
     protected final ActivityManager.RunningTaskInfo mRunningTaskInfo =
             new ActivityManager.RunningTaskInfo();
     protected final TopTaskTracker.CachedTaskInfo mCachedTaskInfo =
             new TopTaskTracker.CachedTaskInfo(
-                    Collections.singletonList(mRunningTaskInfo), /* canEnterDesktop = */ false,
-                    DEFAULT_DISPLAY);
+                    Collections.singletonList(mRunningTaskInfo), mContext, DEFAULT_DISPLAY,
+                    INACTIVE_DESK_ID);
     protected final RemoteAnimationTarget mRemoteAnimationTarget = new RemoteAnimationTarget(
             /* taskId= */ 0,
             /* mode= */ RemoteAnimationTarget.MODE_CLOSING,
@@ -124,8 +137,45 @@ public abstract class AbsSwipeUpHandlerTestCase<
             /* taskInfo= */ mRunningTaskInfo,
             /* allowEnterPip= */ false);
 
+    protected final RemoteAnimationTarget mRemoteAnimationLeftTop = new RemoteAnimationTarget(
+            /* taskId= */ 1,
+            /* mode= */ RemoteAnimationTarget.MODE_CLOSING,
+            /* leash= */ new SurfaceControl(),
+            /* isTranslucent= */ false,
+            /* clipRect= */ null,
+            /* contentInsets= */ null,
+            /* prefixOrderIndex= */ 0,
+            /* position= */ null,
+            /* localBounds= */ null,
+            /* screenSpaceBounds= */ null,
+            new Configuration().windowConfiguration,
+            /* isNotInRecents= */ false,
+            /* startLeash= */ null,
+            /* startBounds= */ null,
+            /* taskInfo= */ mRunningTaskInfo,
+            /* allowEnterPip= */ false);
+
+    protected final RemoteAnimationTarget mRemoteAnimationRightBottom = new RemoteAnimationTarget(
+            /* taskId= */ 2,
+            /* mode= */ RemoteAnimationTarget.MODE_CLOSING,
+            /* leash= */ new SurfaceControl(),
+            /* isTranslucent= */ false,
+            /* clipRect= */ null,
+            /* contentInsets= */ null,
+            /* prefixOrderIndex= */ 0,
+            /* position= */ null,
+            /* localBounds= */ null,
+            /* screenSpaceBounds= */ null,
+            new Configuration().windowConfiguration,
+            /* isNotInRecents= */ false,
+            /* startLeash= */ null,
+            /* startBounds= */ null,
+            /* taskInfo= */ mRunningTaskInfo,
+            /* allowEnterPip= */ false);
+
     protected RecentsAnimationTargets mRecentsAnimationTargets;
     protected TaskAnimationManager mTaskAnimationManager;
+    protected StateManager<STATE_TYPE, RECENTS_CONTAINER> mStateManager;
 
     @Mock protected CONTAINER_INTERFACE mActivityInterface;
     @Mock protected ContextInitListener<?> mContextInitListener;
@@ -137,12 +187,9 @@ public abstract class AbsSwipeUpHandlerTestCase<
     @Mock protected SystemUiController mSystemUiController;
     @Mock protected GestureState mGestureState;
     @Mock protected MSDLPlayerWrapper mMSDLPlayerWrapper;
-
-    @Rule
-    public final MockitoRule mMockitoRule = MockitoJUnit.rule();
-
-    @Rule
-    public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
+    @Mock protected RecentsAnimationDeviceState mDeviceState;
+    @Mock protected RotationTouchHelper mRotationTouchHelper;
+    @Mock protected StateManager.AtomicAnimationFactory<STATE_TYPE> mAtomicAnimationFactory;
 
     @Before
     public void setUpAnimationTargets() {
@@ -151,12 +198,12 @@ public abstract class AbsSwipeUpHandlerTestCase<
         extras.putParcelable(KEY_EXTRA_SPLIT_BOUNDS, new SplitBounds(
                 /* leftTopBounds = */ new Rect(),
                 /* rightBottomBounds = */ new Rect(),
-                /* leftTopTaskId = */ -1,
-                /* rightBottomTaskId = */ -1,
+                /* leftTopTaskId = */ mRemoteAnimationLeftTop.taskId,
+                /* rightBottomTaskId = */ mRemoteAnimationRightBottom.taskId,
                 /* snapPosition = */ SNAP_TO_2_50_50));
         mRecentsAnimationTargets = new RecentsAnimationTargets(
-                new RemoteAnimationTarget[] {mRemoteAnimationTarget},
-                new RemoteAnimationTarget[] {mRemoteAnimationTarget},
+                new RemoteAnimationTarget[] {mRemoteAnimationLeftTop},
+                new RemoteAnimationTarget[] {mRemoteAnimationRightBottom},
                 new RemoteAnimationTarget[] {mRemoteAnimationTarget},
                 /* homeContentInsets= */ new Rect(),
                 /* minimizedHomeBounds= */ null,
@@ -193,9 +240,8 @@ public abstract class AbsSwipeUpHandlerTestCase<
 
     @Before
     public void setUpRecentsContainer() {
-        mTaskAnimationManager = new TaskAnimationManager(mContext,
-                RecentsAnimationDeviceState.INSTANCE.get(mContext), DEFAULT_DISPLAY);
-        RecentsViewContainer recentsContainer = getRecentsContainer();
+        mTaskAnimationManager = spy(new TaskAnimationManager(mContext, DEFAULT_DISPLAY));
+        RECENTS_CONTAINER recentsContainer = getRecentsContainer();
         RECENTS_VIEW recentsView = getRecentsView();
 
         when(recentsContainer.getDeviceProfile()).thenReturn(new DeviceProfile());
@@ -203,6 +249,7 @@ public abstract class AbsSwipeUpHandlerTestCase<
         when(recentsContainer.getDragLayer()).thenReturn(mDragLayer);
         when(recentsContainer.getRootView()).thenReturn(mRootView);
         when(recentsContainer.getSystemUiController()).thenReturn(mSystemUiController);
+        when(recentsContainer.createAtomicAnimationFactory()).thenReturn(mAtomicAnimationFactory);
         when(mActivityInterface.createActivityInitListener(any()))
                 .thenReturn(mContextInitListener);
         doReturn(recentsContainer).when(mActivityInterface).getCreatedContainer();
@@ -210,6 +257,10 @@ public abstract class AbsSwipeUpHandlerTestCase<
             answer.<Runnable>getArgument(0).run();
             return this;
         }).when(recentsContainer).runOnBindToTouchInteractionService(any());
+
+        mStateManager = spy(new StateManager<>(recentsContainer, getBaseState()));
+
+        doReturn(mStateManager).when(recentsContainer).getStateManager();
     }
 
     @Test
@@ -320,6 +371,24 @@ public abstract class AbsSwipeUpHandlerTestCase<
     }
 
     @Test
+    @Ignore("b/418979038")
+    public void invalidateHandlerWithLauncher_runsGestureAnimationEndCallback() {
+        SWIPE_HANDLER handler = createSwipeHandler();
+        Runnable onGestureAnimationEndCallback = mock(Runnable.class);
+        handler.setGestureAnimationEndCallback(onGestureAnimationEndCallback);
+        handler.onActivityInit(true); // Sets STATE_LAUNCHER_PRESENT
+
+        // Use onConsumerAboutToBeSwitched to call reset(),to sets STATE_HANDLER_INVALIDATED. This
+        // will then call invalidateHandlerWithLauncher. This will hit the reset() in the else
+        // condition of onConsumerAboutToBeSwitched, as the gesture state is a mock and will
+        // return false for the booleans checked in the if-condition.
+        handler.onConsumerAboutToBeSwitched();
+
+        verify(getRecentsView()).onGestureAnimationEnd();
+        verify(onGestureAnimationEndCallback).run();
+    }
+
+    @Test
     @EnableFlags(com.android.launcher3.Flags.FLAG_MSDL_FEEDBACK)
     public void onMotionPauseDetected_playsSwipeThresholdToken() {
         SWIPE_HANDLER handler = createSwipeHandler();
@@ -328,6 +397,39 @@ public abstract class AbsSwipeUpHandlerTestCase<
 
         verify(mMSDLPlayerWrapper, times(1)).playToken(eq(MSDLToken.SWIPE_THRESHOLD_INDICATOR));
         verifyNoMoreInteractions(mMSDLPlayerWrapper);
+    }
+
+    @Test
+    public void testOnContainerDestroy_cleansUpSwipeHandler() {
+        SWIPE_HANDLER swipeHandler = createSwipeHandler();
+
+        swipeHandler.onActivityInit(true);
+
+        RECENTS_CONTAINER container = getRecentsContainer();
+        ArgumentCaptor<Runnable> onContainerDestroyCallbackCaptor =
+                ArgumentCaptor.forClass(Runnable.class);
+
+        verify(container)
+                .addEventCallback(eq(EVENT_DESTROYED), onContainerDestroyCallbackCaptor.capture());
+
+        assertNotNull(swipeHandler.mRecentsView);
+        assertNotNull(swipeHandler.mContainer);
+
+        onContainerDestroyCallbackCaptor.getValue().run();
+
+        assertNull(swipeHandler.mRecentsView);
+        assertNull(swipeHandler.mContainer);
+        verify(mTaskAnimationManager).onLauncherDestroyed();
+        runOnMainSync(() -> verify(mContextInitListener)
+                .unregister(eq("AbsSwipeUpHandler.mLauncherOnDestroyCallback")));
+    }
+
+    @Test
+    public void test_noActivityInit_doesNotThrowException() {
+        // Do not trigger onActivityInit to ensure AbsSwipeUpHandler.mRecentsView and
+        // AbsSwipeUpHandler.mContainer are null
+        createSwipeUpHandlerForGesture(
+                GestureState.GestureEndTarget.HOME, /* triggerOnActivityInit= */ false);
     }
 
     /**
@@ -351,13 +453,20 @@ public abstract class AbsSwipeUpHandlerTestCase<
     }
 
     private SWIPE_HANDLER createSwipeUpHandlerForGesture(GestureState.GestureEndTarget endTarget) {
+        return createSwipeUpHandlerForGesture(endTarget, true);
+    }
+
+    private SWIPE_HANDLER createSwipeUpHandlerForGesture(
+            GestureState.GestureEndTarget endTarget, boolean triggerOnActivityInit) {
         boolean isQuickSwitch = endTarget == GestureState.GestureEndTarget.NEW_TASK;
 
         doReturn(mState).when(mActivityInterface).stateFromGestureEndTarget(any());
 
         SWIPE_HANDLER swipeHandler = createSwipeHandler(SystemClock.uptimeMillis(), isQuickSwitch);
 
-        swipeHandler.onActivityInit(/* alreadyOnHome= */ false);
+        if (triggerOnActivityInit) {
+            swipeHandler.onActivityInit(/* alreadyOnHome= */ false);
+        }
         swipeHandler.onGestureStarted(isQuickSwitch);
         onRecentsAnimationStart(swipeHandler);
 
@@ -378,7 +487,7 @@ public abstract class AbsSwipeUpHandlerTestCase<
 
     private void onRecentsAnimationStart(SWIPE_HANDLER absSwipeUpHandler) {
         runOnMainSync(() -> absSwipeUpHandler.onRecentsAnimationStart(
-                mRecentsAnimationController, mRecentsAnimationTargets, /* transitionInfo= */null));
+                mRecentsAnimationController, mRecentsAnimationTargets, /* transitionInfo= */ null));
     }
 
     protected static void runOnMainSync(Runnable runnable) {
@@ -395,8 +504,11 @@ public abstract class AbsSwipeUpHandlerTestCase<
             long touchTimeMs, boolean continuingLastGesture);
 
     @NonNull
-    protected abstract RecentsViewContainer getRecentsContainer();
+    protected abstract RECENTS_CONTAINER getRecentsContainer();
 
     @NonNull
     protected abstract RECENTS_VIEW getRecentsView();
+
+    @NonNull
+    protected abstract STATE_TYPE getBaseState();
 }

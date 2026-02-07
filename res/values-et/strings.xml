@@ -113,6 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Puudutage seadistuse lõpuleviimiseks"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"See on süsteemirakendus ja seda ei saa desinstallida."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Muuda nime"</string>
+    <string name="paginate_left" msgid="7915437358451360433">"Vasakpoolne lehekülgjaotus"</string>
+    <string name="paginate_right" msgid="6701038155201975878">"Parempoolne lehekülgjaotus"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Rakendus <xliff:g id="APP_NAME">%1$s</xliff:g> on keelatud"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{Rakenduses {app_name} on # märguanne}other{Rakenduses {app_name} on # märguannet}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Leht %1$d/%2$d"</string>
@@ -136,7 +138,7 @@
     <string name="allow_rotation_title" msgid="7222049633713050106">"Luba avakuva pööramine"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Kui telefoni pööratakse"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Horisontaalrežiim"</string>
-    <string name="landscape_mode_desc" msgid="7372569859592816793">"Sea telefon horisontaalrežiimi"</string>
+    <string name="landscape_mode_desc" msgid="3085236452297838664">"Sea avakuva horisontaalrežiimi"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Märguandetäpid"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Sees"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Väljas"</string>
@@ -216,6 +218,12 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Lukk"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Privaatse ruumi üleviimine"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Installi"</string>
+    <string name="ps_app_label_override" msgid="6876160706011676804">"Lisamine"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Rakenduste installimine privaatses ruumis"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Privaatsesse ruumi failide ja muu sisu lisamine"</string>
+    <string name="circle_shape_title" msgid="3582075061179674565">"Ring"</string>
+    <string name="square_shape_title" msgid="3085320803149569308">"Ruut"</string>
+    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Nelinurkne küpsis"</string>
+    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Seitsenurkne küpsis"</string>
+    <string name="arch_shape_title" msgid="2213843822192871318">"Kaar"</string>
 </resources>

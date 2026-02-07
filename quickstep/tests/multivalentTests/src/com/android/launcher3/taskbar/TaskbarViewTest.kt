@@ -33,7 +33,7 @@ import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule.ForceRtl
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
 import com.android.launcher3.util.LauncherMultivalentJUnit.Companion.isRunningInRobolectric
-import com.android.window.flags.Flags.FLAG_ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION
+import com.android.window.flags2.Flags.FLAG_ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

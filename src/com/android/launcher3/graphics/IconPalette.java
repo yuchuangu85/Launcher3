@@ -16,10 +16,15 @@
 
 package com.android.launcher3.graphics;
 
+import static com.android.launcher3.icons.GraphicsUtils.setColorAlphaBound;
+
+import android.app.Notification;
 import android.content.Context;
 import android.graphics.Color;
 
 import com.android.launcher3.util.Themes;
+
+import java.lang.IllegalArgumentException;
 
 /**
  * Contains colors based on the dominant color of an icon.
