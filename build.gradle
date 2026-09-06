@@ -195,7 +195,7 @@ android {
         // (build/generated/source/proto/<variant>/java) on each variant's source set itself.
         // Flavor-specific BuildConfig (see tools/buildconfig.sh): generated-src holds the
         // quickstep defaults (widgets/dots enabled); generated-src-go the Android Go overrides.
-        quickstep {
+        withquickstep {
             java.srcDirs += ['generated-src']
         }
         go {
