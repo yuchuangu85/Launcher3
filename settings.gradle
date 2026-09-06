@@ -14,7 +14,7 @@ dependencyResolutionManagement {
         maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
 }
-rootProject.name = "Launcher3-QuickStep-Android17"
+rootProject.name = "Launcher3"
 
 def sysui = { name, path ->
     include ":$name"
