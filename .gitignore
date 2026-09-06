@@ -5,6 +5,3 @@ build
 Launcher3_mx.iml
 gradlew
 gradlew.bat
-
-# AOSP build outputs — regenerate via tools/fetch-framework-prebuilts.sh (VM out/soong)
-prebuilts/framework/
