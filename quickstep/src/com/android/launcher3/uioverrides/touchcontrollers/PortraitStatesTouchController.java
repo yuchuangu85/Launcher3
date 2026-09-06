@@ -20,13 +20,12 @@ import static com.android.launcher3.AbstractFloatingView.getTopOpenViewWithType;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
+import static com.android.window.flags.Flags.betterDeskDeactivationInRecentsTransition;
 
 import android.view.MotionEvent;
 
-import com.android.app.animation.Interpolators;
 import com.android.internal.jank.Cuj;
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.Flags;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.allapps.AllAppsTransitionController;
@@ -36,9 +35,8 @@ import com.android.launcher3.touch.AllAppsSwipeController;
 import com.android.launcher3.touch.SingleAxisSwipeDetector;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.uioverrides.states.OverviewState;
+import com.android.launcher3.util.WindowBlurState;
 import com.android.quickstep.SystemUiProxy;
-import com.android.quickstep.util.LayoutUtils;
-import com.android.quickstep.views.RecentsView;
 import com.android.systemui.contextualeducation.GestureType;
 import com.android.systemui.shared.system.InteractionJankMonitorWrapper;
 
@@ -108,9 +106,9 @@ public class PortraitStatesTouchController extends AbstractStateChangeTouchContr
         final StateAnimationConfig config = new StateAnimationConfig();
         config.animProps |= StateAnimationConfig.USER_CONTROLLED;
         if (fromState == NORMAL && toState == ALL_APPS) {
-            AllAppsSwipeController.applyNormalToAllAppsAnimConfig(mLauncher, config);
+            AllAppsSwipeController.applyNormalToAllAppsAnimConfig(config);
         } else if (fromState == ALL_APPS && toState == NORMAL) {
-            AllAppsSwipeController.applyAllAppsToNormalConfig(mLauncher, config);
+            AllAppsSwipeController.applyAllAppsToNormalConfig(config);
         }
         return config;
     }
@@ -135,25 +133,8 @@ public class PortraitStatesTouchController extends AbstractStateChangeTouchContr
         }
 
         mGoingBetweenStates = true;
-        if (mFromState == OVERVIEW && mToState == NORMAL
-                && mOverviewPortraitStateTouchHelper.shouldSwipeDownReturnToApp()) {
-            // Reset the state manager, when changing the interaction mode
-            mLauncher.getStateManager().goToState(OVERVIEW, false /* animate */);
-            mGoingBetweenStates = false;
-            mCurrentAnimation = mOverviewPortraitStateTouchHelper
-                    .createSwipeDownToTaskAppAnimation(maxAccuracy, Interpolators.LINEAR)
-                    .createPlaybackController();
-            mLauncher.getStateManager().setCurrentUserControlledAnimation(mCurrentAnimation);
-            RecentsView recentsView = mLauncher.getOverviewPanel();
-            totalShift = LayoutUtils.getShelfTrackingDistance(
-                    mLauncher,
-                    mLauncher.getDeviceProfile(),
-                    recentsView.getPagedOrientationHandler(),
-                    recentsView.getContainerInterface());
-        } else {
-            mCurrentAnimation = mLauncher.getStateManager()
-                    .createAnimationToNewWorkspace(mToState, config);
-        }
+        mCurrentAnimation = mLauncher.getStateManager()
+                .createAnimationToNewWorkspace(mToState, config);
         mCurrentAnimation.getTarget().addListener(mClearStateOnCancelListener);
 
         if (totalShift == 0) {
@@ -167,7 +148,8 @@ public class PortraitStatesTouchController extends AbstractStateChangeTouchContr
     protected void onSwipeInteractionCompleted(LauncherState targetState) {
         super.onSwipeInteractionCompleted(targetState);
         SystemUiProxy sysUIProxy = SystemUiProxy.INSTANCE.get(mLauncher);
-        if (mStartState == NORMAL && targetState == OVERVIEW) {
+        if (!betterDeskDeactivationInRecentsTransition()
+                && mStartState == NORMAL && targetState == OVERVIEW) {
             sysUIProxy.onOverviewShown(true, TAG);
         }
 
@@ -191,7 +173,7 @@ public class PortraitStatesTouchController extends AbstractStateChangeTouchContr
      */
     static boolean isTouchOverHotseat(Launcher launcher, MotionEvent ev) {
         DeviceProfile dp = launcher.getDeviceProfile();
-        int hotseatHeight = dp.hotseatBarSizePx + dp.getInsets().bottom;
+        int hotseatHeight = dp.getHotseatProfile().getBarSizePx() + dp.getInsets().bottom;
         return (ev.getY() >= (launcher.getDragLayer().getHeight() - hotseatHeight));
     }
 
@@ -218,8 +200,7 @@ public class PortraitStatesTouchController extends AbstractStateChangeTouchContr
     @Override
     protected void onReinitToState(LauncherState newToState) {
         super.onReinitToState(newToState);
-        if (Flags.allAppsBlur() && mLauncher.isAllAppsBackgroundBlurEnabled()
-                && newToState == ALL_APPS) {
+        if (WindowBlurState.getInstance(mLauncher).getValue() && newToState == ALL_APPS) {
             // About to start blurring during swipe to All Apps; prepare the renderer.
             ((QuickstepLauncher) mLauncher).getDepthController().setEarlyWakeup(true);
         }

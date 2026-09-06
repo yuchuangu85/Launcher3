@@ -44,12 +44,13 @@ public class OverviewActions {
             UiObject2 screenshot = mLauncher.waitForObjectInContainer(mOverviewActions,
                     "action_screenshot");
 
-            mLauncher.clickLauncherObject(screenshot);
+            screenshot.click();
             try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
                     "clicked screenshot button")) {
-                UiObject2 closeScreenshot = mLauncher.waitForSystemUiObject(
-                        "screenshot_dismiss_image");
-                closeScreenshot.click();
+                mLauncher.waitForSystemUiObject("screenshot_preview");
+                // dismiss the screenshot; we don't expect to receive the back event because it's
+                // consumed by the screenshot process
+                mLauncher.pressBackImpl(false);
                 try (LauncherInstrumentation.Closable c2 = mLauncher.addContextLayer(
                         "dismissed screenshot")) {
                     return new Overview(mLauncher);
@@ -72,7 +73,7 @@ public class OverviewActions {
                      mLauncher.addContextLayer("want to click select button")) {
             UiObject2 select = mLauncher.waitForObjectInContainer(mOverviewActions,
                     "action_select");
-            mLauncher.clickLauncherObject(select);
+            select.click();
             try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
                     "clicked select button")) {
                 return getSelectModeButtons();
@@ -103,7 +104,7 @@ public class OverviewActions {
                      "want to click split button to enter split select mode")) {
             UiObject2 split = mLauncher.waitForObjectInContainer(mOverviewActions,
                     "action_split");
-            mLauncher.clickLauncherObject(split);
+            split.click();
             try (LauncherInstrumentation.Closable c2 = mLauncher.addContextLayer(
                     "clicked split")) {
                 return new SplitScreenSelect(mLauncher);

@@ -16,66 +16,77 @@
 
 package com.android.launcher3.dagger;
 
+import static com.android.launcher3.util.WindowBlurState.WINDOW_BLUR_STATE;
+
 import android.content.Context;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherPrefs;
+import com.android.launcher3.MainProcessInitializer;
 import com.android.launcher3.RemoveAnimationSettingsTracker;
+import com.android.launcher3.appfunctions.workspace.WorkspaceAppFunctions;
+import com.android.launcher3.automation.AutomationRepository;
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger;
-import com.android.launcher3.compose.core.widgetpicker.WidgetPickerComposeWrapper;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.folder.FolderNameSuggestionLoader;
+import com.android.launcher3.graphics.GlowMaskCache;
 import com.android.launcher3.graphics.GridCustomizationsProxy;
 import com.android.launcher3.graphics.ThemeManager;
+import com.android.launcher3.graphics.theme.ThemePreference;
+import com.android.launcher3.homescreenfiles.HomeScreenFilesProvider;
+import com.android.launcher3.icons.IconChangeTracker;
 import com.android.launcher3.icons.LauncherIcons.IconPool;
 import com.android.launcher3.logging.DumpManager;
 import com.android.launcher3.logging.StatsLogManager;
+import com.android.launcher3.model.GridSizeMigrationLogic;
 import com.android.launcher3.model.ItemInstallQueue;
+import com.android.launcher3.model.LayoutParserFactory;
 import com.android.launcher3.model.LoaderCursor.LoaderCursorFactory;
+import com.android.launcher3.model.ModelProxyProvider;
+import com.android.launcher3.model.ModelWriterFactory;
+import com.android.launcher3.model.TestableModelState;
+import com.android.launcher3.model.repository.HomeScreenRepository;
+import com.android.launcher3.model.repository.StringCacheRepository;
+import com.android.launcher3.notification.NotificationRepository;
+import com.android.launcher3.organizer.dagger.OrganizerComponent;
 import com.android.launcher3.pm.InstallSessionHelper;
 import com.android.launcher3.pm.UserCache;
+import com.android.launcher3.popup.PopupDataRepository;
+import com.android.launcher3.qsb.OSEManager;
+import com.android.launcher3.qsb.OseWidgetManager;
+import com.android.launcher3.qsb.QsbWidgetFactory;
+import com.android.launcher3.testing.TestInformationHandler;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.DaggerSingletonTracker;
-import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.util.DefaultsValueProvider;
 import com.android.launcher3.util.DynamicResource;
 import com.android.launcher3.util.InstantAppResolver;
+import com.android.launcher3.util.LayoutImportExportHelper;
+import com.android.launcher3.util.ListenableRef;
 import com.android.launcher3.util.LockedUserState;
 import com.android.launcher3.util.MSDLPlayerWrapper;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.PluginManagerWrapper;
 import com.android.launcher3.util.ScreenOnTracker;
 import com.android.launcher3.util.SettingsCache;
+import com.android.launcher3.util.TaskbarModeUtil;
 import com.android.launcher3.util.VibratorWrapper;
 import com.android.launcher3.util.WallpaperColorHints;
+import com.android.launcher3.util.coroutines.ProductionDispatchers;
 import com.android.launcher3.util.window.RefreshRateTracker;
 import com.android.launcher3.util.window.WindowManagerProxy;
 import com.android.launcher3.widget.LauncherWidgetHolder.WidgetHolderFactory;
 import com.android.launcher3.widget.custom.CustomWidgetManager;
 import com.android.launcher3.widget.util.WidgetSizeHandler;
+import com.android.launcher3.widgetpicker.WidgetPickerComposeWrapper;
+
+import dagger.BindsInstance;
 
 import javax.inject.Named;
-
-import app.lawnchair.DeviceProfileOverrides;
-import app.lawnchair.HeadlessWidgetsManager;
-import app.lawnchair.NotificationManager;
-import app.lawnchair.data.folder.service.FolderService;
-import app.lawnchair.data.iconoverride.IconOverrideRepository;
-import app.lawnchair.data.wallpaper.service.WallpaperService;
-import app.lawnchair.font.FontCache;
-import app.lawnchair.font.FontManager;
-import app.lawnchair.font.googlefonts.GoogleFontsListing;
-import app.lawnchair.icons.iconpack.IconPackProvider;
-import app.lawnchair.icons.shape.IconShapeManager;
-import app.lawnchair.preferences.PreferenceManager;
-import app.lawnchair.preferences2.PreferenceManager2;
-import app.lawnchair.smartspace.provider.SmartspaceProvider;
-import app.lawnchair.theme.ThemeProvider;
-import app.lawnchair.ui.preferences.components.colorpreference.ColorPreferenceModelList;
-import app.lawnchair.ui.preferences.data.liveinfo.LiveInformationManager;
-import app.lawnchair.util.LawnchairWindowManagerProxy;
-import dagger.BindsInstance;
 
 /**
  * Launcher base component for Dagger injection.
@@ -110,7 +121,6 @@ public interface LauncherBaseAppComponent {
     IconPool getIconPool();
     RemoveAnimationSettingsTracker getRemoveAnimationSettingsTracker();
     LauncherAppState getLauncherAppState();
-
     LauncherRestoreEventLogger getLauncherRestoreEventLogger();
     GridCustomizationsProxy getGridCustomizationsProxy();
     FolderNameSuggestionLoader getFolderNameSuggestionLoader();
@@ -123,28 +133,65 @@ public interface LauncherBaseAppComponent {
     ActivityContextComponent.Builder getActivityContextComponentBuilder();
     WidgetPickerComposeWrapper getWidgetPickerComposeWrapper();
     WidgetSizeHandler getWidgetSizeHandler();
+    MainProcessInitializer getMainProcessInitializer();
+    OseWidgetManager getOseWidgetManager();
+    OSEManager getOseManager();
+    TestInformationHandler getTestInformationHandler();
+    TaskbarModeUtil getTaskbarModeUtil();
+    ProductionDispatchers getProductionDispatchers();
 
+    /** Utility class for importing/exporting launcher layout */
+    LayoutImportExportHelper getLayoutImportExportHelper();
+    /** Returns the layout parser factory for default layout parsing */
+    LayoutParserFactory getLayoutParserFactory();
+    /** Returns the model writer factory */
+    ModelWriterFactory getModelWriterFactory();
+    /** Returns new [ModelProxyProvider] */
+    ModelProxyProvider getModelProxyProvider();
 
-    // Lawnchair-specific
-    
-    LawnchairWindowManagerProxy getLWMP();
-    DeviceProfileOverrides getDPO();
-    ThemeProvider getThemeProvider();
-    SmartspaceProvider getSmartspaceProvider();
-    HeadlessWidgetsManager getHeadlessWidgetsManager();
-    NotificationManager getNotificationManager();
-    ColorPreferenceModelList getColorPreferenceModelList();
-    LiveInformationManager getLiveInformationManager();
-    PreferenceManager2 getPreferenceManager2();
-    PreferenceManager getPreferenceManager();
-    FontCache getFontCache();
-    FontManager getFontManager();
-    IconShapeManager getIconShapeManager();
-    IconPackProvider getIconPackProvider();
-    GoogleFontsListing getGoogleFontsListing();
-    WallpaperService getWallpaperService();
-    IconOverrideRepository getIconOverrideRepository();
-    FolderService getFolderService();
+    @VisibleForTesting
+    GridSizeMigrationLogic createNewGridSizeMigrationLogic();
+    /** Returns reference to various model objects used for test verification */
+    TestableModelState getTestableModelState();
+
+    /** Popup data mapping for [ItemInfo] */
+    PopupDataRepository getPopupDataRepository();
+
+    NotificationRepository getNotificationRepository();
+    HomeScreenFilesProvider getHomeScreenFilesProvider();
+
+    /** Preferences for icon theme */
+    ThemePreference getThemePreference();
+
+    /** Tracker for any app icon changes */
+    IconChangeTracker getIconChangeTracker();
+
+    /** Factory for qsb inflation */
+    QsbWidgetFactory getQsbWidgetFactory();
+
+    /** Tracker for cross window blur enabled state */
+    @Named(WINDOW_BLUR_STATE) ListenableRef<Boolean> getWindowBlurState();
+
+    /** Returns the StringCacheRepoRepository */
+    StringCacheRepository getStringCacheRepoRepository();
+
+    /**  Repository for automated packages information */
+    AutomationRepository getAutomationRepository();
+
+    /** Repository for workspace data */
+    HomeScreenRepository getHomeScreenRepository();
+
+    /** Returns the WorkspaceAppFunctions instance */
+    WorkspaceAppFunctions getWorkspaceAppFunctions();
+
+    /** Provider for default values */
+    DefaultsValueProvider getDefaultsValueProvider();
+
+    /** Builder for organizer component */
+    OrganizerComponent.Builder getOrganizerComponentBuilder();
+
+    /** Caches BitmapShaders for glow effects */
+    GlowMaskCache getGlowMaskCache();
 
     /** Builder for LauncherBaseAppComponent. */
     interface Builder {

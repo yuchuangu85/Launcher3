@@ -106,7 +106,11 @@ public class PendingAnimation extends AnimatedPropertySetter {
 
     /** If trace is enabled, add counter to trace animation progress. */
     public void logAnimationProgressToTrace(String counterName) {
-        // LC: No-op
+        if (Trace.isEnabled()) {
+            super.addOnFrameListener(
+                    animation -> Trace.setCounter(
+                            counterName, (long) (animation.getAnimatedFraction() * 100)));
+        }
     }
 
     /**

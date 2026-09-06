@@ -62,6 +62,8 @@ open class LauncherRestoreEventLogger @Inject constructor() {
             const val UNSPECIFIED_WIDGET_INFLATION_RESULT = "unspecified_widget_inflation_result"
             const val UNRESTORED_PENDING_WIDGET = "unrestored_pending_widget"
             const val INVALID_CUSTOM_WIDGET_ID = "invalid_custom_widget_id"
+            const val FILE_SYSTEM_ITEM_FROM_BACKUP = "file_system_item_from_backup"
+            const val FILE_SYSTEM_ITEM_NO_LONGER_EXISTS = "file_system_item_no_longer_exists"
         }
     }
 

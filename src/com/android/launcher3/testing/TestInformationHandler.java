@@ -15,15 +15,19 @@
  */
 package com.android.launcher3.testing;
 
-import static com.android.launcher3.Flags.enableFallbackOverviewInWindow;
-import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
-import static com.android.launcher3.Flags.enableLauncherOverviewInWindow;
+import static androidx.lifecycle.Lifecycle.State.DESTROYED;
+
+import static com.android.launcher3.Flags.enableTaskbarUiThread;
+import static com.android.launcher3.InvariantDeviceProfile.TYPE_PHONE;
+import static com.android.launcher3.LauncherPrefs.FIXED_LANDSCAPE_MODE;
 import static com.android.launcher3.allapps.AllAppsStore.DEFER_UPDATES_TEST;
-import static com.android.launcher3.config.FeatureFlags.ENABLE_TASKBAR_NAVBAR_UNIFICATION;
 import static com.android.launcher3.config.FeatureFlags.FOLDABLE_SINGLE_PAGE;
 import static com.android.launcher3.testing.shared.TestProtocol.TEST_INFO_RESPONSE_FIELD;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
+import static com.android.launcher3.util.Executors.getTaskbarUiThread;
+import static com.android.launcher3.util.OverviewReleaseFlags.enableFallbackOverviewInWindow;
+import static com.android.launcher3.util.OverviewReleaseFlags.enableLauncherOverviewInWindow;
 
 import android.app.Activity;
 import android.app.Application;
@@ -38,8 +42,10 @@ import android.system.Os;
 import android.view.WindowInsets;
 
 import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.LifecycleOwner;
 
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.CellLayout;
@@ -49,17 +55,20 @@ import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherModel;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.ShortcutAndWidgetContainer;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.Workspace;
+import com.android.launcher3.dagger.LauncherComponentProvider;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.icons.ClockDrawableWrapper;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.util.ActivityLifecycleCallbacksAdapter;
-import com.android.launcher3.util.DisplayController;
-import com.android.launcher3.util.ResourceBasedOverride;
-import com.android.launcher3.widget.picker.WidgetsFullSheet;
+import com.android.launcher3.util.TaskbarModeUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,39 +83,52 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.inject.Inject;
+
 /**
  * Class to handle requests from tests
  */
-public class TestInformationHandler implements ResourceBasedOverride {
+public class TestInformationHandler {
+
+    @Inject
+    public TestInformationHandler() {
+    }
+
 
     public static TestInformationHandler newInstance(Context context) {
-        return Overrides.getObject(TestInformationHandler.class,
-                context, R.string.test_information_handler_class);
+        return LauncherComponentProvider.get(context).getTestInformationHandler();
     }
 
     private static Collection<String> sEvents;
     private static Application.ActivityLifecycleCallbacks sActivityLifecycleCallbacks;
-    private static final Set<Activity> sActivities =
-            Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
+    private static final Set<LifecycleOwner> sUiSurfaces =
+            Collections.newSetFromMap(new WeakHashMap<>());
     private static int sActivitiesCreatedCount = 0;
 
     protected Context mContext;
-    protected DeviceProfile mDeviceProfile;
+    private DeviceProfile mPrimaryDeviceProfile;
 
     public void init(Context context) {
         mContext = context;
-        mDeviceProfile = InvariantDeviceProfile.INSTANCE.get(context).getDeviceProfile(context);
+        mPrimaryDeviceProfile =
+                InvariantDeviceProfile.INSTANCE.get(context).getDeviceProfile(context);
         if (sActivityLifecycleCallbacks == null) {
             sActivityLifecycleCallbacks = new ActivityLifecycleCallbacksAdapter() {
                 @Override
                 public void onActivityCreated(Activity activity, Bundle bundle) {
-                    sActivities.add(activity);
                     ++sActivitiesCreatedCount;
                 }
             };
             ((Application) context.getApplicationContext())
                     .registerActivityLifecycleCallbacks(sActivityLifecycleCallbacks);
         }
+    }
+
+    /** Starts tracking UI surface for leaks. */
+    public static void trackUiSurface(LifecycleOwner surface) {
+        if (!Utilities.isRunningInTestHarness()) return;
+
+        sUiSurfaces.add(surface);
     }
 
     /**
@@ -132,6 +154,9 @@ public class TestInformationHandler implements ResourceBasedOverride {
             }
 
             case TestProtocol.REQUEST_IS_LAUNCHER_INITIALIZED: {
+                if (enableTaskbarUiThread()) {
+                    getFromExecutorSync(getTaskbarUiThread(),  Bundle::new);
+                }
                 return getUIProperty(Bundle::putBoolean, t -> isLauncherInitialized(), () -> true);
             }
 
@@ -160,11 +185,6 @@ public class TestInformationHandler implements ResourceBasedOverride {
                         l -> l.getAppsView().getActiveRecyclerView().computeVerticalScrollOffset());
             }
 
-            case TestProtocol.REQUEST_WIDGETS_SCROLL_Y: {
-                return getLauncherUIProperty(Bundle::putInt,
-                        l -> WidgetsFullSheet.getWidgetsView(l).computeVerticalScrollOffset());
-            }
-
             case TestProtocol.REQUEST_TARGET_INSETS: {
                 return getUIProperty(Bundle::putParcelable, insets -> Insets.max(
                         insets.getSystemGestureInsets(),
@@ -177,8 +197,12 @@ public class TestInformationHandler implements ResourceBasedOverride {
             }
 
             case TestProtocol.REQUEST_CELL_LAYOUT_BOARDER_HEIGHT: {
-                response.putInt(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        mDeviceProfile.cellLayoutBorderSpacePx.y);
+                response.putInt(
+                        TestProtocol.TEST_INFO_RESPONSE_FIELD,
+                        mPrimaryDeviceProfile
+                                .getWorkspaceProfile()
+                                .getCellLayoutBorderSpacePx()
+                                .y);
                 return response;
             }
 
@@ -194,7 +218,7 @@ public class TestInformationHandler implements ResourceBasedOverride {
 
             case TestProtocol.REQUEST_ICON_HEIGHT: {
                 response.putInt(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        mDeviceProfile.getAllAppsProfile().getCellHeightPx());
+                        mPrimaryDeviceProfile.getAllAppsProfile().getCellHeightPx());
                 return response;
             }
 
@@ -203,40 +227,65 @@ public class TestInformationHandler implements ResourceBasedOverride {
                 return response;
 
             case TestProtocol.REQUEST_IS_TABLET:
-                response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD, mDeviceProfile.getDeviceProperties().isTablet());
+                response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
+                        mPrimaryDeviceProfile.getDeviceProperties().isLargeScreen());
                 return response;
             case TestProtocol.REQUEST_IS_PREDICTIVE_BACK_SWIPE_ENABLED:
-                response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        mDeviceProfile.isPredictiveBackSwipe);
-                return response;
-            case TestProtocol.REQUEST_ENABLE_TASKBAR_NAVBAR_UNIFICATION:
-                response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        ENABLE_TASKBAR_NAVBAR_UNIFICATION);
-                return response;
-
-            case TestProtocol.REQUEST_TASKBAR_SHOWN_ON_HOME:
+                return getLauncherUIProperty(
+                        Bundle::putBoolean, l -> l.isOnBackInvokedCallbackEnabled()
+                );
+            case TestProtocol.REQUEST_TASKBAR_SHOWN_ON_HOME: {
+                LauncherDisplayInfo displayInfo = DisplayController.INSTANCE.get(
+                        mContext).getInfoForDisplay(Integer.parseInt(arg));
                 response.putBoolean(TEST_INFO_RESPONSE_FIELD,
-                        DisplayController.showLockedTaskbarOnHome(mContext));
+                        displayInfo != null
+                                && displayInfo.getShowDesktopTaskbarForFreeformDisplay());
                 return response;
+            }
+
+            case TestProtocol.REQUEST_SHOULD_SHOW_HOME_BEHIND_DESKTOP: {
+                final Bundle bundle = getLauncherUIProperty(Bundle::putBoolean,
+                        launcher -> launcher.shouldShowHomeBehindDesktop());
+                if (bundle != null) return bundle;
+                response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD, false);
+                return response;
+            }
+
+            case TestProtocol.REQUEST_IS_IN_DESKTOP_FIRST_MODE: {
+                LauncherDisplayInfo displayInfo = DisplayController.INSTANCE.get(
+                        mContext).getInfoForDisplay(Integer.parseInt(arg));
+                response.putBoolean(TEST_INFO_RESPONSE_FIELD,
+                        displayInfo != null && displayInfo.isInDesktopFirstMode);
+                return response;
+            }
+
             case TestProtocol.REQUEST_NUM_ALL_APPS_COLUMNS:
                 response.putInt(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        mDeviceProfile.numShownAllAppsColumns);
+                        mPrimaryDeviceProfile.getAllAppsProfile().getNumShownAllAppsColumns());
                 return response;
 
             case TestProtocol.REQUEST_IS_TRANSIENT_TASKBAR:
+                LauncherDisplayInfo displayInfo = DisplayController.INSTANCE.get(
+                        mContext).getInfoForDisplay(Integer.parseInt(arg));
                 response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        DisplayController.isTransientTaskbar(mContext));
+                        TaskbarModeUtil.INSTANCE.get(mContext).isTransient(displayInfo));
                 return response;
 
             case TestProtocol.REQUEST_IS_TWO_PANELS:
                 response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        FOLDABLE_SINGLE_PAGE.get() ? false : mDeviceProfile.getDeviceProperties().isTwoPanels());
+                        !FOLDABLE_SINGLE_PAGE.get()
+                                && mPrimaryDeviceProfile.getDeviceProperties().isTwoPanels());
                 return response;
 
             case TestProtocol.REQUEST_GET_HAD_NONTEST_EVENTS:
                 response.putBoolean(
                         TestProtocol.TEST_INFO_RESPONSE_FIELD, TestLogging.sHadEventsNotFromTest);
                 return response;
+
+            case TestProtocol.REQUEST_ENABLE_REGISTER_EVENT_NOT_FROM_TEST: {
+                TestLogging.setEnableRegisterEventNotFromTest(Boolean.parseBoolean(arg));
+                return response;
+            }
 
             case TestProtocol.REQUEST_START_DRAG_THRESHOLD: {
                 final Resources resources = mContext.getResources();
@@ -257,6 +306,13 @@ public class TestInformationHandler implements ResourceBasedOverride {
                                 .forceAllowRotationForTesting(Boolean.parseBoolean(arg)));
                 return response;
 
+            case TestProtocol.REQUEST_ENABLE_FIXED_LANDSCAPE: {
+                boolean enable = Boolean.parseBoolean(arg)
+                        && DisplayController.INSTANCE.get(mContext).getInfo()
+                                .getDeviceType() == TYPE_PHONE;
+                LauncherPrefs.INSTANCE.get(mContext).put(FIXED_LANDSCAPE_MODE, enable);
+                return response;
+            }
             case TestProtocol.REQUEST_WORKSPACE_CELL_LAYOUT_SIZE:
                 return getLauncherUIProperty(Bundle::putIntArray, launcher -> {
                     final Workspace<?> workspace = launcher.getWorkspace();
@@ -323,15 +379,15 @@ public class TestInformationHandler implements ResourceBasedOverride {
                                 + l.getAppsView().getActiveRecyclerView().getPaddingBottom());
             }
 
-            case TestProtocol.REQUEST_FLAG_ENABLE_GRID_ONLY_OVERVIEW: {
+            case TestProtocol.REQUEST_IS_LAUNCHER_RECENTS_WINDOW_ENABLED: {
                 response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        enableGridOnlyOverview());
+                        enableLauncherOverviewInWindow());
                 return response;
             }
 
-            case TestProtocol.REQUEST_IS_RECENTS_WINDOW_ENABLED: {
+            case TestProtocol.REQUEST_IS_FALLBACK_RECENTS_WINDOW_ENABLED: {
                 response.putBoolean(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        enableLauncherOverviewInWindow() || enableFallbackOverviewInWindow());
+                        enableFallbackOverviewInWindow());
                 return response;
             }
 
@@ -400,7 +456,7 @@ public class TestInformationHandler implements ResourceBasedOverride {
                     MODEL_EXECUTOR.execute(() -> {
                         LauncherModel model = LauncherAppState.getInstance(mContext).getModel();
                         model.getModelDbController().createEmptyDB();
-                        MAIN_EXECUTOR.execute(model::forceReload);
+                        MAIN_EXECUTOR.execute(() -> model.forceReload("REQUEST_REINITIALIZE_DATA"));
                     });
                     return response;
                 } finally {
@@ -415,7 +471,7 @@ public class TestInformationHandler implements ResourceBasedOverride {
                         LauncherModel model = LauncherAppState.getInstance(mContext).getModel();
                         model.getModelDbController().createEmptyDB();
                         model.getModelDbController().clearEmptyDbFlag();
-                        MAIN_EXECUTOR.execute(model::forceReload);
+                        MAIN_EXECUTOR.execute(() -> model.forceReload("REQUEST_CLEAR_DATA"));
                     });
                     return response;
                 } finally {
@@ -444,13 +500,18 @@ public class TestInformationHandler implements ResourceBasedOverride {
                 return response;
             }
 
-            case TestProtocol.REQUEST_GET_ACTIVITIES: {
-                response.putStringArray(TestProtocol.TEST_INFO_RESPONSE_FIELD,
-                        sActivities.stream().map(
-                                        a -> a.getClass().getSimpleName() + " ("
-                                                + (a.isDestroyed() ? "destroyed" : "current") + ")")
-                                .toArray(String[]::new));
-                return response;
+            case TestProtocol.REQUEST_GET_UI_SURFACES: {
+                return getFromExecutorSync(MAIN_EXECUTOR, () -> {
+                    response.putStringArray(TestProtocol.TEST_INFO_RESPONSE_FIELD,
+                            sUiSurfaces.stream()
+                                    .map(
+                                            s -> getName(s) + " ("
+                                                    + (
+                                                    s.getLifecycle().getCurrentState() == DESTROYED
+                                                            ? "destroyed" : "current") + ")")
+                                    .toArray(String[]::new));
+                    return response;
+                });
             }
 
             case TestProtocol.REQUEST_MODEL_QUEUE_CLEARED:
@@ -459,6 +520,13 @@ public class TestInformationHandler implements ResourceBasedOverride {
             default:
                 return null;
         }
+    }
+
+    @NonNull
+    private static String getName(LifecycleOwner s) {
+        final Class aClass = s.getClass();
+        final String simpleName = aClass.getSimpleName();
+        return simpleName.isEmpty() ? aClass.getTypeName() : simpleName;
     }
 
     private static Rect getDescendantRectRelativeToDragLayerForCell(Launcher launcher,
@@ -568,5 +636,13 @@ public class TestInformationHandler implements ResourceBasedOverride {
                 }
             }
         };
+    }
+
+    protected DeviceProfile getDeviceProfile(int displayId) {
+        return mPrimaryDeviceProfile;
+    }
+
+    protected DeviceProfile getDeviceProfile() {
+        return mPrimaryDeviceProfile;
     }
 }

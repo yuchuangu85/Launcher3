@@ -20,10 +20,10 @@ import androidx.annotation.NonNull;
 import androidx.test.filters.SmallTest;
 
 import com.android.launcher3.util.LauncherMultivalentJUnit;
-import com.android.quickstep.fallback.FallbackRecentsView;
+import com.android.quickstep.fallback.FallbackWindowRecentsView;
 import com.android.quickstep.fallback.RecentsState;
-import com.android.quickstep.fallback.window.RecentsWindowManager;
-import com.android.quickstep.fallback.window.RecentsWindowSwipeHandler;
+import com.android.quickstep.window.RecentsWindowManager;
+import com.android.quickstep.window.RecentsWindowSwipeHandler;
 
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -33,17 +33,16 @@ import org.mockito.Mock;
 public class RecentsWindowSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase<
         RecentsState,
         RecentsWindowManager,
-        FallbackRecentsView<RecentsWindowManager>,
+        FallbackWindowRecentsView,
         RecentsWindowSwipeHandler,
         FallbackWindowInterface> {
 
-    @Mock private FallbackRecentsView<RecentsWindowManager> mRecentsView;
+    @Mock private FallbackWindowRecentsView mRecentsView;
     @Mock private RecentsWindowManager mRecentsWindowManager;
 
     @NonNull
     @Override
-    protected RecentsWindowSwipeHandler createSwipeHandler(long touchTimeMs,
-            boolean continuingLastGesture) {
+    protected RecentsWindowSwipeHandler createSwipeHandlerInternal(boolean continuingLastGesture) {
         return new RecentsWindowSwipeHandler(
                 mContext,
                 mTaskAnimationManager,
@@ -51,10 +50,11 @@ public class RecentsWindowSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase
                 mRotationTouchHelper,
                 mRecentsWindowManager,
                 mGestureState,
-                touchTimeMs,
                 continuingLastGesture,
                 mInputConsumerController,
-                mMSDLPlayerWrapper);
+                mMSDLPlayerWrapper,
+                mContext.getDisplayId()
+        );
     }
 
     @NonNull
@@ -65,13 +65,25 @@ public class RecentsWindowSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase
 
     @NonNull
     @Override
-    protected FallbackRecentsView<RecentsWindowManager> getRecentsView() {
+    protected FallbackWindowRecentsView getRecentsView() {
         return mRecentsView;
     }
 
     @NonNull
     @Override
     protected RecentsState getBaseState() {
-        return RecentsState.BG_LAUNCHER;
+        return RecentsState.HIDDEN;
+    }
+
+    @NonNull
+    @Override
+    protected RecentsState[] getAllStates() {
+        return RecentsState.values();
+    }
+
+    @NonNull
+    @Override
+    protected RecentsState getOverviewState() {
+        return RecentsState.DEFAULT;
     }
 }

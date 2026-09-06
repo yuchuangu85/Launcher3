@@ -16,9 +16,11 @@
 
 package com.android.quickstep
 
+import android.app.ActivityManager
 import android.os.RemoteException
 import android.util.Log
 import android.view.Display.DEFAULT_DISPLAY
+import androidx.annotation.VisibleForTesting
 import com.android.launcher3.util.Executors
 import com.android.wm.shell.shared.IFocusTransitionListener.Stub
 import com.android.wm.shell.shared.IShellTransitions
@@ -27,7 +29,8 @@ import com.android.wm.shell.shared.IShellTransitions
 class FocusState {
 
     var focusedDisplayId = DEFAULT_DISPLAY
-        private set(value) {
+        @VisibleForTesting
+        set(value) {
             field = value
             listeners.forEach { it.onFocusedDisplayChanged(value) }
         }
@@ -45,6 +48,15 @@ class FocusState {
                     override fun onFocusedDisplayChanged(displayId: Int) {
                         Executors.MAIN_EXECUTOR.execute { focusedDisplayId = displayId }
                     }
+
+                    override fun onFocusedTaskChanged(taskInfo: ActivityManager.RunningTaskInfo,
+                        isFocusedOnDisplay: Boolean, isFocusedGlobally: Boolean) {
+                        if (isFocusedGlobally) {
+                            Executors.MAIN_EXECUTOR.execute {
+                                listeners.forEach { it.onFocusedTaskChanged(taskInfo) }
+                            }
+                        }
+                    }
                 }
             )
         } catch (e: RemoteException) {
@@ -53,7 +65,8 @@ class FocusState {
     }
 
     interface FocusChangeListener {
-        fun onFocusedDisplayChanged(displayId: Int)
+        fun onFocusedDisplayChanged(displayId: Int) {}
+        fun onFocusedTaskChanged(focusedTaskInfo: ActivityManager.RunningTaskInfo) {}
     }
 
     override fun toString() = "{FocusState focusedDisplayId=$focusedDisplayId}"

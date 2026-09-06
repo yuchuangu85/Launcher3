@@ -1,0 +1,175 @@
+package com.android.launcher3.icons;
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.LauncherApps;
+import android.content.pm.ShortcutInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Path;
+import android.graphics.Rect;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.Icon;
+import android.os.Build;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.android.launcher3.util.UserIconInfo;
+
+/**
+ * Factory for creating normalized bubble icons and app badges.
+ */
+public class BubbleIconFactory extends BaseIconFactory {
+
+    private final int mRingColor;
+    private final int mRingWidth;
+
+    private final BaseIconFactory mBadgeFactory;
+
+    /**
+     * Creates a bubble icon factory.
+     *
+     * @param context the context for the factory.
+     * @param iconSize the size of the bubble icon (i.e. the large icon for the bubble).
+     * @param badgeSize the size of the badge (i.e. smaller icon shown on top of the large icon).
+     * @param ringColor the color of the ring optionally shown around the badge.
+     * @param ringWidth the width of the ring optionally shown around the badge.
+     */
+    public BubbleIconFactory(Context context, int iconSize, int badgeSize, int ringColor,
+            int ringWidth) {
+        super(context, context.getResources().getConfiguration().densityDpi, iconSize);
+        mRingColor = ringColor;
+        mRingWidth = ringWidth;
+
+        mBadgeFactory = new BaseIconFactory(context,
+                context.getResources().getConfiguration().densityDpi,
+                badgeSize);
+    }
+
+    /**
+     * Returns the drawable that the developer has provided to display in the bubble.
+     */
+    public Drawable getBubbleDrawable(@NonNull final Context context,
+            @Nullable final ShortcutInfo shortcutInfo, @Nullable final Icon ic) {
+        if (shortcutInfo != null) {
+            LauncherApps launcherApps = context.getSystemService(LauncherApps.class);
+            int density = context.getResources().getConfiguration().densityDpi;
+            return launcherApps.getShortcutIconDrawable(shortcutInfo, density);
+        } else {
+            if (ic != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (ic.getType() == Icon.TYPE_URI
+                        || ic.getType() == Icon.TYPE_URI_ADAPTIVE_BITMAP) {
+                    context.grantUriPermission(context.getPackageName(),
+                            ic.getUri(),
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                }
+                return ic.loadDrawable(context);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Creates the bitmap for the provided drawable and returns the scale used for
+     * drawing the actual drawable. This is used for the larger icon shown for the bubble.
+     */
+    public Bitmap getBubbleBitmap(@NonNull Drawable icon) {
+        return createBadgedIconBitmap(
+                icon, new IconOptions()
+                        .setBitmapGenerationMode(MODE_WITH_SHADOW)
+                        // We do not care about extracted color
+                        .setExtractedColor(Color.TRANSPARENT)).icon;
+    }
+
+    /**
+     * Creates the BitmapInfo for the app bubble. If the user is managed, the badge will be
+     * included in the drawable.
+     */
+    public BitmapInfo getAppBubbleBitmapInfo(@NonNull Drawable appIcon, UserIconInfo user) {
+        return createBadgedIconBitmap(
+                appIcon, new IconOptions()
+                        .setBitmapGenerationMode(MODE_WITH_SHADOW)
+                        .setUser(user)
+                        // We do not care about extracted color
+                        .setExtractedColor(Color.TRANSPARENT));
+    }
+
+    /**
+     * Returns a {@link BitmapInfo} for the app-badge that is shown on top of each bubble. This
+     * will include the profile indicator on the badge if appropriate.
+     */
+    public BitmapInfo getBadgeBitmap(Drawable appIcon, UserIconInfo user,
+            boolean isImportantConversation) {
+        if (appIcon instanceof AdaptiveIconDrawable ad) {
+            appIcon = new CircularAdaptiveIcon(ad.getBackground(), ad.getForeground());
+        }
+        if (isImportantConversation) {
+            appIcon = new CircularRingDrawable(appIcon);
+        }
+        return mBadgeFactory.createBadgedIconBitmap(
+                appIcon,
+                new IconOptions()
+                        .setBitmapGenerationMode(MODE_WITH_SHADOW)
+                        .setWrapNonAdaptiveIcon(false)
+                        .setUser(user));
+    }
+
+    private class CircularRingDrawable extends CircularAdaptiveIcon {
+        final Rect mInnerBounds = new Rect();
+
+        final Drawable mDr;
+
+        CircularRingDrawable(Drawable dr) {
+            super(null, null);
+            mDr = dr;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            int save = canvas.save();
+            canvas.clipPath(getIconMask());
+            canvas.drawColor(mRingColor);
+            mInnerBounds.set(getBounds());
+            mInnerBounds.inset(mRingWidth, mRingWidth);
+            canvas.translate(mInnerBounds.left, mInnerBounds.top);
+            mDr.setBounds(0, 0, mInnerBounds.width(), mInnerBounds.height());
+            mDr.draw(canvas);
+            canvas.restoreToCount(save);
+        }
+    }
+
+    private static class CircularAdaptiveIcon extends AdaptiveIconDrawable {
+
+        final Path mPath = new Path();
+
+        CircularAdaptiveIcon(Drawable bg, Drawable fg) {
+            super(bg, fg);
+        }
+
+        @Override
+        public Path getIconMask() {
+            mPath.reset();
+            Rect bounds = getBounds();
+            mPath.addOval(bounds.left, bounds.top, bounds.right, bounds.bottom, Path.Direction.CW);
+            return mPath;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            int save = canvas.save();
+            canvas.clipPath(getIconMask());
+
+            Drawable d;
+            if ((d = getBackground()) != null) {
+                d.draw(canvas);
+            }
+            if ((d = getForeground()) != null) {
+                d.draw(canvas);
+            }
+            canvas.restoreToCount(save);
+        }
+    }
+}

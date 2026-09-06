@@ -26,16 +26,17 @@ import android.content.Intent
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
 import android.os.UserHandle
-import android.os.UserManager
 import androidx.annotation.VisibleForTesting
 import com.android.launcher3.LauncherModel
 import com.android.launcher3.LauncherModel.ModelUpdateTask
 import com.android.launcher3.LauncherSettings.Favorites
+import com.android.launcher3.automation.AutomationRepository
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.icons.cache.CacheLookupFlag
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.model.data.PredictedItemInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.shortcuts.ShortcutKey
@@ -58,20 +59,20 @@ constructor(
     private val userCache: UserCache,
     private val apiWrapper: ApiWrapper,
     private val iconCache: IconCache,
+    private val automationRepo: AutomationRepository,
     @Assisted private val maxItemCount: Int,
     @Assisted private val predictorState: PredictorState,
 ) : ItemFactory<ItemInfo> {
 
-    private val quietModeCache = mutableMapOf<UserHandle, Boolean>()
     // Number of items persisted can be different than what is needed if the grid changed between
     // the two operations
     private var readCount = 0
 
-    override fun createInfo(itemType: Int, user: UserHandle, intent: Intent): ItemInfo? {
+    override fun createInfo(itemType: Int, user: UserHandle, intent: Intent): PredictedItemInfo? {
         if (readCount >= maxItemCount) {
             return null
         }
-        when (itemType) {
+        return when (itemType) {
             Favorites.ITEM_TYPE_APPLICATION -> {
                 val lai =
                     context
@@ -80,19 +81,15 @@ constructor(
                 val info =
                     AppInfo(
                         lai,
-                        userCache.getUserInfo(user),
+                        userCache.userManagerState.getCachedInfo(user),
                         apiWrapper,
                         pmHelper,
-                        quietModeCache.getOrPut(user) {
-                            context
-                                .getSystemService(UserManager::class.java)
-                                ?.isQuietModeEnabled(user) ?: true
-                        },
+                        automationRepo,
                     )
                 info.container = predictorState.containerId
                 iconCache.getTitleAndIcon(info, lai, predictorState.lookupFlag)
                 readCount++
-                return info.makeWorkspaceItem(context)
+                return PredictedItemInfo(info.makeWorkspaceItem(context))
             }
 
             Favorites.ITEM_TYPE_DEEP_SHORTCUT -> {
@@ -104,10 +101,11 @@ constructor(
                 wii.container = predictorState.containerId
                 iconCache.getShortcutIcon(wii, si)
                 readCount++
-                return wii
+                return PredictedItemInfo(wii)
             }
+
+            else -> null
         }
-        return null
     }
 
     @AssistedFactory

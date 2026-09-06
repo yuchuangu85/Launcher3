@@ -17,31 +17,31 @@ package com.android.quickstep
 
 import android.app.ActivityManager
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.os.Process
 import android.os.UserHandle
-import android.util.SparseArray
+import androidx.annotation.AnyThread
 import androidx.annotation.WorkerThread
-import com.android.launcher3.Flags.enableRefactorTaskThumbnail
+import androidx.core.graphics.drawable.toDrawable
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
-import com.android.launcher3.icons.BaseIconFactory
+import com.android.launcher3.concurrent.annotations.Ui
+import com.android.launcher3.dagger.ApplicationContext
+import com.android.launcher3.display.DisplayController
+import com.android.launcher3.display.LauncherDisplayInfo
+import com.android.launcher3.graphics.ThemeManager
 import com.android.launcher3.icons.BaseIconFactory.IconOptions
 import com.android.launcher3.icons.BitmapInfo
-import com.android.launcher3.icons.IconProvider
+import com.android.launcher3.icons.IconCache
+import com.android.launcher3.icons.cache.AppInfoCachingLogic
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.util.CancellableTask
-import com.android.launcher3.util.DisplayController
-import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener
-import com.android.launcher3.util.Executors
-import com.android.launcher3.util.FlagOp
-import com.android.launcher3.util.OverviewReleaseFlags.enableOverviewIconMenu
-import com.android.launcher3.util.Preconditions
+import com.android.launcher3.util.DaggerSingletonTracker
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.Executors.SimpleThreadFactory
+import com.android.launcher3.util.PostUnlockObject
 import com.android.launcher3.util.coroutines.DispatcherProvider
-import com.android.quickstep.recents.di.RecentsDependencies
-import com.android.quickstep.recents.di.inject
 import com.android.quickstep.task.thumbnail.data.TaskIconDataSource
 import com.android.quickstep.util.IconLabelUtil.getBadgedContentDescription
 import com.android.quickstep.util.TaskKeyLruCache
@@ -50,45 +50,59 @@ import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.Task.TaskKey
 import com.android.systemui.shared.system.PackageManagerWrapper
 import java.util.concurrent.Executor
+import java.util.concurrent.Executors.newSingleThreadExecutor
+import javax.inject.Inject
 import kotlinx.coroutines.withContext
 
 /** Manages the caching of task icons and related data. */
-class TaskIconCache(
-    private val context: Context,
-    private val bgExecutor: Executor,
-    private val iconProvider: IconProvider,
+class TaskIconCache
+@Inject
+constructor(
+    @ApplicationContext private val context: Context,
     displayController: DisplayController,
-) : TaskIconDataSource, DisplayInfoChangeListener {
-    private val iconCache =
-        TaskKeyLruCache<TaskCacheEntry>(
-            context.resources.getInteger(R.integer.recentsIconCacheSize)
-        )
-    private val defaultIcons = SparseArray<BitmapInfo>()
-    private var defaultIconBase: BitmapInfo? = null
+    private val dispatcherProvider: DispatcherProvider,
+    themeManagerWrapper: PostUnlockObject<ThemeManager>,
+    private val launcherIconCache: PostUnlockObject<IconCache>,
+    @Ui private val uiExecutor: Executor,
+    daggerSingletonTracker: DaggerSingletonTracker,
+) : TaskIconDataSource {
+    // This bg executor executes thread-unsafe tasks like getBitmapInfoCacheEntry(), getCacheEntry()
+    // and createIconFactory(), thus it must be single threaded.
+    private val singleThreadedBgExecutor = TASK_IMAGE_CACHE_EXECUTOR
 
-    private var _iconFactory: BaseIconFactory? = null
-    @get:WorkerThread
-    private val iconFactory: BaseIconFactory
-        get() =
-            if (enableRefactorTaskThumbnail()) createIconFactory()
-            else _iconFactory ?: createIconFactory().also { _iconFactory = it }
+    private val appInfoCachingLogic =
+        AppInfoCachingLogic(pm = context.packageManager, instantAppResolver = { it.isInstantApp })
 
-    var taskVisualsChangeListener: TaskVisualsChangeListener? = null
-    val dispatcherProvider: DispatcherProvider by RecentsDependencies.inject()
+    private val recentsIconCacheSize = context.resources.getInteger(R.integer.recentsIconCacheSize)
+    private val bitmapInfoCache = TaskKeyLruCache<TaskBitmapInfoCacheEntry>(recentsIconCacheSize)
+
+    private var taskVisualsChangeListener: TaskVisualsChangeListener? = null
 
     init {
         // TODO (b/397205964): this will need to be updated when we support caches for different
         //  displays.
-        displayController.addChangeListener(this)
+        displayController.listenable?.let {
+            daggerSingletonTracker.addCloseable(
+                it.changes.forEach(MAIN_EXECUTOR) { flags -> onDisplayInfoChanged(flags) }
+            )
+        }
+
+        // Add a theme change listener when the device is unlocked. See b/393248495 for details.
+        themeManagerWrapper.whenAvailable(uiExecutor) { themeManager ->
+            val themeChangeListener = ThemeManager.ThemeChangeListener { clearCache() }
+            themeManager.addChangeListener(themeChangeListener)
+
+            Runnable { themeManager.removeChangeListener(themeChangeListener) }
+        }
+        daggerSingletonTracker.addCloseable(themeManagerWrapper)
     }
 
-    override fun onDisplayInfoChanged(context: Context, info: DisplayController.Info, flags: Int) {
-        if ((flags and DisplayController.CHANGE_DENSITY) != 0) {
+    private fun onDisplayInfoChanged(flags: Int) {
+        if ((flags and LauncherDisplayInfo.CHANGE_DENSITY) != 0) {
             clearCache()
         }
     }
 
-    // TODO(b/387496731): Add ensureActive() calls if they show performance benefit
     override suspend fun getIcon(task: Task): TaskCacheEntry {
         task.icon?.let { icon ->
             // Nothing to load, the icon is already loaded
@@ -96,135 +110,126 @@ class TaskIconCache(
         }
 
         // Return from cache if present
-        iconCache.getAndInvalidateIfModified(task.key)?.let {
-            return it
+        bitmapInfoCache.getAndInvalidateIfModified(task.key)?.let {
+            return it.toTaskCacheEntry(context)
         }
 
         return withContext(dispatcherProvider.ioBackground) {
-            val entry = getCacheEntry(task)
-            task.icon = entry.icon
-            task.titleDescription = entry.contentDescription
-            task.title = entry.title
-
+            val entry =
+                getBitmapInfoCacheEntry(task)
+                    .apply {
+                        task.icon = bitmapInfo.newIcon(context)
+                        task.titleDescription = contentDescription
+                        task.title = title
+                    }
+                    .toTaskCacheEntry(context)
             dispatchIconUpdate(task.key.id)
             return@withContext entry
         }
     }
 
     /**
-     * Asynchronously fetches the icon and other task data.
+     * Asynchronously fetches the icon and other [task] data, returned through [callback].
      *
-     * @param task The task to fetch the data for
-     * @param callback The callback to receive the task after its data has been populated.
-     * @return A cancelable handle to the request
+     * Returns a [CancellableTask] to cancel the request.
      */
-    fun getIconInBackground(task: Task, callback: GetTaskIconCallback): CancellableTask<*>? {
-        Preconditions.assertUIThread()
+    @AnyThread
+    fun getIconInBackground(
+        task: Task,
+        callbackExecutor: Executor,
+        callback: GetTaskIconCallback,
+    ): CancellableTask<*>? {
         task.icon?.let {
             // Nothing to load, the icon is already loaded
-            callback.onTaskIconReceived(it, task.titleDescription ?: "", task.title ?: "")
+            callbackExecutor.execute {
+                callback.onTaskIconReceived(it, task.titleDescription ?: "", task.title ?: "")
+            }
             return null
         }
-        iconCache.getAndInvalidateIfModified(task.key)?.let {
-            task.icon = it.icon
+
+        return getBitmapInfoInBackground(task, callbackExecutor) {
+            bitmapInfo,
+            title,
+            contentDescription ->
+            val icon = bitmapInfo.newIcon(context)
+            task.icon = icon
+            callback.onTaskIconReceived(icon, title, contentDescription)
+        }
+    }
+
+    /**
+     * Asynchronously fetches the icon [BitmapInfo] and other [task] data, returned through
+     * [callback].
+     *
+     * Returns a [CancellableTask] to cancel the request.
+     */
+    @AnyThread
+    fun getBitmapInfoInBackground(
+        task: Task,
+        callbackExecutor: Executor,
+        callback: GetTaskBitmapInfoCallback,
+    ): CancellableTask<*>? {
+        bitmapInfoCache.getAndInvalidateIfModified(task.key)?.let {
             task.titleDescription = it.contentDescription
             task.title = it.title
-
-            callback.onTaskIconReceived(it.icon, it.contentDescription, it.title)
+            callbackExecutor.execute {
+                callback.onBitmapInfoReceived(it.bitmapInfo, it.contentDescription, it.title)
+            }
             return null
         }
+
         val request =
             CancellableTask(
-                { getCacheEntry(task) },
-                Executors.MAIN_EXECUTOR,
-                { result: TaskCacheEntry ->
-                    task.icon = result.icon
+                { getBitmapInfoCacheEntry(task) },
+                callbackExecutor,
+                { result: TaskBitmapInfoCacheEntry ->
                     task.titleDescription = result.contentDescription
                     task.title = result.title
-
-                    callback.onTaskIconReceived(
-                        result.icon,
+                    callback.onBitmapInfoReceived(
+                        result.bitmapInfo,
                         result.contentDescription,
                         result.title,
                     )
                     dispatchIconUpdate(task.key.id)
                 },
             )
-        bgExecutor.execute(request)
+        singleThreadedBgExecutor.execute(request)
         return request
     }
 
     /** Clears the icon cache */
     fun clearCache() {
-        bgExecutor.execute { resetFactory() }
+        // Clear on caller and background thread. The cache clears are synchronized.
+        resetFactory()
+        singleThreadedBgExecutor.execute { resetFactory() }
     }
 
     fun onTaskRemoved(taskKey: TaskKey) {
-        iconCache.remove(taskKey)
+        bitmapInfoCache.remove(taskKey)
     }
 
     fun invalidateCacheEntries(pkg: String, handle: UserHandle) {
-        bgExecutor.execute {
-            iconCache.removeAll { key: TaskKey ->
+        singleThreadedBgExecutor.execute {
+            val keyCheck = { key: TaskKey ->
                 pkg == key.packageName && handle.identifier == key.userId
             }
+            bitmapInfoCache.removeAll(keyCheck)
         }
     }
 
     @WorkerThread
-    private fun createIconFactory() =
-        BaseIconFactory(
-            context,
-            DisplayController.INSTANCE.get(context).info.densityDpi,
-            context.resources.getDimensionPixelSize(R.dimen.task_icon_cache_default_icon_size),
-        )
-
-    @WorkerThread
-    private fun getCacheEntry(task: Task): TaskCacheEntry {
-        val desc = task.taskDescription
+    private fun getBitmapInfoCacheEntry(task: Task): TaskBitmapInfoCacheEntry {
         val key = task.key
-        var activityInfo: ActivityInfo? = null
+        val activityInfo =
+            PackageManagerWrapper.getInstance().getActivityInfo(key.component, key.userId)
+        val bitmapInfo = getBitmapInfo(task)
 
-        // Create new cache entry
-
-        // Load icon
-        val icon = getIcon(desc, key.userId)
-        val entryIcon =
-            if (icon != null) {
-                getBitmapInfo(
-                        BitmapDrawable(context.resources, icon),
-                        key.userId,
-                        desc.primaryColor,
-                        false, /* isInstantApp */
-                    )
-                    .newIcon(context)
+        return (if (activityInfo == null) {
+                // Skip loading the content description if the activity no longer exists
+                TaskBitmapInfoCacheEntry(bitmapInfo)
             } else {
-                activityInfo =
-                    PackageManagerWrapper.getInstance().getActivityInfo(key.component, key.userId)
-                if (activityInfo != null) {
-                    val bitmapInfo =
-                        getBitmapInfo(
-                            iconProvider.getIcon(activityInfo),
-                            key.userId,
-                            desc.primaryColor,
-                            activityInfo.applicationInfo.isInstantApp,
-                        )
-                    bitmapInfo.newIcon(context)
-                } else {
-                    getDefaultIcon(key.userId)
-                }
-            }
-
-        activityInfo =
-            activityInfo
-                ?: PackageManagerWrapper.getInstance().getActivityInfo(key.component, key.userId)
-
-        return when {
-            // Skip loading the content description if the activity no longer exists
-            activityInfo == null -> TaskCacheEntry(entryIcon)
-            enableOverviewIconMenu() ->
-                TaskCacheEntry(
-                    entryIcon,
+                TaskBitmapInfoCacheEntry(
+                    bitmapInfo,
                     getBadgedContentDescription(
                         context,
                         activityInfo,
@@ -233,17 +238,8 @@ class TaskIconCache(
                     ),
                     Utilities.trim(activityInfo.loadLabel(context.packageManager)),
                 )
-            else ->
-                TaskCacheEntry(
-                    entryIcon,
-                    getBadgedContentDescription(
-                        context,
-                        activityInfo,
-                        task.key.userId,
-                        task.taskDescription,
-                    ),
-                )
-        }.also { iconCache.put(task.key, it) }
+            })
+            .also { bitmapInfoCache.put(task.key, it) }
     }
 
     private fun getIcon(desc: ActivityManager.TaskDescription, userId: Int): Bitmap? =
@@ -251,50 +247,50 @@ class TaskIconCache(
             ?: ActivityManager.TaskDescription.loadTaskDescriptionIcon(desc.iconFilename, userId)
 
     @WorkerThread
-    private fun getDefaultIcon(userId: Int): Drawable {
-        synchronized(defaultIcons) {
-            val defaultIconBase =
-                defaultIconBase ?: iconFactory.use { it.makeDefaultIcon(iconProvider) }
-            val index: Int = defaultIcons.indexOfKey(userId)
-            return if (index >= 0) {
-                defaultIcons.valueAt(index).newIcon(context)
-            } else {
-                val info =
-                    defaultIconBase.withFlags(
-                        UserCache.INSTANCE.get(context)
-                            .getUserInfo(UserHandle.of(userId))
-                            .applyBitmapInfoFlags(FlagOp.NO_OP)
-                    )
-                defaultIcons.put(userId, info)
-                info.newIcon(context)
+    private fun getBitmapInfo(task: Task): BitmapInfo {
+        val ic = launcherIconCache.getIfReady() ?: return BitmapInfo.LOW_RES_INFO
+        val desc = task.taskDescription
+        val key = task.key
+
+        val user = UserHandle.of(key.userId)
+
+        // Load icon
+        val icon = getIcon(desc, key.userId)
+        val userInfo = UserCache.INSTANCE.get(context).getUserInfo(user)
+
+        if (icon != null) {
+            return ic.iconFactory.use {
+                it.createBadgedIconBitmap(
+                    icon.toDrawable(context.resources),
+                    IconOptions()
+                        .setUser(userInfo)
+                        .setExtractedColor(0)
+                        .setWrapperBackgroundColor(desc.primaryColor),
+                )
             }
         }
-    }
 
-    @WorkerThread
-    private fun getBitmapInfo(
-        drawable: Drawable,
-        userId: Int,
-        primaryColor: Int,
-        isInstantApp: Boolean,
-    ): BitmapInfo {
-        iconFactory.use { iconFactory ->
-            iconFactory.setWrapperBackgroundColor(primaryColor)
-            // User version code O, so that the icon is always wrapped in an adaptive icon container
-            return iconFactory.createBadgedIconBitmap(
-                drawable,
+        val activityInfo =
+            PackageManagerWrapper.getInstance().getActivityInfo(key.component, key.userId)
+                ?: return ic.getDefaultIcon(user)
+        val appInfo = activityInfo.applicationInfo
+        val request = ic.getIconLoadRequest(appInfo, appInfoCachingLogic)
+        return ic.iconFactory.use {
+            it.createBadgedIconBitmap(
+                request.getIcon(activityInfo),
                 IconOptions()
-                    .setUser(UserCache.INSTANCE.get(context).getUserInfo(UserHandle.of(userId)))
-                    .setInstantApp(isInstantApp)
-                    .setExtractedColor(0),
+                    .setUser(userInfo)
+                    .setInstantApp(appInfo.isInstantApp)
+                    .setExtractedColor(0)
+                    .setWrapperBackgroundColor(desc.primaryColor)
+                    .setSourceHint(request.sourceHint),
             )
         }
     }
 
     @WorkerThread
     private fun resetFactory() {
-        _iconFactory = null
-        iconCache.evictAll()
+        bitmapInfoCache.evictAll()
     }
 
     data class TaskCacheEntry(
@@ -303,10 +299,26 @@ class TaskIconCache(
         val title: String = "",
     )
 
+    private data class TaskBitmapInfoCacheEntry(
+        val bitmapInfo: BitmapInfo,
+        val contentDescription: String = "",
+        val title: String = "",
+    ) {
+        fun toTaskCacheEntry(context: Context): TaskCacheEntry {
+            return TaskCacheEntry(bitmapInfo.newIcon(context), contentDescription, title)
+        }
+    }
+
     /** Callback used when retrieving app icons from cache. */
     fun interface GetTaskIconCallback {
         /** Called when task icon is retrieved. */
         fun onTaskIconReceived(icon: Drawable, contentDescription: String, title: String)
+    }
+
+    /** Callback used when retrieving app [BitmapInfo] instances from cache. */
+    fun interface GetTaskBitmapInfoCallback {
+        /** Called when task [BitmapInfo] is retrieved. */
+        fun onBitmapInfoReceived(bitmapInfo: BitmapInfo, contentDescription: String, title: String)
     }
 
     fun registerTaskVisualsChangeListener(newListener: TaskVisualsChangeListener?) {
@@ -319,5 +331,12 @@ class TaskIconCache(
 
     private fun dispatchIconUpdate(taskId: Int) {
         taskVisualsChangeListener?.onTaskIconChanged(taskId)
+    }
+
+    companion object {
+        val TASK_IMAGE_CACHE_EXECUTOR: Executor =
+            newSingleThreadExecutor(
+                SimpleThreadFactory("TaskThumbnailIconCache-", Process.THREAD_PRIORITY_BACKGROUND)
+            )
     }
 }

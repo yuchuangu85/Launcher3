@@ -16,7 +16,7 @@
 
 package com.android.quickstep.views
 
-import com.android.launcher3.Flags.enableOverviewBackgroundWallpaperBlur
+import android.app.WindowConfiguration.ACTIVITY_TYPE_HOME
 import com.android.quickstep.RemoteTargetGluer.RemoteTargetHandle
 
 /** Applies blur either behind launcher surface or live tile app. */
@@ -27,10 +27,13 @@ class BlurUtils(private val recentsView: RecentsView<*, *>) {
             recentsView.remoteTargetHandles != null &&
                 recentsView.recentsAnimationController != null
         )
-            recentsView.remoteTargetHandles
+            recentsView.remoteTargetHandles?.filterNot {
+                it.transformParams.targetSet.firstAppTarget.windowConfiguration.activityType ==
+                    ACTIVITY_TYPE_HOME
+            }
         else null
 
-    private fun Array<RemoteTargetHandle>.setDrawBelowRecents(drawBelowRecents: Boolean) {
+    private fun Iterable<RemoteTargetHandle>.setDrawBelowRecents(drawBelowRecents: Boolean) {
         forEach { it.taskViewSimulator.drawsBelowRecents = drawBelowRecents }
     }
 
@@ -48,12 +51,11 @@ class BlurUtils(private val recentsView: RecentsView<*, *>) {
      * apply blur to in BaseDepthController.
      */
     fun setDrawAboveRecents(remoteTargetHandles: Array<RemoteTargetHandle>) {
-        remoteTargetHandles.setDrawBelowRecents(false)
+        remoteTargetHandles.asIterable().setDrawBelowRecents(false)
         updateBlurLayer(drawingAboveRecents = true)
     }
 
     private fun updateBlurLayer(drawingAboveRecents: Boolean = false) {
-        if (!enableOverviewBackgroundWallpaperBlur()) return
         // Blurs behind lowest live tile surface that's below recents or Launcher if there
         // are none.
         recentsView.depthController?.setBaseSurfaceOverride(

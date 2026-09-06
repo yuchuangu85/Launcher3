@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:background="@drawable/allset_change_navigation_mode_button"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         android:minHeight="48dp"
         android:paddingHorizontal="24dp"
         android:paddingVertical="12dp"

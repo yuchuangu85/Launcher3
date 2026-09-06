@@ -31,6 +31,7 @@ public final class TestLogging {
     private static final String LAUNCHER_EVENTS_TAG = "LauncherEvents";
     private static BiConsumer<String, String> sEventConsumer;
     public static boolean sHadEventsNotFromTest;
+    private static boolean sEnableRegisterEventNotFromTest = false;
 
     private static void recordEventSlow(String sequence, String event, boolean reportToTapl) {
         Log.d(reportToTapl ? TAPL_EVENTS_TAG : LAUNCHER_EVENTS_TAG,
@@ -54,7 +55,9 @@ public final class TestLogging {
     }
 
     private static void registerEventNotFromTest(InputEvent event) {
-        if (!sHadEventsNotFromTest && event.getDeviceId() != -1) {
+        if (sEnableRegisterEventNotFromTest
+                && !sHadEventsNotFromTest
+                && event.getDeviceId() != -1) {
             sHadEventsNotFromTest = true;
             Log.d(TestProtocol.PERMANENT_DIAG_TAG, "First event not from test: " + event);
         }
@@ -76,7 +79,8 @@ public final class TestLogging {
 
     public static void recordMotionEvent(String sequence, String message, MotionEvent event) {
         final int action = event.getAction();
-        if (Utilities.isRunningInTestHarness() && action != MotionEvent.ACTION_MOVE) {
+        if (Utilities.isRunningInTestHarness() && action != MotionEvent.ACTION_MOVE
+                && action != MotionEvent.ACTION_HOVER_MOVE) {
             // "Expecting" in TAPL motion events was thought to be producing considerable noise in
             // tests due to failed checks for expected events. So we are not sending them to TAPL.
             // Other events, such as EVENT_PILFER_POINTERS produce less noise and are thought to
@@ -85,6 +89,10 @@ public final class TestLogging {
             recordEventSlow(sequence, message + ": " + event, false);
             if (action != MotionEvent.ACTION_CANCEL) registerEventNotFromTest(event);
         }
+    }
+
+    public static void setEnableRegisterEventNotFromTest(boolean enable) {
+        sEnableRegisterEventNotFromTest = enable;
     }
 
     static void setEventConsumer(BiConsumer<String, String> consumer) {

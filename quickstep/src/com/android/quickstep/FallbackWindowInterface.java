@@ -15,39 +15,45 @@
  */
 package com.android.quickstep;
 
+import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.launcher3.util.MultiPropertyFactory.MULTI_PROPERTY_VALUE;
 import static com.android.launcher3.util.NavigationMode.NO_BUTTON;
 import static com.android.quickstep.fallback.RecentsState.BACKGROUND_APP;
 import static com.android.quickstep.fallback.RecentsState.DEFAULT;
-import static com.android.quickstep.fallback.RecentsState.HOME;
+import static com.android.quickstep.fallback.RecentsState.HIDDEN;
 
 import android.animation.Animator;
-import android.animation.AnimatorSet;
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.RemoteAnimationTarget;
+import android.view.SurfaceControl;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.app.displaylib.PerDisplayRepository;
 import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.LauncherAnimUtils;
+import com.android.launcher3.anim.PendingAnimation;
+import com.android.launcher3.dagger.PerDisplaySingleton;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.statemanager.StateManager;
-import com.android.launcher3.taskbar.TaskbarUIController;
-import com.android.launcher3.util.DaggerSingletonObject;
-import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.taskbar.TaskbarInteractor;
+import com.android.launcher3.util.JoinedAnimator;
+import com.android.launcher3.util.ThreadedAnimator;
 import com.android.launcher3.views.ScrimColors;
 import com.android.quickstep.GestureState.GestureEndTarget;
-import com.android.quickstep.dagger.QuickstepBaseAppComponent;
 import com.android.quickstep.fallback.RecentsState;
-import com.android.quickstep.fallback.window.RecentsWindowManager;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
 import com.android.quickstep.util.AnimatorControllerWithResistance;
 import com.android.quickstep.util.ContextInitListener;
 import com.android.quickstep.views.RecentsView;
-
-import dagger.assisted.AssistedInject;
+import com.android.quickstep.window.RecentsWindowManager;
+import com.android.quickstep.window.RecentsWindowTracker;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
+import javax.inject.Inject;
 
 
 /**
@@ -55,17 +61,19 @@ import java.util.function.Predicate;
  * currently running one and apps should interact with the {@link RecentsWindowManager} as opposed
  * to the in-launcher one.
  */
+@PerDisplaySingleton
 public final class FallbackWindowInterface extends BaseWindowInterface {
 
-    public static final DaggerSingletonObject<PerDisplayRepository<FallbackWindowInterface>>
-            REPOSITORY_INSTANCE = new DaggerSingletonObject<>(
-            QuickstepBaseAppComponent::getFallbackWindowInterfaceRepository);
+    @NonNull private final RecentsWindowTracker mRecentsWindowTracker;
 
     @Nullable private RecentsWindowManager mRecentsWindowManager = null;
 
-    @AssistedInject
-    public FallbackWindowInterface() {
-        super(DEFAULT, BACKGROUND_APP);
+    @Inject
+    public FallbackWindowInterface(
+            @NonNull RecentsWindowTracker recentsWindowTracker,
+            @NonNull TaskAnimationManager taskAnimationManager) {
+        super(DEFAULT, BACKGROUND_APP, taskAnimationManager);
+        mRecentsWindowTracker = recentsWindowTracker;
     }
 
     public void setRecentsWindowManager(@Nullable RecentsWindowManager recentsWindowManager) {
@@ -94,11 +102,28 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
 
     /** 6 */
     @Override
-    public BaseWindowInterface.AnimationFactory prepareRecentsUI(boolean activityVisible,
-            Consumer<AnimatorControllerWithResistance> callback) {
+    public AnimationFactory<RecentsState, RecentsWindowManager> prepareRecentsUI(
+            boolean activityVisible, Consumer<AnimatorControllerWithResistance> callback) {
         notifyRecentsOfOrientation();
-        BaseWindowInterface.DefaultAnimationFactory factory =
-                new BaseWindowInterface.DefaultAnimationFactory(callback);
+        DefaultAnimationFactory factory =
+                new DefaultAnimationFactory(callback) {
+                    @Override
+                    protected void createBackgroundToOverviewAnim(RecentsWindowManager container,
+                            PendingAnimation pa) {
+                        super.createBackgroundToOverviewAnim(container, pa);
+                        if (container.getDepthController() == null) {
+                            return;
+                        }
+
+                        // Animate the blur and wallpaper zoom
+                        float fromDepthRatio = BACKGROUND_APP.getDepth(container);
+                        float toDepthRatio = DEFAULT.getDepth(container);
+                        pa.addFloat(container.getDepthController().stateDepth,
+                                new LauncherAnimUtils.ClampedProperty<>(
+                                        MULTI_PROPERTY_VALUE, fromDepthRatio, toDepthRatio),
+                                fromDepthRatio, toDepthRatio, LINEAR);
+                    }
+                };
         factory.initBackgroundStateUI();
         return factory;
     }
@@ -108,7 +133,7 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
             Predicate<Boolean> onInitListener) {
         return new ContextInitListener<>(
                 (activity, alreadyOnHome) -> onInitListener.test(alreadyOnHome),
-                RecentsWindowManager.getRecentsWindowTracker());
+                mRecentsWindowTracker);
     }
 
     @Nullable
@@ -117,10 +142,19 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
         return mRecentsWindowManager;
     }
 
+    @Nullable
+    public SurfaceControl getOverviewOverlay() {
+        if (mRecentsWindowManager == null) {
+            return null;
+        }
+        return mRecentsWindowManager.getOverviewOverlay();
+    }
+
+
     @Override
-    public TaskbarUIController getTaskbarController() {
+    public TaskbarInteractor getTaskbarInteractor() {
         RecentsWindowManager manager = getCreatedContainer();
-        return manager == null ? null : manager.getTaskbarUIController();
+        return manager == null ? null : manager.getTaskbarInteractor();
     }
 
     @Override
@@ -133,10 +167,10 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
     @Override
     public <T extends RecentsView<?, ?>> T getVisibleRecentsView() {
         RecentsWindowManager manager = getCreatedContainer();
-        if (manager != null && (manager.isStarted() || isInLiveTileMode())) {
-            return manager.getOverviewPanel();
+        if (manager == null || !manager.isStarted()) {
+            return null;
         }
-        return null;
+        return manager.getOverviewPanel();
     }
 
     @Override
@@ -155,7 +189,7 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
         RecentsWindowManager windowManager = getCreatedContainer();
         final StateManager<RecentsState, RecentsWindowManager> stateManager =
                 windowManager != null ? windowManager.getStateManager() : null;
-        if (stateManager == null || stateManager.getState() == HOME) {
+        if (stateManager == null || stateManager.getState() == HIDDEN) {
             exitRunnable.run();
             notifyRecentsOfOrientation();
             return;
@@ -166,7 +200,7 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
                     @Override
                     public void onStateTransitionComplete(RecentsState toState) {
                         // Are we going from Recents to Workspace?
-                        if (toState == HOME) {
+                        if (toState == HIDDEN) {
                             exitRunnable.run();
                             notifyRecentsOfOrientation();
                             stateManager.removeStateListener(this);
@@ -176,35 +210,21 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
     }
 
     @Override
-    public boolean isInLiveTileMode() {
-        RecentsWindowManager windowManager = getCreatedContainer();
-        return windowManager != null && windowManager.getStateManager().getState() == DEFAULT &&
-                windowManager.isStarted();
-    }
-
-    @Override
     public void onLaunchTaskFailed() {
-        // TODO: probably go back to overview instead.
         RecentsWindowManager manager = getCreatedContainer();
         if (manager == null) {
             return;
         }
-        manager.<RecentsView>getOverviewPanel().startHome();
+        manager.getStateManager().goToState(DEFAULT);
     }
 
     @Override
-    public RecentsState stateFromGestureEndTarget(GestureEndTarget endTarget) {
-        switch (endTarget) {
-            case RECENTS:
-                return DEFAULT;
-            case NEW_TASK:
-            case LAST_TASK:
-                return BACKGROUND_APP;
-            case HOME:
-            case ALL_APPS:
-            default:
-                return HOME;
-        }
+    public RecentsState stateFromGestureEndTarget(@NonNull GestureEndTarget endTarget) {
+        return switch (endTarget) {
+            case RECENTS -> DEFAULT;
+            case NEW_TASK, LAST_TASK -> BACKGROUND_APP;
+            default -> HIDDEN;
+        };
     }
 
     private void notifyRecentsOfOrientation() {
@@ -216,24 +236,23 @@ public final class FallbackWindowInterface extends BaseWindowInterface {
     }
 
     @Override
-    public @Nullable Animator getParallelAnimationToGestureEndTarget(GestureEndTarget endTarget,
-            long duration, RecentsAnimationCallbacks callbacks) {
-        TaskbarUIController uiController = getTaskbarController();
-        Animator superAnimator = super.getParallelAnimationToGestureEndTarget(
+    public @Nullable ThreadedAnimator getParallelAnimationToGestureEndTarget(
+            GestureEndTarget endTarget, long duration, RecentsAnimationCallbacks callbacks) {
+        TaskbarInteractor taskbarInteractor = getTaskbarInteractor();
+        ThreadedAnimator superAnimator = super.getParallelAnimationToGestureEndTarget(
                 endTarget, duration, callbacks);
-        if (uiController == null) {
+        if (taskbarInteractor == null) {
             return superAnimator;
         }
-        Animator taskbarAnimator = uiController.getParallelAnimationToGestureEndTarget(
-                endTarget, duration, callbacks);
+        ThreadedAnimator taskbarAnimator =
+                taskbarInteractor.getParallelAnimationToGestureEndTarget(
+                        endTarget, duration, callbacks);
         if (taskbarAnimator == null) {
             return superAnimator;
         }
         if (superAnimator == null) {
             return taskbarAnimator;
         }
-        AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.playTogether(superAnimator, taskbarAnimator);
-        return animatorSet;
+        return new JoinedAnimator(superAnimator, taskbarAnimator);
     }
 }

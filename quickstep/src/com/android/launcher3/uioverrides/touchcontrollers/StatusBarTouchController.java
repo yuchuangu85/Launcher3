@@ -12,8 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Modifications copyright 2025, Lawnchair
  */
 package com.android.launcher3.uioverrides.touchcontrollers;
 
@@ -21,42 +19,38 @@ import static android.view.MotionEvent.ACTION_CANCEL;
 import static android.view.MotionEvent.ACTION_DOWN;
 import static android.view.MotionEvent.ACTION_MOVE;
 import static android.view.MotionEvent.ACTION_UP;
-import static android.view.WindowManager.LayoutParams.FLAG_SLIPPERY;
 
-import static com.android.launcher3.MotionEventsUtils.isTrackpadScroll;
+import static com.android.launcher3.MotionEventsUtils.isTrackpadMultiFingerSwipe;
 import static com.android.launcher3.Utilities.shouldEnableMouseInteractionChanges;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SWIPE_DOWN_WORKSPACE_NOTISHADE_OPEN;
 
-import android.annotation.SuppressLint;
 import android.graphics.PointF;
-import android.util.SparseArray;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
-import android.view.Window;
-import android.view.WindowManager;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BaseActivity;
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.Utilities;
-import com.android.launcher3.util.MSDLPlayerWrapper;
 import com.android.launcher3.util.TouchController;
-import com.android.launcher3.util.VibratorWrapper;
 import com.android.quickstep.SystemUiProxy;
+import com.android.quickstep.util.CachedEventDispatcher;
 
-import com.android.systemui.Flags;
-import com.google.android.msdl.data.model.MSDLToken;
 import java.util.function.Supplier;
-import java.lang.reflect.InvocationTargetException;
-
-import app.lawnchair.LawnchairAppKt;
-import app.lawnchair.util.CompatibilityKt;
 
 /**
- * TouchController for handling touch events that get sent to the StatusBar. Once the
- * Once the event delta mDownY passes the touch slop, the events start getting forwarded.
- * All events are offset by initial Y value of the pointer.
+ * Handles touch events for the system status bar.
+ * <p>
+ * This controller intercepts touch events and, after a vertical drag gesture exceeds the system
+ * touch slop, forwards them to the System UI. Events occurring before the touch slop are also
+ * forwarded in the order we received them, to ensure ACTION_DOWN and any velocity data is passed.
+ * <p>
+ * The controller only handles events if:
+ * - The System UI Proxy is active.
+ * - A provided `isEnabledCheck` supplier returns `true`.
+ * - There are no floating views disallowing status bar swipes.
+ * - For touch events (not trackpad scrolls or mouse input if specific features are enabled),
+ *   the initial touch occurs above the navigation bar area.
  */
 public class StatusBarTouchController implements TouchController {
 
@@ -65,110 +59,63 @@ public class StatusBarTouchController implements TouchController {
     private final BaseActivity mLauncher;
     private final SystemUiProxy mSystemUiProxy;
     private final float mTouchSlop;
-    private int mLastAction;
-    private final SparseArray<PointF> mDownEvents;
+    private final PointF mDownEvent = new PointF();
     private final Supplier<Boolean> mIsEnabledCheck;
+    private final CachedEventDispatcher mEventDispatcher = new CachedEventDispatcher();
 
     /* If {@code false}, this controller should not handle the input {@link MotionEvent}.*/
     private boolean mCanIntercept;
 
-    // LC-Note: For pulling down on notification panel (default gesture config)
-    private boolean mExpanded;
-    private boolean mVibrated;
-
     public StatusBarTouchController(BaseActivity l, Supplier<Boolean> isEnabledCheck) {
         mLauncher = l;
         mSystemUiProxy = SystemUiProxy.INSTANCE.get(mLauncher);
-        // Guard against TAPs by increasing the touch slop.
-        mTouchSlop = 2 * ViewConfiguration.get(l).getScaledTouchSlop();
-        mDownEvents = new SparseArray<>();
+        mTouchSlop = ViewConfiguration.get(l).getScaledTouchSlop();
         mIsEnabledCheck = isEnabledCheck;
     }
 
     @Override
     public String dump() {
-        return "mCanIntercept:" + mCanIntercept
-                + " , mLastAction:" + MotionEvent.actionToString(mLastAction)
-                + " , mSysUiProxy available:" + SystemUiProxy.INSTANCE.get(mLauncher).isActive();
+        return TAG + " mCanIntercept:" + mCanIntercept
+                + " , mSysUiProxy available:" + mSystemUiProxy.isActive();
     }
 
     private void dispatchTouchEvent(MotionEvent ev) {
         if (mSystemUiProxy.isActive()) {
-            mLastAction = ev.getActionMasked();
             mSystemUiProxy.onStatusBarTouchEvent(ev);
-        } else if (!mExpanded) {
-            // LC-Note: For pulling down on notification panel (default gesture config)
-            mExpanded = true;
-            expand();
-        }
-        if (!mVibrated) {
-            mVibrated = true;
-            vibrate();
-        }
-    }
-
-    @SuppressLint({"WrongConstant", "PrivateApi"})
-    private void expand() {
-        // LC-Note: For pulling down on notification panel (default gesture config)
-        try {
-            Class.forName("android.app.StatusBarManager")
-                .getMethod("expandNotificationsPanel")
-                .invoke(mLauncher.getSystemService("statusbar"));
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void vibrate() {
-        // LC-Note: For pulling down on notification panel (default gesture config)
-        if (!LawnchairAppKt.getLawnchairApp(mLauncher).isVibrateOnIconAnimation()) {
-            if (Flags.msdlFeedback()) {
-                MSDLPlayerWrapper.INSTANCE.get(mLauncher).playToken(MSDLToken.SWIPE_THRESHOLD_INDICATOR);
-            } else {
-                VibratorWrapper.INSTANCE.get(mLauncher).vibrate(VibratorWrapper.OVERVIEW_HAPTIC);
-            }
         }
     }
 
     @Override
     public final boolean onControllerInterceptTouchEvent(MotionEvent ev) {
         int action = ev.getActionMasked();
-        int idx = ev.getActionIndex();
-        int pid = ev.getPointerId(idx);
         if (action == ACTION_DOWN) {
             mCanIntercept = canInterceptTouch(ev);
             if (!mCanIntercept) {
                 return false;
             }
-            mDownEvents.clear();
-            mExpanded = false;
-            mVibrated = false;
-            mDownEvents.put(pid, new PointF(ev.getX(), ev.getY()));
-        } else if (ev.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
-            // Check!! should only set it only when threshold is not entered.
-            mDownEvents.put(pid, new PointF(ev.getX(idx), ev.getY(idx)));
+            mDownEvent.set(ev.getX(), ev.getY());
         }
         if (!mCanIntercept) {
+            cleanupAfterGesture();
             return false;
         }
-        if (!Utilities.ATLEAST_R) {
-            return false;
-        }
-        if (action == ACTION_MOVE && mDownEvents.contains(pid)) {
-            float dy = ev.getY(idx) - mDownEvents.get(pid).y;
-            float dx = ev.getX(idx) - mDownEvents.get(pid).x;
-            // Currently input dispatcher will not do touch transfer if there are more than
-            // one touch pointer. Hence, even if slope passed, only set the slippery flag
-            // when there is single touch event. (context: InputDispatcher.cpp line 1445)
-            if (dy > mTouchSlop && dy > Math.abs(dx) && ev.getPointerCount() == 1) {
-                ev.setAction(ACTION_DOWN);
-                dispatchTouchEvent(ev);
-                setWindowSlippery(true);
+
+        mEventDispatcher.dispatchEvent(ev);
+
+        if (action == ACTION_MOVE) {
+            float dy = ev.getY() - mDownEvent.y;
+            float dx = ev.getX() - mDownEvent.x;
+            if (dy > mTouchSlop && dy > Math.abs(dx)) {
+                if (!mEventDispatcher.hasConsumer()) {
+                    mEventDispatcher.setConsumer(this::dispatchTouchEvent);
+                }
                 return true;
             }
             if (Math.abs(dx) > mTouchSlop) {
                 mCanIntercept = false;
             }
+        } else if (action == ACTION_UP || action == ACTION_CANCEL) {
+            cleanupAfterGesture();
         }
         return false;
     }
@@ -176,53 +123,40 @@ public class StatusBarTouchController implements TouchController {
     @Override
     public final boolean onControllerTouchEvent(MotionEvent ev) {
         int action = ev.getAction();
+        mEventDispatcher.dispatchEvent(ev);
         if (action == ACTION_UP || action == ACTION_CANCEL) {
-            dispatchTouchEvent(ev);
             mLauncher.getStatsLogManager().logger()
                     .log(LAUNCHER_SWIPE_DOWN_WORKSPACE_NOTISHADE_OPEN);
-            setWindowSlippery(false);
-            return true;
-        } else if (CompatibilityKt.isOnePlusStock() && action == ACTION_MOVE) {
-            dispatchTouchEvent(ev);
+            cleanupAfterGesture();
         }
         return true;
     }
 
-    /**
-     * FLAG_SLIPPERY enables touches to slide out of a window into neighboring
-     * windows in mid-gesture instead of being captured for the duration of
-     * the gesture.
-     *
-     * This flag changes the behavior of touch focus for this window only.
-     * Touches can slide out of the window but they cannot necessarily slide
-     * back in (unless the other window with touch focus permits it).
-     */
-    private void setWindowSlippery(boolean enable) {
-        Window w = mLauncher.getWindow();
-        WindowManager.LayoutParams wlp = w.getAttributes();
-        if (enable) {
-            wlp.flags |= FLAG_SLIPPERY;
-        } else {
-            wlp.flags &= ~FLAG_SLIPPERY;
-        }
-        w.setAttributes(wlp);
+    private void cleanupAfterGesture() {
+        mEventDispatcher.clearConsumerAndCache();
     }
 
     private boolean canInterceptTouch(MotionEvent ev) {
-        if (isTrackpadScroll(ev) || !mIsEnabledCheck.get()
-                || AbstractFloatingView.getTopOpenViewWithType(mLauncher,
-                AbstractFloatingView.TYPE_STATUS_BAR_SWIPE_DOWN_DISALLOW) != null || (
-                shouldEnableMouseInteractionChanges(mLauncher.asContext())
-                        && ev.getSource() == InputDevice.SOURCE_MOUSE)) {
+        if (isTrackpadMultiFingerSwipe(ev)) {
+            // Trackpad events are handled separately, see e.g. TrackpadStatusBarInputConsumer.
             return false;
-        } else {
-            // For NORMAL state, only listen if the event originated above the navbar height
-            DeviceProfile dp = mLauncher.getDeviceProfile();
-            if (ev.getY() > (mLauncher.getDragLayer().getHeight() - dp.getInsets().bottom)) {
-                return false;
-            }
         }
-        return true;
-        // LC-Ignored: return SystemUiProxy.INSTANCE.get(mLauncher).isActive();
+        if (!mIsEnabledCheck.get()) {
+            return false;
+        }
+        if (AbstractFloatingView.getTopOpenViewWithType(mLauncher,
+                AbstractFloatingView.TYPE_STATUS_BAR_SWIPE_DOWN_DISALLOW) != null) {
+            return false;
+        }
+        if (shouldEnableMouseInteractionChanges(mLauncher.asContext())
+                && ev.getSource() == InputDevice.SOURCE_MOUSE) {
+            return false;
+        }
+        // For NORMAL state, only listen if the event originated above the navbar height
+        DeviceProfile dp = mLauncher.getDeviceProfile();
+        if (ev.getY() > (mLauncher.getDragLayer().getHeight() - dp.getInsets().bottom)) {
+            return false;
+        }
+        return mSystemUiProxy.isActive();
     }
 }

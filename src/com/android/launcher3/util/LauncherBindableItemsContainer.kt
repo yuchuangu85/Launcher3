@@ -110,6 +110,16 @@ fun interface LauncherBindableItemsContainer {
      */
     fun mapOverItems(op: ItemOperator): View?
 
+    /**
+     * Map the [op] over the shortcuts and widgets that are currently visible to the user. This
+     * includes items on the current workspace page(s) and items in an open folder. The iteration
+     * stops and returns the view if the [op] evaluates to true.
+     *
+     * @param op The operator to apply to each visible item.
+     * @return The first View for which the operator returns true, or null if not found.
+     */
+    fun mapOverVisibleItems(op: ItemOperator): View? = mapOverItems(op)
+
     fun interface ItemOperator {
 
         /**

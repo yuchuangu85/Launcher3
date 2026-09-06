@@ -25,21 +25,15 @@ import android.view.DisplayCutout;
 import android.view.Surface;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
-import android.window.DesktopExperienceFlags;
 
 import com.android.internal.policy.SystemBarUtils;
 import com.android.launcher3.dagger.LauncherAppSingleton;
-import com.android.launcher3.logging.FileLog;
-import com.android.launcher3.statehandlers.DesktopVisibilityController;
 import com.android.launcher3.util.WindowBounds;
 import com.android.launcher3.util.window.CachedDisplayInfo;
 import com.android.launcher3.util.window.WindowManagerProxy;
-import com.android.quickstep.SystemUiProxy;
-import com.android.quickstep.fallback.window.RecentsWindowFlags;
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus;
 import com.android.wm.shell.shared.desktopmode.DesktopState;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -50,18 +44,13 @@ import javax.inject.Inject;
  */
 @LauncherAppSingleton
 public class SystemWindowManagerProxy extends WindowManagerProxy {
-    // LC-Note: This is pretty much unused by Launcher3, see [LawnchairWindowManagerProxy]
 
-    private final DesktopVisibilityController mDesktopVisibilityController;
-    private final SystemUiProxy mSystemUiProxy;
+    private final DesktopState mDesktopState;
 
     @Inject
-    public SystemWindowManagerProxy(
-            DesktopVisibilityController desktopVisibilityController,
-            SystemUiProxy systemUiProxy) {
+    public SystemWindowManagerProxy(DesktopState desktopState) {
         super(true);
-        mDesktopVisibilityController = desktopVisibilityController;
-        mSystemUiProxy = systemUiProxy;
+        mDesktopState = desktopState;
     }
 
     @Override
@@ -71,39 +60,12 @@ public class SystemWindowManagerProxy extends WindowManagerProxy {
     }
 
     @Override
-    public void registerDesktopVisibilityListener(DesktopVisibilityListener listener) {
-        mDesktopVisibilityController.registerDesktopVisibilityListener(listener);
-    }
-
-    @Override
-    public void unregisterDesktopVisibilityListener(DesktopVisibilityListener listener) {
-        mDesktopVisibilityController.unregisterDesktopVisibilityListener(listener);
-    }
-
-    @Override
-    public boolean isInDesktopMode(int displayId) {
-        return mDesktopVisibilityController.isInDesktopMode(displayId);
-    }
-
-    @Override
     public boolean isDisplayDesktopFirst(Context displayInfoContext) {
-        if (!DesktopState.fromContext(displayInfoContext).canEnterDesktopMode()) {
+        if (!mDesktopState.canEnterDesktopMode()) {
             return false;
         }
         return displayInfoContext.getResources().getConfiguration()
                 .windowConfiguration.getWindowingMode() == WINDOWING_MODE_FREEFORM;
-    }
-
-    @Override
-    public boolean showLockedTaskbarOnHome(Context displayInfoContext) {
-        if (!DesktopModeStatus.canEnterDesktopMode(displayInfoContext)) {
-            return false;
-        }
-        if (!DesktopModeStatus.enterDesktopByDefaultOnFreeformDisplay(displayInfoContext)) {
-            return false;
-        }
-
-        return isDisplayDesktopFirst(displayInfoContext);
     }
 
     @Override
@@ -116,16 +78,7 @@ public class SystemWindowManagerProxy extends WindowManagerProxy {
             return false;
         }
 
-        if (!DesktopExperienceFlags.ENABLE_DESKTOP_TASKBAR_ON_FREEFORM_DISPLAYS.isTrue()) {
-            return false;
-        }
-
         return isDisplayDesktopFirst(displayInfoContext);
-    }
-
-    @Override
-    public boolean isHomeVisible() {
-        return mSystemUiProxy.getHomeVisibilityState().isHomeVisible();
     }
 
     @Override
@@ -147,13 +100,7 @@ public class SystemWindowManagerProxy extends WindowManagerProxy {
         ArrayMap<CachedDisplayInfo, List<WindowBounds>> result = new ArrayMap<>();
         WindowManager windowManager = displayInfoContext.getSystemService(WindowManager.class);
         Set<WindowMetrics> possibleMaximumWindowMetrics =
-            null;
-        try {
-            possibleMaximumWindowMetrics = windowManager.getPossibleMaximumWindowMetrics(DEFAULT_DISPLAY);
-        } catch (Throwable t) {
-            possibleMaximumWindowMetrics = Collections.singleton(
-                windowManager.getMaximumWindowMetrics());
-        }
+                windowManager.getPossibleMaximumWindowMetrics(DEFAULT_DISPLAY);
         for (WindowMetrics windowMetrics : possibleMaximumWindowMetrics) {
             CachedDisplayInfo info = getDisplayInfo(windowMetrics, Surface.ROTATION_0);
             List<WindowBounds> bounds = estimateWindowBounds(displayInfoContext, info);
@@ -166,10 +113,5 @@ public class SystemWindowManagerProxy extends WindowManagerProxy {
     protected DisplayCutout rotateCutout(DisplayCutout original, int startWidth, int startHeight,
             int fromRotation, int toRotation) {
         return original.getRotated(startWidth, startHeight, fromRotation, toRotation);
-    }
-
-    @Override
-    public boolean enableOverviewOnConnectedDisplays() {
-        return RecentsWindowFlags.enableOverviewOnConnectedDisplays();
     }
 }

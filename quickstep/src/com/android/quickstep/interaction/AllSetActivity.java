@@ -15,17 +15,27 @@
  */
 package com.android.quickstep.interaction;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
 import static android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
 import static android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
 
-import static com.android.app.animation.Interpolators.ACCELERATE;
 import static com.android.app.animation.Interpolators.FAST_OUT_SLOW_IN;
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.app.animation.Interpolators.clampToProgress;
 import static com.android.launcher3.Utilities.mapBoundToRange;
 import static com.android.launcher3.Utilities.mapRange;
+import static com.android.launcher3.Utilities.mapToRange;
+import static com.android.launcher3.taskbar.StashedHandleViewController.ALPHA_INDEX_ALL_SET_TRANSITION;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.quickstep.OverviewComponentObserver.startHomeIntentSafely;
+import static com.android.quickstep.RecentsAnimationDeviceState.RESET_TO_DEFAULT_GESTURAL_HEIGHT;
+import static com.android.quickstep.views.WallpaperScreenshotClipView.CLIP_ANIM_DURATION;
 
 import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -52,6 +62,8 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.AccessibilityDelegate;
+import android.view.ViewTreeObserver;
+import android.view.ViewTreeObserver.OnWindowVisibilityChangeListener;
 import android.view.Window;
 import android.view.WindowInsetsController;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -59,9 +71,12 @@ import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.graphics.ColorUtils;
 
+import com.android.launcher3.AsyncAnimatorPlaybackController;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherAppState;
@@ -69,19 +84,24 @@ import com.android.launcher3.R;
 import com.android.launcher3.RemoveAnimationSettingsTracker;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatedFloat;
-import com.android.launcher3.anim.AnimatorPlaybackController;
+import com.android.launcher3.dagger.LauncherComponentProvider;
+import com.android.launcher3.taskbar.StashedHandleViewControllerProxy;
 import com.android.launcher3.taskbar.TaskbarManager;
 import com.android.launcher3.util.Executors;
+import com.android.launcher3.util.RunnableList;
 import com.android.quickstep.GestureState;
 import com.android.quickstep.OverviewComponentObserver;
 import com.android.quickstep.OverviewComponentObserver.OverviewChangeListener;
-import com.android.quickstep.TouchInteractionService.TISBinder;
+import com.android.quickstep.RecentsAnimationDeviceState;
+import com.android.quickstep.sysuiconnection.SysUIConnectionTracker;
 import com.android.quickstep.util.ActivityPreloadUtil;
 import com.android.quickstep.util.LottieAnimationColorUtils;
-import com.android.quickstep.util.TISBindHelper;
+import com.android.quickstep.views.WallpaperScreenshotClipView;
 import com.android.wm.shell.shared.TypefaceUtils.FontFamily;
 
 import com.airbnb.lottie.LottieAnimationView;
+
+import kotlin.Unit;
 
 import java.net.URISyntaxException;
 import java.util.Map;
@@ -91,6 +111,13 @@ import java.util.Map;
  * for the gestural system navigation.
  */
 public class AllSetActivity extends Activity {
+
+    public static final float ALL_SET_SWIPE_THRESHOLD_FOR_WORKSPACE_ANIM = 0.95f;
+    // The fade-out happens in the last 65% of the animation.
+    private static final float CONTENT_FADE_OUT_START_PROGRESS = 0.35f;
+    // We allow the swipe up to start in the bottom third of the screen.
+    private static final float GESTURE_HEIGHT_RATIO_OF_WINDOW_HEIGHT = 0.33f;
+
     private static final String TAG = "AllSetActivity";
 
     private static final String LOG_TAG = "AllSetActivity";
@@ -122,12 +149,18 @@ public class AllSetActivity extends Activity {
     private static final String KEY_BACKGROUND_ANIMATION_TOGGLED_ON =
             "background_animation_toggled_on";
 
-    private final AnimatedFloat mSwipeProgress = new AnimatedFloat(this::onSwipeProgressUpdate);
+    private boolean mIsLargeScreen;
+
+    @VisibleForTesting
+    final AnimatedFloat mSwipeProgress = new AnimatedFloat(this::onSwipeProgressUpdate);
 
     private final InvariantDeviceProfile.OnIDPChangeListener mOnIDPChangeListener =
-            modelPropertiesChanged -> updateHint();
+            modelPropertiesChanged -> updateTextForNavigationMode();
 
-    private TISBindHelper mTISBindHelper;
+    private RecentsAnimationDeviceState mDeviceState;
+    private SysUIConnectionTracker mSysUIConnectionTracker;
+    @Nullable private StashedHandleViewControllerProxy mStashedHandleViewControllerProxy;
+    private final RunnableList mSysUIConnectionCleanup = new RunnableList();
 
     private BgDrawable mBackground;
     private View mRootView;
@@ -137,36 +170,42 @@ public class AllSetActivity extends Activity {
     private LottieAnimationView mAnimatedBackground;
     private Animator.AnimatorListener mBackgroundAnimatorListener;
 
-    private AnimatorPlaybackController mLauncherStartAnim = null;
+    @Nullable private AsyncAnimatorPlaybackController mLauncherStartAnim = null;
 
     // Auto play background animation by default
     private boolean mBackgroundAnimationToggledOn = true;
 
     private TextView mHintView;
-
     private final OverviewChangeListener mOverviewChangeListener = this::onOverviewTargetChange;
+
+    @Nullable private AnimatorSet mExpressiveAnimSet;
+    @Nullable private WallpaperScreenshotClipView mWallpaperClipPath;
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         String SUWTheme = SystemProperties.get(SUW_THEME_SYSTEM_PROPERTY, "");
-        mIsExpressiveThemeEnabledInSUW = SUWTheme.equals(GLIF_EXPRESSIVE_THEME) || SUWTheme.equals(
-                GLIF_EXPRESSIVE_LIGHT_THEME);
+        mIsExpressiveThemeEnabledInSUW = SUWTheme.equals(GLIF_EXPRESSIVE_THEME)
+                || SUWTheme.equals(GLIF_EXPRESSIVE_LIGHT_THEME);
         if (mIsExpressiveThemeEnabledInSUW) setTheme(R.style.AllSetTheme_Expressive);
 
         super.onCreate(savedInstanceState);
+        mIsLargeScreen = getDP().getDeviceProperties().isLargeScreen()
+                    && !getDP().getDeviceProperties().isTwoPanels();
         boolean isDarkTheme =
                 (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                         == Configuration.UI_MODE_NIGHT_YES;
-        String suwDeviceName = getIntent().getStringExtra(EXTRA_DEVICE_NAME);
         if (mIsExpressiveThemeEnabledInSUW) {
-            setupExpressiveTheme(suwDeviceName);
+            setupExpressiveTheme();
         } else {
-            setupDefaultTheme(savedInstanceState, isDarkTheme, suwDeviceName);
+            setupDefaultTheme(savedInstanceState, isDarkTheme);
         }
         initializeCommonViewsAndListeners();
         configureSystemUI(isDarkTheme);
 
-        mTISBindHelper = new TISBindHelper(this, this::onTISConnected);
+        mDeviceState = LauncherComponentProvider.get(this)
+                .getRecentsAnimationDeviceStateRepository().get(getDisplayId());
+        mSysUIConnectionTracker = SysUIConnectionTracker.get(this);
         mVibrator = getSystemService(Vibrator.class);
         getIDP().addOnChangeListener(mOnIDPChangeListener);
         OverviewComponentObserver.INSTANCE.get(this)
@@ -196,7 +235,7 @@ public class AllSetActivity extends Activity {
     private void initializeCommonViewsAndListeners() {
         mHintView = findViewById(R.id.hint);
         mHintView.setAccessibilityDelegate(new SkipButtonAccessibilityDelegate());
-        updateHint();
+        updateTextForNavigationMode();
 
         mSwipeUpShift = getResources().getDimension(R.dimen.allset_swipe_up_shift);
 
@@ -212,8 +251,7 @@ public class AllSetActivity extends Activity {
         });
     }
 
-    private void setupDefaultTheme(@Nullable Bundle savedInstanceState, boolean isDarkTheme,
-            String suwDeviceName) {
+    private void setupDefaultTheme(@Nullable Bundle savedInstanceState, boolean isDarkTheme) {
         setContentView(R.layout.activity_allset);
         mRootView = findViewById(R.id.root_view);
 
@@ -228,6 +266,7 @@ public class AllSetActivity extends Activity {
         TextView navigationSettings = findViewById(R.id.navigation_settings);
         navigationSettings.setTextColor(accentColor);
 
+        String suwDeviceName = getIntent().getStringExtra(EXTRA_DEVICE_NAME);
         TextView subtitle = findViewById(R.id.subtitle);
         subtitle.setText(TextUtils.isEmpty(suwDeviceName)
                 ? getString(R.string.allset_description_fallback)
@@ -245,6 +284,7 @@ public class AllSetActivity extends Activity {
                 Map.of(LOTTIE_PRIMARY_COLOR_TOKEN, R.color.all_set_bg_primary,
                         LOTTIE_TERTIARY_COLOR_TOKEN, R.color.all_set_bg_tertiary),
                 getTheme());
+        mAnimatedBackground.setScaleX(Utilities.isRtl(getResources()) ? -1f : 1f);
 
         mBackgroundAnimationToggledOn = savedInstanceState == null
                 || savedInstanceState.getBoolean(KEY_BACKGROUND_ANIMATION_TOGGLED_ON, true);
@@ -254,10 +294,10 @@ public class AllSetActivity extends Activity {
             mBackgroundAnimationToggledOn = !mBackgroundAnimationToggledOn;
             maybeResumeOrPauseBackgroundAnimation();
         });
-        setUpBackgroundAnimation(getDP().getDeviceProperties().isTablet());
+        setUpBackgroundAnimation(getDP().getDeviceProperties().isLargeScreen());
     }
 
-    private void setupExpressiveTheme(String suwDeviceName) {
+    private void setupExpressiveTheme() {
         setContentView(R.layout.activity_allset_expressive);
         mRootView = findViewById(R.id.root_view);
 
@@ -265,14 +305,7 @@ public class AllSetActivity extends Activity {
         TextView subtitle = findViewById(R.id.subtitle);
         mHintView = findViewById(R.id.hint);
         TextView navigationSettings = findViewById(R.id.navigation_settings);
-        title.setText(TextUtils.isEmpty(suwDeviceName)
-                ? getString(R.string.allset_title_expressive_fallback)
-                : getString(R.string.allset_title_expressive, suwDeviceName));
-        String deviceType = getDP().getDeviceProperties().isTablet()
-                ? getString(R.string.allset_device_type_tablet)
-                : getString(R.string.allset_device_type_phone);
-        subtitle.setText(getString(R.string.allset_subtitle_expressive, deviceType));
-
+        title.setText(R.string.allset_title_expressive_fixed);
         title.setTypeface(
                 Typeface.create(FontFamily.GSF_HEADLINE_LARGE_EMPHASIZED.getValue(),
                         Typeface.NORMAL));
@@ -284,6 +317,118 @@ public class AllSetActivity extends Activity {
         navigationSettings.setTypeface(
                 Typeface.create(FontFamily.GSF_HEADLINE_SMALL_EMPHASIZED.getValue(),
                         Typeface.NORMAL));
+
+        if (mIsExpressiveThemeEnabledInSUW) {
+            mWallpaperClipPath = findViewById(R.id.wallpaper_clip_path);
+            mWallpaperClipPath.setVisibility(VISIBLE);
+
+            // Attempt to pre-load screenshot.
+            ViewTreeObserver observer = mWallpaperClipPath.getViewTreeObserver();
+            observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    mWallpaperClipPath.getViewTreeObserver().removeOnGlobalLayoutListener(
+                            this);
+
+                    tryCaptureWallpaperScreenshot();
+                }
+            });
+
+            // If wallpaper is not ready for pre-load, we try one more time.
+            observer.addOnWindowVisibilityChangeListener(new OnWindowVisibilityChangeListener() {
+                @Override
+                public void onWindowVisibilityChanged(int visibility) {
+                    if (visibility != VISIBLE) {
+                        return;
+                    }
+                    mWallpaperClipPath.getViewTreeObserver()
+                            .removeOnWindowVisibilityChangeListener(this);
+                    tryCaptureWallpaperScreenshot();
+
+                }
+            });
+            mExpressiveAnimSet = buildExpressiveAnimatorSet();
+        }
+    }
+
+    private void tryCaptureWallpaperScreenshot() {
+        if (mWallpaperClipPath != null) {
+            View wallpaperScrim = findViewById(R.id.wallpaper_scrim);
+            wallpaperScrim.setVisibility(GONE);
+            Runnable resetScrim = () -> {
+                wallpaperScrim.setVisibility(VISIBLE);
+            };
+            mWallpaperClipPath.tryCaptureWallpaperScreenshot(
+                    getWindow(), getDisplayId(), mRootView, WALLPAPER_BLUR_RADIUS, resetScrim);
+        }
+    }
+
+    private AnimatorSet buildExpressiveAnimatorSet() {
+        if (!mIsExpressiveThemeEnabledInSUW) {
+            return null;
+        }
+
+        View content = findViewById(R.id.content);
+        int height = getWindowManager().getCurrentWindowMetrics().getBounds().height();
+
+        ValueAnimator transYAnimator = ValueAnimator.ofFloat(0, -height);
+        transYAnimator.setDuration(CLIP_ANIM_DURATION);
+        transYAnimator.setInterpolator(LINEAR);
+        transYAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float transY = (float) animation.getAnimatedValue();
+                mWallpaperClipPath.setClipTranslationY(transY, animation.getAnimatedFraction());
+                StashedHandleViewControllerProxy proxy = mStashedHandleViewControllerProxy;
+                if (proxy != null) {
+                    proxy.setTranslationYForSwipe(transY);
+                }
+            }
+        });
+
+        ValueAnimator contentAlpha = ValueAnimator.ofFloat(1, 0);
+        contentAlpha.setInterpolator(LINEAR);
+        contentAlpha.setDuration(CLIP_ANIM_DURATION);
+        contentAlpha.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                float progress = valueAnimator.getAnimatedFraction();
+                float alpha = 1f - clampToProgress(progress, CONTENT_FADE_OUT_START_PROGRESS, 1f);
+                content.setAlpha(alpha);
+            }
+        });
+
+        ValueAnimator hintAndHandleAlpha = ValueAnimator.ofFloat(1, 0);
+        hintAndHandleAlpha.setDuration(CLIP_ANIM_DURATION / 10);
+        hintAndHandleAlpha.setInterpolator(LINEAR);
+        hintAndHandleAlpha.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                float alpha = (float) valueAnimator.getAnimatedValue();
+                mHintView.setAlpha(alpha);
+                StashedHandleViewControllerProxy proxy = mStashedHandleViewControllerProxy;
+                if (proxy != null) {
+                    proxy.setStashedHandleAlpha(ALPHA_INDEX_ALL_SET_TRANSITION, alpha);
+                }
+            }
+        });
+
+        AnimatorSet as = new AnimatorSet();
+        mWallpaperClipPath.addClipAnimation(as);
+        as.play(transYAnimator);
+        as.play(contentAlpha);
+        as.play(hintAndHandleAlpha);
+        as.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                StashedHandleViewControllerProxy proxy = mStashedHandleViewControllerProxy;
+                if (proxy != null) {
+                    proxy.setTranslationYForSwipe(0);
+                    proxy.setStashedHandleAlpha(ALPHA_INDEX_ALL_SET_TRANSITION, 1f);
+                }
+            }
+        });
+        return as;
     }
 
     @Override
@@ -302,17 +447,37 @@ public class AllSetActivity extends Activity {
         return getIDP().getDeviceProfile(this);
     }
 
-    private void updateHint() {
+    private void updateTextForNavigationMode() {
+        boolean isGestureMode = getDP()
+                .getDeviceProperties()
+                .getDeviceConfiguration()
+                .isGestureMode();
+        int hintTextResId;
+        String subtitleText = null;
+
         if (mIsExpressiveThemeEnabledInSUW) {
-            mHintView.setText(
-                    getDP().getDeviceProperties().isGestureMode()
-                            ? R.string.allset_hint_expressive
-                            : R.string.allset_button_hint_expressive);
+            hintTextResId = isGestureMode
+                    ? R.string.allset_hint_expressive
+                    : R.string.allset_button_hint_expressive;
+            String deviceName = getString(mIsLargeScreen
+                    ? R.string.allset_device_type_tablet
+                    : R.string.allset_device_type_phone);
+            int subtitleFormatResId = isGestureMode
+                    ? R.string.allset_subtitle_expressive_gesture_navigation
+                    : R.string.allset_subtitle_expressive_button_navigation;
+
+            subtitleText = getString(subtitleFormatResId, deviceName);
         } else {
-            mHintView.setText(
-                    getDP().getDeviceProperties().isGestureMode()
-                            ? R.string.allset_hint
-                            : R.string.allset_button_hint);
+            hintTextResId = isGestureMode
+                    ? R.string.allset_hint
+                    : R.string.allset_button_hint;
+        }
+
+        mHintView.setText(hintTextResId);
+
+        TextView subtitle = findViewById(R.id.subtitle);
+        if (subtitleText != null) {
+            subtitle.setText(subtitleText);
         }
     }
 
@@ -370,33 +535,50 @@ public class AllSetActivity extends Activity {
         mAnimatedBackground.addAnimatorListener(mBackgroundAnimatorListener);
     }
 
-    private void setSetupUIVisible(boolean visible) {
-        TaskbarManager taskbarManager = mTISBindHelper.getTaskbarManager();
-        if (taskbarManager == null) return;
-        taskbarManager.setSetupUIVisible(visible);
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
         maybeResumeOrPauseBackgroundAnimation();
-        TISBinder binder = mTISBindHelper.getBinder();
-        if (binder != null) {
-            setSetupUIVisible(true);
-            binder.setSwipeUpProxy(this::createSwipeUpProxy);
-        }
+        if (mDeviceState != null) mDeviceState.setSwipeUpProxy(this::createSwipeUpProxy);
         if (mIsExpressiveThemeEnabledInSUW) {
             getWindow().setBackgroundBlurRadius(WALLPAPER_BLUR_RADIUS);
+            int height = getWindowManager().getCurrentWindowMetrics().getBounds().height();
+            if (mDeviceState != null) {
+                mDeviceState.setGesturalHeight(
+                        (int) (height * GESTURE_HEIGHT_RATIO_OF_WINDOW_HEIGHT));
+            }
         }
+
+        mSysUIConnectionCleanup.executeAllAndClear();
+        var connCleanup = mSysUIConnectionTracker.getActiveComponent().forEach(
+                Executors.getTaskbarUiThread(), conn -> {
+                    if (conn == null) return null;
+                    var tb = conn.getTaskbarManager();
+                    var startHandleProxy = tb.getStashedHandleViewController();
+                    var displayStream = tb.getPrimaryDisplayUiControllerStream();
+
+                    MAIN_EXECUTOR.execute(() -> {
+                        mStashedHandleViewControllerProxy = startHandleProxy;
+                        tb.setSetupUIVisible(isResumed());
+
+                        var displayCleanup = displayStream.forEach(
+                                MAIN_EXECUTOR, c -> onUiControllerChanged(tb));
+                        mSysUIConnectionCleanup.add(displayCleanup::close);
+                        onUiControllerChanged(tb);
+
+                    });
+                    return null;
+                });
+        mSysUIConnectionCleanup.add(connCleanup::close);
     }
 
-    private void onTISConnected(TISBinder binder) {
-        setSetupUIVisible(isResumed());
-        binder.setSwipeUpProxy(isResumed() ? this::createSwipeUpProxy : null);
-        TaskbarManager taskbarManager = binder.getTaskbarManager();
-        if (taskbarManager != null) {
-            mLauncherStartAnim = taskbarManager.createLauncherStartFromSuwAnim(MAX_SWIPE_DURATION);
+    private Unit onUiControllerChanged(@NonNull TaskbarManager taskbarManager) {
+        mLauncherStartAnim = taskbarManager.createLauncherStartFromSuwAnim(MAX_SWIPE_DURATION);
+        if (mWallpaperClipPath != null) {
+            mWallpaperClipPath.setForceFallbackAnimation(
+                    taskbarManager.shouldForceAllSetFallbackAnimation());
         }
+        return Unit.INSTANCE;
     }
 
     private void onOverviewTargetChange(boolean isHomeAndOverviewSame) {
@@ -412,13 +594,19 @@ public class AllSetActivity extends Activity {
             finishAndRemoveTask();
             dispatchLauncherAnimStartEnd();
         }
+        mSysUIConnectionCleanup.executeAllAndClear();
     }
 
     private void clearBinderOverride() {
-        TISBinder binder = mTISBindHelper.getBinder();
-        if (binder != null) {
-            setSetupUIVisible(false);
-            binder.setSwipeUpProxy(null);
+        if (mDeviceState != null) {
+            mDeviceState.setSwipeUpProxy(null);
+            if (mIsExpressiveThemeEnabledInSUW) {
+                mDeviceState.setGesturalHeight(RESET_TO_DEFAULT_GESTURAL_HEIGHT);
+            }
+        }
+        var conn = mSysUIConnectionTracker.getActiveComponent().getValue();
+        if (conn != null) {
+            conn.getTaskbarManager().setSetupUIVisible(false);
         }
     }
 
@@ -439,7 +627,7 @@ public class AllSetActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         getIDP().removeOnChangeListener(mOnIDPChangeListener);
-        mTISBindHelper.onDestroy();
+        mSysUIConnectionCleanup.executeAllAndDestroy();
         clearBinderOverride();
         if (mBackgroundAnimatorListener != null) {
             mAnimatedBackground.removeAnimatorListener(mBackgroundAnimatorListener);
@@ -481,17 +669,19 @@ public class AllSetActivity extends Activity {
     }
 
     private void onSwipeProgressUpdate() {
-        if (!mIsExpressiveThemeEnabledInSUW) {
-            mBackground.setProgress(mSwipeProgress.value);
+        if (mIsExpressiveThemeEnabledInSUW) {
+            if (mExpressiveAnimSet != null) {
+                long progress = (long) mapToRange(
+                        mSwipeProgress.value, 0, 1, 0, CLIP_ANIM_DURATION, LINEAR);
+                mExpressiveAnimSet.setCurrentPlayTime(Math.min(CLIP_ANIM_DURATION, progress));
+            }
         } else {
-            getWindow().setBackgroundBlurRadius((int) mapBoundToRange(
-                    mSwipeProgress.value, 0, HINT_BOTTOM_FACTOR, WALLPAPER_BLUR_RADIUS, 0,
-                    ACCELERATE));
-        }
-        float alpha = getContentViewAlphaForSwipeProgress();
-        mRootView.setAlpha(alpha);
-        mRootView.setTranslationY((alpha - 1) * mSwipeUpShift);
+            mBackground.setProgress(mSwipeProgress.value);
 
+            float alpha = getContentViewAlphaForSwipeProgress();
+            mRootView.setAlpha(alpha);
+            mRootView.setTranslationY((alpha - 1) * mSwipeUpShift);
+        }
         if (mLauncherStartAnim != null) {
             mLauncherStartAnim.setPlayFraction(
                     FAST_OUT_SLOW_IN.getInterpolation(mSwipeProgress.value));

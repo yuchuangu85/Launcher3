@@ -36,7 +36,13 @@ public class FailureWatcher extends TestWatcher {
 
     @Override
     protected void starting(Description description) {
-        mLauncher.setOnFailure(() -> onError(mLauncher, description));
+        // Set a handler to save artifacts immediately when TAPL detects a failure. This
+        // results in the freshesh screenshot etc.
+        // But skipping saving a bugreport because this may happen in the time-limited part of the
+        // test and if slow, can result in TestTimedOutException.
+        // Bug report then will be taken from failed().
+        mLauncher.setOnFailure(() -> onErrorImpl(mLauncher, description,
+                /* skipBugreport */ true));
         super.starting(description);
     }
 
@@ -58,8 +64,10 @@ public class FailureWatcher extends TestWatcher {
             @Override
             public void evaluate() throws Throwable {
                 try {
+                    mLauncher.setEnableRegisterEventNotFromTest(true);
                     FailureWatcher.super.apply(base, description).evaluate();
                 } finally {
+                    mLauncher.setEnableRegisterEventNotFromTest(false);
                     // Detect touch events coming from physical screen.
                     if (mLauncher.hadNontestEvents()) {
                         throw new AssertionError(
@@ -87,6 +95,20 @@ public class FailureWatcher extends TestWatcher {
 
     /** Action executed when an error condition is expected. Saves artifacts. */
     public static void onError(LauncherInstrumentation launcher, Description description) {
+        onErrorImpl(launcher, description, false);
+    }
+
+    /** Action executed when an error condition is expected. Saves artifacts. */
+    private static void onErrorImpl(LauncherInstrumentation launcher, Description description,
+            boolean skipBugreport) {
+        // 1. Handle bugreport first. This is saved only once per test run.
+        if (!sSavedBugreport && !skipBugreport) {
+            dumpCommand("bugreportz -s", diagFile(description, "Bugreport", "zip"));
+            // Not saving bugreport for each failure for time and space economy.
+            sSavedBugreport = true;
+        }
+
+        // 2. Handle other artifacts (screenshot, hierarchy). These are saved once per test.
         if (description.equals(sDescriptionForLastSavedArtifacts)) {
             // This test has already saved its artifacts.
             return;
@@ -122,13 +144,6 @@ public class FailureWatcher extends TestWatcher {
             device.dumpWindowHierarchy(diagFile(description, "AccessibilityHierarchy", "uix"));
         } catch (IOException ex) {
             Log.e(TAG, "Failed to save accessibility hierarchy", ex);
-        }
-
-        // Dump bugreport
-        if (!sSavedBugreport) {
-            dumpCommand("bugreportz -s", diagFile(description, "Bugreport", "zip"));
-            // Not saving bugreport for each failure for time and space economy.
-            sSavedBugreport = true;
         }
     }
 

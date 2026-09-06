@@ -17,7 +17,6 @@ package com.android.launcher3.taskbar.overlay;
 
 import static android.view.KeyEvent.ACTION_UP;
 import static android.view.KeyEvent.KEYCODE_BACK;
-import static android.view.ViewTreeObserver.InternalInsetsInfo.TOUCHABLE_INSETS_REGION;
 
 import android.content.Context;
 import android.graphics.Insets;
@@ -42,11 +41,12 @@ import java.util.List;
 
 /** Root drag layer for the Taskbar overlay window. */
 public class TaskbarOverlayDragLayer extends
-        BaseDragLayer<TaskbarOverlayContext> implements
-        ViewTreeObserver.OnComputeInternalInsetsListener {
+        BaseDragLayer<TaskbarOverlayContext> {
 
     private SafeCloseable mViewCaptureCloseable;
     private final List<TouchController> mTouchControllers = new ArrayList<>();
+    private final ViewTreeObserver.OnComputeInternalInsetsListener mTaskbarInsetsComputer =
+            this::onComputeTaskbarInsets;
 
     TaskbarOverlayDragLayer(Context context) {
         super(context, null, 1);
@@ -57,7 +57,7 @@ public class TaskbarOverlayDragLayer extends
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        getViewTreeObserver().addOnComputeInternalInsetsListener(this);
+        getViewTreeObserver().addOnComputeInternalInsetsListener(mTaskbarInsetsComputer);
         mViewCaptureCloseable = ViewCaptureFactory.getInstance(getContext())
                 .startCapture(getRootView(), ".TaskbarOverlay");
     }
@@ -65,7 +65,7 @@ public class TaskbarOverlayDragLayer extends
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        getViewTreeObserver().removeOnComputeInternalInsetsListener(this);
+        getViewTreeObserver().removeOnComputeInternalInsetsListener(mTaskbarInsetsComputer);
         mViewCaptureCloseable.close();
     }
 
@@ -92,25 +92,35 @@ public class TaskbarOverlayDragLayer extends
                 topView.onBackInvoked();
                 return true;
             }
-        } else if (event.getAction() == KeyEvent.ACTION_DOWN
-                && event.getKeyCode() == KeyEvent.KEYCODE_ESCAPE && event.hasNoModifiers()) {
-            // Ignore escape if pressed in conjunction with any modifier keys. Close each
-            // floating view one at a time for each key press.
-            AbstractFloatingView topView = AbstractFloatingView.getTopOpenView(mContainer);
-            if (topView != null) {
-                topView.close(/* animate= */ true);
-                return true;
-            }
         }
-        return super.dispatchKeyEvent(event);
+        return tryHandleEscapeKey(event) || super.dispatchKeyEvent(event);
     }
 
-    @Override
-    public void onComputeInternalInsets(ViewTreeObserver.InternalInsetsInfo inoutInfo) {
-        if (mContainer.isAnySystemDragInProgress()) {
-            inoutInfo.touchableRegion.setEmpty();
-            inoutInfo.setTouchableInsets(TOUCHABLE_INSETS_REGION);
+    private boolean tryHandleEscapeKey(KeyEvent event) {
+        // Ignore escape if pressed in conjunction with any modifier keys.
+        if (event.getAction() != KeyEvent.ACTION_DOWN
+                || event.getKeyCode() != KeyEvent.KEYCODE_ESCAPE || !event.hasNoModifiers()) {
+            return false;
         }
+
+        // Reset the search and go back to the All Apps grid.
+        if (!mContainer.getAppsView().getSearchUiManager().isSearchQueryEmpty()) {
+            mContainer.getAppsView().getSearchUiManager().resetSearch();
+            return true;
+        }
+
+        AbstractFloatingView topView = AbstractFloatingView.getTopOpenView(mContainer);
+        if (topView == null) {
+            return false;
+        }
+
+        // Otherwise, close each floating view (i.e. All Apps) one at a time for each key press.
+        topView.close(/* animate= */ true);
+        return true;
+    }
+
+    private void onComputeTaskbarInsets(ViewTreeObserver.InternalInsetsInfo inoutInfo) {
+        mContainer.getOverlayController().updateInsetsTouchability(inoutInfo);
     }
 
     @Override

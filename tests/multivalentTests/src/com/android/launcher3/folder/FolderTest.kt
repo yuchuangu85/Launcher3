@@ -16,29 +16,30 @@
 
 package com.android.launcher3.folder
 
-import android.content.Context
+import android.content.ComponentName
 import android.graphics.Point
+import android.os.Process
+import android.os.UserHandle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.core.view.isVisible
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.launcher3.Alarm
 import com.android.launcher3.DragSource
 import com.android.launcher3.DropTarget.DragObject
-import com.android.launcher3.LauncherAppState
+import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET
-import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR
+import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_GROUP
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_FOLDER
 import com.android.launcher3.OnAlarmListener
 import com.android.launcher3.R
 import com.android.launcher3.celllayout.board.FolderPoint
-import com.android.launcher3.celllayout.board.TestWorkspaceBuilder
 import com.android.launcher3.dragndrop.DragController
 import com.android.launcher3.dragndrop.DragOptions
 import com.android.launcher3.dragndrop.DragView
@@ -48,17 +49,19 @@ import com.android.launcher3.folder.Folder.SCROLL_LEFT
 import com.android.launcher3.folder.Folder.SCROLL_NONE
 import com.android.launcher3.folder.Folder.STATE_ANIMATING
 import com.android.launcher3.folder.Folder.STATE_CLOSED
+import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
-import com.android.launcher3.util.ActivityContextWrapper
-import com.android.launcher3.util.ModelTestExtensions.clearModelDb
-import java.util.ArrayList
+import com.android.launcher3.model.data.WorkspaceItemInfo
+import com.android.launcher3.touch.CustomEventsTouchHandler
+import com.android.launcher3.util.SandboxApplication
+import com.android.launcher3.util.TestActivityContext
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
-import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
@@ -68,6 +71,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 /** Tests for [Folder] */
@@ -75,32 +79,19 @@ import org.mockito.kotlin.whenever
 @RunWith(AndroidJUnit4::class)
 class FolderTest {
 
-    private lateinit var dragController: DragController<*>
-    private lateinit var context: Context
-    private lateinit var workspaceBuilder: TestWorkspaceBuilder
+    @get:Rule val app = SandboxApplication().withModelDependency()
+    @get:Rule val context = TestActivityContext(app)
+
     private lateinit var folder: Folder
 
     @Before
-    fun setUp() {
-        dragController = Mockito.mock(DragController::class.java)
-        context =
-            object : ActivityContextWrapper(ApplicationProvider.getApplicationContext()) {
-                override fun <T : DragController<*>> getDragController(): T = dragController as T
-            }
-
-        workspaceBuilder = TestWorkspaceBuilder(context)
+    fun <T : DragController> setUp() {
         folder = spy(Folder(context, null))
-    }
-
-    @After
-    fun tearDown() {
-        LauncherAppState.getInstance(context).model.clearModelDb()
     }
 
     @Test
     fun `Undo a folder with 1 icon when onDropCompleted is called`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = folderInfo
         folder.mInfo.getContents().removeAt(0)
         folder.mContent = Mockito.mock(FolderPagedView::class.java)
@@ -116,8 +107,7 @@ class FolderTest {
 
     @Test
     fun `Do not undo a folder with 2 icons when onDropCompleted is called`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = folderInfo
         folder.mContent = Mockito.mock(FolderPagedView::class.java)
         val dragLayout = Mockito.mock(View::class.java)
@@ -151,9 +141,9 @@ class FolderTest {
     }
 
     @Test
-    fun `Test that we accept valid item type ITEM_TYPE_APP_PAIR`() {
+    fun `Test that we accept valid item type ITEM_TYPE_APP_GROUP`() {
         val itemInfo = Mockito.mock(ItemInfo::class.java)
-        itemInfo.itemType = ITEM_TYPE_APP_PAIR
+        itemInfo.itemType = ITEM_TYPE_APP_GROUP
 
         val willAcceptResult = Folder.willAccept(itemInfo)
 
@@ -193,8 +183,7 @@ class FolderTest {
 
     @Test
     fun `We should animate open if items greater than 1`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = folderInfo
 
         val shouldAnimateOpenResult = folder.shouldAnimateOpen(folder.mInfo.getContents())
@@ -297,8 +286,7 @@ class FolderTest {
         folder.isDragInProgress = false
         folder.itemAddedBackToSelfViaIcon = true
         folder.currentDragView = Mockito.mock(View::class.java)
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = spy(folderInfo)
         val dragObject = DragObject(context)
         dragObject.dragInfo = Mockito.mock(ItemInfo::class.java)
@@ -341,7 +329,7 @@ class FolderTest {
         folder.onDragEnd()
 
         verify(folder, times(1)).completeDragExit()
-        verify(dragController, times(1)).removeDragListener(folder)
+        assertEquals(0, context.dragController.listeners.size)
         assertFalse(folder.isDragInProgress)
     }
 
@@ -353,7 +341,7 @@ class FolderTest {
         folder.onDragEnd()
 
         verify(folder, times(0)).completeDragExit()
-        verify(dragController, times(1)).removeDragListener(folder)
+        assertEquals(0, context.dragController.listeners.size)
         assertFalse(folder.isDragInProgress)
     }
 
@@ -378,8 +366,7 @@ class FolderTest {
         folder.isEditingName = true
         folder.folderName = spy(FolderNameEditText(context))
         folder.folderName.setText(expectedTitle)
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = spy(folderInfo)
         folder.mInfo.title = "world"
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -400,8 +387,7 @@ class FolderTest {
         folder.isEditingName = true
         folder.folderName = spy(FolderNameEditText(context))
         folder.folderName.setText(expectedTitle)
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = spy(folderInfo)
         folder.mInfo.title = "world"
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -607,8 +593,7 @@ class FolderTest {
 
     @Test
     fun `getItemCount should return the number of items in the folder`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = folderInfo
 
         val itemCount = folder.itemCount
@@ -661,7 +646,7 @@ class FolderTest {
     fun `acceptDrop should return true with the correct item type as a parameter`() {
         val dragObject = Mockito.mock(DragObject::class.java)
         val itemInfo = Mockito.mock(ItemInfo::class.java)
-        itemInfo.itemType = ITEM_TYPE_APP_PAIR
+        itemInfo.itemType = ITEM_TYPE_APP_GROUP
         dragObject.dragInfo = itemInfo
 
         val result = folder.acceptDrop(dragObject)
@@ -710,8 +695,7 @@ class FolderTest {
 
     @Test
     fun `getItemCount should return the size of info getContents size`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         folder.mInfo = folderInfo
 
         val itemCount = folder.itemCount
@@ -831,8 +815,7 @@ class FolderTest {
 
     @Test
     fun `onRemove should call removeItem with the correct views`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         val items = folderInfo.getContents().toTypedArray()
         folder.mInfo = folderInfo
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -851,8 +834,7 @@ class FolderTest {
 
     @Test
     fun `onRemove should set mRearrangeOnClose to true and not call rearrangeChildren if animating`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         val items = folderInfo.getContents().toTypedArray()
         folder.mInfo = folderInfo
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -872,8 +854,7 @@ class FolderTest {
 
     @Test
     fun `onRemove should set not change mRearrangeOnClose and not call rearrangeChildren if not animating`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         val items = folderInfo.getContents().toTypedArray()
         folder.mInfo = folderInfo
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -894,8 +875,7 @@ class FolderTest {
 
     @Test
     fun `onRemove should call close if mIsOpen is true and item count is less than or equal to one`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         val items = folderInfo.getContents().toTypedArray()
         folder.mInfo = folderInfo
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -915,8 +895,7 @@ class FolderTest {
 
     @Test
     fun `onRemove should call replaceFolderWithFinalItem if mIsOpen is false and item count is less than or equal to one`() {
-        val folderInfo =
-            workspaceBuilder.createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
+        val folderInfo = createFolderInCell(FolderPoint(Point(1, 0), TWO_ICON_FOLDER_TYPE), 0)
         val items = folderInfo.getContents().toTypedArray()
         folder.mInfo = folderInfo
         folder.mFolderIcon = Mockito.mock(FolderIcon::class.java)
@@ -933,7 +912,59 @@ class FolderTest {
         verify(folder, times(1)).replaceFolderWithFinalItem()
     }
 
+    @Test
+    fun `onTouchEvent should delegate to customEventsTouchHandler`() {
+        val mockCustomEventsTouchHandler = Mockito.mock(CustomEventsTouchHandler::class.java)
+        folder.setCustomEventsTouchHandler(mockCustomEventsTouchHandler)
+
+        val motionEvent = Mockito.mock(MotionEvent::class.java)
+        whenever(mockCustomEventsTouchHandler.onDelegateTouchEvent(motionEvent)).thenReturn(true)
+
+        val result = folder.onTouchEvent(motionEvent)
+
+        assertTrue(result)
+        verify(mockCustomEventsTouchHandler, times(1)).onDelegateTouchEvent(motionEvent)
+    }
+
+    fun createFolderInCell(folderPoint: FolderPoint, paramScreenId: Int): FolderInfo =
+        FolderInfo().apply {
+            screenId = paramScreenId
+            container = LauncherSettings.Favorites.CONTAINER_DESKTOP
+            cellX = folderPoint.coord.x
+            cellY = folderPoint.coord.y
+            spanY = 1
+            spanX = 1
+            minSpanX = 1
+            minSpanY = 1
+            setOption(FolderInfo.FLAG_MULTI_PAGE_ANIMATION, true, null)
+            for (i in 0 until folderPoint.numberIconsInside) {
+                add(getDefaultWorkspaceItem(paramScreenId))
+            }
+        }
+
+    private fun getDefaultWorkspaceItem(paramScreenId: Int): WorkspaceItemInfo =
+        WorkspaceItemInfo(app()).apply {
+            screenId = paramScreenId
+            spanY = 1
+            spanX = 1
+            minSpanX = 1
+            minSpanY = 1
+            container = LauncherSettings.Favorites.CONTAINER_DESKTOP
+        }
+
     companion object {
         const val TWO_ICON_FOLDER_TYPE = 'A'
+
+        private var appComponentName =
+            ComponentName("com.google.android.calculator", "com.android.calculator2.Calculator")
+        private val myUser: UserHandle = Process.myUserHandle()
+
+        private fun app() =
+            AppInfo(
+                appComponentName,
+                "test icon",
+                myUser,
+                AppInfo.makeLaunchIntent(appComponentName),
+            )
     }
 }

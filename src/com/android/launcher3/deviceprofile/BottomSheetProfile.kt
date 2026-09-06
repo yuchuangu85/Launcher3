@@ -17,9 +17,7 @@
 package com.android.launcher3.deviceprofile
 
 import android.content.res.Resources
-import android.graphics.Rect
 import com.android.app.animation.Interpolators.LINEAR
-import com.android.launcher3.Flags.enableScalingRevealHomeAnimation
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 
@@ -37,27 +35,23 @@ data class BottomSheetProfile(
 
         fun createBottomSheetProfile(
             deviceProperties: DeviceProperties,
-            insets: Rect,
             res: Resources,
             edgeMarginPx: Int,
-            shouldShowAllAppsOnSheet: Boolean,
-            workspaceContentScale: Float,
+            workspaceProfile: WorkspaceProfile,
         ): BottomSheetProfile {
 
             // In large screens, in portrait mode, a bottom sheet can appear too elongated, so, we
             // apply additional padding.
             val applyExtraTopPadding =
-                deviceProperties.isTablet &&
+                deviceProperties.isLargeScreen &&
                     !deviceProperties.isLandscape &&
                     (deviceProperties.aspectRatio > MIN_ASPECT_RATIO_FOR_EXTRA_TOP_PADDING)
             val derivedTopPadding: Int = deviceProperties.heightPx / 6
             val bottomSheetDepth =
                 when {
-                    !shouldShowAllAppsOnSheet -> 0f
                     // TODO(b/259893832): Revert to use maxWallpaperScale to calculate
                     // bottomSheetDepth when screen recorder bug is fixed.
-                    deviceProperties.isMultiDisplay ->
-                        if (enableScalingRevealHomeAnimation()) 0.3f else 1f
+                    deviceProperties.deviceConfiguration.isMultiDisplay -> 0.3f
                     // The goal is to set wallpaper to zoom at workspaceContentScale when in AllApps
                     // When depth is 0, wallpaper zoom is set to maxWallpaperScale.
                     // When depth is 1, wallpaper zoom is set to 1.
@@ -66,7 +60,7 @@ data class BottomSheetProfile(
                     else -> {
                         val maxWallpaperScale = res.getFloat(R.dimen.config_wallpaperMaxScale)
                         Utilities.mapToRange(
-                            maxWallpaperScale * workspaceContentScale,
+                            maxWallpaperScale * workspaceProfile.workspaceContentScale,
                             maxWallpaperScale,
                             1f,
                             0f,
@@ -76,17 +70,16 @@ data class BottomSheetProfile(
                     }
                 }
             val bottomSheetTopPadding =
-                insets.top + // statusbar height
+                deviceProperties.insets.top + // statusbar height
                     (if (applyExtraTopPadding) derivedTopPadding else 0) +
                     // phones need edgeMarginPx additional padding
-                    (if (deviceProperties.isTablet) 0 else edgeMarginPx).toInt()
+                    (if (deviceProperties.isLargeScreen) 0 else edgeMarginPx).toInt()
             return BottomSheetProfile(
                 bottomSheetTopPadding = bottomSheetTopPadding,
                 bottomSheetOpenDuration = res.getInteger(R.integer.config_bottomSheetOpenDuration),
                 bottomSheetCloseDuration =
                     res.getInteger(R.integer.config_bottomSheetCloseDuration),
-                bottomSheetWorkspaceScale =
-                    if (shouldShowAllAppsOnSheet) workspaceContentScale else 1f,
+                bottomSheetWorkspaceScale = workspaceProfile.workspaceContentScale,
                 bottomSheetDepth = bottomSheetDepth,
             )
         }

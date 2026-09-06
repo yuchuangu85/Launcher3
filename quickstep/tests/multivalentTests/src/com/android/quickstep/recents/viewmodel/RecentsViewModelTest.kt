@@ -20,23 +20,37 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.os.UserHandle
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.view.Display.DEFAULT_DISPLAY
 import android.view.Surface
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.android.launcher3.Flags
+import com.android.quickstep.recents.data.AppTimerResponse
+import com.android.quickstep.recents.data.FakeAppTimersRepository
 import com.android.quickstep.recents.data.FakeTasksRepository
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
 import com.google.common.truth.Truth.assertThat
+import java.time.Duration
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
+@RunWith(AndroidJUnit4::class)
 class RecentsViewModelTest {
+    @get:Rule val setFlagsRule = SetFlagsRule()
+
     private val tasksRepository = FakeTasksRepository()
+    private val appTimersRepository = FakeAppTimersRepository()
     private val recentsViewData = RecentsViewData()
     private val systemUnderTest =
-        RecentsViewModel(tasksRepository, recentsViewData, DEFAULT_DISPLAY)
+        RecentsViewModel(tasksRepository, recentsViewData, appTimersRepository, DEFAULT_DISPLAY)
 
     private val tasks = (0..5).map(::createTaskWithId)
 
@@ -69,6 +83,23 @@ class RecentsViewModelTest {
 
         assertThat(thumbnailDataFlow1.first()).isNull()
         assertThat(thumbnailDataFlow2.first()).isNull()
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun onReset_invalidatesCachedAppTimers() = runTest {
+        appTimersRepository.setTimer(
+            APP_TIMER_PKG_NAME,
+            APP_TIMER_USER_HANDLE,
+            Duration.ofHours(1L),
+        )
+
+        systemUnderTest.onReset()
+
+        assertThat(
+                appTimersRepository.getRemainingDuration(APP_TIMER_PKG_NAME, APP_TIMER_USER_HANDLE)
+            )
+            .isEqualTo(AppTimerResponse.NoTimer)
     }
 
     @Test
@@ -111,6 +142,15 @@ class RecentsViewModelTest {
     }
 
     @Test
+    fun setHighResThumbnailsRequired_passesSettingToTasksRepository() {
+        systemUnderTest.setHighResThumbnailsRequired(true)
+        assertThat(tasksRepository.getHighResThumbnailsRequired()).isTrue()
+
+        systemUnderTest.setHighResThumbnailsRequired(false)
+        assertThat(tasksRepository.getHighResThumbnailsRequired()).isFalse()
+    }
+
+    @Test
     fun waitForThumbnailsToUpdate_emptyMap() = runTest {
         systemUnderTest.waitForThumbnailsToUpdate(emptyMap())
     }
@@ -133,8 +173,11 @@ class RecentsViewModelTest {
         return ThumbnailData(thumbnail = bitmap, rotation = rotation)
     }
 
-    companion object {
+    private companion object {
         const val THUMBNAIL_WIDTH = 100
         const val THUMBNAIL_HEIGHT = 200
+
+        const val APP_TIMER_PKG_NAME = "com.test.test"
+        val APP_TIMER_USER_HANDLE = UserHandle(1)
     }
 }

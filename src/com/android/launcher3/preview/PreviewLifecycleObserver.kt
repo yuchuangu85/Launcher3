@@ -28,7 +28,6 @@ import com.android.launcher3.graphics.GridCustomizationsProxy.KEY_UPDATE_METHOD
 import com.android.launcher3.graphics.GridCustomizationsProxy.SET_SHAPE
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.RunnableList
-import com.android.systemui.shared.Flags
 
 class PreviewLifecycleObserver(
     @JvmField val lifeCycleTracker: RunnableList,
@@ -53,6 +52,7 @@ class PreviewLifecycleObserver(
                             .entries
                     )
             },
+            null,
         )
     }
 
@@ -65,8 +65,7 @@ class PreviewLifecycleObserver(
             MESSAGE_ID_UPDATE_PREVIEW ->
                 renderer.hideBottomRow(message.data.getBoolean(KEY_HIDE_BOTTOM_ROW))
 
-            MESSAGE_ID_UPDATE_COLOR ->
-                if (Flags.newCustomizationPickerUi()) renderer.previewColor(message.data)
+            MESSAGE_ID_UPDATE_COLOR -> renderer.previewColor(message.data)
 
             MESSAGE_ID_UPDATE_SHAPE -> executeUpdate(SET_SHAPE, message.data)
 

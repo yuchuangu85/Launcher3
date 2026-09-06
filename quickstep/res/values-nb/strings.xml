@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"Fest"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"Fritt format"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Skrivebord"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"Datamaskin for %1$s"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Flytt til ekstern skjerm"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"Tøm"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"Skrivebord"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"<xliff:g id="TIME">%1$s</xliff:g> gjenstår i dag"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"Appanbefalinger"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"Forslag til apper"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"Få appforslag i den nederste raden på startskjermen"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"Få appforslag i favoritter-raden på startskjermen"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"Få enkel tilgang til appene du bruker oftest, rett fra startskjermen. Forslagene endres basert på rutinene dine. Appene i den nederste raden flyttes opp til startskjermen."</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"Få enkel tilgang til appene du bruker oftest, rett fra startskjermen. Forslagene endres basert på rutinene dine. Apper i favoritter-raden blir flyttet til startskjermen."</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"Få appforslag"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"Nei takk"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"Innstillinger"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"Appene som brukes oftest, vises her og endres basert på rutiner"</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"Dra appene vekk fra den nederste raden for å få appforslag."</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"Appforslag er lagt til på et tomt område"</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"Appforslag er på"</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"Appforslag er slått av"</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"Foreslått app: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"Veiledning for navigasjon med bevegelser"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"Roter enheten"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"Roter enheten for å fullføre veiledningen for navigasjon med bevegelser"</string>
@@ -96,7 +90,10 @@
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Innstillinger for systemnavigasjon"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"<xliff:g id="DEVICE">%1$s</xliff:g> er \nklar!"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"Enheten er \nklar!"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"Du er klar!"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"Kos deg med den nye <xliff:g id="DEVICE">%1$s</xliff:g>-enheten din!"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"Sveip opp for å komme i gang med <xliff:g id="DEVICE">%1$s</xliff:g>"</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"Trykk for å komme i gang med <xliff:g id="DEVICE">%1$s</xliff:g>"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"Velg hvordan du vil navigere"</annotation></string>
     <string name="allset_hint_expressive" msgid="756856423510976261">"Sveip opp"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"Trykk på hjemknappen"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"Velg en annen app for å bruke delt skjerm"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"Appen eller organisasjonen din tillater ikke denne handlingen"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"Moduler støttes ikke for øyeblikket – velg en annen app"</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"Kopiér"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"Lagre"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"Rotér skjermen"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"Animasjon som viser hvordan oppgavelinjen kommer til syne fra bunnen av skjermen og skjules automatisk når den ikke er i bruk"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"Animasjon som viser hvordan du fester oppgavelinjen med en bryter, slik at oppgavelinjen alltid er synlig nederst på skjermen"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"Animasjon som viser hvordan du lager en boble fra oppgavelinjen ved hjelp av en dra-bevegelse"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"Animasjon som viser hvordan du aktiverer delt skjerm, ved å dra og slippe en app fra oppgavelinjen over en åpen app"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"Animasjon som viser hvordan du åpner foreslåtte apper på enheten"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"Animasjon som viser hvordan du søker etter et element på skjermen, ved å trykke og holde på handlingstasten og velge området der elementet er"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"Veiledning for oppgavelinjen"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"Dra en app til siden for å bruke 2 apper samtidig"</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"Sveip langsomt opp for å vise oppgavelinjen"</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"Dra til de nederste hjørnene for å gjøre den flytende"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"Sveip sakte opp for å vise oppgavelinjen"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"Få appforslag basert på rutinene dine"</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Trykk lenge på skillelinjen for å feste oppgavelinjen"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"Gjør mer med oppgavelinjen"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"Vis alltid oppgavelinjen"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"For å alltid vise oppgavelinjen nederst på skjermen, trykk og hold på skillelinjen"</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"Dra en app til hjørnet for å gjøre den flytende"</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"Trykk og hold på handlingstasten for å søke etter det som er på skjermen"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"Dette produktet bruker den merkede delen av skjermen til å søke. Googles <xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>personvernregler<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g> og <xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>vilkår for bruk<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g> gjelder."</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"Lukk"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"Ferdig"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"Neste"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"Hjem"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"Tilgjengelighet"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"Tilbake"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"Nylige"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"Varsler"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"Hurtiginnst."</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"Flere alternativ"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"Oppgavelinje"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"Oppgavelinjen vises"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"Venstre oppgavelinje/boble vises"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"Høyre oppgavelinje/bobler vises"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"Boblefelt"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"Navigasjonsrad"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"Vis alltid oppgavelinjen"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"Endre navigasjonsmodus"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"Skille for oppgavelinjen"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"Andre nylige apper"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"Andre nylige apper"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"Andre apper"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"Fjern"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"Flytt til øverst/venstre"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"Flytt til nederst/høyre"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"Åpne appen som en boble"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"Flytt elementet til venstre"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"Flytt elementet til høyre"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"Nylige apper"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"Liste over nylige apper"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{app til}other{apper til}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"Skrivebord"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"<xliff:g id="APP_NAME_1">%1$s</xliff:g> og <xliff:g id="APP_NAME_2">%2$s</xliff:g>"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, element <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> av <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, element <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> av <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>, slipp tastebindinger for å velge"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"Rull til venstre"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"Rull til høyre"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"Boble"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"Flytt til venstre"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"Flytt til høyre"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"Lukk alle"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"vis <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"skjul <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"Circle to Search"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"Appikon"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"Apptittel"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"Lukkeknapp"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"Fest i oppgavelinjen"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"Løsne i oppgavelinje"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"Lukk"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"Dytt"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"Lukk"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"Dytt bildet"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>⁠"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"Ikon"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"Få nyttige forslag"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"Vi bruker AI for å gi proaktive forslag til informasjon og handlinger som er relevante for det du gjør på skjermen"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"Lukk"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"vis"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"Ikon for passive forslag"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"Trykk og hold for å se hvordan forslag genereres"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"autofyll"</string>
 </resources>

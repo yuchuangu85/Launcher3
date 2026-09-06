@@ -21,13 +21,9 @@ import static android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION;
 import static android.view.WindowManager.ScreenshotSource.SCREENSHOT_OVERVIEW;
 import static android.view.WindowManager.TAKE_SCREENSHOT_PROVIDED_IMAGE;
 
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.THREAD_POOL_EXECUTOR;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 
-import android.annotation.UiThread;
-import android.app.Activity;
-import android.app.ActivityOptions;
 import android.app.prediction.AppTarget;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
@@ -43,13 +39,13 @@ import android.graphics.Picture;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
+import android.service.chooser.ChooserAction;
 import android.util.Log;
-import android.view.View;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.core.content.FileProvider;
 
-import com.android.internal.app.ChooserActivity;
 import com.android.internal.util.ScreenshotRequest;
 import com.android.launcher3.BuildConfig;
 import com.android.quickstep.SystemUiProxy;
@@ -60,9 +56,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-
-import com.topjohnwu.superuser.Shell;
-import app.lawnchair.compatlib.utils.BitmapUtil;
 
 /**
  * Utility class containing methods to help manage image actions such as sharing, cropping, and
@@ -81,27 +74,17 @@ public class ImageActionUtils {
      */
     public static void saveScreenshot(SystemUiProxy systemUiProxy, Bitmap screenshot,
             Rect screenshotBounds, Insets visibleInsets, Task.TaskKey task) {
-        try {
-            ScreenshotRequest request =
+        ScreenshotRequest request =
                 new ScreenshotRequest.Builder(TAKE_SCREENSHOT_PROVIDED_IMAGE, SCREENSHOT_OVERVIEW)
-                    .setTopComponent(task.sourceComponent)
-                    .setTaskId(task.id)
-                    .setUserId(task.userId)
-                    .setBitmap(screenshot)
-                    .setBoundsOnScreen(screenshotBounds)
-                    .setInsets(visibleInsets)
-                    .setDisplayId(task.displayId)
-                    .build();
-            systemUiProxy.takeScreenshot(request);
-        } catch (Throwable t) {
-            try {
-                // Lawnchair-TODO-Merge: LC disabled this, but no code is in 16r2
-//                systemUiProxy.handleImageBundleAsScreenshot(BitmapUtil.hardwareBitmapToBundle(screenshot),
-//                        screenshotBounds, visibleInsets, task);
-            } catch (Throwable ee) {
-                Shell.cmd("input keyevent 120").exec();
-            }
-        }
+                .setTopComponent(task.sourceComponent)
+                .setTaskId(task.id)
+                .setUserId(task.userId)
+                .setBitmap(screenshot)
+                .setBoundsOnScreen(screenshotBounds)
+                .setInsets(visibleInsets)
+                .setDisplayId(task.displayId)
+                .build();
+        systemUiProxy.takeScreenshot(request);
     }
 
     /**
@@ -153,38 +136,25 @@ public class ImageActionUtils {
                 Log.e(tag, "No snapshot available, not starting share.");
                 return;
             }
-            persistBitmapAndStartActivity(context, bitmap, crop, intent,
-                    ImageActionUtils::getShareIntentForImageUri, tag);
+            startShareActivity(context, bitmapSupplier, crop, intent, tag,
+                    /* customActions= */null);
         });
     }
 
     /**
-     * Launch the activity to share image with shared element transition.
+     * Launch the activity to share image with custom copy action.
      */
     public static void startShareActivity(Context context, Supplier<Bitmap> bitmapSupplier,
-            Rect crop, Intent intent, String tag, View sharedElement) {
+            Rect crop, Intent intent, String tag, ChooserAction[] customActions) {
         UI_HELPER_EXECUTOR.execute(() -> {
             Bitmap bitmap = bitmapSupplier.get();
             if (bitmap == null) {
                 Log.e(tag, "No snapshot available, not starting share.");
                 return;
             }
-            persistBitmapAndStartActivity(context, bitmap,
-                    crop, intent, ImageActionUtils::getShareIntentForImageUri, tag, sharedElement);
+            persistBitmapAndStartActivity(context, bitmap, crop, intent,
+                    (uri, i) -> getShareIntentForImageUri(uri, i, customActions), tag);
         });
-    }
-    
-    @UiThread
-    public static void startLensActivity(Context context, Supplier<Bitmap> bitmapSupplier,
-            Rect crop, Intent intent, String tag) {
-        if (bitmapSupplier.get() == null) {
-            Log.e(tag, "No snapshot available, not starting share.");
-            return;
-        }
-
-        UI_HELPER_EXECUTOR.execute(() -> persistBitmapAndStartActivity(context,
-                bitmapSupplier.get(), crop, intent, ImageActionUtils::getLensIntentForImageUri,
-                tag));
     }
 
     /**
@@ -221,30 +191,6 @@ public class ImageActionUtils {
             }
         }
     }
-
-    /**
-     * Starts activity based on given intent created from image uri with shared element transition.
-     */
-    @WorkerThread
-    public static void persistBitmapAndStartActivity(Context context, Bitmap bitmap, Rect crop,
-            Intent intent, BiFunction<Uri, Intent, Intent[]> uriToIntentMap, String tag,
-            View scaledImage) {
-        Intent[] intents = uriToIntentMap.apply(getImageUri(bitmap, crop, context, tag), intent);
-
-        // Work around b/159412574
-        if (intents.length == 1) {
-            MAIN_EXECUTOR.execute(() -> context.startActivity(intents[0],
-                    ActivityOptions.makeSceneTransitionAnimation((Activity) context, scaledImage,
-                            ChooserActivity.FIRST_IMAGE_PREVIEW_TRANSITION_NAME).toBundle()));
-
-        } else {
-            MAIN_EXECUTOR.execute(() -> context.startActivities(intents,
-                    ActivityOptions.makeSceneTransitionAnimation((Activity) context, scaledImage,
-                            ChooserActivity.FIRST_IMAGE_PREVIEW_TRANSITION_NAME).toBundle()));
-        }
-    }
-
-
 
     /**
      * Converts image bitmap to Uri by temporarily saving bitmap to cache, and creating Uri pointing
@@ -307,10 +253,19 @@ public class ImageActionUtils {
     }
 
     /**
-     * Gets the intent used to share image.
+     * Gets the intent used to share image with custom actions.
      */
     @WorkerThread
     private static Intent[] getShareIntentForImageUri(Uri uri, Intent intent) {
+        return getShareIntentForImageUri(uri, intent, /* customActions= */ null);
+    }
+
+    /**
+     * Gets the intent used to share image with custom actions.
+     */
+    @WorkerThread
+    private static Intent[] getShareIntentForImageUri(Uri uri, Intent intent,
+            @Nullable ChooserAction[] customActions) {
         if (intent == null) {
             intent = new Intent();
         }
@@ -324,16 +279,11 @@ public class ImageActionUtils {
                 .setType("image/png")
                 .putExtra(Intent.EXTRA_STREAM, uri)
                 .setClipData(clipdata);
-        return new Intent[]{Intent.createChooser(intent, null).addFlags(FLAG_ACTIVITY_NEW_TASK)};
-    }
-    
-    @WorkerThread
-    private static Intent[] getLensIntentForImageUri(Uri uri, Intent intent) {
-        if (intent == null) {
-            intent = new Intent();
+        Intent chooser = Intent.createChooser(intent, null).addFlags(FLAG_ACTIVITY_NEW_TASK);
+        if (customActions != null) {
+            chooser.putExtra(Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, customActions);
         }
-        intent.setPackage("com.google.ar.lens");
-        return getShareIntentForImageUri(uri, intent);
+        return new Intent[]{chooser};
     }
 
     private static void clearOldCacheFiles(Context context) {

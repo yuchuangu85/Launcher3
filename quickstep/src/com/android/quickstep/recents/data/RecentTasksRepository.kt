@@ -47,4 +47,7 @@ interface RecentTasksRepository {
      * populated e.g. icons/thumbnails etc.
      */
     fun setVisibleTasks(displayId: Int, visibleTaskIdList: Set<Int>)
+
+    /** Sets whether high resolution thumbnails are currently needed for this display. */
+    fun setHighResThumbnailsRequired(highResThumbnailsRequired: Boolean)
 }

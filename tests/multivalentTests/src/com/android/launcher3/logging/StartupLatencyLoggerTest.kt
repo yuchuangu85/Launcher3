@@ -33,11 +33,12 @@ import com.android.launcher3.util.TestUtil
 import com.android.launcher3.views.ActivityContext
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Answers.RETURNS_SELF
 import org.mockito.Mock
-import org.mockito.MockitoAnnotations
+import org.mockito.junit.MockitoJUnit
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
@@ -53,6 +54,7 @@ class StartupLatencyLoggerTest {
     @Mock lateinit var ctx: ActivityContext
     @Mock lateinit var timeProvider: () -> Long
     @Mock lateinit var statsLogManager: StatsLogManager
+    @get:Rule val mockitoRule = MockitoJUnit.rule()
 
     private val trackedLoggers = mutableMapOf<LauncherLatencyEvent, StatsLatencyLogger>()
 
@@ -60,7 +62,6 @@ class StartupLatencyLoggerTest {
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
         doReturn(statsLogManager).whenever(ctx).statsLogManager
         doAnswer {
                 mock<StatsLatencyLogger>(defaultAnswer = RETURNS_SELF).apply {
@@ -143,6 +144,25 @@ class StartupLatencyLoggerTest {
         assertThat(trackedLoggers).hasSize(2)
         LAUNCHER_LATENCY_STARTUP_TOTAL_DURATION.verifyLoggedEvent(130)
         LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE.verifyLoggedEvent(10)
+    }
+
+    @Test
+    fun finishLogs_commits_logs_with_end_timestamp() {
+        whenever(timeProvider.invoke())
+            .thenReturn(100) // TOTAL_DURATION start (init)
+            .thenReturn(150) // ACTIVITY_ON_CREATE start
+            .thenReturn(200) // ACTIVITY_ON_CREATE end
+            .thenReturn(300) // TOTAL_DURATION end (finishLogs)
+
+        underTest.logStart(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE)
+        underTest.logEnd(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE)
+
+        underTest.finishLogs(10, true)
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
+
+        val logger = trackedLoggers[LAUNCHER_LATENCY_STARTUP_TOTAL_DURATION]!!
+        verify(logger).withLatency(200) // 300 - 100
+        verify(logger).withEndTimestamp(300)
     }
 
     @Test

@@ -15,11 +15,11 @@
  */
 package com.android.quickstep.util;
 
+import static android.app.WindowConfiguration.ACTIVITY_TYPE_HOME;
 import static android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
 
 import static com.android.launcher3.states.RotationHelper.deltaRotation;
 import static com.android.launcher3.touch.PagedOrientationHandler.MATRIX_POST_TRANSLATE;
-import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
 import static com.android.quickstep.util.RecentsOrientedState.postDisplayRotation;
 import static com.android.quickstep.util.RecentsOrientedState.preDisplayRotation;
 import static com.android.wm.shell.Flags.enableFlexibleTwoAppSplit;
@@ -36,6 +36,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.Log;
 import android.view.RemoteAnimationTarget;
+import android.view.SurfaceControl;
 import android.view.animation.Interpolator;
 
 import androidx.annotation.NonNull;
@@ -49,6 +50,7 @@ import com.android.launcher3.util.TraceHelper;
 import com.android.quickstep.BaseActivityInterface;
 import com.android.quickstep.BaseContainerInterface;
 import com.android.quickstep.DesktopFullscreenDrawParams;
+import com.android.quickstep.FallbackWindowInterface;
 import com.android.quickstep.FullscreenDrawParams;
 import com.android.quickstep.TaskAnimationManager;
 import com.android.quickstep.util.SurfaceTransaction.SurfaceProperties;
@@ -124,6 +126,8 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
 
     @Nullable
     private Matrix mTaskRectTransform = null;
+    @Nullable
+    private Matrix mTaskRectTransformInverse = null;
 
     public TaskViewSimulator(Context context, BaseContainerInterface sizeStrategy,
             boolean isDesktop, int desktopTaskIndex) {
@@ -133,7 +137,7 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
         mDesktopTaskIndex = desktopTaskIndex;
 
         mOrientationState = TraceHelper.allowIpcs("TaskViewSimulator.init",
-                () -> new RecentsOrientedState(context, sizeStrategy, i -> { }));
+                () -> new RecentsOrientedState(context, sizeStrategy));
         mOrientationState.setGestureActive(true);
         mCurrentFullscreenParams = mIsDesktopTask
                 ? new DesktopFullscreenDrawParams(context)
@@ -151,9 +155,7 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
         mDp = dp;
         mLayoutValid = false;
         mOrientationState.setDeviceProfile(dp);
-        if (enableGridOnlyOverview()) {
-            mIsGridTask = dp.getDeviceProperties().isTablet() && !mIsDesktopTask;
-        }
+        mIsGridTask = dp.getDeviceProperties().isLargeScreen() && !mIsDesktopTask;
         calculateTaskSize();
     }
 
@@ -168,16 +170,12 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
         if (mIsGridTask) {
             mSizeStrategy.calculateGridTaskSize(mContext, mDp, mFullTaskSize,
                     mOrientationState.getOrientationHandler());
-            if (enableGridOnlyOverview()) {
-                mSizeStrategy.calculateTaskSize(mContext, mDp, mCarouselTaskSize,
-                        mOrientationState.getOrientationHandler());
-            }
+            mSizeStrategy.calculateTaskSize(mContext, mDp, mCarouselTaskSize,
+                    mOrientationState.getOrientationHandler());
         } else {
             mSizeStrategy.calculateTaskSize(mContext, mDp, mFullTaskSize,
                     mOrientationState.getOrientationHandler());
-            if (enableGridOnlyOverview()) {
-                mCarouselTaskSize.set(mFullTaskSize);
-            }
+            mCarouselTaskSize.set(mFullTaskSize);
         }
 
         if (mSplitBounds != null) {
@@ -193,7 +191,7 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
             // Task rect will represent the scaled down thumbnail position and is placed inside
             // full task size as it is on the home screen.
             PointF fullscreenTaskDimension = new PointF();
-            BaseActivityInterface.getTaskDimension(mContext, mDp, fullscreenTaskDimension);
+            BaseActivityInterface.getTaskDimension(mDp, fullscreenTaskDimension);
             // Calculate the scale down factor used in recents
             float scale = mFullTaskSize.width() / fullscreenTaskDimension.x;
             mTaskRect.set(mThumbnailPosition);
@@ -238,28 +236,22 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
     }
 
     /**
-     * Sets the targets which the simulator will control
-     */
-    public void setPreview(RemoteAnimationTarget runningTarget) {
-        setPreviewBounds(
-                runningTarget.startBounds == null
-                        ? (Utilities.ATLEAST_R ? runningTarget.screenSpaceBounds : runningTarget.sourceContainerBounds)
-                        : runningTarget.startBounds,
-                runningTarget.contentInsets);
-    }
-
-    /**
      * Sets the targets which the simulator will control specifically for targets to animate when
      * in split screen
      *
      * @param splitInfo set to {@code null} when not in staged split mode
      */
     public void setPreview(RemoteAnimationTarget runningTarget, SplitBounds splitInfo) {
-        setPreview(runningTarget);
         mSplitBounds = splitInfo;
         if (mSplitBounds == null) {
+            setPreviewBounds(
+                    runningTarget.startBounds != null
+                            ? runningTarget.startBounds : runningTarget.screenSpaceBounds,
+                    runningTarget.contentInsets);
             mSplitPosition = SPLIT_POSITION_UNDEFINED;
         } else {
+            // Always use the end bounds for split as we may be reparenting the task from fullscreen
+            setPreviewBounds(runningTarget.screenSpaceBounds, runningTarget.contentInsets);
             mSplitPosition = runningTarget.taskId == splitInfo.leftTopTaskId
                     ? SPLIT_POSITION_TOP_OR_LEFT : SPLIT_POSITION_BOTTOM_OR_RIGHT;
             if (enableFlexibleTwoAppSplit()) {
@@ -326,7 +318,7 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
     public void addAppToCarouselAnim(PendingAnimation pa, Interpolator interpolator,
             boolean isHandlingAtomicEvent) {
         pa.addFloat(fullScreenProgress, AnimatedFloat.VALUE, 1, 0, interpolator);
-        if (enableGridOnlyOverview() && mDp.getDeviceProperties().isTablet() && !isHandlingAtomicEvent) {
+        if (mDp.getDeviceProperties().isLargeScreen() && !isHandlingAtomicEvent) {
             mIsAnimatingToCarousel = true;
             carouselScale.value = mCarouselTaskSize.width() / (float) mFullTaskSize.width();
         }
@@ -382,6 +374,14 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
      */
     public void setTaskRectTransform(@Nullable Matrix taskRectTransform) {
         mTaskRectTransform = taskRectTransform;
+        if (mTaskRectTransform != null) {
+            // The inverse transform is used to adjust the corner radius of tasks. Since not all
+            // tasks will have a taskRectTransform, we construct it lazily.
+            if (mTaskRectTransformInverse == null) {
+                mTaskRectTransformInverse = new Matrix();
+            }
+            mTaskRectTransform.invert(mTaskRectTransformInverse);
+        }
     }
 
     /**
@@ -451,7 +451,9 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
             boolean isRtlEnabled = !mIsRecentsRtl;
             mPositionHelper.updateThumbnailMatrix(
                     mThumbnailPosition, mThumbnailData, mTaskRect.width(), mTaskRect.height(),
-                    mDp.getDeviceProperties().isTablet(), mOrientationState.getRecentsActivityRotation(), isRtlEnabled);
+                    mDp.getDeviceProperties().isLargeScreen(),
+                    mOrientationState.getRecentsActivityRotation(), isRtlEnabled,
+                    mContext.getResources().getDisplayMetrics().densityDpi);
             mPositionHelper.getMatrix().invert(mInversePositionMatrix);
             if (DEBUG) {
                 Log.d(TAG, " taskRect: " + mTaskRect);
@@ -557,7 +559,16 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
         if (mDrawAboveOtherApps != null && mDrawAboveOtherApps) {
             baseLayer += 1000;
         }
-        builder.setLayer(baseLayer);
+        SurfaceControl overviewOverlay;
+        if (mSizeStrategy instanceof FallbackWindowInterface windowInterface
+                && (overviewOverlay = windowInterface.getOverviewOverlay()) != null
+                && app.taskInfo.getActivityType() != ACTIVITY_TYPE_HOME) {
+            // the Overview surface will live on the overviewOverlayLayer meaning that we
+            // allow taskview simulator be set above/below this layer as needed for animations.
+            builder.setRelativeLayer(overviewOverlay, baseLayer);
+        } else {
+            builder.setLayer(baseLayer);
+        }
     }
 
     /**
@@ -570,7 +581,21 @@ public class TaskViewSimulator implements TransformParams.BuilderProxy {
         mTempPoint[1] = 0;
         mInversePositionMatrix.mapVectors(mTempPoint);
 
+        // If this task has another transform of it, then its scale also needs to be taken into
+        // consideration for the radius.
+        if (mTaskRectTransform != null && mTaskRectTransformInverse != null) {
+            mTaskRectTransformInverse.mapVectors(mTempPoint);
+        }
+
         // Ideally we should use square-root. This is an optimization as one of the dimension is 0.
         return Math.max(Math.abs(mTempPoint[0]), Math.abs(mTempPoint[1]));
+    }
+
+    /**
+     * Returns the corner radius that is actually visible on screen, once the transforms are applied
+     * to the window.
+     */
+    public float getScaledCornerRadius() {
+        return mMatrix.mapRadius(getCurrentCornerRadius());
     }
 }

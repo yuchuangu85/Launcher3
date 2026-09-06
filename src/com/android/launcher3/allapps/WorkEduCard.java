@@ -32,9 +32,6 @@ import com.android.launcher3.R;
 import com.android.launcher3.model.StringCache;
 import com.android.launcher3.views.ActivityContext;
 
-import app.lawnchair.theme.color.tokens.ColorTokens;
-import app.lawnchair.theme.drawable.DrawableTokens;
-
 /**
  * Work profile toggle switch shown at the bottom of AllApps work tab
  */
@@ -78,10 +75,8 @@ public class WorkEduCard extends FrameLayout implements
     protected void onFinishInflate() {
         super.onFinishInflate();
         findViewById(R.id.action_btn).setOnClickListener(this);
-        TextView title = findViewById(R.id.work_apps_paused_title);
-        title.setText(R.string.work_profile_edu_work_apps);
-        title.setTextColor(ColorTokens.TextColorPrimary.resolveColor(getContext()));
-        findViewById(R.id.wrapper).setBackground(DrawableTokens.WorkCard.resolve(getContext()));
+
+        updateStringFromCache();
     }
 
     @Override
@@ -96,17 +91,14 @@ public class WorkEduCard extends FrameLayout implements
     }
 
     @Override
-    public void onAnimationRepeat(Animation animation) {
-    }
+    public void onAnimationRepeat(Animation animation) { }
 
     @Override
-    public void onAnimationStart(Animation animation) {
-    }
+    public void onAnimationStart(Animation animation) { }
 
     private void removeCard() {
         if (mPosition == -1) {
-            if (getParent() != null)
-                ((ViewGroup) getParent()).removeView(WorkEduCard.this);
+            if (getParent() != null) ((ViewGroup) getParent()).removeView(WorkEduCard.this);
         } else {
             AllAppsRecyclerView rv = mActivityContext.getAppsView().mAH.get(
                     ActivityAllAppsContainerView.AdapterHolder.WORK).mRecyclerView;

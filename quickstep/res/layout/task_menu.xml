@@ -23,18 +23,6 @@
     android:orientation="vertical"
     android:visibility="invisible">
 
-    <TextView
-        android:id="@+id/task_name"
-        android:background="@drawable/task_menu_item_bg"
-        android:textColor="?android:attr/textColorPrimary"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:layout_marginBottom="2dp"
-        android:paddingTop="@dimen/task_menu_edge_padding"
-        android:paddingBottom="@dimen/task_menu_edge_padding"
-        android:textSize="16sp"/>
-
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content">

@@ -15,9 +15,7 @@
  */
 package com.android.launcher3.allapps;
 
-import static androidx.constraintlayout.widget.ConstraintSet.MATCH_CONSTRAINT;
-import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
-
+import static com.android.launcher3.MotionEventsUtils.isTrackpadMotionEvent;
 import static com.android.launcher3.logger.LauncherAtom.ContainerInfo;
 import static com.android.launcher3.logger.LauncherAtom.SearchResultContainer;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_PERSONAL_SCROLLED_DOWN;
@@ -29,15 +27,15 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCH
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_VERTICAL_SWIPE_END;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_FAB_BUTTON_COLLAPSE;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_FAB_BUTTON_EXTEND;
-import static com.android.launcher3.recyclerview.AllAppsRecyclerViewPoolKt.EXTRA_ICONS_COUNT;
-import static com.android.launcher3.recyclerview.AllAppsRecyclerViewPoolKt.PREINFLATE_ICONS_ROW_COUNT;
 import static com.android.launcher3.util.LogConfig.SEARCH_LOGGING;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.InputDevice;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
@@ -46,9 +44,9 @@ import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.util.Consumer;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.ExtendedEditText;
 import com.android.launcher3.FastScrollRecyclerView;
 import com.android.launcher3.Flags;
@@ -76,7 +74,7 @@ public class AllAppsRecyclerView extends FastScrollRecyclerView {
     private int mCumulativeVerticalScroll;
     private ConstraintLayout mLetterList;
 
-    public AlphabeticalAppsList<?> mApps;
+    protected AlphabeticalAppsList mApps;
 
     public AllAppsRecyclerView(Context context) {
         this(context, null);
@@ -100,38 +98,18 @@ public class AllAppsRecyclerView extends FastScrollRecyclerView {
     /**
      * Sets the list of apps in this view, used to determine the fastscroll position.
      */
-    public void setApps(AlphabeticalAppsList<?> apps) {
+    public void setApps(AlphabeticalAppsList apps) {
         mApps = apps;
     }
 
-    public AlphabeticalAppsList<?> getApps() {
+    public AlphabeticalAppsList getApps() {
         return mApps;
     }
 
     protected void updatePoolSize() {
-        updatePoolSize(false);
-    }
-
-    void updatePoolSize(boolean hasWorkProfile) {
-        DeviceProfile grid = ActivityContext.lookupContext(getContext()).getDeviceProfile();
         RecyclerView.RecycledViewPool pool = getRecycledViewPool();
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_EMPTY_SEARCH, 1);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ALL_APPS_DIVIDER, 1);
-
-        // By default the max num of pool size for app icons is num of app icons in one page of
-        // all apps.
-        int maxPoolSizeForAppIcons = grid.getMaxAllAppsRowCount()
-                * grid.numShownAllAppsColumns;
-        // If we set all apps' hidden visibility to GONE and enable pre-inflation, we want to
-        // preinflate one page of all apps icons plus [PREINFLATE_ICONS_ROW_COUNT] rows +
-        // [EXTRA_ICONS_COUNT]. Thus we need to bump the max pool size of app icons accordingly.
-        maxPoolSizeForAppIcons +=
-                PREINFLATE_ICONS_ROW_COUNT * grid.numShownAllAppsColumns + EXTRA_ICONS_COUNT;
-        if (hasWorkProfile) {
-            maxPoolSizeForAppIcons *= 2;
-        }
-        pool.setMaxRecycledViews(
-                AllAppsGridAdapter.VIEW_TYPE_ICON, maxPoolSizeForAppIcons);
     }
 
     @Override
@@ -157,6 +135,42 @@ public class AllAppsRecyclerView extends FastScrollRecyclerView {
     }
 
     @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        if (!shouldIgnoreMouseClickAndDrag(event)) {
+            return super.onInterceptTouchEvent(event);
+        }
+
+        if (event.getAction() != MotionEvent.ACTION_DOWN) {
+            MotionEvent cancelEvent = MotionEvent.obtain(event);
+            cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
+            super.onInterceptTouchEvent(cancelEvent);
+            cancelEvent.recycle();
+        }
+        // Don't intercept mouse click or drag, so it can be be handled by child views.
+        return false;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!shouldIgnoreMouseClickAndDrag(event)) {
+            return super.onTouchEvent(event);
+        }
+        if (event.getAction() != MotionEvent.ACTION_DOWN) {
+            MotionEvent cancelEvent = MotionEvent.obtain(event);
+            cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
+            super.onTouchEvent(cancelEvent);
+            cancelEvent.recycle();
+        }
+        // Consume mouse click and drag events to prevent them from propagating to scroll.
+        return true;
+    }
+
+    private boolean shouldIgnoreMouseClickAndDrag(MotionEvent ev) {
+        return Flags.enableCursorDrivenWorkflows() && !isTrackpadMotionEvent(ev)
+                && ev.isFromSource(InputDevice.SOURCE_MOUSE);
+    }
+
+    @Override
     public void onScrollStateChanged(int state) {
         super.onScrollStateChanged(state);
 
@@ -175,6 +189,33 @@ public class AllAppsRecyclerView extends FastScrollRecyclerView {
                 logCumulativeVerticalScroll();
                 break;
         }
+    }
+
+    @Override
+    public boolean canScrollVertically(int direction) {
+        // direction > 0 checks for scrolling down. Overriding this helps resolve issues where
+        // unmeasured items at the bottom are given a size of 0, underestimating the scroll range.
+        if (direction > 0) {
+            RecyclerView.LayoutManager layoutManager = getLayoutManager();
+            if (layoutManager instanceof LinearLayoutManager linearLayoutManager) {
+                int lastVisiblePosition =
+                        linearLayoutManager.findLastCompletelyVisibleItemPosition();
+                RecyclerView.Adapter<?> adapter = getAdapter();
+                if (lastVisiblePosition != NO_POSITION && adapter != null) {
+                    int targetCountLimit = adapter.getItemCount() - 1;
+                    // If the last item is the unmeasurable decorative footer, ignore it so we don't
+                    // get false positives when we are at the app list's bottom.
+                    if (targetCountLimit >= 0 && adapter.getItemViewType(targetCountLimit)
+                            == BaseAllAppsAdapter.VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO) {
+                        targetCountLimit--;
+                    }
+                    if (lastVisiblePosition < targetCountLimit) {
+                        return true; // There are more apps in the adapter, so we can scroll down.
+                    }
+                }
+            }
+        }
+        return super.canScrollVertically(direction);
     }
 
     @Override

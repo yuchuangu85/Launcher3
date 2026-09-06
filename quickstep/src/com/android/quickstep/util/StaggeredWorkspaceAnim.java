@@ -24,6 +24,7 @@ import static com.android.launcher3.anim.PropertySetter.NO_ANIM_PROPERTY_SETTER;
 import static com.android.launcher3.states.StateAnimationConfig.SKIP_DEPTH_CONTROLLER;
 import static com.android.launcher3.states.StateAnimationConfig.SKIP_OVERVIEW;
 import static com.android.launcher3.states.StateAnimationConfig.SKIP_SCRIM;
+import static com.android.launcher3.util.NavigationMode.THREE_BUTTONS;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -46,10 +47,11 @@ import com.android.launcher3.Workspace;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.anim.SpringAnimationBuilder;
 import com.android.launcher3.celllayout.CellLayoutLayoutParams;
-import com.android.launcher3.statehandlers.DepthController;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.statehandlers.DesktopVisibilityController;
+import com.android.launcher3.statehandlers.LauncherDepthController;
 import com.android.launcher3.states.StateAnimationConfig;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
-import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.DynamicResource;
 import com.android.quickstep.views.RecentsView;
 import com.android.systemui.plugins.ResourceProvider;
@@ -81,10 +83,13 @@ public class StaggeredWorkspaceAnim {
 
     public StaggeredWorkspaceAnim(QuickstepLauncher launcher, float velocity,
             boolean animateOverviewScrim, @Nullable View ignoredView, boolean staggerWorkspace) {
-        boolean isPinnedTaskbarAndNotInDesktopMode = DisplayController.isPinnedTaskbar(launcher)
-                && !DisplayController.isInDesktopMode(launcher);
+        boolean isPersistentTaskbarAndNotInDesktopMode =
+                (!launcher.getActivityComponent().getTaskbarFeatureEvaluator().isTransient()
+                        || DisplayController.getNavigationMode(launcher) == THREE_BUTTONS)
+                        && !DesktopVisibilityController.INSTANCE.get(launcher)
+                        .isInDesktopMode(launcher.getDisplayId());
         mTaskbarDurationInMs = QuickstepTransitionManager.getTaskbarToHomeDuration(
-                isPinnedTaskbarAndNotInDesktopMode);
+                isPersistentTaskbarAndNotInDesktopMode);
         prepareToAnimate(launcher, animateOverviewScrim);
 
         mIgnoredView = ignoredView;
@@ -97,14 +102,20 @@ public class StaggeredWorkspaceAnim {
                 .getDimensionPixelSize(R.dimen.swipe_up_max_workspace_trans_y);
 
         DeviceProfile grid = launcher.getDeviceProfile();
-        long duration = grid.isTaskbarPresent ? mTaskbarDurationInMs : DURATION_MS;
+        long duration =
+                grid.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()
+                        ? mTaskbarDurationInMs : DURATION_MS;
         if (staggerWorkspace) {
             Workspace<?> workspace = launcher.getWorkspace();
             Hotseat hotseat = launcher.getHotseat();
 
-            boolean staggerHotseat = !grid.isVerticalBarLayout() && !grid.isTaskbarPresent;
-            boolean staggerQsb =
-                    !grid.isVerticalBarLayout() && !(grid.isTaskbarPresent && grid.isQsbInline);
+            boolean staggerHotseat = !grid.isVerticalBarLayout()
+                    && !grid.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent();
+            boolean staggerQsb = !grid.isVerticalBarLayout()
+                    && !(
+                    grid.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()
+                            && grid.getHotseatProfile().isQsbInline()
+            );
             int totalRows = grid.inv.numRows + (staggerHotseat ? 1 : 0) + (staggerQsb ? 1 : 0);
 
             // Add animation for all the visible workspace pages
@@ -132,8 +143,8 @@ public class StaggeredWorkspaceAnim {
                 }
             } else {
                 final int hotseatRow, qsbRow;
-                if (grid.isTaskbarPresent) {
-                    if (grid.isQsbInline) {
+                if (grid.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()) {
+                    if (grid.getHotseatProfile().isQsbInline()) {
                         qsbRow = grid.inv.numRows + 1;
                         hotseatRow = grid.inv.numRows + 1;
                     } else {
@@ -302,7 +313,7 @@ public class StaggeredWorkspaceAnim {
     private void addDepthAnimationForState(QuickstepLauncher launcher, LauncherState state,
             long duration) {
         PendingAnimation builder = new PendingAnimation(duration);
-        DepthController depthController = launcher.getDepthController();
+        LauncherDepthController depthController = launcher.getDepthController();
         depthController.setStateWithAnimation(state, new StateAnimationConfig(), builder);
         mAnimators.play(builder.buildAnim());
     }

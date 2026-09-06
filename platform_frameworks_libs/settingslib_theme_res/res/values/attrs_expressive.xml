@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2024 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<resources>
+    <declare-styleable name="CollapsableTextView">
+        <attr name="android:gravity"/>
+        <!-- The minimum number of lines when the textView collapsed. -->
+        <attr name="android:minLines"/>
+        <!-- Specifies that the textView is collapsable. -->
+        <attr name="isCollapsable" format="boolean"/>
+    </declare-styleable>
+
+    <attr name="expressiveSwitchStyle" format="reference" />
+
+    <!-- State value for {@link android.graphics.drawable.StateListDrawable StateListDrawable}, set
+         when a preference has an icon or has its icon space reserved. -->
+    <attr name="state_has_icon_space" format="boolean" />
+
+    <!-- Theme attributes to override Expressive Design Preference styles -->
+    <attr name="expressivePreferenceTheme" format="reference" />
+    <attr name="expressivePreferenceRootLayoutStyle" format="reference" />
+    <attr name="expressivePreferenceWidgetFrameStyle" format="reference" />
+
+    <attr name="expressivePreferenceIconFrameStyle" format="reference" />
+    <attr name="expressivePreferenceIconStyle" format="reference" />
+
+    <attr name="expressivePreferenceTextFrameStyle" format="reference" />
+    <attr name="expressivePreferenceTextFrameTitleStyle" format="reference" />
+    <attr name="expressivePreferenceTextFrameSummaryStyle" format="reference" />
+
+    <attr name="expressiveTwoTargetPreferenceTheme" format="reference" />
+    <attr name="expressiveTwoTargetPreferenceRootStyle" format="reference" />
+    <attr name="expressiveTwoTargetPreferenceWidgetFrameStyle" format="reference" />
+
+    <attr name="expressiveTwoTargetDividerStyle" format="reference" />
+    <attr name="expressiveTwoTargetDividerImageViewStyle" format="reference" />
+    <attr name="expressiveTwoTargetDividerViewStyle" format="reference" />
+
+    <attr name="expressiveSelectorWithWidgetPreferenceTheme" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceRootLayoutStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceWidgetFrameStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceIconStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceTextContainerStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceTitleStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceSummaryContainerStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceSummaryStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceAppendixStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceExtraWidgetContainerStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceExtraWidgetDividerStyle" format="reference" />
+    <attr name="expressiveSelectorWithWidgetPreferenceExtraWidgetImageStyle" format="reference" />
+
+    <attr name="expressiveFooterPreferenceTheme" format="reference" />
+    <attr name="expressiveFooterPreferenceRootLayoutStyle" format="reference" />
+    <attr name="expressiveFooterPreferenceIconFrameStyle" format="reference" />
+    <attr name="expressiveFooterPreferenceIconStyle" format="reference" />
+    <attr name="expressiveFooterPreferenceLinearLayoutStyle" format="reference" />
+    <attr name="expressiveFooterPreferenceTitleStyle" format="reference" />
+    <attr name="expressiveFooterPreferenceLearnMoreStyle" format="reference" />
+
+    <attr name="expressivePreferenceCategoryTheme" format="reference" />
+    <attr name="expressivePreferenceCategoryRootLayoutStyle" format="reference" />
+    <attr name="expressivePreferenceCategoryRelativeLayoutStyle" format="reference" />
+    <attr name="expressivePreferenceCategoryTitleStyle" format="reference" />
+    <attr name="expressivePreferenceCategorySummaryStyle" format="reference" />
+</resources>

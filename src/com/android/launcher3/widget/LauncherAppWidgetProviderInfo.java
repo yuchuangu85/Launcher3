@@ -1,7 +1,5 @@
 package com.android.launcher3.widget;
 
-import static com.android.launcher3.InvariantDeviceProfile.TYPE_PHONE;
-
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
@@ -13,16 +11,14 @@ import android.graphics.drawable.Drawable;
 import android.os.Parcel;
 import android.os.UserHandle;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.Flags;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherAppState;
-import com.android.launcher3.Utilities;
-import com.android.launcher3.icons.IconCache;
-import com.android.launcher3.icons.cache.BaseIconCache;
 import com.android.launcher3.icons.cache.CachedObject;
+import com.android.launcher3.icons.cache.IconLoadRequest;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 
 /**
@@ -33,7 +29,7 @@ import com.android.launcher3.model.data.LauncherAppWidgetInfo;
  */
 public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo implements CachedObject {
 
-    public static final String CLS_CUSTOM_WIDGET_PREFIX = "#custom-widget-";
+    public static final String CUSTOM_WIDGET_PACKAGE = "custom-widget";
 
     /**
      * The desired number of cells that this widget occupies horizontally in
@@ -114,53 +110,54 @@ public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo impleme
         Point cellSize = new Point();
         for (DeviceProfile dp : idp.supportedProfiles) {
             // On phones we no longer support regular landscape, only fixed landscape for this
-            // reason we don't need to take regular landscape into account in phones
-            if (Flags.oneGridSpecs() && dp.inv.deviceType == TYPE_PHONE
+            // reason we don't need to take regular landscape into account in phones. Foldables
+            // still support regular landscape when unfolded.
+            if (!dp.getDeviceProperties().isLargeScreen()
                     && dp.inv.isFixedLandscape != dp.getDeviceProperties().isLandscape()) {
                 continue;
             }
 
-            dp.getCellSize(cellSize);
-            Rect widgetPadding = dp.widgetPadding;
+            cellSize = dp.getWorkspaceProfile().getCellSize();
+            Rect widgetPadding = dp.getWorkspaceProfile().getWidgetPadding();
 
             minSpanX = Math.max(minSpanX,
-                    getSpanX(widgetPadding, minResizeWidth, dp.cellLayoutBorderSpacePx.x,
+                    getSpanX(widgetPadding, minResizeWidth,
+                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x,
                             cellSize.x));
             minSpanY = Math.max(minSpanY,
-                    getSpanY(widgetPadding, minResizeHeight, dp.cellLayoutBorderSpacePx.y,
+                    getSpanY(widgetPadding, minResizeHeight,
+                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().y,
                             cellSize.y));
 
-            if (Utilities.ATLEAST_S) {
-                if (maxResizeWidth > 0) {
-                    maxSpanX = Math.min(maxSpanX, getSpanX(widgetPadding, maxResizeWidth,
-                        dp.cellLayoutBorderSpacePx.x, cellSize.x));
-                }
-                if (maxResizeHeight > 0) {
-                    maxSpanY = Math.min(maxSpanY, getSpanY(widgetPadding, maxResizeHeight,
-                        dp.cellLayoutBorderSpacePx.y, cellSize.y));
-                }
+            if (maxResizeWidth > 0) {
+                maxSpanX = Math.min(maxSpanX, getSpanX(widgetPadding, maxResizeWidth,
+                        dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x, cellSize.x));
+            }
+            if (maxResizeHeight > 0) {
+                maxSpanY = Math.min(maxSpanY, getSpanY(widgetPadding, maxResizeHeight,
+                        dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().y, cellSize.y));
             }
 
             spanX = Math.max(spanX,
-                    getSpanX(widgetPadding, minWidth, dp.cellLayoutBorderSpacePx.x,
+                    getSpanX(widgetPadding, minWidth,
+                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x,
                             cellSize.x));
             spanY = Math.max(spanY,
-                    getSpanY(widgetPadding, minHeight, dp.cellLayoutBorderSpacePx.y,
+                    getSpanY(widgetPadding, minHeight,
+                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().y,
                             cellSize.y));
         }
 
-        if (Utilities.ATLEAST_S) {
-            // Ensures maxSpan >= minSpan
-            maxSpanX = Math.max(maxSpanX, minSpanX);
-            maxSpanY = Math.max(maxSpanY, minSpanY);
+        // Ensures maxSpan >= minSpan
+        maxSpanX = Math.max(maxSpanX, minSpanX);
+        maxSpanY = Math.max(maxSpanY, minSpanY);
 
-            // Use targetCellWidth/Height if it is within the min/max ranges.
-            // Otherwise, use the span of minWidth/Height.
-            if (targetCellWidth >= minSpanX && targetCellWidth <= maxSpanX
-                    && targetCellHeight >= minSpanY && targetCellHeight <= maxSpanY) {
-                spanX = targetCellWidth;
-                spanY = targetCellHeight;
-            }
+        // Use targetCellWidth/Height if it is within the min/max ranges.
+        // Otherwise, use the span of minWidth/Height.
+        if (targetCellWidth >= minSpanX && targetCellWidth <= maxSpanX
+                && targetCellHeight >= minSpanY && targetCellHeight <= maxSpanY) {
+            spanX = targetCellWidth;
+            spanY = targetCellHeight;
         }
 
         // If minSpanX/Y > spanX/Y, ignore the minSpanX/Y to match the behavior described in
@@ -216,20 +213,19 @@ public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo impleme
     }
 
     public boolean isCustomWidget() {
-        return provider.getClassName().startsWith(CLS_CUSTOM_WIDGET_PREFIX);
+        return provider.getPackageName().equals(CUSTOM_WIDGET_PACKAGE);
     }
 
     public int getWidgetFeatures() {
-        if (!Utilities.ATLEAST_P) return 0;
         return widgetFeatures;
     }
 
     public boolean isReconfigurable() {
-        return Utilities.ATLEAST_P && configure != null && (getWidgetFeatures() & WIDGET_FEATURE_RECONFIGURABLE) != 0;
+        return configure != null && (getWidgetFeatures() & WIDGET_FEATURE_RECONFIGURABLE) != 0;
     }
 
     public boolean isConfigurationOptional() {
-        return Utilities.ATLEAST_S && isReconfigurable()
+        return isReconfigurable()
                 && (getWidgetFeatures() & WIDGET_FEATURE_CONFIGURATION_OPTIONAL) != 0;
     }
 
@@ -244,24 +240,13 @@ public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo impleme
     }
 
     @Override
-    public Drawable getFullResIcon(BaseIconCache cache) {
-        if (Utilities.ATLEAST_S) {
-            return cache.getFullResIcon(getActivityInfo());
-        } else {
-            return cache.getFullResIcon(provider.getPackageName());
-        }
+    public Drawable getFullResIcon(@NonNull IconLoadRequest<CachedObject> request) {
+        return request.getIcon(getActivityInfo());
     }
 
     @Nullable
     @Override
     public ApplicationInfo getApplicationInfo() {
-        if (Utilities.ATLEAST_S) {
-            return getActivityInfo().applicationInfo;
-        }
-        try {
-            return mPM.getApplicationInfo(provider.getPackageName(), 0);
-        } catch (PackageManager.NameNotFoundException e) {
-            return null;
-        }
+        return getActivityInfo().applicationInfo;
     }
 }

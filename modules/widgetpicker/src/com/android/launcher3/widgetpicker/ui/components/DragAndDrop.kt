@@ -120,10 +120,16 @@ class DragState(
                                 componentName = widgetInfo.appWidgetProviderInfo.provider,
                             )
 
-                        is WidgetInfo.ShortcutInfo ->
+                        is WidgetInfo.StaticShortcutInfo ->
                             buildIntentForClipData(
                                 user = widgetInfo.launcherActivityInfo.user,
                                 componentName = widgetInfo.launcherActivityInfo.componentName,
+                            )
+
+                        is WidgetInfo.PinnedShortcutInfo ->
+                            buildIntentForClipData(
+                                user = widgetInfo.user,
+                                componentName = widgetInfo.componentName,
                             )
                     }
                 ),

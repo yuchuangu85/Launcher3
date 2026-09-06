@@ -54,12 +54,10 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
         OnBackAnimationCallback {
 
     @IntDef(flag = true, value = {
-            TYPE_COMPOSE_VIEW,
             TYPE_FOLDER,
             TYPE_ACTION_POPUP,
             TYPE_WIDGETS_BOTTOM_SHEET,
             TYPE_WIDGET_RESIZE_FRAME,
-            TYPE_WIDGETS_FULL_SHEET,
             TYPE_ON_BOARD_POPUP,
             TYPE_DISCOVERY_BOUNCE,
             TYPE_SNACKBAR,
@@ -79,6 +77,8 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
             TYPE_PIN_IME_POPUP,
             TYPE_ONE_GRID_MIGRATION_EDU,
             TYPE_NUDGE,
+            TYPE_TASKBAR_OVERFLOW,
+            TYPE_DIALOG_LISTENER,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface FloatingViewType {}
@@ -86,7 +86,6 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
     public static final int TYPE_ACTION_POPUP = 1 << 1;
     public static final int TYPE_WIDGETS_BOTTOM_SHEET = 1 << 2;
     public static final int TYPE_WIDGET_RESIZE_FRAME = 1 << 3;
-    public static final int TYPE_WIDGETS_FULL_SHEET = 1 << 4;
     public static final int TYPE_ON_BOARD_POPUP = 1 << 5;
     public static final int TYPE_DISCOVERY_BOUNCE = 1 << 6;
     public static final int TYPE_SNACKBAR = 1 << 7;
@@ -109,37 +108,36 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
     public static final int TYPE_PIN_IME_POPUP = 1 << 22;
     public static final int TYPE_ONE_GRID_MIGRATION_EDU = 1 << 23;
     public static final int TYPE_NUDGE = 1 << 24;
-
-    // Custom compose popups
-    public static final int TYPE_COMPOSE_VIEW = 1 << 25;
+    public static final int TYPE_TASKBAR_OVERFLOW = 1 << 25;
+    public static final int TYPE_DIALOG_LISTENER = 1 << 26;
 
     public static final int TYPE_ALL = TYPE_FOLDER | TYPE_ACTION_POPUP
-            | TYPE_WIDGETS_BOTTOM_SHEET | TYPE_WIDGET_RESIZE_FRAME | TYPE_WIDGETS_FULL_SHEET
+            | TYPE_WIDGETS_BOTTOM_SHEET | TYPE_WIDGET_RESIZE_FRAME
             | TYPE_ON_BOARD_POPUP | TYPE_DISCOVERY_BOUNCE | TYPE_TASK_MENU
             | TYPE_OPTIONS_POPUP | TYPE_SNACKBAR | TYPE_LISTENER | TYPE_ALL_APPS_EDU
             | TYPE_ICON_SURFACE | TYPE_DRAG_DROP_POPUP | TYPE_PIN_WIDGET_FROM_EXTERNAL_POPUP
             | TYPE_TASKBAR_EDUCATION_DIALOG | TYPE_TASKBAR_ALL_APPS | TYPE_OPTIONS_POPUP_DIALOG
             | TYPE_ADD_TO_HOME_CONFIRMATION | TYPE_TASKBAR_OVERLAY_PROXY
             | TYPE_TASKBAR_PINNING_POPUP | TYPE_PIN_IME_POPUP | TYPE_ONE_GRID_MIGRATION_EDU
-            | TYPE_NUDGE | TYPE_COMPOSE_VIEW;
+            | TYPE_NUDGE | TYPE_TASKBAR_OVERFLOW | TYPE_DIALOG_LISTENER;
 
     // Type of popups which should be kept open during launcher rebind
-    public static final int TYPE_REBIND_SAFE = TYPE_WIDGETS_FULL_SHEET
-            | TYPE_WIDGETS_BOTTOM_SHEET | TYPE_ON_BOARD_POPUP | TYPE_DISCOVERY_BOUNCE
+    public static final int TYPE_REBIND_SAFE = TYPE_WIDGETS_BOTTOM_SHEET
+            | TYPE_ON_BOARD_POPUP | TYPE_DISCOVERY_BOUNCE
             | TYPE_ALL_APPS_EDU | TYPE_ICON_SURFACE | TYPE_TASKBAR_EDUCATION_DIALOG
             | TYPE_TASKBAR_ALL_APPS | TYPE_OPTIONS_POPUP_DIALOG | TYPE_TASKBAR_OVERLAY_PROXY
-            | TYPE_PIN_IME_POPUP | TYPE_ONE_GRID_MIGRATION_EDU | TYPE_NUDGE | TYPE_COMPOSE_VIEW;
+            | TYPE_PIN_IME_POPUP | TYPE_ONE_GRID_MIGRATION_EDU | TYPE_NUDGE;
 
     /** Type of popups that should get exclusive accessibility focus. */
     public static final int TYPE_ACCESSIBLE = TYPE_ALL & ~TYPE_DISCOVERY_BOUNCE & ~TYPE_LISTENER
             & ~TYPE_ALL_APPS_EDU & ~TYPE_TASKBAR_ALL_APPS & ~TYPE_PIN_IME_POPUP
             & ~TYPE_WIDGET_RESIZE_FRAME & ~TYPE_ONE_GRID_MIGRATION_EDU & ~TYPE_ON_BOARD_POPUP
-            & ~TYPE_TASKBAR_OVERLAY_PROXY;
+            & ~TYPE_TASKBAR_OVERLAY_PROXY & ~TYPE_DIALOG_LISTENER;
 
     // These view all have particular operation associated with swipe down interaction.
     public static final int TYPE_STATUS_BAR_SWIPE_DOWN_DISALLOW = TYPE_WIDGETS_BOTTOM_SHEET |
-            TYPE_WIDGETS_FULL_SHEET | TYPE_WIDGET_RESIZE_FRAME | TYPE_ON_BOARD_POPUP |
-            TYPE_DISCOVERY_BOUNCE | TYPE_TASK_MENU | TYPE_DRAG_DROP_POPUP | TYPE_COMPOSE_VIEW;
+            TYPE_WIDGET_RESIZE_FRAME | TYPE_ON_BOARD_POPUP | TYPE_DISCOVERY_BOUNCE
+            | TYPE_TASK_MENU | TYPE_DRAG_DROP_POPUP;
 
     // Floating views that are exclusive to the taskbar overlay window.
     public static final int TYPE_TASKBAR_OVERLAYS =
@@ -147,7 +145,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     // Floating views that a TouchController should not try to intercept touches from.
     public static final int TYPE_TOUCH_CONTROLLER_NO_INTERCEPT = TYPE_ALL & ~TYPE_DISCOVERY_BOUNCE
-            & ~TYPE_LISTENER & ~TYPE_TASKBAR_OVERLAYS;
+            & ~TYPE_LISTENER & ~TYPE_TASKBAR_OVERLAYS & ~TYPE_DIALOG_LISTENER;
 
     protected boolean mIsOpen;
 
@@ -284,7 +282,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     public static void closeOpenViews(ActivityContext activity, boolean animate,
             @FloatingViewType int type) {
-        new AbstractFloatingViewHelper().closeOpenViews(activity, animate, type);
+        AbstractFloatingViewHelper.INSTANCE.closeOpenViews(activity, animate, type);
     }
 
     public static void closeAllOpenViews(ActivityContext activity, boolean animate) {
@@ -313,7 +311,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     public static AbstractFloatingView getTopOpenViewWithType(ActivityContext activity,
             @FloatingViewType int type) {
-        return getOpenView(activity, type);
+        return AbstractFloatingViewHelper.INSTANCE.getTopOpenViewWithType(activity, type);
     }
 
     public boolean canInterceptEventsInSystemGestureRegion() {

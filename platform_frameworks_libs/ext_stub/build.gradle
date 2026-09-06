@@ -1,0 +1,18 @@
+// Compile stubs for framework/extension classes absent from stale prebuilts.
+plugins {
+    id 'com.android.library'
+}
+android {
+    namespace 'android.uilatencystats.stub'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig { minSdk 31 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    lint { abortOnError false }
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+}

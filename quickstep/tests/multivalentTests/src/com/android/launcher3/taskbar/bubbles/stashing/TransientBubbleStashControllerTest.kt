@@ -17,9 +17,12 @@
 package com.android.launcher3.taskbar.bubbles.stashing
 
 import android.animation.AnimatorSet
-import android.animation.AnimatorTestRule
 import android.content.Context
+import android.content.Intent
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.view.View
+import android.view.accessibility.AccessibilityManager
 import android.widget.FrameLayout
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.test.core.app.ApplicationProvider
@@ -28,14 +31,19 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import com.android.launcher3.anim.AnimatedFloat
 import com.android.launcher3.taskbar.StashedHandleView
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.launcher3.taskbar.TaskbarInsetsController
 import com.android.launcher3.taskbar.TaskbarStashController
+import com.android.launcher3.taskbar.TaskbarUiState
 import com.android.launcher3.taskbar.bubbles.BubbleBarView
 import com.android.launcher3.taskbar.bubbles.BubbleBarViewController
 import com.android.launcher3.taskbar.bubbles.BubbleStashedHandleViewController
 import com.android.launcher3.taskbar.bubbles.BubbleView
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.BubbleLauncherState
+import com.android.launcher3.taskbar.rules.TaskbarAnimatorTestRule
 import com.android.launcher3.util.MultiValueAlpha
+import com.android.quickstep.util.SystemActionConstants.SYSTEM_ACTION_ID_BUBBLE_BAR
+import com.android.wm.shell.Flags
 import com.android.wm.shell.shared.animation.PhysicsAnimator
 import com.android.wm.shell.shared.animation.PhysicsAnimatorTestUtils
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation
@@ -49,7 +57,9 @@ import org.mockito.Mock
 import org.mockito.junit.MockitoJUnit
 import org.mockito.junit.MockitoRule
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.atLeastOnce
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -71,15 +81,21 @@ class TransientBubbleStashControllerTest {
         const val BUBBLE_BAR_STASHED_TRANSLATION_Y = -4.5f
     }
 
-    @get:Rule val animatorTestRule: AnimatorTestRule = AnimatorTestRule(this)
+    @get:Rule val setFlagsRule = SetFlagsRule()
+
+    @get:Rule val animatorTestRule = TaskbarAnimatorTestRule(this)
 
     @get:Rule val rule: MockitoRule = MockitoJUnit.rule()
+
+    private val taskbarUiState = TaskbarUiState()
 
     @Mock lateinit var bubbleStashedHandleViewController: BubbleStashedHandleViewController
 
     @Mock lateinit var bubbleBarViewController: BubbleBarViewController
 
     @Mock lateinit var taskbarInsetsController: TaskbarInsetsController
+
+    @Mock lateinit var mockA11yManager: AccessibilityManager
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private lateinit var bubbleBarView: BubbleBarView
@@ -104,7 +120,12 @@ class TransientBubbleStashControllerTest {
         val taskbarHotseatDimensionsProvider =
             DefaultDimensionsProvider(taskBarBottomSpace = TASKBAR_BOTTOM_SPACE)
         mTransientBubbleStashController =
-            TransientBubbleStashController(taskbarHotseatDimensionsProvider, context)
+            TransientBubbleStashController(
+                taskbarHotseatDimensionsProvider,
+                context,
+                taskbarUiState,
+                mockA11yManager,
+            )
         setUpBubbleBarView()
         setUpBubbleBarController()
         setUpStashedHandleView()
@@ -191,6 +212,7 @@ class TransientBubbleStashControllerTest {
             )
         }
         assertThat(mTransientBubbleStashController.isStashed).isTrue()
+        assertThat(taskbarUiState.isBubbleStashed).isTrue()
 
         // Move to overview
         getInstrumentation().runOnMainSync {
@@ -198,6 +220,7 @@ class TransientBubbleStashControllerTest {
         }
         // No longer stashed in overview
         assertThat(mTransientBubbleStashController.isStashed).isFalse()
+        assertThat(taskbarUiState.isBubbleStashed).isFalse()
     }
 
     @Test
@@ -224,6 +247,7 @@ class TransientBubbleStashControllerTest {
         verify(bubbleBarViewController).onStashStateChanging()
         // Bubble bar is stashed
         assertThat(mTransientBubbleStashController.isStashed).isTrue()
+        assertThat(taskbarUiState.isBubbleStashed).isTrue()
         assertThat(bubbleBarView.translationY).isEqualTo(BUBBLE_BAR_STASHED_TRANSLATION_Y)
         assertThat(bubbleBarView.alpha).isEqualTo(0f)
         assertThat(bubbleBarView.scaleX).isEqualTo(mTransientBubbleStashController.getStashScaleX())
@@ -261,6 +285,7 @@ class TransientBubbleStashControllerTest {
         verify(bubbleBarViewController).onStashStateChanging()
         // Bubble bar is unstashed
         assertThat(mTransientBubbleStashController.isStashed).isFalse()
+        assertThat(taskbarUiState.isBubbleStashed).isFalse()
         assertThat(bubbleBarView.translationY).isEqualTo(TASK_BAR_TRANSLATION_Y)
         assertThat(bubbleBarView.alpha).isEqualTo(1f)
         assertThat(bubbleBarView.scaleX).isEqualTo(1f)
@@ -472,6 +497,7 @@ class TransientBubbleStashControllerTest {
     @Test
     fun stashBubbleBarImmediate() {
         // When
+        mTransientBubbleStashController.launcherState = BubbleLauncherState.IN_APP
         mTransientBubbleStashController.stashBubbleBarImmediate()
 
         // Then all property values are updated
@@ -486,6 +512,32 @@ class TransientBubbleStashControllerTest {
         verify(taskbarInsetsController).onTaskbarOrBubblebarWindowHeightOrInsetsChanged()
         // Bubble bar visibility updated
         verify(bubbleBarViewController).setHiddenForStashed(true)
+    }
+
+    @Test
+    fun stashBubbleBarImmediate_onHomeDoesNothing() {
+        // Given bubble bar is shown on home
+        whenever(bubbleBarViewController.isHiddenForNoBubbles).thenReturn(false)
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.stashBubbleBarImmediate()
+            assertThat(mTransientBubbleStashController.isStashed).isTrue()
+            mTransientBubbleStashController.launcherState = BubbleLauncherState.HOME
+        }
+        advanceTimeBy(BubbleStashController.BAR_STASH_DURATION)
+        PhysicsAnimatorTestUtils.blockUntilAnimationsEnd(DynamicAnimation.TRANSLATION_Y)
+        assertThat(bubbleBarView.translationY).isEqualTo(HOTSEAT_TRANSLATION_Y)
+        assertThat(bubbleBarView.alpha).isEqualTo(1)
+        assertThat(mTransientBubbleStashController.isStashed).isFalse()
+
+        // When requesting to stash the bubble bar
+        mTransientBubbleStashController.stashBubbleBarImmediate()
+
+        // Then nothing is changed, since bubble bar should not be stashed on home
+        assertThat(mTransientBubbleStashController.isStashed).isFalse()
+        assertThat(bubbleBarView.translationY).isEqualTo(HOTSEAT_TRANSLATION_Y)
+        assertThat(bubbleBarView.alpha).isEqualTo(1)
+        // Handle is invisible
+        assertThat(stashedHandleView.alpha).isEqualTo(0)
     }
 
     @Test
@@ -547,9 +599,173 @@ class TransientBubbleStashControllerTest {
         assertThat(alphaProperty).isNull()
     }
 
+    @Test
+    fun bubbleBarVerticalCenterForHome_updatedWhileOnHome_animatesToNewPosition() {
+        // Given bubble bar is on home and has bubbles
+        whenever(bubbleBarViewController.hasBubbles()).thenReturn(true)
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.launcherState = BubbleLauncherState.HOME
+        }
+        // Wait for initial animation to finish
+        advanceTimeBy(BubbleStashController.BAR_TRANSLATION_DURATION)
+        PhysicsAnimatorTestUtils.blockUntilAnimationsEnd(DynamicAnimation.TRANSLATION_Y)
+        assertThat(bubbleBarView.translationY).isEqualTo(HOTSEAT_TRANSLATION_Y)
+
+        // When the vertical center for home is updated
+        val newCenterY = HOTSEAT_VERTICAL_CENTER + 20
+        val expectedY = -newCenterY + BUBBLE_BAR_HEIGHT / 2f
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.bubbleBarVerticalCenterForHome = newCenterY
+        }
+
+        // Then the bubble bar animates to the new position
+        assertThat(barTranslationY.isAnimating).isTrue()
+        advanceTimeBy(BubbleStashController.BAR_TRANSLATION_DURATION)
+        PhysicsAnimatorTestUtils.blockUntilAnimationsEnd(DynamicAnimation.TRANSLATION_Y)
+        assertThat(barTranslationY.isAnimating).isFalse()
+        assertThat(bubbleBarView.translationY).isEqualTo(expectedY)
+        verify(taskbarInsetsController, atLeastOnce())
+            .onTaskbarOrBubblebarWindowHeightOrInsetsChanged()
+    }
+
+    @Test
+    fun bubbleBarVerticalCenterForHome_updatedWhileNotInHome_doesNotAnimate() {
+        // Given bubble bar is in-app (not on home)
+        whenever(bubbleBarViewController.hasBubbles()).thenReturn(true)
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.launcherState = BubbleLauncherState.IN_APP
+        }
+        val initialTranslationY = bubbleBarView.translationY
+
+        // When the vertical center for home is updated
+        val newCenterY = HOTSEAT_VERTICAL_CENTER + 20
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.bubbleBarVerticalCenterForHome = newCenterY
+        }
+
+        // Then the bubble bar does not animate and its position doesn't change
+        assertThat(barTranslationY.isAnimating).isFalse()
+        assertThat(bubbleBarView.translationY).isEqualTo(initialTranslationY)
+    }
+
+    @Test
+    fun bubbleBarVerticalCenterForHome_updatedWithSameValue_doesNotAnimate() {
+        // Given bubble bar is on home and has bubbles
+        whenever(bubbleBarViewController.hasBubbles()).thenReturn(true)
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.launcherState = BubbleLauncherState.HOME
+        }
+        // Wait for initial animation to finish
+        advanceTimeBy(BubbleStashController.BAR_TRANSLATION_DURATION)
+        PhysicsAnimatorTestUtils.blockUntilAnimationsEnd(DynamicAnimation.TRANSLATION_Y)
+        assertThat(barTranslationY.isAnimating).isFalse()
+
+        // When the vertical center for home is updated with the same value
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.bubbleBarVerticalCenterForHome = HOTSEAT_VERTICAL_CENTER
+        }
+
+        // Then the bubble bar does not animate
+        assertThat(barTranslationY.isAnimating).isFalse()
+    }
+
+    @Test
+    fun updateStashedState_stashTrue_registersSystemAction() {
+        // Given
+        whenever(bubbleBarViewController.isHiddenForNoBubbles).thenReturn(false)
+
+        // When
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.updateStashedAndExpandedState(
+                stash = true,
+                expand = false,
+            )
+        }
+
+        // Then
+        verify(mockA11yManager).registerSystemAction(any(), eq(SYSTEM_ACTION_ID_BUBBLE_BAR))
+    }
+
+    @Test
+    fun updateStashedState_stashFalse_unregistersSystemAction() {
+        // Given the a11y system action item is added
+        whenever(bubbleBarViewController.isHiddenForNoBubbles).thenReturn(false)
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.updateStashedAndExpandedState(
+                stash = true,
+                expand = false,
+            )
+            verify(mockA11yManager).registerSystemAction(any(), eq(SYSTEM_ACTION_ID_BUBBLE_BAR))
+        }
+
+        // When
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.updateStashedAndExpandedState(
+                stash = false,
+                expand = false,
+            )
+        }
+
+        // Then
+        verify(mockA11yManager).unregisterSystemAction(SYSTEM_ACTION_ID_BUBBLE_BAR)
+    }
+
+    @Test
+    fun triggerShowTaskbarReceiver_unstashesBubbleBar() {
+        // Given bubble bar is stashed
+        whenever(bubbleBarViewController.isHiddenForNoBubbles).thenReturn(false)
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.updateStashedAndExpandedState(
+                stash = true,
+                expand = false,
+            )
+        }
+        assertThat(mTransientBubbleStashController.isStashed).isTrue()
+
+        // When the receiver is triggered (simulating the Accessibility Action)
+        runOnTaskbarUiThreadSync {
+            mTransientBubbleStashController.showBubbleBarReceiver.onReceive(context, Intent())
+        }
+
+        // Then it should unstash
+        assertThat(mTransientBubbleStashController.isStashed).isFalse()
+        verify(bubbleBarViewController, atLeastOnce()).onStashStateChanging()
+    }
+
+    @EnableFlags(Flags.FLAG_FIX_BUBBLES_STASHING_ON_HOME)
+    @Test
+    fun unlockAnimationInterrupted_unstashesBubbleBar() {
+        // We have bubbles
+        whenever(bubbleBarViewController.isHiddenForNoBubbles).thenReturn(false)
+        whenever(bubbleBarViewController.hasBubbles()).thenReturn(true)
+
+        // Simultaneously unlock and get an update for being on home
+        getInstrumentation().runOnMainSync {
+            mTransientBubbleStashController.isSysuiLocked = true
+            mTransientBubbleStashController.isSysuiLocked = false
+            mTransientBubbleStashController.launcherState = BubbleLauncherState.HOME
+        }
+        advanceTimeBy(BubbleStashController.BAR_STASH_DURATION)
+
+        // Verify that the most recent value set for stashed state is FALSE (not stashed)
+        val captor = argumentCaptor<Boolean>()
+        verify(bubbleBarViewController, atLeastOnce()).setHiddenForStashed(captor.capture())
+        assertThat(captor.lastValue).isFalse()
+
+        // And bubble bar is fully visible at the correct location for HOME
+        assertThat(mTransientBubbleStashController.isStashed).isFalse()
+        assertThat(bubbleBarView.scaleX).isEqualTo(1f)
+        assertThat(bubbleBarView.scaleY).isEqualTo(1f)
+        assertThat(bubbleBarView.translationY).isEqualTo(HOTSEAT_TRANSLATION_Y)
+        assertThat(bubbleBarView.alpha).isEqualTo(1f)
+        // Insets controller is notified
+        verify(taskbarInsetsController, atLeastOnce())
+            .onTaskbarOrBubblebarWindowHeightOrInsetsChanged()
+    }
+
     private fun advanceTimeBy(advanceMs: Long) {
         // Advance animator for on-device tests
-        getInstrumentation().runOnMainSync { animatorTestRule.advanceTimeBy(advanceMs) }
+        runOnTaskbarUiThreadSync { animatorTestRule.advanceTimeBy(advanceMs) }
     }
 
     private fun setUpBubbleBarView() {
@@ -575,6 +791,8 @@ class TransientBubbleStashControllerTest {
                     override fun setIsDragging(dragging: Boolean) {}
 
                     override fun onBubbleBarExpandedStateChanged(expanded: Boolean) {}
+
+                    override fun onMarginUpdated() {}
                 }
             )
             bubbleView = BubbleView(context)

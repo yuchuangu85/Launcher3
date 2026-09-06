@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * Holder class to store all the information related to a list of widgets from the same app which is
- * shown in the {@link com.android.launcher3.widget.picker.WidgetsFullSheet}.
+ * shown in the widget picker.
  */
 public final class WidgetsListContentEntry extends WidgetsListBaseEntry {
 

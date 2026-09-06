@@ -18,10 +18,8 @@ package com.android.quickstep.orientation
 
 import android.platform.test.flag.junit.SetFlagsRule
 import android.view.Gravity
-import android.view.View
 import android.widget.FrameLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.android.launcher3.Flags
 import com.android.quickstep.orientation.LandscapePagedViewHandler.SplitIconPositions
 import com.android.quickstep.views.IconAppChipView
 import com.google.common.truth.Truth.assertThat
@@ -34,68 +32,16 @@ import org.mockito.kotlin.verify
 
 @RunWith(AndroidJUnit4::class)
 class SeascapePagedViewHandlerTest {
-
     @get:Rule val setFlagsRule = SetFlagsRule()
 
     private val sut = SeascapePagedViewHandler()
 
-    private fun enableGridOnlyOverview(isEnabled: Boolean) {
-        if (isEnabled) {
-            setFlagsRule.enableFlags(
-                Flags.FLAG_ENABLE_GRID_ONLY_OVERVIEW,
-                Flags.FLAG_ENABLE_OVERVIEW_ICON_MENU,
-            )
-        } else {
-            setFlagsRule.disableFlags(
-                Flags.FLAG_ENABLE_GRID_ONLY_OVERVIEW,
-                Flags.FLAG_ENABLE_OVERVIEW_ICON_MENU,
-            )
-        }
-    }
-
     /** [ Test getSplitIconsPosition ] */
-    private fun getSplitIconsPosition(isRTL: Boolean): SplitIconPositions {
-        return sut.getSplitIconsPosition(
-            TASK_ICON_HEIGHT_PX,
-            PRIMARY_SNAPSHOT,
-            TOTAL_THUMBNAIL_HEIGHT,
-            isRTL,
-            OVERVIEW_TASK_MARGIN_PX,
-            DIVIDER_SIZE_PX,
-            oneIconHiddenDueToSmallWidth = false,
-        )
-    }
-
-    @Test
-    fun testIcon_getSplitIconsPositions() {
-        enableGridOnlyOverview(false)
-
-        val (topLeftY, bottomRightY) = getSplitIconsPosition(isRTL = false)
-
-        // The top-left icon is translated from the bottom of the screen to the end of
-        // the primary snapshot minus the icon size.
-        assertThat(topLeftY).isEqualTo(142)
-        // The bottom-right icon is placed at the end of the primary snapshot plus the divider.
-        assertThat(bottomRightY).isEqualTo(266)
-    }
-
-    @Test
-    fun testIcon_getSplitIconsPositions_isRTL() {
-        enableGridOnlyOverview(false)
-
-        val (topLeftY, bottomRightY) = getSplitIconsPosition(isRTL = true)
-
-        // The top-left icon is translated from the bottom of the screen to the end of
-        // the primary snapshot minus the icon size.
-        assertThat(topLeftY).isEqualTo(142)
-        // The bottom-right icon is placed at the end of the primary snapshot plus the divider.
-        assertThat(bottomRightY).isEqualTo(266)
-    }
+    private fun getSplitIconsPosition(isRTL: Boolean): SplitIconPositions =
+        sut.getSplitIconsPosition(PRIMARY_SNAPSHOT, TOTAL_THUMBNAIL_HEIGHT, isRTL, DIVIDER_SIZE_PX)
 
     @Test
     fun testChip_getSplitIconsPositions() {
-        enableGridOnlyOverview(true)
-
         val (topLeftY, bottomRightY) = getSplitIconsPosition(isRTL = false)
 
         // Top-Left app chip should always be at the initial position of the first snapshot
@@ -106,55 +52,14 @@ class SeascapePagedViewHandlerTest {
 
     @Test
     fun testChip_getSplitIconsPositions_isRTL() {
-        enableGridOnlyOverview(true)
-
         val (topLeftY, bottomRightY) = getSplitIconsPosition(isRTL = true)
 
         assertThat(topLeftY).isEqualTo(316)
         assertThat(bottomRightY).isEqualTo(0)
     }
 
-    /** Test updateSplitIconsPosition */
-    @Test
-    fun testIcon_updateSplitIconsPosition() {
-        enableGridOnlyOverview(false)
-
-        val expectedTranslationY = 250
-        val expectedGravity = Gravity.BOTTOM or Gravity.LEFT
-
-        val iconView = mock<View>()
-        val frameLayout = FrameLayout.LayoutParams(100, 100)
-        `when`(iconView.layoutParams).thenReturn(frameLayout)
-
-        sut.updateSplitIconsPosition(iconView, expectedTranslationY, false)
-        assertThat(frameLayout.gravity).isEqualTo(expectedGravity)
-        assertThat(frameLayout.bottomMargin).isEqualTo(expectedTranslationY)
-        verify(iconView).translationX = 0f
-        verify(iconView).translationY = 0f
-    }
-
-    @Test
-    fun testIcon_updateSplitIconsPosition_isRTL() {
-        enableGridOnlyOverview(false)
-
-        val expectedTranslationY = 250
-        val expectedGravity = Gravity.BOTTOM or Gravity.LEFT
-
-        val iconView = mock<View>()
-        val frameLayout = FrameLayout.LayoutParams(100, 100)
-        `when`(iconView.layoutParams).thenReturn(frameLayout)
-
-        sut.updateSplitIconsPosition(iconView, expectedTranslationY, true)
-        assertThat(frameLayout.gravity).isEqualTo(expectedGravity)
-        assertThat(frameLayout.bottomMargin).isEqualTo(expectedTranslationY)
-        verify(iconView).translationX = 0f
-        verify(iconView).translationY = 0f
-    }
-
     @Test
     fun testChip_updateSplitIconsPosition() {
-        enableGridOnlyOverview(true)
-
         val expectedTranslationY = 250
         val frameLayout = FrameLayout.LayoutParams(100, 100)
         val iconView = mock<IconAppChipView>()
@@ -168,8 +73,6 @@ class SeascapePagedViewHandlerTest {
 
     @Test
     fun testChip_updateSplitIconsPosition_isRTL() {
-        enableGridOnlyOverview(true)
-
         val expectedTranslationY = 250
         val frameLayout = FrameLayout.LayoutParams(100, 100)
         val iconView = mock<IconAppChipView>()
@@ -182,8 +85,6 @@ class SeascapePagedViewHandlerTest {
     }
 
     private companion object {
-        const val TASK_ICON_HEIGHT_PX = 108
-        const val OVERVIEW_TASK_MARGIN_PX = 0
         const val DIVIDER_SIZE_PX = 16
         const val PRIMARY_SNAPSHOT = 250
         const val SECONDARY_SNAPSHOT = 300

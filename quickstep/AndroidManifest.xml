@@ -19,7 +19,8 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-     xmlns:tools="http://schemas.android.com/tools">
+     xmlns:tools="http://schemas.android.com/tools"
+     package="com.android.launcher3">
 
     <uses-permission android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS" />
     <uses-permission android:name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS"/>
@@ -39,15 +40,23 @@
     <uses-permission android:name="android.permission.MONITOR_INPUT"/>
     <uses-permission android:name="android.permission.ALLOW_SLIPPERY_TOUCHES"/>
     <uses-permission android:name="android.permission.ACCESS_SHORTCUTS"/>
+    <uses-permission android:name="android.permission.READ_REMOTE_TASKS"/>
+    <uses-permission android:name="android.permission.REQUEST_TASK_HANDOFF"/>
 
+    <uses-permission android:name="android.permission.REPORT_UI_LATENCY_STATS" />
     <uses-permission android:name="android.permission.SYSTEM_APPLICATION_OVERLAY" />
+    <uses-permission android:name="android.permission.EXECUTE_APP_FUNCTIONS_SYSTEM"/>
+
+    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_PUBLISH_HINTS"/>
+    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_RECEIVE_INSIGHTS"/>
+    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_HOST_INSIGHT_SURFACE"/>
+    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_READ_SETTINGS"/>
 
     <!--
     Permission required to access profiles which are otherwise hidden
     from being visible via APIs, e.g. private profile.
     -->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES_FULL" />
-    <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
 
     <!-- Permission required to listen to recent, all app key gestures. -->
     <uses-permission android:name="android.permission.MANAGE_KEY_GESTURES" />
@@ -55,6 +64,13 @@
     <!-- Permission required to start a WidgetPickerActivity. -->
     <permission android:name="${applicationId}.permission.START_WIDGET_PICKER_ACTIVITY"
         android:protectionLevel="signature|privileged" />
+
+    <!--
+        Permission required to send an intent to the file manager when attempting to click on a zip
+        file on the launcher home screen.
+    -->
+    <uses-permission
+        android:name="com.android.documentsui.LAUNCH_FILE_MANAGER" />
 
     <application android:backupAgent="com.android.launcher3.LauncherBackupAgent"
          android:enableOnBackInvokedCallback="true"
@@ -74,6 +90,15 @@
              android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.QUICKSTEP_SERVICE"/>
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="com.android.launcher3.taskbar.CueBarInsightRendererService"
+            android:exported="true"
+            android:permission="android.permission.BIND_CONTEXT_COMPONENT_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.personalcontext.renderer.InsightRendererService" />
             </intent-filter>
         </service>
 
@@ -164,6 +189,16 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="com.android.launcher3.QuickstepAddItemActivity"
+            android:theme="@style/AddItemActivityTheme"
+            android:excludeFromRecents="true"
+            android:autoRemoveFromRecents="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+                <action android:name="android.content.pm.action.CONFIRM_PIN_APPWIDGET" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

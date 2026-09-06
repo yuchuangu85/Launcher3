@@ -33,6 +33,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.RippleDrawable;
 import android.os.SystemProperties;
 import android.provider.Settings;
+import android.provider.Settings.Secure;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -329,6 +330,16 @@ abstract class TutorialController implements BackGestureAttemptCallback,
     }
 
     @StyleRes
+    public int getSubtitleTextAppearance() {
+        return NO_ID;
+    }
+
+    @StyleRes
+    public int getSuccessSubtitleTextAppearance() {
+        return NO_ID;
+    }
+
+    @StyleRes
     public int getDoneButtonTextAppearance() {
         return NO_ID;
     }
@@ -403,7 +414,7 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mFeedbackSubtitleView.setText(subtitleResId);
 
         boolean isUserSetupComplete = SettingsCache.INSTANCE.get(mContext).getValue(
-                Settings.Secure.getUriFor(Settings.Secure.USER_SETUP_COMPLETE), 0);
+                Settings.Secure.getUriFor(Secure.USER_SETUP_COMPLETE));
         boolean userSetupNotCompleteAndExpressiveThemeEnabled =
                 !isUserSetupComplete && mIsExpressiveThemeEnabledInSUW;
         boolean userSetupCompleteAndNewFontsEnabled = isUserSetupComplete && Flags.enableGsf();
@@ -441,6 +452,7 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mCheckmarkAnimation.setVisibility(View.VISIBLE);
         mCheckmarkAnimation.playAnimation();
         mFeedbackTitleView.setTextAppearance(getSuccessTitleTextAppearance());
+        mFeedbackSubtitleView.setTextAppearance(getSuccessSubtitleTextAppearance());
         maybeSetTitleTypefaces();
     }
 
@@ -493,13 +505,12 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         updateLayout();
 
         mFeedbackTitleView.setTextAppearance(getTitleTextAppearance());
+        mFeedbackSubtitleView.setTextAppearance(getSubtitleTextAppearance());
         mDoneButton.setTextAppearance(getDoneButtonTextAppearance());
 
         maybeSetTitleTypefaces();
         mDoneButton.getBackground().setTint(getDoneButtonColor());
-        mCheckmarkAnimation.setAnimation(mTutorialFragment.isAtFinalStep()
-                ? R.raw.checkmark_animation_end
-                : R.raw.checkmark_animation_in_progress);
+        mCheckmarkAnimation.setAnimation(R.raw.checkmark_animation);
         if (!isGestureCompleted()) {
             mCheckmarkAnimation.setVisibility(GONE);
             startGestureAnimation();
@@ -552,6 +563,21 @@ abstract class TutorialController implements BackGestureAttemptCallback,
     void showActionButton() {
         mDoneButton.setVisibility(View.VISIBLE);
         mDoneButton.setOnClickListener(this::onActionButtonClicked);
+
+        mDoneButton.post(() -> {
+            int buttonOvershoot = mDoneButton.getBottom() - mScreenHeight;
+            if (buttonOvershoot > 0) {
+                // Calculate the amount of free space available to the contents of mFeedbackView.
+                // That free space can then be equally distributed above and below the visual
+                // contents of mFeedbackView.
+                int spaceAboveTitle = mFeedbackTitleView.getTop();
+                float freeSpace = spaceAboveTitle - buttonOvershoot;
+
+                for (int i = 0; i < mFeedbackView.getChildCount(); i++) {
+                    mFeedbackView.getChildAt(i).setTranslationY((freeSpace / 2f) - spaceAboveTitle);
+                }
+            }
+        });
     }
 
     void hideFakeTaskbar(boolean animateToHotseat) {

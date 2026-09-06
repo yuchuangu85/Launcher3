@@ -15,8 +15,6 @@
  */
 package com.android.launcher3.provider;
 
-import static android.os.Process.myUserHandle;
-
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
 import static com.android.launcher3.LauncherPrefs.APP_WIDGET_IDS;
@@ -47,7 +45,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.UserHandle;
-import android.os.UserManager;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
@@ -57,16 +54,13 @@ import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger;
-import com.android.launcher3.dagger.LauncherAppComponent;
-import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.model.ModelDbController;
-import com.android.launcher3.pm.UserCache;
-import com.android.launcher3.util.AllModulesForTest;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.SandboxApplication;
-
-import dagger.BindsInstance;
-import dagger.Component;
+import com.android.launcher3.util.UserIconInfo;
+import com.android.launcher3.util.rule.MockUsersRule;
+import com.android.launcher3.util.rule.MockUsersRule.MockUser;
+import com.android.users.UserType;
 
 import org.junit.After;
 import org.junit.Before;
@@ -85,14 +79,9 @@ import java.util.stream.IntStream;
 @RunWith(AndroidJUnit4.class)
 public class RestoreDbTaskTest {
 
-    private static final int PER_USER_RANGE = 200000;
-
-    private final UserHandle mWorkUser = UserHandle.getUserHandleForUid(PER_USER_RANGE);
-
     @Rule
-    public final SandboxApplication mContext = new SandboxApplication();
-
-    private UserCache mUserCacheSpy;
+    public final SandboxApplication mContext = new SandboxApplication().withModelDependency();
+    @Rule public final MockUsersRule mMockUsers = new MockUsersRule(mContext);
 
     private RestoreDbTask mTask;
     private ModelDbController mMockController;
@@ -106,11 +95,6 @@ public class RestoreDbTaskTest {
 
     @Before
     public void setup() {
-        mUserCacheSpy = spy(UserCache.getInstance(getInstrumentation().getTargetContext()));
-
-        mContext.initDaggerComponent(
-                DaggerRestoreDbTaskTest_TestComponent.builder().bindUserCache(mUserCacheSpy));
-
         mTask = new RestoreDbTask();
         mMockController = Mockito.mock(ModelDbController.class);
         mMockDb = mock(SQLiteDatabase.class);
@@ -138,14 +122,16 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 23)
     public void testGetProfileId() throws Exception {
-        mDb = getModelDbController(23).getDb();
+        mDb = getModelDbController().getDb();
         assertEquals(23, new RestoreDbTask().getDefaultProfileId(mDb));
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 42)
     public void testMigrateProfileId() throws Exception {
-        mDb = getModelDbController(42).getDb();
+        mDb = getModelDbController().getDb();
         // Add some mock data
         for (int i = 0; i < 5; i++) {
             ContentValues values = new ContentValues();
@@ -164,8 +150,9 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 42)
     public void testChangeDefaultColumn() throws Exception {
-        mDb = getModelDbController(42).getDb();
+        mDb = getModelDbController().getDb();
         // Add some mock data
         for (int i = 0; i < 5; i++) {
             ContentValues values = new ContentValues();
@@ -187,27 +174,30 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 100)
+    @MockUser(userType = UserType.WORK, userSerial = 200)
     public void testSanitizeDB_bothProfiles() throws Exception {
-        UserHandle myUser = myUserHandle();
-        long myProfileId = mContext.getSystemService(UserManager.class)
-                .getSerialNumberForUser(myUser);
-        long myProfileId_old = myProfileId + 1;
-        long workProfileId = myProfileId + 2;
-        long workProfileId_old = myProfileId + 3;
+        UserHandle myUser = mMockUsers.findUser(UserIconInfo::isMain);
+        UserHandle workUser = mMockUsers.findUser(UserIconInfo::isWork);
 
-        ModelDbController controller = getModelDbController(myProfileId);
+        long myProfileId = 100;
+        long myProfileId_old = myProfileId + 1;
+        long workProfileId = 200;
+        long workProfileId_old = workProfileId + 3;
+
+        ModelDbController controller = getModelDbController();
         mDb = controller.getDb();
         BackupManager bm = spy(new BackupManager(mContext));
-        doReturn(myUserHandle()).when(bm).getUserForAncestralSerialNumber(eq(myProfileId_old));
-        doReturn(mWorkUser).when(bm).getUserForAncestralSerialNumber(eq(workProfileId_old));
-        doReturn(workProfileId).when(mUserCacheSpy).getSerialNumberForUser(mWorkUser);
+        doReturn(myUser).when(bm).getUserForAncestralSerialNumber(eq(myProfileId_old));
+        doReturn(workUser).when(bm).getUserForAncestralSerialNumber(eq(workProfileId_old));
 
         addIconsBulk(controller, 10, 1, myProfileId_old);
         addIconsBulk(controller, 6, 2, workProfileId_old);
         assertEquals(10, getItemCountForProfile(mDb, myProfileId_old));
         assertEquals(6, getItemCountForProfile(mDb, workProfileId_old));
 
-        mTask.sanitizeDB(mContext, controller, controller.getDb(), bm, mMockRestoreEventLogger);
+        mTask.sanitizeDB(mContext, new LegacyRestoreDbTaskWriteDao(mDb),
+                controller, mDb, bm, mMockRestoreEventLogger);
 
         // All the data has been migrated to the new user ids
         assertEquals(0, getItemCountForProfile(mDb, myProfileId_old));
@@ -217,17 +207,20 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 100)
+    @MockUser(userType = UserType.WORK, userSerial = 200)
     public void testSanitizeDB_workItemsRemoved() throws Exception {
-        UserHandle myUser = myUserHandle();
-        long myProfileId = mContext.getSystemService(UserManager.class)
-                .getSerialNumberForUser(myUser);
-        long myProfileId_old = myProfileId + 1;
-        long workProfileId_old = myProfileId + 3;
+        UserHandle myUser = mMockUsers.findUser(UserIconInfo::isMain);
 
-        ModelDbController controller = getModelDbController(myProfileId);
+        long myProfileId = 100;
+        long myProfileId_old = myProfileId + 1;
+        long workProfileId = 200;
+        long workProfileId_old = workProfileId + 3;
+
+        ModelDbController controller = getModelDbController();
         mDb = controller.getDb();
         BackupManager bm = spy(new BackupManager(mContext));
-        doReturn(myUserHandle()).when(bm).getUserForAncestralSerialNumber(eq(myProfileId_old));
+        doReturn(myUser).when(bm).getUserForAncestralSerialNumber(eq(myProfileId_old));
         // Work profile is not migrated
         doReturn(null).when(bm).getUserForAncestralSerialNumber(eq(workProfileId_old));
 
@@ -236,7 +229,8 @@ public class RestoreDbTaskTest {
         assertEquals(10, getItemCountForProfile(mDb, myProfileId_old));
         assertEquals(6, getItemCountForProfile(mDb, workProfileId_old));
 
-        mTask.sanitizeDB(mContext, controller, controller.getDb(), bm, mMockRestoreEventLogger);
+        mTask.sanitizeDB(mContext, new LegacyRestoreDbTaskWriteDao(mDb), controller, mDb, bm,
+                mMockRestoreEventLogger);
 
         // All the data has been migrated to the new user ids
         assertEquals(0, getItemCountForProfile(mDb, myProfileId_old));
@@ -249,6 +243,7 @@ public class RestoreDbTaskTest {
     public void givenLauncherPrefsHasNoIds_whenRestoreAppWidgetIdsIfExists_thenIdsAreRemoved() {
         // When
         mTask.restoreAppWidgetIdsIfExists(mContext, mMockController, mMockRestoreEventLogger,
+                new RestoreDbTaskWriteDao(mMockController),
                 this::getWidgetHostLazy);
         // Then
         assertThat(mPrefs.has(OLD_APP_WIDGET_IDS, APP_WIDGET_IDS)).isFalse();
@@ -266,6 +261,7 @@ public class RestoreDbTaskTest {
         // When
         setRestoredAppWidgetIds(mContext, expectedOldIds, expectedNewIds);
         mTask.restoreAppWidgetIdsIfExists(mContext, mMockController, mMockRestoreEventLogger,
+                new RestoreDbTaskWriteDao(mMockController),
                 this::getWidgetHostLazy);
 
         // Then
@@ -290,6 +286,7 @@ public class RestoreDbTaskTest {
         // When
         setRestoredAppWidgetIds(mContext, expectedOldIds, expectedNewIds);
         mTask.restoreAppWidgetIdsIfExists(mContext, mMockController, mMockRestoreEventLogger,
+                new RestoreDbTaskWriteDao(mMockController),
                 this::getWidgetHostLazy);
 
         // Then
@@ -320,6 +317,7 @@ public class RestoreDbTaskTest {
         // When
         setRestoredAppWidgetIds(mContext, expectedOldIds, expectedNewIds);
         mTask.restoreAppWidgetIdsIfExists(mContext, mMockController, mMockRestoreEventLogger,
+                new RestoreDbTaskWriteDao(mMockController),
                 this::getWidgetHostLazy);
 
         // Then
@@ -351,6 +349,7 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 42)
     public void testRemoveScreenIdGaps_firstScreenEmpty() {
         runRemoveScreenIdGapsTest(
                 new int[]{1, 2, 5, 6, 6, 7, 9, 9},
@@ -358,6 +357,7 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 42)
     public void testRemoveScreenIdGaps_firstScreenOccupied() {
         runRemoveScreenIdGapsTest(
                 new int[]{0, 2, 5, 6, 6, 7, 9, 9},
@@ -365,6 +365,7 @@ public class RestoreDbTaskTest {
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, userSerial = 42)
     public void testRemoveScreenIdGaps_noGap() {
         runRemoveScreenIdGapsTest(
                 new int[]{0, 1, 1, 2, 3, 3, 4, 5},
@@ -372,7 +373,7 @@ public class RestoreDbTaskTest {
     }
 
     private void runRemoveScreenIdGapsTest(int[] screenIds, int[] expectedScreenIds) {
-        mDb = getModelDbController(42).getDb();
+        mDb = getModelDbController().getDb();
         // Add some mock data
         for (int i = 0; i < screenIds.length; i++) {
             ContentValues values = new ContentValues();
@@ -385,7 +386,7 @@ public class RestoreDbTaskTest {
         assertEquals(screenIds.length,
                 getCount(mDb, "select * from favorites where container = -100"));
 
-        new RestoreDbTask().removeScreenIdGaps(mDb);
+        new RestoreDbTask().removeScreenIdGaps(mDb, new LegacyRestoreDbTaskWriteDao(mDb));
 
         // verify screenId gaps removed
         int[] resultScreenIds = new int[screenIds.length];
@@ -429,23 +430,7 @@ public class RestoreDbTaskTest {
                 APP_WIDGET_IDS.to(IntArray.wrap(newIds).toConcatString()));
     }
 
-    private ModelDbController getModelDbController(long profileId) {
-        doReturn(profileId).when(mUserCacheSpy).getSerialNumberForUser(myUserHandle());
-        return ((TestComponent) mContext.getAppComponent()).getDbController();
-    }
-
-    @LauncherAppSingleton
-    @Component(modules = AllModulesForTest.class)
-    public interface TestComponent extends LauncherAppComponent {
-
-        ModelDbController getDbController();
-
-        @Component.Builder
-        interface Builder extends LauncherAppComponent.Builder {
-
-            @BindsInstance Builder bindUserCache(UserCache userCache);
-
-            TestComponent build();
-        }
+    private ModelDbController getModelDbController() {
+        return mContext.getAppComponent().getTestableModelState().dbController;
     }
 }

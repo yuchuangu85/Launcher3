@@ -19,32 +19,34 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Point
 import android.graphics.Rect
+import android.hardware.display.DisplayManager
 import android.platform.test.flag.junit.SetFlagsRule
 import android.platform.test.rule.AllowedDevices
 import android.platform.test.rule.DeviceProduct
 import android.platform.test.rule.IgnoreLimit
 import android.platform.test.rule.LimitDevicesRule
 import android.util.DisplayMetrics
+import android.view.Display.DEFAULT_DISPLAY
 import android.view.Surface
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.launcher3.LauncherPrefs.Companion.GRID_NAME
 import com.android.launcher3.dagger.LauncherAppComponent
-import com.android.launcher3.dagger.LauncherAppSingleton
+import com.android.launcher3.display.DisplayController
+import com.android.launcher3.display.LauncherDisplayInfo
 import com.android.launcher3.testing.shared.ResourceUtils
-import com.android.launcher3.util.AllModulesMinusWMProxy
-import com.android.launcher3.util.DisplayController
 import com.android.launcher3.util.FakePrefsModule
 import com.android.launcher3.util.NavigationMode
 import com.android.launcher3.util.SandboxContext
+import com.android.launcher3.util.TaskbarModeUtil
 import com.android.launcher3.util.WindowBounds
 import com.android.launcher3.util.rule.TestStabilityRule
 import com.android.launcher3.util.rule.setFlags
 import com.android.launcher3.util.window.CachedDisplayInfo
 import com.android.launcher3.util.window.WindowManagerProxy
+import com.android.tools.dagger.mutation.annotations.BindValue
+import com.android.tools.dagger.mutation.annotations.MutatedComponent
 import com.google.common.truth.Truth
-import dagger.BindsInstance
-import dagger.Component
 import java.io.BufferedReader
 import java.io.File
 import java.io.PrintWriter
@@ -66,12 +68,16 @@ import org.mockito.kotlin.whenever
  */
 @AllowedDevices(allowed = [DeviceProduct.CF_PHONE, DeviceProduct.ROBOLECTRIC])
 @IgnoreLimit(ignoreLimit = BuildConfig.IS_STUDIO_BUILD)
+@MutatedComponent(target = LauncherAppComponent::class, installModules = [FakePrefsModule::class])
 abstract class AbstractDeviceProfileTest {
     protected val testContext: Context = InstrumentationRegistry.getInstrumentation().context
     protected lateinit var context: SandboxContext
     protected open val runningContext: Context = getApplicationContext()
-    private val displayController: DisplayController = mock()
-    private val windowManagerProxy: WindowManagerProxy = mock()
+
+    @BindValue val displayController: DisplayController = mock()
+    @BindValue val mTaskbarModeUtil: TaskbarModeUtil = mock()
+    @BindValue val windowManagerProxy: WindowManagerProxy = mock()
+
     private lateinit var launcherPrefs: LauncherPrefs
 
     @get:Rule val setFlagsRule = SetFlagsRule(SetFlagsRule.DefaultInitValueType.DEVICE_DEFAULT)
@@ -317,10 +323,9 @@ abstract class AbstractDeviceProfileTest {
         gridName: String? = GRID_NAME.defaultValue,
     ) {
         setFlagsRule.setFlags(true, Flags.FLAG_ENABLE_TWOLINE_TOGGLE)
-        // TODO: re-enable as part of b/396211437
-        setFlagsRule.setFlags(false, Flags.FLAG_ENABLE_LAUNCHER_ICON_SHAPES)
         val windowsBounds = perDisplayBoundsCache[displayInfo]!!
         val realBounds = windowsBounds[rotation]
+        whenever(mTaskbarModeUtil.isTransient(any())).thenReturn(isGestureMode)
         whenever(windowManagerProxy.getDisplayInfo(any())).thenReturn(displayInfo)
         whenever(windowManagerProxy.getRealBounds(any(), any())).thenReturn(realBounds)
         whenever(windowManagerProxy.getCurrentBounds(any())).thenReturn(realBounds.bounds)
@@ -341,13 +346,14 @@ abstract class AbstractDeviceProfileTest {
                 screenHeightDp = (realBounds.bounds.height() / density).toInt()
                 smallestScreenWidthDp = min(screenWidthDp, screenHeightDp)
             }
-        val configurationContext = runningContext.createConfigurationContext(config)
+        val displayContext =
+            runningContext
+                .getSystemService(DisplayManager::class.java)
+                ?.getDisplay(DEFAULT_DISPLAY)
+                ?.let { runningContext.createDisplayContext(it) } ?: runningContext
+        val configurationContext = displayContext.createConfigurationContext(config)
         context = SandboxContext(configurationContext)
-        context.initDaggerComponent(
-            DaggerAbsDPTestSandboxComponent.builder()
-                .bindWMProxy(windowManagerProxy)
-                .bindDisplayController(displayController)
-        )
+        context.initDaggerComponent(mutatedComponentBuilder())
         launcherPrefs = context.appComponent.launcherPrefs
         launcherPrefs.put(
             LauncherPrefs.TASKBAR_PINNING.to(false),
@@ -365,23 +371,24 @@ abstract class AbstractDeviceProfileTest {
 
         val info =
             spy(
-                DisplayController.Info(
+                LauncherDisplayInfo(
                     context,
-                    isDesktopFormFactor,
                     windowManagerProxy,
+                    isDesktopFormFactor,
                     perDisplayBoundsCache,
                     densityDpi,
                 )
             )
         whenever(displayController.info).thenReturn(info)
-        whenever(info.isTransientTaskbar).thenReturn(isGestureMode)
     }
 
     /** Asserts that the given device profile matches a previously dumped device profile state. */
     protected fun assertDump(dp: DeviceProfile, folderName: String, filename: String) {
-        val dump = dump(context!!, dp, "${folderName}_$filename.txt")
-        var expected = readDumpFromAssets(testContext, "$folderName/$filename.txt")
-        Truth.assertThat(dump).isEqualTo(expected)
+        val dump = dump(context, dp, "${folderName}_$filename.txt")
+        val expected = readDumpFromAssets(testContext, "$folderName/$filename.txt")
+        Truth.assertWithMessage("Failed to match file $folderName/$filename.txt")
+            .that(dump)
+            .isEqualTo(expected)
     }
 
     /** Create a new dump of DeviceProfile, saves to a file in the device and returns it */
@@ -411,19 +418,5 @@ abstract class AbstractDeviceProfileTest {
     protected fun String.xmlToId(): Int {
         val context = InstrumentationRegistry.getInstrumentation().context
         return context.resources.getIdentifier(this, "xml", context.packageName)
-    }
-}
-
-@LauncherAppSingleton
-@Component(modules = [AllModulesMinusWMProxy::class, FakePrefsModule::class])
-interface AbsDPTestSandboxComponent : LauncherAppComponent {
-
-    @Component.Builder
-    interface Builder : LauncherAppComponent.Builder {
-        @BindsInstance fun bindWMProxy(proxy: WindowManagerProxy): Builder
-
-        @BindsInstance fun bindDisplayController(displayController: DisplayController): Builder
-
-        override fun build(): AbsDPTestSandboxComponent
     }
 }

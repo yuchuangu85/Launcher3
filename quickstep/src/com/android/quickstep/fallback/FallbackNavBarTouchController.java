@@ -21,7 +21,7 @@ import android.view.MotionEvent;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.Utilities;
-import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.TouchController;
 import com.android.quickstep.util.NavBarPosition;
@@ -76,6 +76,6 @@ public class FallbackNavBarTouchController implements TouchController,
 
     @Override
     public void onSwipeUp(boolean wasFling, PointF finalVelocity) {
-        mContainer.<FallbackRecentsView>getOverviewPanel().startHome();
+        mContainer.<FallbackRecentsView<?>>getOverviewPanel().startHome();
     }
 }

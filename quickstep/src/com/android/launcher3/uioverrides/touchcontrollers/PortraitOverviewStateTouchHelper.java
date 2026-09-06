@@ -19,12 +19,9 @@ package com.android.launcher3.uioverrides.touchcontrollers;
 import static com.android.launcher3.uioverrides.touchcontrollers.PortraitStatesTouchController.isTouchOverHotseat;
 
 import android.view.MotionEvent;
-import android.view.animation.Interpolator;
 
 import com.android.launcher3.Launcher;
-import com.android.launcher3.anim.PendingAnimation;
 import com.android.quickstep.views.RecentsView;
-import com.android.quickstep.views.TaskView;
 
 /**
  * Helper class for {@link PortraitStatesTouchController} that determines swipeable regions and
@@ -57,30 +54,4 @@ public final class PortraitOverviewStateTouchHelper {
         }
     }
 
-    /**
-     * Whether or not swiping down to leave overview state should return to the currently running
-     * task app.
-     *
-     * @return true if going back should take the user to the currently running task
-     */
-    boolean shouldSwipeDownReturnToApp() {
-        TaskView taskView = mRecentsView.getNextPageTaskView();
-        return taskView != null && mRecentsView.shouldSwipeDownLaunchApp();
-    }
-
-    /**
-     * Create the animation for going from overview to the task app via swiping. Should only be
-     * called when {@link #shouldSwipeDownReturnToApp()} returns true.
-     *
-     * @param duration how long the animation should be
-     * @return the animation
-     */
-    PendingAnimation createSwipeDownToTaskAppAnimation(long duration, Interpolator interpolator) {
-        mRecentsView.setCurrentPage(mRecentsView.getDestinationPage());
-        TaskView taskView = mRecentsView.getCurrentPageTaskView();
-        if (taskView == null) {
-            throw new IllegalStateException("There is no task view to animate to.");
-        }
-        return mRecentsView.createTaskLaunchAnimation(taskView, duration, interpolator);
-    }
 }

@@ -16,9 +16,14 @@
 
 package com.android.launcher3
 
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
+import androidx.core.graphics.ColorUtils
+import com.android.launcher3.model.data.ItemInfo
 
 object UtilitiesKt {
 
@@ -31,7 +36,7 @@ object UtilitiesKt {
      */
     abstract class ViewGroupAttrModifier<T>(
         private val targetAttrValue: T,
-        private val tagKey: Int
+        private val tagKey: Int,
     ) {
         /**
          * If [targetAttrValue] is different from existing view attribute returned from
@@ -105,7 +110,7 @@ object UtilitiesKt {
     fun modifyAttributesOnViewTree(
         v: View?,
         parent: ViewParent?,
-        vararg modifiers: ViewGroupAttrModifier<*>
+        vararg modifiers: ViewGroupAttrModifier<*>,
     ) {
         if (v == null) {
             return
@@ -139,7 +144,7 @@ object UtilitiesKt {
     fun restoreAttributesOnViewTree(
         v: View?,
         parent: ViewParent?,
-        vararg modifiers: ViewGroupAttrModifier<*>
+        vararg modifiers: ViewGroupAttrModifier<*>,
     ) {
         if (v == null) {
             return
@@ -155,5 +160,44 @@ object UtilitiesKt {
         if (v.parent is View) {
             restoreAttributesOnViewTree(v.parent as View, parent, *modifiers)
         }
+    }
+
+    /**
+     * Checks if an item is persisted in model. It excludes items whose ID corresponds to an AAPT
+     * generated id which always has a non-zero package identifier first-byte.
+     *
+     * @see android.view.View.generateViewId
+     */
+    @JvmStatic fun ItemInfo.isPersistedModelItem() = id > ItemInfo.NO_ID && (id ushr 24) == 0
+
+    /**
+     * Draws a highlight around a workspace item view to indicate selection. This includes a
+     * semi-transparent filled rounded rectangle and a more opaque outline.
+     *
+     * @param canvas The canvas to draw on.
+     * @param view The workspace item view to highlight.
+     */
+    @JvmStatic
+    fun drawWorkspaceItemSelectionHighlight(canvas: Canvas, view: View) {
+        val primaryFixedColor = view.context.getColor(R.color.materialColorPrimaryFixed)
+
+        val backgroundPaint =
+            Paint().apply {
+                color = ColorUtils.setAlphaComponent(primaryFixedColor, (255 * 0.35f).toInt())
+                style = Paint.Style.FILL
+                isAntiAlias = true
+            }
+
+        val backgroundRect = RectF(0f, 0f, view.width.toFloat(), view.height.toFloat())
+        canvas.drawRoundRect(backgroundRect, 20f, 20f, backgroundPaint)
+
+        val outlinePaint =
+            Paint().apply {
+                color = primaryFixedColor
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+                isAntiAlias = true
+            }
+        canvas.drawRoundRect(backgroundRect, 20f, 20f, outlinePaint)
     }
 }

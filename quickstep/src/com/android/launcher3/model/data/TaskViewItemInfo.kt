@@ -21,7 +21,6 @@ import android.content.Intent
 import android.os.Process
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
-import com.android.launcher3.Flags.privateSpaceRestrictAccessibilityDrag
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.logger.LauncherAtom
 import com.android.launcher3.pm.UserCache
@@ -41,13 +40,9 @@ class TaskViewItemInfo(taskView: TaskView, taskContainer: TaskContainer?) : Work
             user = componentKey.user
             intent = Intent().setComponent(componentKey.componentName)
             title = taskContainer.task.title
-            if (privateSpaceRestrictAccessibilityDrag()) {
-                if (
-                    UserCache.getInstance(taskView.context).getUserInfo(componentKey.user).isPrivate
-                ) {
-                    runtimeStatusFlags = runtimeStatusFlags or ItemInfoWithIcon.FLAG_NOT_PINNABLE
-                }
-            }
+            if (UserCache.getInstance(taskView.context).getUserInfo(componentKey.user).isPrivate) {
+                runtimeStatusFlags = runtimeStatusFlags or ItemInfoWithIcon.FLAG_NOT_PINNABLE
+             }
             componentName = componentKey.componentName.flattenToShortString()
         } else {
             user = Process.myUserHandle()

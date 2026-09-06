@@ -16,63 +16,66 @@
 
 package com.android.launcher3.taskbar.allapps
 
-import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.launcher3.R
 import com.android.launcher3.appprediction.AppsDividerView
 import com.android.launcher3.appprediction.AppsDividerView.DividerType
 import com.android.launcher3.appprediction.PredictionRowView
 import com.android.launcher3.taskbar.TaskbarControllerTestUtil.asProperty
-import com.android.launcher3.taskbar.TaskbarStashController
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.launcher3.taskbar.TaskbarStashController.FLAG_STASHED_IN_APP_AUTO
+import com.android.launcher3.taskbar.TaskbarUiState
 import com.android.launcher3.taskbar.allapps.TaskbarAllAppsControllerTest.Companion.TEST_PREDICTED_APPS
-import com.android.launcher3.taskbar.overlay.TaskbarOverlayController
 import com.android.launcher3.taskbar.rules.TaskbarModeRule
 import com.android.launcher3.taskbar.rules.TaskbarModeRule.Mode.PINNED
 import com.android.launcher3.taskbar.rules.TaskbarModeRule.Mode.TRANSIENT
 import com.android.launcher3.taskbar.rules.TaskbarModeRule.TaskbarMode
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule
-import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule.InjectController
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
-import com.android.launcher3.util.LauncherMultivalentJUnit
-import com.android.launcher3.util.LauncherMultivalentJUnit.EmulatedDevices
 import com.android.launcher3.util.OnboardingPrefs.ALL_APPS_VISITED_COUNT
-import com.android.launcher3.util.TestUtil
+import com.android.launcher3.util.TestUtil.getOnTaskbarUiThread
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RunWith(LauncherMultivalentJUnit::class)
-@EmulatedDevices(["pixelFoldable2023"])
+@RunWith(AndroidJUnit4::class)
 class TaskbarAllAppsViewControllerTest {
 
     @get:Rule(order = 0) val context = TaskbarWindowSandboxContext.create()
     @get:Rule(order = 1) val taskbarModeRule = TaskbarModeRule(context)
-    @get:Rule(order = 2) val taskbarUnitTestRule = TaskbarUnitTestRule(this, context)
+    @get:Rule(order = 2) val taskbarUnitTestRule = TaskbarUnitTestRule(context)
 
-    @InjectController lateinit var overlayController: TaskbarOverlayController
-    @InjectController lateinit var stashController: TaskbarStashController
+    private val overlayController by taskbarUnitTestRule.delegate { it.taskbarOverlayController }
+    private val stashController by taskbarUnitTestRule.delegate { it.taskbarStashController }
 
     private var allAppsVisitedCount by ALL_APPS_VISITED_COUNT.prefItem.asProperty(context)
-    private val searchSessionController =
-        TestUtil.getOnUiThread { TaskbarSearchSessionController.newInstance(context) }
+    lateinit private var searchSessionController: TaskbarSearchSessionController
+
+    @Before
+    fun setUp() {
+        searchSessionController = getOnTaskbarUiThread {
+            TaskbarSearchSessionController.newInstance(overlayController.requestWindow())
+        }
+    }
 
     @After
     fun cleanUpSearchSessionController() {
-        getInstrumentation().runOnMainSync { searchSessionController.onDestroy() }
+        runOnTaskbarUiThreadSync { searchSessionController.onDestroy() }
     }
 
     @Test
     @TaskbarMode(TRANSIENT)
     fun testShow_transientMode_stashesTaskbar() {
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             stashController.updateStateForFlag(FLAG_STASHED_IN_APP_AUTO.toLong(), false)
             stashController.applyState(0)
         }
 
         val viewController = createViewController()
-        getInstrumentation().runOnMainSync { viewController.show(false) }
+        runOnTaskbarUiThreadSync { viewController.show(false) }
         assertThat(stashController.isStashed).isTrue()
     }
 
@@ -80,21 +83,21 @@ class TaskbarAllAppsViewControllerTest {
     @TaskbarMode(PINNED)
     fun testShow_pinnedMode_taskbarDoesNotStash() {
         val viewController = createViewController()
-        getInstrumentation().runOnMainSync { viewController.show(false) }
+        runOnTaskbarUiThreadSync { viewController.show(false) }
         assertThat(stashController.isStashed).isFalse()
     }
 
     @Test
     @TaskbarMode(TRANSIENT)
     fun testHide_transientMode_unstashesTaskbar() {
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             stashController.updateStateForFlag(FLAG_STASHED_IN_APP_AUTO.toLong(), false)
             stashController.applyState(0)
         }
 
         val viewController = createViewController()
-        getInstrumentation().runOnMainSync { viewController.show(false) }
-        getInstrumentation().runOnMainSync { viewController.close(false) }
+        runOnTaskbarUiThreadSync { viewController.show(false) }
+        runOnTaskbarUiThreadSync { viewController.close(false) }
         assertThat(stashController.isStashed).isFalse()
     }
 
@@ -102,43 +105,40 @@ class TaskbarAllAppsViewControllerTest {
     fun testShow_firstAllAppsVisit_hasAllAppsTextDivider() {
         allAppsVisitedCount = 0
         val viewController = createViewController()
-        getInstrumentation().runOnMainSync { viewController.show(false) }
+        runOnTaskbarUiThreadSync { viewController.show(false) }
 
-        val appsView = overlayController.requestWindow().appsView
-        getInstrumentation().runOnMainSync {
+        val dividerType = getOnTaskbarUiThread {
+            val appsView = overlayController.requestWindow().appsView
             appsView.floatingHeaderView
                 .findFixedRowByType(PredictionRowView::class.java)
                 .setPredictedApps(TEST_PREDICTED_APPS)
+            appsView.floatingHeaderView.findFixedRowByType(AppsDividerView::class.java).dividerType
         }
-
-        val dividerView =
-            appsView.floatingHeaderView.findFixedRowByType(AppsDividerView::class.java)
-        assertThat(dividerView.dividerType).isEqualTo(DividerType.ALL_APPS_LABEL)
+        assertThat(dividerType).isEqualTo(DividerType.ALL_APPS_LABEL)
     }
 
     @Test
     fun testShow_maxAllAppsVisitedCount_hasLineDivider() {
         allAppsVisitedCount = ALL_APPS_VISITED_COUNT.maxCount
         val viewController = createViewController()
-        getInstrumentation().runOnMainSync { viewController.show(false) }
+        runOnTaskbarUiThreadSync { viewController.show(false) }
 
-        val appsView = overlayController.requestWindow().appsView
-        getInstrumentation().runOnMainSync {
+        val dividerType = getOnTaskbarUiThread {
+            val appsView = overlayController.requestWindow().appsView
             appsView.floatingHeaderView
                 .findFixedRowByType(PredictionRowView::class.java)
                 .setPredictedApps(TEST_PREDICTED_APPS)
+            appsView.floatingHeaderView.findFixedRowByType(AppsDividerView::class.java).dividerType
         }
-
-        val dividerView =
-            appsView.floatingHeaderView.findFixedRowByType(AppsDividerView::class.java)
-        assertThat(dividerView.dividerType).isEqualTo(DividerType.LINE)
+        assertThat(dividerType).isEqualTo(DividerType.LINE)
     }
 
     private fun createViewController(): TaskbarAllAppsViewController {
-        return TestUtil.getOnUiThread {
+        return getOnTaskbarUiThread {
             val overlayContext = overlayController.requestWindow()
             TaskbarAllAppsViewController(
                 overlayContext,
+                TaskbarUiState(),
                 overlayContext.layoutInflater.inflate(
                     R.layout.taskbar_all_apps_sheet,
                     overlayContext.dragLayer,

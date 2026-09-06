@@ -43,6 +43,7 @@ import com.android.launcher3.R
 import com.android.launcher3.anim.AnimatorListeners
 import com.android.launcher3.anim.PendingAnimation
 import com.android.launcher3.anim.PropertySetter
+import com.android.launcher3.statehandlers.LauncherDepthController
 import com.android.launcher3.states.StateAnimationConfig
 import com.android.launcher3.states.StateAnimationConfig.SKIP_DEPTH_CONTROLLER
 import com.android.launcher3.states.StateAnimationConfig.SKIP_OVERVIEW
@@ -61,6 +62,7 @@ class ScalingWorkspaceRevealAnim(
     siblingAnimation: RectFSpringAnim?,
     windowTargetRect: RectF?,
     playAlphaReveal: Boolean = true,
+    playBlur: Boolean = true,
 ) {
     companion object {
         private const val FADE_DURATION_MS = 200L
@@ -93,6 +95,12 @@ class ScalingWorkspaceRevealAnim(
         SurfaceTransactionApplier(launcher.dragLayer)
 
     init {
+        // Interrupt the current animations, if any.
+        cancelAnimations()
+
+        val workspace = launcher.workspace
+        val hotseat = launcher.hotseat
+
         // Make sure the starting state is right for the animation.
         val setupConfig = StateAnimationConfig()
         setupConfig.animFlags = SKIP_OVERVIEW.or(SKIP_DEPTH_CONTROLLER).or(SKIP_SCRIM)
@@ -103,19 +111,14 @@ class ScalingWorkspaceRevealAnim(
         launcher
             .getOverviewPanel<RecentsView<QuickstepLauncher, LauncherState>>()
             .forceFinishScroller()
-        launcher.workspace.stateTransitionAnimation.setScrim(
+        workspace.stateTransitionAnimation.setScrim(
             PropertySetter.NO_ANIM_PROPERTY_SETTER,
             LauncherState.BACKGROUND_APP,
             setupConfig,
         )
-        addBlurLayer()
-
-        val workspace = launcher.workspace
-        val hotseat = launcher.hotseat
-
-        // Interrupt the current animation, if any.
-        Animations.cancelOngoingAnimation(workspace)
-        Animations.cancelOngoingAnimation(hotseat)
+        if (playBlur) {
+            addBlurLayer()
+        }
 
         val fromSize =
             if (workspace.scaleX != MAX_SIZE) {
@@ -167,36 +170,40 @@ class ScalingWorkspaceRevealAnim(
         val transitionConfig = StateAnimationConfig()
         transitionConfig.duration = SCALE_DURATION_MS
 
-        // Match the Wallpaper depth to the rest of the content.
-        val depthController = (launcher as? QuickstepLauncher)?.depthController
-        transitionConfig.setInterpolator(StateAnimationConfig.ANIM_DEPTH, SCALE_INTERPOLATOR)
-        depthController?.pauseBlursOnWindows(true) // Blurring is handled by the scrim layer.
-        depthController?.stateDepth?.value = LauncherState.BACKGROUND_APP.getDepth(launcher)
-        depthController?.setStateWithAnimation(LauncherState.NORMAL, transitionConfig, animation)
-
-        // Add a blur animation to the scrim layer.
-        var maxBlurRadius =
-            launcher.resources.getDimensionPixelSize(
-                if (Flags.allAppsBlur() || Flags.enableOverviewBackgroundWallpaperBlur()) {
-                    R.dimen.max_depth_blur_radius_enhanced
-                } else {
-                    R.integer.max_depth_blur_radius
-                }
+        var depthController: LauncherDepthController? = null
+        if (playBlur) {
+            // Match the Wallpaper depth to the rest of the content.
+            depthController = (launcher as? QuickstepLauncher)?.depthController
+            transitionConfig.setInterpolator(StateAnimationConfig.ANIM_DEPTH, SCALE_INTERPOLATOR)
+            depthController?.pauseBlursOnWindows(true) // Blurring is handled by the scrim layer.
+            depthController?.stateDepth?.value = LauncherState.BACKGROUND_APP.getDepth(launcher)
+            depthController?.setStateWithAnimation(
+                LauncherState.NORMAL,
+                transitionConfig,
+                animation,
             )
-        val blurAnimator = ValueAnimator.ofFloat(1f, 0f)
-        blurAnimator.setInterpolator(BLUR_INTERPOLATOR)
-        blurAnimator.addUpdateListener {
-            applyBlur(maxBlurRadius * blurAnimator.animatedValue as Float)
-        }
-        animation.add(blurAnimator)
 
-        // Make sure that the contrast scrim animates correctly (alongside the blur) if needed.
-        transitionConfig.setInterpolator(StateAnimationConfig.ANIM_SCRIM_FADE, BLUR_INTERPOLATOR)
-        launcher.workspace.stateTransitionAnimation.setScrim(
-            animation,
-            LauncherState.NORMAL,
-            transitionConfig,
-        )
+            // Add a blur animation to the scrim layer.
+            val maxBlurRadius =
+                launcher.resources.getDimensionPixelSize(R.dimen.max_depth_blur_radius_enhanced)
+            val blurAnimator = ValueAnimator.ofFloat(1f, 0f)
+            blurAnimator.interpolator = BLUR_INTERPOLATOR
+            blurAnimator.addUpdateListener {
+                applyBlur(maxBlurRadius * blurAnimator.animatedValue as Float)
+            }
+            animation.add(blurAnimator)
+
+            // Make sure that the contrast scrim animates correctly (alongside the blur) if needed.
+            transitionConfig.setInterpolator(
+                StateAnimationConfig.ANIM_SCRIM_FADE,
+                BLUR_INTERPOLATOR,
+            )
+            launcher.workspace.stateTransitionAnimation.setScrim(
+                animation,
+                LauncherState.NORMAL,
+                transitionConfig,
+            )
+        }
 
         // To avoid awkward jumps in icon position, we want the sibling animation to always be
         // targeting the current position. Since we can't easily access this, instead we calculate
@@ -299,7 +306,16 @@ class ScalingWorkspaceRevealAnim(
         animators.start()
     }
 
+    /** Interrupt the currently running animation, if any. */
+    fun cancelAnimations() {
+        Animations.cancelOngoingAnimation(launcher.workspace)
+        Animations.cancelOngoingAnimation(launcher.hotseat)
+    }
+
     private fun addBlurLayer() {
+        if (!Flags.blurredHomeAnimation()) {
+            return
+        }
         val parent = launcher.dragLayer.viewRootImpl?.surfaceControl ?: return
         if (!parent.isValid) {
             Log.e(TAG, "Parent surface is not ready at the moment. Can't apply blur.")

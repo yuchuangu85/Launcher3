@@ -41,6 +41,15 @@ public class LauncherModelHelper {
     public static final String TEST_ACTIVITY13 = "com.android.launcher3.tests.Activity14";
     public static final String TEST_ACTIVITY14 = "com.android.launcher3.tests.Activity15";
 
+    public static final String SHORTCUT_ID = "shortcut2";
+
+    public static final String SETTINGS_PACKAGE = "com.android.settings";
+    public static final String SETTINGS_COMPONENT = "com.android.settings.Settings";
+
+    public static final String WIDGET_PACKAGE_NAME = "com.google.android.apps.nexuslauncher.tests";
+    public static final String WIDGET_CLASS_NAME_NO_CONFIG =
+            "com.android.launcher3.testcomponent.AppWidgetNoConfig";
+
     public static final List<String> ACTIVITY_LIST = Arrays.asList(
             TEST_ACTIVITY,
             TEST_ACTIVITY2,

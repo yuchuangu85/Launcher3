@@ -57,16 +57,13 @@ public class ModelDelegate {
     @WorkerThread
     public void validateData() {
         if (hasShortcutsPermission(mContext) != mAppsList.hasShortcutHostPermission()) {
-            mModel.forceReload();
+            mModel.reloadIfActive("validateData");
         }
     }
 
     /** Load workspace items (for example, those in the hot seat) if any in the data model */
     @WorkerThread
     public void loadAndAddExtraModelItems(@NonNull IntSparseArrayMap<ItemInfo> outLoadedItems) { }
-
-    /** Marks the ModelDelegate as active */
-    public void markActive() { }
 
     /**
      * Called during loader after workspace loading is complete

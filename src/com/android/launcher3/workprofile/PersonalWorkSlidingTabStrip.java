@@ -17,8 +17,6 @@ package com.android.launcher3.workprofile;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.drawable.RippleDrawable;
-import android.graphics.drawable.StateListDrawable;
 import android.util.AttributeSet;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -30,10 +28,6 @@ import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.R;
 import com.android.launcher3.pageindicators.PageIndicator;
 import com.android.launcher3.views.ActivityContext;
-
-import app.lawnchair.font.FontManager;
-import app.lawnchair.theme.color.tokens.ColorStateListTokens;
-import app.lawnchair.theme.drawable.DrawableTokens;
 
 /**
  * Supports two indicator colors, dedicated for personal and work tabs.
@@ -50,24 +44,6 @@ public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageInd
         mIsAlignOnIcon = typedArray.getBoolean(
                 R.styleable.PersonalWorkSlidingTabStrip_alignOnIcon, false);
         typedArray.recycle();
-    }
-
-    // Lawnchair: This function theme the work mode tab and toggle
-    @Override
-    protected void onFinishInflate() {
-        super.onFinishInflate();
-
-        FontManager fontManager = FontManager.INSTANCE.get(getContext());
-        for (int i = 0; i < getChildCount(); i++) {
-            Button tab = (Button) getChildAt(i);
-            tab.setAllCaps(false);
-            // Lawnchair-TODO: StateListDrawable
-//            RippleDrawable background = (RippleDrawable) tab.getBackground();
-//            background.setDrawableByLayerId(android.R.id.mask, DrawableTokens.AllAppsTabsMaskDrawable.resolve(getContext()));
-            tab.setBackground(DrawableTokens.AllAppsTabsBackground.resolve(getContext()));
-            tab.setTextColor(ColorStateListTokens.AllAppsTabText.resolve(getContext()));
-            fontManager.setCustomFont(tab, R.id.font_body_medium);
-        }
     }
 
     /**
@@ -121,7 +97,7 @@ public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageInd
      */
     public static int getTabWidth(Context context, int totalWidth) {
         DeviceProfile grid = ActivityContext.lookupContext(context).getDeviceProfile();
-        int iconPadding = totalWidth / grid.numShownAllAppsColumns
+        int iconPadding = totalWidth / grid.getAllAppsProfile().getNumShownAllAppsColumns()
                 - grid.getAllAppsProfile().getIconSizePx();
         return totalWidth - iconPadding;
     }

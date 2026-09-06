@@ -1,0 +1,37 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader texture;
+uniform half thickness;
+
+/**
+ * Returns whether the current fragcoord lies on the outline, return range [0, 1].
+ * 0 = no outline, 1 = outline
+ * This assumes that the given texture has a transparent background and evaluates whether it's an
+ * outline with finite differencing.
+ */
+vec4 main(float2 fragCoord) {
+    float aN = texture.eval(fragCoord + vec2(0., thickness)).a;
+    float aS = texture.eval(fragCoord + vec2(0., -thickness)).a;
+    float dY = (aN - aS) * 0.5;
+    dY = max(dY, 0.0);
+
+    half outline = smoothstep(0.1, 1.8, dY * 5.0);
+
+    // Return the results in the R channel.
+    // Also return alpha 1 avoid visual artifacts when it is used standalone.
+    return vec4(outline, 0., 0., 1.);
+}

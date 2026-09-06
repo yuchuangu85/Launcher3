@@ -24,11 +24,10 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.PendingAddItemInfo;
+import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.model.data.CollectionInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
-import com.android.launcher3.widget.picker.WidgetRecommendationCategory;
-import com.android.launcher3.widget.util.WidgetSizes;
 
 /**
  * Meta data used for late binding of {@link LauncherAppWidgetProviderInfo}.
@@ -42,16 +41,6 @@ public class PendingAddWidgetInfo extends PendingAddItemInfo {
     public AppWidgetHostView boundWidget;
     public Bundle bindOptions = null;
     public int sourceContainer;
-
-    public WidgetRecommendationCategory recommendationCategory = null;
-
-    public PendingAddWidgetInfo(
-            LauncherAppWidgetProviderInfo i,
-            int container,
-            WidgetRecommendationCategory recommendationCategory) {
-        this(i, container);
-        this.recommendationCategory = recommendationCategory;
-    }
 
     public PendingAddWidgetInfo(LauncherAppWidgetProviderInfo i, int container) {
         if (i.isCustomWidget()) {
@@ -77,7 +66,8 @@ public class PendingAddWidgetInfo extends PendingAddItemInfo {
     }
 
     public Bundle getDefaultSizeOptions(Context context) {
-        return WidgetSizes.getWidgetSizeOptions(context, componentName, spanX, spanY);
+        return LauncherComponentProvider.get(context)
+                .getWidgetSizeHandler().getWidgetSizeOptions(spanX, spanY);
     }
 
     @NonNull

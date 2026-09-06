@@ -71,6 +71,9 @@ interface BubbleStashController {
     val isBubblesShowingOnHome: Boolean
         get() = launcherState == BubbleLauncherState.HOME
 
+    /** Whether the bubble bar is currently allowed to be stashed. */
+    val isStashingAllowed: Boolean
+
     /** Whether launcher enters or exits the overview page. */
     val isBubblesShowingOnOverview: Boolean
         get() = launcherState == BubbleLauncherState.OVERVIEW
@@ -124,6 +127,9 @@ interface BubbleStashController {
 
     /** Set a bubble bar location */
     fun setBubbleBarLocation(bubbleBarLocation: BubbleBarLocation)
+
+    /** Stashes the bubble bar in the persistent taskbar mode. */
+    fun setStashedInPersistentTaskBar(stashed: Boolean) {}
 
     /**
      * Stashes the bubble bar (transform to the handle view), or just shrink width of the expanded
@@ -185,6 +191,9 @@ interface BubbleStashController {
     /** Returns MultiValueAlpha of the handle view when the handle view is shown. */
     fun getHandleViewAlpha(): MultiPropertyFactory<View>.MultiProperty? = null
 
+    /** Updates the handle bounds. */
+    fun updateHandleBounds()
+
     /**
      * Default implementation only analyse [isBubblesShowingOnHome] and return value is equal to
      * [targetTranslationYForState].
@@ -213,13 +222,21 @@ interface BubbleStashController {
      */
     var inAppDisplayOverrideProgress: Float
 
+    /** Return whether in app display animation is in progress. */
+    fun isInAppDisplayAnimationInProgress() =
+        inAppDisplayOverrideProgress > 0 && inAppDisplayOverrideProgress < 1
+
+    /** Cleans up the controller. */
+    fun onDestroy() {}
+
     /** Dumps the state of BubbleStashController. */
     fun dump(pw: PrintWriter) {
         pw.println("Bubble stash controller state:")
         pw.println("  isStashed: $isStashed")
-        pw.println("  isBubblesShowingOnOverview: $isBubblesShowingOnOverview")
-        pw.println("  isBubblesShowingOnHome: $isBubblesShowingOnHome")
+        pw.println("  launcherState: $launcherState")
         pw.println("  isSysuiLocked: $isSysuiLocked")
+        pw.println("  bubbleBarTranslationYForHotseat: $bubbleBarTranslationYForHotseat")
+        pw.println("  bubbleBarTranslationYForTaskbar: $bubbleBarTranslationYForTaskbar")
     }
 
     companion object {

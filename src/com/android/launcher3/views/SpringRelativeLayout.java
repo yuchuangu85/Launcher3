@@ -24,7 +24,6 @@ import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.EdgeEffectFactory;
-import com.android.launcher3.Utilities;
 
 /**
  * View group to allow rendering overscroll effect in a child at the parent level
@@ -45,13 +44,8 @@ public class SpringRelativeLayout extends RelativeLayout {
 
     public SpringRelativeLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        if (Utilities.ATLEAST_S) {
-            mEdgeGlowTop = new EdgeEffect(context, attrs);
-            mEdgeGlowBottom = new EdgeEffect(context, attrs);
-        } else {
-            mEdgeGlowTop = new EdgeEffect(context);
-            mEdgeGlowBottom = new EdgeEffect(context);
-        }
+        mEdgeGlowTop = new EdgeEffect(context, attrs);
+        mEdgeGlowBottom = new EdgeEffect(context, attrs);
         setWillNotDraw(false);
     }
 

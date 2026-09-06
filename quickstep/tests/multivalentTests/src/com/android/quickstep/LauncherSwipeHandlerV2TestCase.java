@@ -39,7 +39,7 @@ import org.mockito.Mock;
 
 @SmallTest
 @RunWith(LauncherMultivalentJUnit.class)
-@Ignore
+@Ignore("b/467431341")
 public class LauncherSwipeHandlerV2TestCase extends AbsSwipeUpHandlerTestCase<
         LauncherState,
         QuickstepLauncher,
@@ -71,18 +71,17 @@ public class LauncherSwipeHandlerV2TestCase extends AbsSwipeUpHandlerTestCase<
 
     @NonNull
     @Override
-    protected LauncherSwipeHandlerV2 createSwipeHandler(
-            long touchTimeMs, boolean continuingLastGesture) {
+    protected LauncherSwipeHandlerV2 createSwipeHandlerInternal(boolean continuingLastGesture) {
         return new LauncherSwipeHandlerV2(
                 mContext,
                 mTaskAnimationManager,
                 mDeviceState,
                 mRotationTouchHelper,
                 mGestureState,
-                touchTimeMs,
                 continuingLastGesture,
                 mInputConsumerController,
-                mMSDLPlayerWrapper);
+                mMSDLPlayerWrapper,
+                mContext.getDisplayId());
     }
 
     @NonNull
@@ -101,5 +100,17 @@ public class LauncherSwipeHandlerV2TestCase extends AbsSwipeUpHandlerTestCase<
     @Override
     protected LauncherState getBaseState() {
         return LauncherState.NORMAL;
+    }
+
+    @NonNull
+    @Override
+    protected LauncherState[] getAllStates() {
+        return LauncherState.values();
+    }
+
+    @NonNull
+    @Override
+    protected LauncherState getOverviewState() {
+        return LauncherState.OVERVIEW;
     }
 }

@@ -17,25 +17,25 @@ package com.android.quickstep;
 
 import static android.view.Display.DEFAULT_DISPLAY;
 
-import static com.android.launcher3.util.DisplayController.CHANGE_ACTIVE_SCREEN;
-import static com.android.launcher3.util.DisplayController.CHANGE_ALL;
-import static com.android.launcher3.util.DisplayController.CHANGE_ROTATION;
+import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_ACTIVE_SCREEN;
+import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_ALL;
+import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_ROTATION;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
-import android.content.Context;
 import android.view.MotionEvent;
 
-import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DaggerSingletonTracker;
-import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.util.ListenableDiffAwareRef;
 import com.android.quickstep.dagger.QuickstepBaseAppComponent;
 
 import javax.inject.Inject;
 
 @LauncherAppSingleton
-public class SimpleOrientationTouchTransformer implements
-        DisplayController.DisplayInfoChangeListener {
+public class SimpleOrientationTouchTransformer {
 
     public static final DaggerSingletonObject<SimpleOrientationTouchTransformer> INSTANCE =
             new DaggerSingletonObject<>(
@@ -47,21 +47,26 @@ public class SimpleOrientationTouchTransformer implements
     private final int mDisplayId;
 
     @Inject
-    public SimpleOrientationTouchTransformer(@ApplicationContext Context context,
-            DisplayController displayController,
-            DaggerSingletonTracker tracker) {
+    public SimpleOrientationTouchTransformer(
+            DisplayController displayController, DaggerSingletonTracker tracker) {
         // TODO (b/398195845): make sure non-default displays don't get affected by default display
         // changes.
         mDisplayId = DEFAULT_DISPLAY;
-        displayController.addChangeListenerForDisplay(this, mDisplayId);
-        tracker.addCloseable(
-                () -> displayController.removeChangeListenerForDisplay(this, mDisplayId));
+        ListenableDiffAwareRef<LauncherDisplayInfo, Integer> listenable =
+                displayController.getListenable(mDisplayId);
+        if (listenable != null) {
+            tracker.addCloseable(listenable.forEachChange(
+                    MAIN_EXECUTOR, this::onDisplayInfoChanged));
+        }
 
-        onDisplayInfoChanged(context, displayController.getInfoForDisplay(mDisplayId), CHANGE_ALL);
+        LauncherDisplayInfo displayInfo = displayController.getInfoForDisplay(mDisplayId);
+        if (displayInfo != null) {
+            onDisplayInfoChanged(displayInfo, CHANGE_ALL);
+        }
     }
 
-    @Override
-    public void onDisplayInfoChanged(Context context, DisplayController.Info info, int flags) {
+
+    private void onDisplayInfoChanged(LauncherDisplayInfo info, int flags) {
         if ((flags & (CHANGE_ROTATION | CHANGE_ACTIVE_SCREEN)) == 0) {
             return;
         }

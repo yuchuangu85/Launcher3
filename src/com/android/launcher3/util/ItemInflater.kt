@@ -29,13 +29,15 @@ import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.R
 import com.android.launcher3.apppairs.AppPairIcon
 import com.android.launcher3.folder.FolderIcon
-import com.android.launcher3.model.ModelWriter
+import com.android.launcher3.model.IModelWriter
 import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.model.data.ItemViewProvider
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.model.data.WorkspaceItemFactory
 import com.android.launcher3.model.data.WorkspaceItemInfo
+import com.android.launcher3.touch.WorkspaceItemCustomActionsListener
 import com.android.launcher3.views.ActivityContext
 import com.android.launcher3.widget.LauncherWidgetHolder
 import com.android.launcher3.widget.PendingAppWidgetHostView
@@ -60,41 +62,46 @@ class ItemInflater<T>(
         container: Int = item.container,
     ): View? {
         val parent = nullableParent ?: defaultParent
-        when (item.itemType) {
+        if (item is ItemViewProvider) return item.inflateView(context, parent)
+        return when (item.itemType) {
             Favorites.ITEM_TYPE_APPLICATION,
             Favorites.ITEM_TYPE_DEEP_SHORTCUT,
-            Favorites.ITEM_TYPE_SEARCH_ACTION -> {
-                var info =
-                    when (item) {
-                        is WorkspaceItemFactory -> item.makeWorkspaceItem(context)
-                        is WorkspaceItemInfo -> item
-                        else -> return null
-                    }
-                if (container == Favorites.CONTAINER_ALL_APPS_PREDICTION) {
-                    // Came from all apps prediction row -- make a copy
-                    info = WorkspaceItemInfo(info)
-                }
-                return createShortcut(info, parent, container)
-            }
+            Favorites.ITEM_TYPE_SEARCH_ACTION,
+            Favorites.ITEM_TYPE_FILE_SYSTEM_FILE,
+            Favorites.ITEM_TYPE_FILE_SYSTEM_FOLDER ->
+                createShortcut(
+                    info =
+                        when (item) {
+                            is WorkspaceItemFactory -> item.makeWorkspaceItem(context)
+                            is WorkspaceItemInfo -> item
+                            else -> return null
+                        },
+                    parent = parent,
+                    container = container,
+                )
+
             Favorites.ITEM_TYPE_FOLDER ->
-                return FolderIcon.inflateFolderAndIcon(
+                FolderIcon.inflateFolderAndIcon(
                         R.layout.folder_icon,
                         context,
                         parent,
                         item as FolderInfo,
                     )
                     .apply { onFocusChangeListener = focusListener }
-            Favorites.ITEM_TYPE_APP_PAIR ->
-                return AppPairIcon.inflateIcon(
+
+            Favorites.ITEM_TYPE_APP_GROUP ->
+                AppPairIcon.inflateIcon(
                     R.layout.app_pair_icon,
                     context,
                     parent,
                     item as AppPairInfo,
                     BubbleTextView.DISPLAY_WORKSPACE,
                 )
+
             Favorites.ITEM_TYPE_APPWIDGET,
             Favorites.ITEM_TYPE_CUSTOM_APPWIDGET ->
-                return inflateAppWidget(item as LauncherAppWidgetInfo, context.modelWriter)
+                inflateAppWidget(item as LauncherAppWidgetInfo, context.modelWriter)
+
             else -> throw RuntimeException("Invalid Item Type")
         }
     }
@@ -115,13 +122,20 @@ class ItemInflater<T>(
             LayoutInflater.from(parent.context).inflate(layout, parent, false) as BubbleTextView
         favorite.applyFromWorkspaceItem(info)
         favorite.setOnClickListener(clickListener)
+
+        favorite.customActionsListener = WorkspaceItemCustomActionsListener
         favorite.onFocusChangeListener = focusListener
 
-        if (container == Favorites.CONTAINER_HOTSEAT_PREDICTION) favorite.verifyHighRes()
+        // If the icon is directly being added on homescreen, verify the high resolution icon
+        when (container) {
+            Favorites.CONTAINER_HOTSEAT_PREDICTION -> favorite.verifyHighRes()
+            Favorites.CONTAINER_DESKTOP -> favorite.verifyHighRes()
+            Favorites.CONTAINER_HOTSEAT -> favorite.verifyHighRes()
+        }
         return favorite
     }
 
-    private fun inflateAppWidget(item: LauncherAppWidgetInfo, writer: ModelWriter): View? {
+    private fun inflateAppWidget(item: LauncherAppWidgetInfo, writer: IModelWriter): View? {
         TraceHelper.INSTANCE.beginSection("BIND_WIDGET_id=" + item.appWidgetId)
         try {
             val (type, reason, _, isUpdate, widgetInfo) = widgetInflater.inflateAppWidget(item)

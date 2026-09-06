@@ -34,7 +34,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.quickstep.RemoteAnimationTargets
 import com.android.quickstep.util.TransformParams.BuilderProxy.NO_OP
-import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -70,7 +69,6 @@ class TransformParamsTest {
     }
 
     @Test
-    @EnableFlags(FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX)
     fun createSurfaceParams_freeformTasks_overridesCornerRadius() {
         val transitionInfo = TransitionInfo(TRANSIT_OPEN, FLAG_NONE)
         val leash1 = mock<SurfaceControl>()
@@ -87,7 +85,6 @@ class TransformParamsTest {
     }
 
     @Test
-    @EnableFlags(FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX)
     fun createSurfaceParams_freeformTasks_overridesCornerRadiusOnlyOnce() {
         val transitionInfo = TransitionInfo(TRANSIT_OPEN, FLAG_NONE)
         val leash1 = mock<SurfaceControl>()
@@ -105,24 +102,6 @@ class TransformParamsTest {
     }
 
     @Test
-    @DisableFlags(FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX)
-    fun createSurfaceParams_flagDisabled_doesntOverrideCornerRadius() {
-        val transitionInfo = TransitionInfo(TRANSIT_OPEN, FLAG_NONE)
-        val leash1 = mock<SurfaceControl>()
-        val leash2 = mock<SurfaceControl>()
-        transitionInfo.addChange(createChange(freeformTaskInfo1, leash = leash1))
-        transitionInfo.addChange(createChange(freeformTaskInfo2, leash = leash2))
-        transformParams.setTransitionInfo(transitionInfo)
-        transformParams.setTargetSet(createTargetSet(listOf(freeformTaskInfo1, freeformTaskInfo2)))
-
-        transformParams.createSurfaceParams(NO_OP)
-
-        verify(transaction, never()).setCornerRadius(leash1, 0f)
-        verify(transaction, never()).setCornerRadius(leash2, 0f)
-    }
-
-    @Test
-    @EnableFlags(FLAG_ENABLE_DESKTOP_RECENTS_TRANSITIONS_CORNERS_BUGFIX)
     fun createSurfaceParams_fullscreenTasks_doesntOverrideCornerRadius() {
         val transitionInfo = TransitionInfo(TRANSIT_OPEN, FLAG_NONE)
         val leash = mock<SurfaceControl>()

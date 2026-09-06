@@ -20,9 +20,10 @@ import static android.app.WindowConfiguration.ACTIVITY_TYPE_UNDEFINED;
 import static android.app.WindowConfiguration.WINDOWING_MODE_PINNED;
 
 import static com.android.launcher3.MotionEventsUtils.isTrackpadScroll;
-import static com.android.launcher3.util.DisplayController.CHANGE_ALL;
-import static com.android.launcher3.util.DisplayController.CHANGE_NAVIGATION_MODE;
-import static com.android.launcher3.util.DisplayController.CHANGE_ROTATION;
+import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_ALL;
+import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_NAVIGATION_MODE;
+import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_ROTATION;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.NavigationMode.NO_BUTTON;
 import static com.android.launcher3.util.NavigationMode.THREE_BUTTONS;
 import static com.android.launcher3.util.SettingsCache.ONE_HANDED_ENABLED;
@@ -41,6 +42,7 @@ import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_I
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_MAGNIFICATION_OVERLAP;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_NAV_BAR_HIDDEN;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_NOTIFICATION_PANEL_EXPANDED;
+import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_NOTIFICATION_PANEL_VISIBLE;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_ONE_HANDED_ACTIVE;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_OVERVIEW_DISABLED;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_QUICK_SETTINGS_EXPANDED;
@@ -62,15 +64,18 @@ import android.view.ViewConfiguration;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.launcher3.Utilities;
 import com.android.app.displaylib.PerDisplayRepository;
+import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.dagger.ApplicationContext;
+import com.android.launcher3.dagger.DisplayId;
+import com.android.launcher3.dagger.PerDisplayCleanupTask;
+import com.android.launcher3.dagger.PerDisplaySingleton;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.util.DaggerSingletonObject;
-import com.android.launcher3.util.DaggerSingletonTracker;
-import com.android.launcher3.util.DisplayController;
-import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener;
-import com.android.launcher3.util.DisplayController.Info;
+import com.android.launcher3.util.ListenableDiffAwareRef;
 import com.android.launcher3.util.NavigationMode;
+import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.SettingsCache;
 import com.android.quickstep.TopTaskTracker.CachedTaskInfo;
 import com.android.quickstep.dagger.QuickstepBaseAppComponent;
@@ -86,18 +91,18 @@ import com.android.systemui.shared.system.QuickStepContract.SystemUiStateFlags;
 import com.android.systemui.shared.system.TaskStackChangeListener;
 import com.android.systemui.shared.system.TaskStackChangeListeners;
 
-import dagger.assisted.Assisted;
-import dagger.assisted.AssistedFactory;
-import dagger.assisted.AssistedInject;
-
 import java.io.PrintWriter;
+import java.util.function.Function;
 
-import app.lawnchair.LawnchairApp;
+import javax.inject.Inject;
 
 /**
  * Manages the state of the system during a swipe up gesture.
  */
-public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, ExclusionListener {
+@PerDisplaySingleton
+public class RecentsAnimationDeviceState implements ExclusionListener {
+
+    public static final int RESET_TO_DEFAULT_GESTURAL_HEIGHT = -1;
 
     static final String SUPPORT_ONE_HANDED_MODE = "ro.support_one_handed_mode";
 
@@ -147,67 +152,75 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
     private boolean mExclusionListenerRegistered;
     private final int mDisplayId;
 
-    @AssistedInject
+    @Nullable
+    private Function<GestureState, AnimatedFloat> mSwipeUpProxyProvider = null;
+
+    @Inject
     RecentsAnimationDeviceState(
             @ApplicationContext Context context,
-            @Assisted int displayId,
-            @Assisted RotationTouchHelper rotationTouchHelper,
+            @DisplayId int displayId,
+            RotationTouchHelper rotationTouchHelper,
             GestureExclusionManager exclusionManager,
             DisplayController displayController,
             ContextualSearchStateManager contextualSearchStateManager,
             SettingsCache settingsCache,
-            DaggerSingletonTracker lifeCycle) {
+            PerDisplayCleanupTask lifeCycle) {
         mContext = context;
         mDisplayId = displayId;
         mDisplayController = displayController;
         mExclusionManager = exclusionManager;
         mContextualSearchStateManager = contextualSearchStateManager;
         mRotationTouchHelper = rotationTouchHelper;
-        mIsOneHandedModeSupported =
-            LawnchairApp.isRecentsEnabled() && SystemProperties.getBoolean(SUPPORT_ONE_HANDED_MODE,
-                false);
+        mIsOneHandedModeSupported = SystemProperties.getBoolean(SUPPORT_ONE_HANDED_MODE, false);
 
-        if (Utilities.ATLEAST_Q) {
-            // Register for exclusion updates
-            lifeCycle.addCloseable(this::unregisterExclusionListener);
-        }
+        // Register for exclusion updates
+        lifeCycle.addCloseable(this::unregisterExclusionListener);
 
         // Register for display changes changes
-        mDisplayController.addChangeListener(this);
-        onDisplayInfoChanged(context, mDisplayController.getInfoForDisplay(mDisplayId), CHANGE_ALL);
-        lifeCycle.addCloseable(() -> mDisplayController.removeChangeListener(this));
+        ListenableDiffAwareRef<LauncherDisplayInfo, Integer> listenable =
+                mDisplayController.getListenable(mDisplayId);
+        if (listenable != null) {
+            lifeCycle.addCloseable(
+                    listenable.forEachChange(MAIN_EXECUTOR, this::onDisplayInfoChanged));
+        }
+        LauncherDisplayInfo displayInfo = mDisplayController.getInfoForDisplay(mDisplayId);
+        if (displayInfo != null) {
+            onDisplayInfoChanged(displayInfo, CHANGE_ALL);
+        }
+
 
         if (mIsOneHandedModeSupported) {
             Uri oneHandedUri = Settings.Secure.getUriFor(ONE_HANDED_ENABLED);
-            SettingsCache.OnChangeListener onChangeListener =
-                    enabled -> mIsOneHandedModeEnabled = enabled;
-            settingsCache.register(oneHandedUri, onChangeListener);
-            mIsOneHandedModeEnabled = LawnchairApp.isRecentsEnabled() && settingsCache.getValue(oneHandedUri);
-            lifeCycle.addCloseable(() -> settingsCache.unregister(oneHandedUri, onChangeListener));
+            mIsOneHandedModeEnabled = settingsCache.getValue(oneHandedUri);
+            lifeCycle.addCloseable(settingsCache.getListenableRef(oneHandedUri).forEach(
+                    MAIN_EXECUTOR, (enabled) -> {
+                        mIsOneHandedModeEnabled = enabled;
+                        return null;
+                    }));
         } else {
             mIsOneHandedModeEnabled = false;
         }
 
         Uri swipeBottomNotificationUri =
                 Settings.Secure.getUriFor(ONE_HANDED_SWIPE_BOTTOM_TO_NOTIFICATION_ENABLED);
-        SettingsCache.OnChangeListener onChangeListener =
-                enabled -> mIsSwipeToNotificationEnabled = enabled;
-        settingsCache.register(swipeBottomNotificationUri, onChangeListener);
-        mIsSwipeToNotificationEnabled = LawnchairApp.isRecentsEnabled() && settingsCache.getValue(swipeBottomNotificationUri);
-        lifeCycle.addCloseable(
-                () -> settingsCache.unregister(swipeBottomNotificationUri, onChangeListener));
-
+        lifeCycle.addCloseable(settingsCache.getListenableRef(swipeBottomNotificationUri).forEach(
+                MAIN_EXECUTOR, (enabled) -> {
+                    mIsSwipeToNotificationEnabled = enabled;
+                    return null;
+                }));
         Uri setupCompleteUri = Settings.Secure.getUriFor(Settings.Secure.USER_SETUP_COMPLETE);
-        mIsUserSetupComplete = LawnchairApp.isRecentsEnabled() && settingsCache.getValue(setupCompleteUri, 0);
+        mIsUserSetupComplete = settingsCache.getValue(setupCompleteUri);
         if (!mIsUserSetupComplete) {
-            SettingsCache.OnChangeListener userSetupChangeListener = e -> mIsUserSetupComplete = e;
-            settingsCache.register(setupCompleteUri, userSetupChangeListener);
             lifeCycle.addCloseable(
-                    () -> settingsCache.unregister(setupCompleteUri, userSetupChangeListener));
+                    settingsCache.getListenableRef(setupCompleteUri).forEach(
+                            MAIN_EXECUTOR, (e) -> {
+                                mIsUserSetupComplete = e;
+                                return null;
+                            }));
         }
 
         try {
-            mPipIsActive = LawnchairApp.isRecentsEnabled() && Utilities.ATLEAST_S && ActivityTaskManager.getService().getRootTaskInfo(
+            mPipIsActive = ActivityTaskManager.getService().getRootTaskInfo(
                     WINDOWING_MODE_PINNED, ACTIVITY_TYPE_UNDEFINED) != null;
         } catch (RemoteException e) {
             // Do nothing
@@ -223,43 +236,33 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
                 mPipIsActive = false;
             }
         };
-        if (Utilities.ATLEAST_Q) {
-            TaskStackChangeListeners.getInstance().registerTaskStackListener(mPipListener);
-            lifeCycle.addCloseable(() ->
-                    TaskStackChangeListeners.getInstance().unregisterTaskStackListener(mPipListener));
-        }
+        TaskStackChangeListeners.getInstance().registerTaskStackListener(mPipListener);
+        lifeCycle.addCloseable(() ->
+                TaskStackChangeListeners.getInstance().unregisterTaskStackListener(mPipListener));
     }
 
     /**
      * Adds a listener for the change flag, guaranteed to be called after the device state's
      * mode has changed.
      *
-     * @return Added {@link DisplayInfoChangeListener} so that caller is
-     * responsible for removing the listener from {@link DisplayController} to avoid memory leak.
+     * @return {@link SafeCloseable} so that caller can remove the listener.
      */
-    public DisplayController.DisplayInfoChangeListener addDisplayInfoChangeCallback(
-            int changeFlag, Runnable callback) {
-        DisplayController.DisplayInfoChangeListener listener = (context, info, flags) -> {
+    @Nullable
+    public SafeCloseable addDisplayInfoChangeCallback(int changeFlag, Runnable callback) {
+        ListenableDiffAwareRef<LauncherDisplayInfo, Integer> listenable =
+                mDisplayController.getListenable();
+        if (listenable == null) {
+            return null;
+        }
+        return listenable.getChanges().forEach(MAIN_EXECUTOR, (flags) -> {
             if ((flags & changeFlag) != 0) {
                 callback.run();
             }
-        };
-        mDisplayController.addChangeListener(listener);
-        callback.run();
-        return listener;
+            return null;
+        });
     }
 
-    /**
-     * Remove the {DisplayController.DisplayInfoChangeListener} added from
-     * {@link #addDisplayInfoChangeCallback} when {@link TouchInteractionService} is destroyed.
-     */
-    public void removeDisplayInfoChangeListener(
-            DisplayController.DisplayInfoChangeListener listener) {
-        mDisplayController.removeChangeListener(listener);
-    }
-
-    @Override
-    public void onDisplayInfoChanged(Context context, Info info, int flags) {
+    void onDisplayInfoChanged(LauncherDisplayInfo info, int flags) {
         if ((flags & (CHANGE_ROTATION | CHANGE_NAVIGATION_MODE)) != 0) {
             mMode = info.getNavigationMode();
             ActiveGestureLog.INSTANCE.setIsFullyGesturalNavMode(isFullyGesturalNavMode());
@@ -302,8 +305,26 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
         mExclusionListenerRegistered = false;
     }
 
-    public void onOneHandedModeChanged(int newGesturalHeight) {
+    /**
+     * Touches within this number of pixels from the bottom of the screen can get intercepted to
+     * handle gesture navigation. Passing a value less than 0 will revert to a default value.
+     */
+    public void setGesturalHeight(int newGesturalHeight) {
         mRotationTouchHelper.setGesturalHeight(newGesturalHeight);
+    }
+
+    /** Sets a proxy to bypass swipe up behavior */
+    public void setSwipeUpProxy(Function<GestureState, AnimatedFloat> proxyProvider) {
+        mSwipeUpProxyProvider = proxyProvider;
+    }
+
+    /**
+     * Returns an AnimatedFloat which will receive all swipe up progress events instead of a
+     * standard gesture handling
+     */
+    public AnimatedFloat getSwipeUpProxy(GestureState state) {
+        Function<GestureState, AnimatedFloat> provider = mSwipeUpProxyProvider;
+        return provider == null ? null : provider.apply(state);
     }
 
     /**
@@ -476,6 +497,13 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
     }
 
     /**
+     * @return whether the notification panel is visible
+     */
+    public boolean isNotificationPanelVisible() {
+        return (getSysuiStateFlags() & SYSUI_STATE_NOTIFICATION_PANEL_VISIBLE) != 0;
+    }
+
+    /**
      * @return whether the global actions dialog is showing
      */
     public boolean isSystemUiDialogShowing() {
@@ -602,9 +630,11 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
         }
 
         if (mIsOneHandedModeEnabled) {
-            final Info displayInfo = mDisplayController.getInfoForDisplay(mDisplayId);
+            final LauncherDisplayInfo displayInfo =
+                    mDisplayController.getInfoForDisplay(mDisplayId);
             return (mRotationTouchHelper.touchInOneHandedModeRegion(ev)
-                    && (displayInfo.currentSize.x < displayInfo.currentSize.y));
+                    && (displayInfo != null
+                    && displayInfo.currentSize.x < displayInfo.currentSize.y));
         }
         return false;
     }
@@ -685,13 +715,6 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
 
     public int getDisplayId() {
         return mDisplayId;
-    }
-
-    @AssistedFactory
-    public interface Factory {
-        /** Creates a new instance of [RecentsAnimationDeviceState] for a given [displayId] and
-         * [rotationTouchHelper]. */
-        RecentsAnimationDeviceState create(int displayId, RotationTouchHelper rotationTouchHelper);
     }
 
 }

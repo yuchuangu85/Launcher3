@@ -295,4 +295,9 @@ public abstract class BaseSwipeDetector {
     }
 
     protected abstract void reportDragEndInternal(PointF velocity);
+
+    /** Returns a String to print for debugging purposes. */
+    public String dump() {
+        return "\tBaseSwipeDetector mState=" + mState;
+    }
 }

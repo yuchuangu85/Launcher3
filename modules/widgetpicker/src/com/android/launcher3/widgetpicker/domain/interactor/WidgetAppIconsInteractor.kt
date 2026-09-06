@@ -39,11 +39,11 @@ import kotlin.coroutines.CoroutineContext
  */
 @WidgetPickerSingleton
 class WidgetAppIconsInteractor @Inject constructor(
-    @WidgetPickerRepository
+    @param:WidgetPickerRepository
     private val widgetAppIconsRepository: WidgetAppIconsRepository,
-    @WidgetPickerRepository
+    @param:WidgetPickerRepository
     private val widgetsRepository: WidgetsRepository,
-    @WidgetPickerBackground
+    @param:WidgetPickerBackground
     private val backgroundContext: CoroutineContext,
 ) {
     /** Returns a flow of icons for all widget apps that host widgets. */

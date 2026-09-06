@@ -18,7 +18,6 @@ package com.android.launcher3.allapps;
 import android.content.Context;
 import android.util.AttributeSet;
 
-import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.secondarydisplay.SecondaryDisplayLauncher;
 
 /**
@@ -39,9 +38,6 @@ public class SecondaryLauncherAllAppsContainerView extends
             int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
-
-    @Override
-    protected void updateBackgroundVisibility(DeviceProfile deviceProfile) {}
 
     @Override
     public boolean isInAllApps() {

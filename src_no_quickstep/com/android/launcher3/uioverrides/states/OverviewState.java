@@ -31,7 +31,13 @@ import com.android.launcher3.views.ScrimColors;
 public class OverviewState extends LauncherState {
 
     public OverviewState(int id) {
-        super(id, LAUNCHER_STATE_OVERVIEW, FLAG_DISABLE_RESTORE);
+        this(id, /* additionalFlags= */ 0);
+    }
+
+    public OverviewState(int id, int additionalFlags) {
+        super(id,
+                LAUNCHER_STATE_OVERVIEW,
+                FLAG_DISABLE_RESTORE_EXCEPT_UI_MODE_CHANGE | additionalFlags);
     }
 
     @Override
@@ -59,6 +65,10 @@ public class OverviewState extends LauncherState {
      */
     public static OverviewState newSplitSelectState(int id) {
         return new OverviewState(id);
+    }
+
+    public static OverviewState newOverviewState(int id) {
+        return new OverviewState(id, FLAG_IS_TASK_VIEW_INTERACTIVE);
     }
 
     @Override

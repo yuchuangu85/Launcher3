@@ -1,0 +1,123 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader foreground;
+uniform shader background;
+uniform shader accumulatedSnow;
+uniform float2 gridSize;
+uniform float time;
+uniform float screenAspectRatio;
+uniform float2 screenSize;
+uniform float cellAspectRatio;
+uniform mat3 transformMatrixBitmap;
+uniform mat3 transformMatrixWeather;
+uniform mat3 transformMatrixAccumulation;
+uniform shader snowFlakeSamples;
+
+#include "shaders/constants.agsl"
+#include "shaders/utils.agsl"
+#include "shaders/snow.agsl"
+
+// Snow tint.
+const vec4 snowColor = vec4(1., 1., 1., 0.95);
+
+// Background tint
+const vec4 bgdTint = vec4(0.8, 0.8, 0.8, 0.07);
+
+
+// Indices of the different snow layers.
+const float farthestSnowLayerIndex = 4;
+const float midSnowLayerIndex = 2;
+const float closestSnowLayerIndex = 0;
+
+vec4 main(float2 fragCoord) {
+    /**
+     * The effect is consisted of 2 image textures (foreground and background) + 10 layers of
+     * snow + 1 layer of snow accumulation. Below describes the rendering order (back to front):
+     * 1. Background
+     * 2. Background snow layers (from farthest layer to mid layer)
+     * 3. Foreground
+     * 4. Snow accumulation layer (on subject)
+     * 5. Foreground snow layers (from mid layer to closest layer)
+     */
+
+    // Apply transform matrix to fragCoord
+    float2 adjustedUv = transformPoint(transformMatrixBitmap, fragCoord);
+    // Calculate uv for snow based on transformed coordinates
+    float2 weatherUv = transformPoint(transformMatrixWeather, fragCoord);
+    float2 accumulationUv = transformPoint(transformMatrixAccumulation, fragCoord);
+    float2 uv = weatherUv / screenSize;
+    float2 uvAdjusted = vec2(uv.x, uv.y / screenAspectRatio);
+
+    vec4 colorBackground = background.eval(adjustedUv);
+    float foregroundAlpha = foreground.eval(adjustedUv).a;
+
+     // Adjusts contrast and brightness.
+    float noiseT = triangleNoise(fragCoord.xy + vec2(12.31, 1024.1241));
+    colorBackground.rgb =
+        imageRangeConversion(colorBackground.rgb, 0.88, 0.02, noiseT * 0.025, intensity);
+    vec4 colorForeground = vec4(colorBackground.rgb * foregroundAlpha, foregroundAlpha);
+
+    // 1. Draw background.
+    vec4 color = colorBackground;
+
+    // Add slight tint to the background.
+    color.rgb = normalBlendNotPremultiplied(color.rgb, bgdTint.rgb, bgdTint.a * intensity);
+
+    // 2. Generate snow layers behind the subject.
+    if (colorForeground.a == 0) {
+        for (float i = farthestSnowLayerIndex; i > midSnowLayerIndex; i--) {
+            Snow snow = generateSnow(
+                uv,
+                screenAspectRatio,
+                time,
+                gridSize,
+                /* layer number = */ i,
+                closestSnowLayerIndex,
+                farthestSnowLayerIndex);
+
+            color.rgb =
+                normalBlendNotPremultiplied(color.rgb, snowColor.rgb, snowColor.a * snow.flakeMask);
+        }
+    }
+
+    // 3. Add the foreground layer. Any effect from here will be in front of the subject.
+    color.rgb = normalBlend(color.rgb, colorForeground.rgb, colorForeground.a);
+
+    // 4. Add accumulated snow layer.
+    vec3 accSnow = accumulatedSnow.eval(accumulationUv).rgb;
+    float accSnowMask = smoothstep( (1.-intensity), 1.0, /* mask= */accSnow.r);
+    accSnowMask = map(accSnowMask, accSnow.g, 1., 0., 1.);
+    accSnowMask = map(accSnowMask, 0., 1., 0., accSnow.b);
+    color.rgb = normalBlendNotPremultiplied(color.rgb, snowColor.rgb, snowColor.a * accSnowMask);
+
+    // 5. Generate snow in front of the subject.
+    for (float i = midSnowLayerIndex; i >= closestSnowLayerIndex; i--) {
+        Snow snow = generateSnow(
+            uv,
+            screenAspectRatio,
+            time,
+            gridSize,
+            /* layer number = */ i,
+            closestSnowLayerIndex,
+            farthestSnowLayerIndex);
+
+        color.rgb =
+            normalBlendNotPremultiplied(color.rgb, snowColor.rgb, snowColor.a * snow.flakeMask);
+    }
+
+    return color;
+}

@@ -22,6 +22,7 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCH
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_OMNI_GET_LONG_PRESS_RUNNABLE;
 import static com.android.launcher3.logging.StatsLogManager.LauncherLatencyEvent.LAUNCHER_LATENCY_OMNI_RUNNABLE;
 
+import android.app.contextualsearch.ContextualSearchConfig;
 import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
@@ -80,10 +81,6 @@ public class NavHandleLongPressHandler {
         return LauncherComponentProvider.get(context).getNavHandleLongPressHandler();
     }
 
-    protected boolean isContextualSearchEntrypointEnabled(NavHandle navHandle) {
-        return DeviceConfigWrapper.get().getEnableLongPressNavHandle();
-    }
-
     /**
      * Called when nav handle is long pressed to get the Runnable that should be executed by the
      * caller to invoke long press behavior. If null is returned that means long press couldn't be
@@ -98,12 +95,6 @@ public class NavHandleLongPressHandler {
     @Nullable
     @VisibleForTesting
     final Runnable getLongPressRunnable(NavHandle navHandle, int displayId) {
-        if (!isContextualSearchEntrypointEnabled(navHandle)) {
-            Log.i(TAG, "Contextual Search invocation failed: entry point disabled");
-            mVibratorWrapper.cancelVibrate();
-            return null;
-        }
-
         if (!mContextualSearchInvoker.runContextualSearchInvocationChecksAndLogFailures()) {
             Log.i(TAG, "Contextual Search invocation failed: precondition not satisfied");
             mVibratorWrapper.cancelVibrate();
@@ -120,8 +111,11 @@ public class NavHandleLongPressHandler {
             mStatsLogManager.latencyLogger().withInstanceId(instanceId).withLatency(
                     SystemClock.elapsedRealtime() - startTimeMillis).log(
                     LAUNCHER_LATENCY_OMNI_RUNNABLE);
+            ContextualSearchConfig config = new ContextualSearchConfig.Builder()
+                    .setSourceBounds(navHandle.getBoundsOnScreen()).setDisplayId(displayId).build();
+
             if (mContextualSearchInvoker.invokeContextualSearchUncheckedWithHaptic(
-                    ENTRYPOINT_LONG_PRESS_NAV_HANDLE)) {
+                    ENTRYPOINT_LONG_PRESS_NAV_HANDLE, config)) {
                 Log.i(TAG, "Contextual Search invocation successful");
 
                 String runningPackage = mTopTaskTracker.getCachedTopTask(
@@ -147,8 +141,7 @@ public class NavHandleLongPressHandler {
     @VisibleForTesting
     final void onTouchStarted(NavHandle navHandle) {
         mPendingInvocation = false;
-        if (isContextualSearchEntrypointEnabled(navHandle)
-                && mContextualSearchInvoker.runContextualSearchInvocationChecksAndLogFailures()) {
+        if (mContextualSearchInvoker.runContextualSearchInvocationChecksAndLogFailures()) {
             Log.i(TAG, "Contextual Search invocation: touch started");
             startNavBarAnimation(navHandle);
         }

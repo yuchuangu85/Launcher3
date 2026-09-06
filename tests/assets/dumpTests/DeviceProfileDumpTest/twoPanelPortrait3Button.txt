@@ -5,7 +5,7 @@ DeviceProfile:
 	transposeLayoutWithOrientation:false
 	isGestureMode:false
 	isLandscape:false
-	isMultiWindowMode:false
+	isExternalDisplay:false
 	isTwoPanels:true
 	isLeftRightSplit:false
 	windowX: 0.0px (0.0dp)
@@ -28,7 +28,7 @@ DeviceProfile:
 	cellWidthPx: 154.0px (58.666668dp)
 	cellHeightPx: 218.0px (83.04762dp)
 	getCellSize().x: 224.0px (85.333336dp)
-	getCellSize().y: 430.0px (163.80952dp)
+	getCellSize().y: 397.0px (151.2381dp)
 	cellLayoutBorderSpacePx Horizontal: 0.0px (0.0dp)
 	cellLayoutBorderSpacePx Vertical: 0.0px (0.0dp)
 	cellLayoutPaddingPx.left: 0.0px (0.0dp)
@@ -54,7 +54,7 @@ DeviceProfile:
 	bottomSheetOpenDuration: 500
 	bottomSheetCloseDuration: 500
 	bottomSheetWorkspaceScale: 0.97
-	bottomSheetDepth: 1.0
+	bottomSheetDepth: 0.3
 	allAppsShiftRange: 2208.0px (841.1429dp)
 	allAppsOpenDuration: 500
 	allAppsCloseDuration: 500
@@ -70,7 +70,7 @@ DeviceProfile:
 	allAppsPadding.left: 42.0px (16.0dp)
 	allAppsPadding.right: 42.0px (16.0dp)
 	allAppsLeftRightMargin: 1.0px (0.3809524dp)
-	hotseatBarSizePx: 267.0px (101.71429dp)
+	hotseatBarSizePx: 400.0px (152.38095dp)
 	mHotseatColumnSpan: 4
 	mHotseatWidthPx: 0.0px (0.0dp)
 	hotseatCellHeightPx: 159.0px (60.57143dp)
@@ -81,10 +81,10 @@ DeviceProfile:
 	navButtonsLayoutWidthPx: 0.0px (0.0dp)
 	hotseatBarEndOffset: 0.0px (0.0dp)
 	hotseatQsbSpace: 0.0px (0.0dp)
-	hotseatQsbHeight: 0.0px (0.0dp)
+	hotseatQsbHeight: 165.0px (62.857143dp)
 	springLoadedHotseatBarTopMarginPx: 168.0px (64.0dp)
 	getHotseatLayoutPadding(context).top: 0.0px (0.0dp)
-	getHotseatLayoutPadding(context).bottom: 108.0px (41.142857dp)
+	getHotseatLayoutPadding(context).bottom: 241.0px (91.809525dp)
 	getHotseatLayoutPadding(context).left: 98.0px (37.333332dp)
 	getHotseatLayoutPadding(context).right: 98.0px (37.333332dp)
 	numShownHotseatIcons: 6
@@ -101,11 +101,11 @@ DeviceProfile:
 	workspacePadding.left: 21.0px (8.0dp)
 	workspacePadding.top: 24.0px (9.142858dp)
 	workspacePadding.right: 21.0px (8.0dp)
-	workspacePadding.bottom: 330.0px (125.71429dp)
+	workspacePadding.bottom: 463.0px (176.38095dp)
 	iconScale: 1.0px (0.3809524dp)
 	cellScaleToFit : 1.0px (0.3809524dp)
-	extraSpace: 849.0px (323.42856dp)
-	unscaled extraSpace: 849.0px (323.42856dp)
+	extraSpace: 716.0px (272.7619dp)
+	unscaled extraSpace: 716.0px (272.7619dp)
 	maxEmptySpace: 0.0px (0.0dp)
 	workspaceTopPadding: 0.0px (0.0dp)
 	workspaceBottomPadding: 0.0px (0.0dp)
@@ -113,7 +113,6 @@ DeviceProfile:
 	overviewTaskIconSizePx: 0.0px (0.0dp)
 	overviewTaskIconDrawableSizePx: 0.0px (0.0dp)
 	overviewTaskIconDrawableSizeGridPx: 0.0px (0.0dp)
-	overviewTaskThumbnailTopMarginPx: 0.0px (0.0dp)
 	overviewActionsTopMarginPx: 0.0px (0.0dp)
 	overviewActionsHeight: 0.0px (0.0dp)
 	overviewActionsClaimedSpaceBelow: 0.0px (0.0dp)
@@ -124,8 +123,8 @@ DeviceProfile:
 	dropTargetBarSizePx: 147.0px (56.0dp)
 	dropTargetBarBottomMarginPx: 84.0px (32.0dp)
 	getCellLayoutSpringLoadShrunkTop(): 364.0px (138.66667dp)
-	getCellLayoutSpringLoadShrunkBottom(): 1773.0px (675.4286dp)
+	getCellLayoutSpringLoadShrunkBottom(): 1640.0px (624.7619dp)
 	workspaceSpringLoadedMinNextPageVisiblePx: 126.0px (48.0dp)
-	getWorkspaceSpringLoadScale(): 0.81871px (0.31188953dp)
-	getCellLayoutHeight(): 1721.0px (655.619dp)
+	getWorkspaceSpringLoadScale(): 0.80352646px (0.30610532dp)
+	getCellLayoutHeight(): 1588.0px (604.9524dp)
 	getCellLayoutWidth(): 899.0px (342.4762dp)

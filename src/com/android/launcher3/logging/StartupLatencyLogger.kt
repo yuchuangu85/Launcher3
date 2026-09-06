@@ -111,6 +111,7 @@ sealed interface StartupLatencyLogger {
                         .withType(LatencyType.COLD_DEVICE_REBOOTING)
                         .withInstanceId(instanceId)
                         .withLatency(duration)
+                        .withEndTimestamp(end)
                         .withPackageId(LAUNCHER_LATENCY_PACKAGE_ID)
                         .withCardinality(cardinality)
                         .log(event)

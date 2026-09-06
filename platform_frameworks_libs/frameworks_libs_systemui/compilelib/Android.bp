@@ -1,0 +1,50 @@
+//
+// Copyright (C) 2024 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+    default_visibility: ["//visibility:public"],
+}
+
+filegroup {
+    name: "compilelib-ReleaseJavaFiles",
+    srcs: [
+        "src-release/**/*.java",
+    ],
+    visibility: ["//visibility:private"],
+}
+
+filegroup {
+    name: "compilelib-DebugJavaFiles",
+    srcs: [
+        "src-debug/**/*.java",
+    ],
+    visibility: ["//visibility:private"],
+}
+
+java_library {
+    name: "compilelib",
+    srcs: [":compilelib-ReleaseJavaFiles"],
+    product_variables: {
+        debuggable: {
+            srcs: [":compilelib-DebugJavaFiles"],
+            exclude_srcs: [":compilelib-ReleaseJavaFiles"],
+        },
+    },
+    sdk_version: "31",
+    min_sdk_version: "19",
+    java_version: "17",
+}

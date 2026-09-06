@@ -15,9 +15,15 @@
  */
 package com.android.quickstep.util
 
+import android.content.Context
+import android.os.UserHandle
+import com.android.launcher3.icons.BitmapInfo
+import com.android.launcher3.model.data.AppInfo
+import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.TaskItemInfo
+import com.android.launcher3.model.data.WorkspaceItemFactory
 import com.android.launcher3.model.data.WorkspaceItemInfo
-import com.android.launcher3.util.SplitConfigurationOptions
+import com.android.launcher3.views.ActivityContext
 import com.android.quickstep.views.TaskViewType
 import com.android.systemui.shared.recents.model.Task
 import com.android.wm.shell.shared.split.SplitBounds
@@ -32,6 +38,9 @@ abstract class GroupTask(
     val displayId: Int,
     @JvmField val taskViewType: TaskViewType,
 ) {
+
+    /** Icons for each of the [tasks]. */
+    val bitmapInfos = MutableList<BitmapInfo?>(tasks.size) { null }
 
     fun containsTask(taskId: Int) = tasks.any { it.key.id == taskId }
 
@@ -65,7 +74,8 @@ abstract class GroupTask(
 }
 
 /** A [Task] container that must contain exactly one task in the recent tasks list. */
-class SingleTask(task: Task) : GroupTask(listOf(task), task.key.displayId, TaskViewType.SINGLE) {
+class SingleTask(task: Task) :
+    GroupTask(listOf(task), task.key.displayId, TaskViewType.SINGLE), WorkspaceItemFactory {
 
     val task: Task
         get() = tasks[0]
@@ -89,6 +99,21 @@ class SingleTask(task: Task) : GroupTask(listOf(task), task.key.displayId, TaskV
     }
 
     override fun hashCode() = super.hashCode()
+
+    override fun makeWorkspaceItem(context: Context): WorkspaceItemInfo? {
+        val activityContext: ActivityContext = ActivityContext.lookupContext(context)
+        val allApps: Array<AppInfo> = activityContext.activityComponent.appsStore.apps
+        val taskUser = UserHandle.of(task.key.userId)
+        val taskComponentName = task.key.component
+
+        val foundAppInfo =
+            allApps.firstOrNull { it.user == taskUser && it.targetComponent == taskComponentName }
+                ?: allApps.firstOrNull {
+                    it.user == taskUser && it.targetPackage == taskComponentName.packageName
+                }
+
+        return foundAppInfo?.makeWorkspaceItem(context)
+    }
 }
 
 /**
@@ -122,4 +147,22 @@ class SplitTask(task1: Task, task2: Task, val splitBounds: SplitBounds?) :
     }
 
     override fun hashCode() = Objects.hash(super.hashCode(), splitBounds)
+
+    /**
+     * Converts the task to an [AppPairInfo] instance.
+     *
+     * The result is the minimum data needed to utilize `AppPairIcon` for this task.
+     */
+    fun toAppPairInfo(): AppPairInfo {
+        return AppPairInfo(
+            tasks.mapIndexed { index, task ->
+                WorkspaceItemInfo().apply {
+                    intent = task.key.baseIntent
+                    user = UserHandle.of(task.key.userId)
+                    title = task.title
+                    this@SplitTask.bitmapInfos[index]?.let { bitmap = it }
+                }
+            }
+        )
+    }
 }

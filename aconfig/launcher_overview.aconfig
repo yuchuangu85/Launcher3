@@ -2,69 +2,13 @@ package: "com.android.launcher3"
 container: "system_ext"
 
 flag {
-    name: "enable_grid_only_overview"
+    name: "enable_later_is_locked_check"
     namespace: "launcher_overview"
-    description: "Enable a grid-only overview without a focused task."
-    bug: "360204325"
-}
-
-flag {
-    name: "enable_overview_icon_menu"
-    namespace: "launcher_overview"
-    description: "Enable updated overview icon and menu within task."
-    bug: "360205084"
-}
-
-flag {
-    name: "enable_refactor_task_thumbnail"
-    namespace: "launcher_overview"
-    description: "Enables rewritten version of TaskThumbnailViews in Overview"
-    bug: "331754864"
-}
-
-flag {
-    name: "enable_coroutine_threading_improvements"
-    namespace: "launcher_overview"
-    description: "Enables changes to the threading model of Launcher's coroutines implementation"
-    bug: "416206104"
+    description: "Checks if users associated with tasks are locked later in the data flow to prevent stale data"
+    bug:  "417220811"
     metadata {
         purpose: PURPOSE_BUGFIX
     }
-}
-
-flag {
-    name: "enable_large_desktop_windowing_tile"
-    namespace: "launcher_overview"
-    description: "Makes the desktop tiles larger and moves them to the front of the list in Overview."
-    bug: "357860832"
-}
-
-flag {
-    name: "enable_desktop_exploded_view"
-    namespace: "launcher_overview"
-    description: "Enables the non-overlapping layout for desktop windows in Overview mode."
-    bug: "378011776"
-}
-
-flag {
-    name: "enable_expressive_dismiss_task_motion"
-    namespace: "launcher_overview"
-    description: "Enables expressive motion and animations for dismissing a task in Overview."
-    bug: "381239462"
-}
-
-flag {
-    name: "enable_overview_on_connected_displays"
-    namespace: "launcher_overview"
-    description: "Enable overview on connected displays."
-    bug: "363251602"
-}
-
-flag {
-    name: "enable_overview_background_wallpaper_blur"
-    namespace: "launcher_overview"
-    description: "Enable wallpaper blur in overview."
-    bug: "360297985"
 }
 
 flag {
@@ -82,25 +26,77 @@ flag {
 }
 
 flag {
-    name: "enable_refactor_task_content_view"
+    name: "enable_simultaneous_overview_trigger_on_extended_desktop"
     namespace: "launcher_overview"
-    description: "Enables refactor wrapping TaskThumbnailView in a TaskContentView."
-    bug: "408971730"
+    description: "Enable Overview to launch and exit simultaneously on default and external displays wherever it was triggered or quit from"
+    bug:  "421128035"
 }
 
 flag {
-    name: "enable_desktop_menu_on_secondary_display_bugfix"
+    name: "enable_predictive_back_in_overview"
     namespace: "launcher_overview"
-    description: "Enable the 'Desktop' menu entry on full screen tiles on secondary display."
-    bug:  "418822736"
+    description: "Enables predictive back animation in Overview on back navigation"
+    bug: "421292121"
+}
+
+flag {
+    name: "enable_overview_pagination"
+    namespace: "launcher_overview"
+    description: "Allows the user to scroll overview with a mouse click."
+    bug: "443252794"
+}
+
+flag {
+    name: "hide_automated_tasks_in_overview"
+    namespace: "launcher_overview"
+    description: "Hide a task from overview if it is being automated."
+    bug:  "440355882"
+}
+
+flag {
+    name: "enable_low_res_thumbnail_preloading"
+    namespace: "launcher_overview"
+    description: "Enables usage of low resolution thumbnails in preloading to save memory."
+    bug: "446013310"
+}
+
+flag {
+    name: "enable_tasks_drag_and_drop_in_overview"
+    namespace: "launcher_overview"
+    description: "Allows the user to drag and drop tasks between desktops in overview."
+    bug: "434939081"
+}
+
+flag {
+    name: "enable_overview_select_text_view"
+    namespace: "launcher_overview"
+    description: "Creates views for selected texts to enable accessible traversal."
+    bug: "447292419"
+}
+
+flag {
+    name: "update_recents_wm_wwm_configuration"
+    namespace: "launcher_overview"
+    description: "Bugfix for missing configurations in RWM"
+    bug: "448688934"
     metadata {
         purpose: PURPOSE_BUGFIX
     }
 }
 
 flag {
-    name: "enable_simultaneous_overview_trigger_on_extended_desktop"
+    name: "enable_recents_window_blur"
     namespace: "launcher_overview"
-    description: "Enable Overview to launch and exit simultaneously on default and external displays wherever it was triggered or quit from"
-    bug:  "421128035"
+    description: "Enable wallpaper blur for RecentsWindowManager"
+    bug: "402685067"
+}
+
+flag {
+    name: "enable_save_action_in_overview_share"
+    namespace: "launcher_overview"
+    description: "Bugfix for missing Save action in Overview Share Sheet"
+    bug: "493115665"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
 }

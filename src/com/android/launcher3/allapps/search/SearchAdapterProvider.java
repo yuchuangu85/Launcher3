@@ -20,8 +20,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.recyclerview.widget.RecyclerView;
-
 import com.android.launcher3.allapps.AllAppsGridAdapter;
 import com.android.launcher3.views.ActivityContext;
 
@@ -37,11 +35,6 @@ public abstract class SearchAdapterProvider<T extends ActivityContext> {
     public SearchAdapterProvider(T launcher) {
         mLauncher = launcher;
     }
-
-    /**
-     * Returns the item decorator.
-     */
-    public abstract RecyclerView.ItemDecoration getDecorator();
 
     /**
      * Handles selection event on search adapter item. Returns false if provider can not handle

@@ -16,11 +16,13 @@
 
 package com.android.launcher3.tapl;
 
+import static com.android.launcher3.tapl.BubbleBar.RES_ID_EXPANDED_VIEW;
 import static com.android.launcher3.tapl.LaunchedAppState.DEFAULT_DRAG_STEPS;
 import static com.android.launcher3.tapl.LauncherInstrumentation.DEFAULT_POLL_INTERVAL;
 import static com.android.launcher3.tapl.LauncherInstrumentation.WAIT_TIME_MS;
 import static com.android.launcher3.testing.shared.TestProtocol.REQUEST_SHELL_DRAG_READY;
 
+import android.annotation.Nullable;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.SystemClock;
@@ -28,14 +30,19 @@ import android.view.MotionEvent;
 
 import com.android.launcher3.tapl.Taskbar.TaskbarLocation;
 import com.android.launcher3.testing.shared.TestProtocol;
+import com.android.wm.shell.Flags;
 
 /** {@link Launchable} that can serve as a source for dragging and dropping to the bubble bar. */
 public interface BubbleBarDragSource {
 
     /**
      * Drags this app icon to the provided bubble bar location drop zone.
+     *
+     * @return The {@link BubbleBar} instance that accepted the app icon drag, or {@code null} if
+     * no bubble bar appeared. No bubble bar may appear if Bubble Anything is disabled on a display
+     * that supports Desktop Windowing.
      */
-    default void dragToBubbleBarLocation(boolean isBubbleBarLeftDropTarget) {
+    default @Nullable BubbleBar dragToBubbleBarLocation(boolean isBubbleBarLeftDropTarget) {
         Launchable launchable = getLaunchable();
         LauncherInstrumentation launcher = launchable.mLauncher;
         int bubbleBarDropTargetHalfSize = launcher.getBubbleBarDropTargetSize() / 2;
@@ -43,11 +50,15 @@ public interface BubbleBarDragSource {
         int endX = isBubbleBarLeftDropTarget ? bubbleBarDropTargetHalfSize
                 : displaySize.x - bubbleBarDropTargetHalfSize;
         final Point endPoint = new Point(endX, displaySize.y - bubbleBarDropTargetHalfSize);
-        dragToPoint(launcher, launchable, endPoint,
+        return dragToPoint(launcher, launchable, endPoint,
                 /* waitForShell = */ getTaskbarLocation() == TaskbarLocation.LAUNCHED_APP);
     }
 
-    private static void dragToPoint(
+    /**
+     * Returns the BubbleBar instance that accepted the app icon drag, or null if no bubble bar
+     * appeared.
+     */
+    private static @Nullable BubbleBar dragToPoint(
             LauncherInstrumentation launcher,
             Launchable launchable,
             Point endPoint,
@@ -94,8 +105,18 @@ public interface BubbleBarDragSource {
                                 endPoint,
                                 LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER);
                         try (LauncherInstrumentation.Closable c4 = launcher.addContextLayer(
-                                "BubbleBar should appear")) {
-                            new BubbleBar(launcher);
+                                    "Try to find the expanded bubble bar, if it exists")) {
+                            if (Flags.disableBubbleAnythingDesktopWindowing()
+                                    && launcher.isDesktopModeSupported()) {
+                                // TODO(b/479182156) Drag to bubble bar currently not supported when
+                                //  Desktop Windowing is enabled on this display.
+                                launcher.waitUntilSystemUiObjectGone(RES_ID_EXPANDED_VIEW);
+                                return null;
+                            } else {
+                                BubbleBar bubbleBar = launcher.getBubbleBar();
+                                bubbleBar.verifyExpanded(null);
+                                return bubbleBar;
+                            }
                         }
                     }
                 }

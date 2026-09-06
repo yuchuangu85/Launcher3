@@ -13,7 +13,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <color name="chip_hint_foreground_color">#fff</color>
     <color name="chip_scrim_start_color">#39000000</color>
@@ -22,6 +22,8 @@
     <color name="all_apps_label_text_dark">#61FFFFFF</color>
     <color name="all_apps_prediction_row_separator">#3c000000</color>
     <color name="all_apps_prediction_row_separator_dark">#3cffffff</color>
+    <color name="blur_shade_panel_fg">@color/shade_panel_fg</color>
+    <color name="blur_shade_panel_bg">@color/shade_panel_bg</color>
 
     <!-- Taskbar -->
     <color name="taskbar_nav_icon_selection_ripple">#E0E0E0</color>
@@ -31,6 +33,7 @@
     <color name="taskbar_nav_icon_dark_color_on_home">#99000000</color>
     <color name="taskbar_stashed_handle_light_color">#EBffffff</color>
     <color name="taskbar_stashed_handle_dark_color">#99000000</color>
+    <color name="taskbar_handoff_suggestion_badge_background_color">#1A73E8</color>
 
     <!-- Floating rotation button -->
     <color name="floating_rotation_button_light_color">#ffffff</color>
@@ -77,9 +80,6 @@
 
     <color name="all_set_page_background">@android:color/system_neutral1_50</color>
 
-    <!-- Recents overview -->
-    <color name="recents_filter_icon">#333333</color>
-
     <!-- Lottie light theme colors. -->
     <color name="lottie_blue400">#669df6</color>
     <color name="lottie_blue600">#1a73e8</color>
@@ -99,4 +99,61 @@
     <color name="nudge_pill_color2">#7430E2</color>
     <color name="nudge_pill_color3">#2A7EC8</color>
     <color name="nudge_pill_color4">#2DB8BD</color>
+
+    <!-- Widget Picker -->
+    <color name="widget_picker_primary_surface_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@android:color/transparent</color>
+    <color name="widget_picker_sheet_background_bottom_layer_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/shade_panel_scrim_color</color>
+    <color name="widget_picker_collapse_handle_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_outline_dark</color>
+    <color name="widget_picker_title_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_description_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_variant_dark</color>
+    <color name="widget_picker_expand_icon_button_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_expand_icon_button_background_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect1</color>
+    <color name="widget_picker_expandable_list_items_background_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect2</color>
+    <color name="widget_picker_header_app_title_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_header_app_subtitle_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_clickable_list_header_background_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_secondary_container_dark</color>
+    <color name="widget_picker_featured_header_icon_background_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_primary_dark</color>
+    <color name="widget_picker_featured_header_icon_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_primary_dark</color>
+    <color name="widget_picker_selected_header_app_title_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_selected_header_app_subtitle_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_no_widget_error_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_widgets_container_background_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect2</color>
+    <color name="widget_cell_title_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_cell_subtitle_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_add_button_text_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_primary_dark</color>
+    <color name="widget_picker_add_button_background_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_primary_dark</color>
+    <color name="widget_picker_preview_placeholder_background_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_secondary_container_dark</color>
+    <color name="widget_picker_preview_placeholder_content_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_secondary_container_dark</color>
+    <color name="widget_picker_search_bar_background_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect1</color>
+    <color name="widget_picker_search_text_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_search_cursor_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_dark</color>
+    <color name="widget_picker_focus_outline_color_dark" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_secondary_dark</color>
+
+    <color name="widget_picker_primary_surface_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@android:color/transparent</color>
+    <color name="widget_picker_sheet_background_bottom_layer_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/shade_panel_scrim_color</color>
+    <color name="widget_picker_collapse_handle_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_outline_light</color>
+    <color name="widget_picker_title_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_description_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur" tools:ignore="DuplicateDefinition">@color/system_on_surface_variant_light</color>
+    <color name="widget_picker_expand_icon_button_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_expand_icon_button_background_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect1</color>
+    <color name="widget_picker_expandable_list_items_background_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect2</color>
+    <color name="widget_picker_header_app_title_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_header_app_subtitle_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_clickable_list_header_background_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_secondary_container_light</color>
+    <color name="widget_picker_featured_header_icon_background_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_primary_light</color>
+    <color name="widget_picker_featured_header_icon_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_primary_light</color>
+    <color name="widget_picker_selected_header_app_title_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_selected_header_app_subtitle_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_no_widget_error_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_widgets_container_background_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect2</color>
+    <color name="widget_cell_title_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_cell_subtitle_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_add_button_text_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_primary_light</color>
+    <color name="widget_picker_add_button_background_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_primary_light</color>
+    <color name="widget_picker_preview_placeholder_background_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_secondary_container_light</color>
+    <color name="widget_picker_preview_placeholder_content_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_secondary_container_light</color>
+    <color name="widget_picker_search_bar_background_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/customColorSurfaceEffect1</color>
+    <color name="widget_picker_search_text_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_search_cursor_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_on_surface_light</color>
+    <color name="widget_picker_focus_outline_color_light" android:featureFlag="com.android.launcher3.enable_widget_picker_blur">@color/system_secondary_light</color>
 </resources>

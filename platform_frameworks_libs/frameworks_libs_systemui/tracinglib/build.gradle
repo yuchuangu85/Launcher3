@@ -1,0 +1,32 @@
+// AOSP tracinglib core (com.android.app.tracing) — source build, core only.
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+android {
+    namespace 'com.android.app.tracing'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig { minSdk 31 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions { jvmTarget = '21'; freeCompilerArgs = ['-Xjvm-default=all'] }
+    lint { abortOnError false }
+    sourceSets {
+        main {
+            java.srcDirs = ['core/src']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    rootProject.addPlatformJarsFor(project)
+    implementation project(':ext_stub')
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.guava
+    implementation libs.androidx.annotation
+    implementation libs.androidx.core.ktx
+}

@@ -8,16 +8,17 @@ object FlagDebugUtils {
 
     /** Appends the [flagName] to [str] when the [flag] is set in [flags]. */
     @JvmStatic
-    fun appendFlag(str: StringJoiner, flags: Int, flag: Int, flagName: String) {
+    fun StringJoiner.appendFlag(flags: Int, flag: Int, flagName: String) {
         if (flags and flag != 0) {
-            str.add(flagName)
+            add(flagName)
         }
     }
+
     /** Appends the [flagName] to [str] when the [flag] is set in [flags]. */
     @JvmStatic
-    fun appendFlag(str: StringJoiner, flags: Long, flag: Long, flagName: String) {
+    fun StringJoiner.appendFlag(flags: Long, flag: Long, flagName: String) {
         if (flags and flag != 0L) {
-            str.add(flagName)
+            add(flagName)
         }
     }
 
@@ -53,7 +54,7 @@ object FlagDebugUtils {
     fun formatFlagChange(
         current: Long,
         previous: Long,
-        flagSerializer: LongFunction<String>
+        flagSerializer: LongFunction<String>,
     ): String {
         val result = StringJoiner(" ")
         result.add("[" + flagSerializer.apply(current) + "]")

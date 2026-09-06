@@ -24,22 +24,18 @@ import android.app.role.RoleManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.LauncherActivityInfo;
-import android.content.pm.LauncherApps;
-import android.content.pm.LauncherUserInfo;
 import android.content.pm.ShortcutInfo;
 import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Process;
 import android.os.UserHandle;
-import android.os.UserManager;
-import android.util.ArrayMap;
+import android.view.DragAndDropPermissions;
+import android.view.DragEvent;
 import android.view.SurfaceControlViewHost;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import com.android.launcher3.BaseActivity;
 import com.android.launcher3.BuildConfig;
@@ -49,10 +45,8 @@ import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppComponent;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.icons.BitmapRenderer;
-import com.android.launcher3.util.TouchController;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -93,61 +87,6 @@ public class ApiWrapper {
      */
     public ActivityOptions createFadeOutAnimOptions() {
         return ActivityOptions.makeCustomAnimation(mContext, 0, android.R.anim.fade_out);
-    }
-
-    /**
-     * Returns a map of all users on the device to their corresponding UI properties
-     */
-    public Map<UserHandle, UserIconInfo> queryAllUsers() {
-        UserManager um = mContext.getSystemService(UserManager.class);
-        Map<UserHandle, UserIconInfo> users = new ArrayMap<>();
-        List<UserHandle> usersActual = um.getUserProfiles();
-        if (usersActual != null) {
-            for (UserHandle user : usersActual) {
-                long serial = um.getSerialNumberForUser(user);
-
-                // Simple check to check if the provided user is work profile
-                // TODO: Migrate to a better platform API
-                NoopDrawable d = new NoopDrawable();
-                boolean isWork = (d != mContext.getPackageManager().getUserBadgedIcon(d, user));
-
-                var launcherApps = mContext.getSystemService(LauncherApps.class);
-                UserIconInfo info = new UserIconInfo(
-                        user,
-                        isWork ? UserIconInfo.TYPE_WORK : UserIconInfo.TYPE_MAIN,
-                        serial);
-
-                try {
-                    if (Utilities.ATLEAST_V && launcherApps != null) {
-                        LauncherUserInfo userInfo = launcherApps.getLauncherUserInfo(user);
-                        if (userInfo != null) {
-                            var userType = userInfo.getUserType();
-                            info = new UserIconInfo(
-                                    user,
-                                    userType.equals (UserManager.USER_TYPE_PROFILE_MANAGED) ? UserIconInfo.TYPE_WORK :
-                                            userType.equals (UserManager.USER_TYPE_PROFILE_CLONE) ? UserIconInfo.TYPE_CLONED :
-                                                    userType.equals (UserManager.USER_TYPE_PROFILE_PRIVATE) ? UserIconInfo.TYPE_PRIVATE :
-                                                            UserIconInfo.TYPE_MAIN,
-                                    serial
-                            );
-                        }
-                    }
-                } catch (Throwable t) {
-                    // Ignore
-                }
-
-                users.put(user, info);
-            }
-        }
-        return users;
-    }
-
-    /**
-     * Returns the list of the system packages that are installed at user creation.
-     * An empty list denotes that all system packages are installed for that user at creation.
-     */
-    public List<String> getPreInstalledSystemPackages(UserHandle user) {
-        return Collections.emptyList();
     }
 
     /**
@@ -221,16 +160,14 @@ public class ApiWrapper {
      * as HOME app, a toast asking the user to do the latter is shown.
      */
     public void assignDefaultHomeRole(Context context) {
-        RoleManager roleManager = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            roleManager = context.getSystemService(RoleManager.class);
-            if (roleManager != null && roleManager.isRoleAvailable (RoleManager.ROLE_HOME)
-                    && !roleManager.isRoleHeld (RoleManager.ROLE_HOME)) {
-                Intent roleRequestIntent = roleManager.createRequestRoleIntent (
-                        RoleManager.ROLE_HOME);
-                Launcher launcher = Launcher.getLauncher (context);
-                launcher.startActivityForResult (roleRequestIntent , REQUEST_HOME_ROLE);
-            }
+        RoleManager roleManager = context.getSystemService(RoleManager.class);
+        assert roleManager != null;
+        if (roleManager.isRoleAvailable(RoleManager.ROLE_HOME)
+                && !roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+            Intent roleRequestIntent = roleManager.createRequestRoleIntent(
+                    RoleManager.ROLE_HOME);
+            Launcher launcher = Launcher.getLauncher(context);
+            launcher.startActivityForResult(roleRequestIntent, REQUEST_HOME_ROLE);
         }
     }
 
@@ -242,16 +179,14 @@ public class ApiWrapper {
         return null;
     }
 
-    /**
-     * Checks if the shortcut is using an icon with file or URI source
-     */
-    public boolean isFileDrawable(@NonNull ShortcutInfo shortcutInfo) {
-        return false;
-    }
-
     /** Captures a snapshot of the host content as a bitmap */
     public Bitmap captureSnapshot(SurfaceControlViewHost host, int width, int height) {
         return BitmapRenderer.createHardwareBitmap(width, height, host.getView()::draw);
+    }
+
+    /** Returns permissions obtained from the specified drag event. */
+    public @Nullable DragAndDropPermissions requestDragAndDropPermissions(DragEvent event) {
+        return null;
     }
 
     private static class NoopDrawable extends ColorDrawable {

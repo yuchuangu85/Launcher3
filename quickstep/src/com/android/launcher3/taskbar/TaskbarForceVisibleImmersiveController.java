@@ -26,7 +26,6 @@ import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_A
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -47,7 +46,7 @@ public class TaskbarForceVisibleImmersiveController implements TouchController {
     private static final float NAV_BAR_ICONS_UNDIM_PCT = 1f;
 
     private final TaskbarActivityContext mContext;
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Handler mHandler;
     private final Runnable mDimmingRunnable = this::dimIcons;
     private final Runnable mUndimmingRunnable = this::undimIcons;
     private final AnimatedFloat mIconAlphaForDimming = new AnimatedFloat(
@@ -74,6 +73,7 @@ public class TaskbarForceVisibleImmersiveController implements TouchController {
 
     public TaskbarForceVisibleImmersiveController(TaskbarActivityContext context) {
         mContext = context;
+        mHandler = new Handler(mContext.getMainLooper());
     }
 
     /**

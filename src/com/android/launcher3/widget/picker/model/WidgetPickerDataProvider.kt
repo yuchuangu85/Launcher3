@@ -16,14 +16,10 @@
 
 package com.android.launcher3.widget.picker.model
 
-import com.android.launcher3.model.WidgetItem
-import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.util.SafeCloseable
 import com.android.launcher3.widget.model.WidgetsListBaseEntry
 import com.android.launcher3.widget.picker.model.data.WidgetPickerData
-import com.android.launcher3.widget.picker.model.data.WidgetPickerDataUtils.withRecommendedWidgets
-import com.android.launcher3.widget.picker.model.data.WidgetPickerDataUtils.withWidgets
 import java.io.PrintWriter
-import java.util.function.Predicate
 
 /**
  * Provides [WidgetPickerData] to various views such as widget picker, app-specific widget picker,
@@ -35,13 +31,18 @@ class WidgetPickerDataProvider {
 
     private var changeListener: WidgetPickerDataChangeListener? = null
 
-    var hostSpecifiedDefaultWidgetsFilter: Predicate<WidgetItem>? = null
-
-    private var allWidgets: List<WidgetsListBaseEntry> = emptyList()
-
-    /** Sets a listener to be called back when widget data is updated. */
-    fun setChangeListener(changeListener: WidgetPickerDataChangeListener?) {
+    /**
+     * Sets a listener to be called back when widget data is updated and returns a callback to clear
+     * it
+     */
+    fun setChangeListener(changeListener: WidgetPickerDataChangeListener): SafeCloseable {
         this.changeListener = changeListener
+
+        return SafeCloseable {
+            if (this.changeListener == changeListener) {
+                this.changeListener = null
+            }
+        }
     }
 
     /** Returns the current snapshot of [WidgetPickerData]. */
@@ -55,29 +56,8 @@ class WidgetPickerDataProvider {
      * Generally called when the widgets model has new data.
      */
     fun setWidgets(allWidgets: List<WidgetsListBaseEntry>) {
-        this.allWidgets = allWidgets
-
-        val defaultWidgetsFilter = hostSpecifiedDefaultWidgetsFilter
-        val defaultWidgets =
-            if (defaultWidgetsFilter != null)
-                allWidgets
-                    .map { it.copy().apply { mWidgets.removeIf(defaultWidgetsFilter.negate()) } }
-                    .filter { it.mWidgets.isNotEmpty() }
-            else emptyList()
-
-        mWidgetPickerData =
-            mWidgetPickerData.withWidgets(allWidgets = allWidgets, defaultWidgets = defaultWidgets)
+        mWidgetPickerData = WidgetPickerData(allWidgets = allWidgets)
         changeListener?.onWidgetsBound()
-    }
-
-    /**
-     * Makes the widget recommendations available to the widget picker
-     *
-     * Generally called when new widget predictions are available.
-     */
-    fun setWidgetRecommendations(recommendations: List<ItemInfo>) {
-        mWidgetPickerData = mWidgetPickerData.withRecommendedWidgets(recommendations)
-        changeListener?.onRecommendedWidgetsBound()
     }
 
     /** Writes the current state to the provided writer. */
@@ -93,8 +73,5 @@ class WidgetPickerDataProvider {
     interface WidgetPickerDataChangeListener {
         /** A callback to get notified when widgets are bound. */
         fun onWidgetsBound()
-
-        /** A callback to get notified when recommended widgets are bound. */
-        fun onRecommendedWidgetsBound()
     }
 }

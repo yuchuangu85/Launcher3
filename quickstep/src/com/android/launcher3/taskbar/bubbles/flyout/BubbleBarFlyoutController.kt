@@ -16,14 +16,13 @@
 
 package com.android.launcher3.taskbar.bubbles.flyout
 
-import android.animation.ValueAnimator
 import android.graphics.Rect
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.core.animation.addListener
-import com.android.app.animation.Interpolators
-import com.android.launcher3.R
+import androidx.core.animation.ValueAnimator
+import com.android.app.animation.InterpolatorsAndroidX
+import com.android.systemui.util.addListener
 
 /** Creates and manages the visibility of the [BubbleBarFlyoutView]. */
 class BubbleBarFlyoutController
@@ -44,8 +43,6 @@ constructor(
 
     private var flyout: BubbleBarFlyoutView? = null
     private var animator: ValueAnimator? = null
-    private val horizontalMargin =
-        container.context.resources.getDimensionPixelSize(R.dimen.transient_taskbar_bottom_margin)
 
     private enum class AnimationType {
         /** Morphs the flyout between a dot and a rounded rectangle. */
@@ -76,6 +73,7 @@ constructor(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM or if (positioner.isOnLeft) Gravity.LEFT else Gravity.RIGHT,
             )
+        val horizontalMargin = positioner.horizontalMargin
         lp.marginStart = horizontalMargin
         lp.marginEnd = horizontalMargin
         container.addView(flyout, lp)
@@ -94,7 +92,7 @@ constructor(
         val duration = (EXPAND_ANIMATION_DURATION_MS * (1f - startValue)).toLong()
         animator?.cancel()
         val animator = ValueAnimator.ofFloat(startValue, 1f).setDuration(duration)
-        animator.interpolator = Interpolators.EMPHASIZED
+        animator.interpolator = InterpolatorsAndroidX.EMPHASIZED
         this.animator = animator
         when (animationType) {
             AnimationType.FADE ->
@@ -152,7 +150,7 @@ constructor(
         val duration = (COLLAPSE_ANIMATION_DURATION_MS * startValue).toLong()
         animator?.cancel()
         val animator = ValueAnimator.ofFloat(startValue, 0f).setDuration(duration)
-        animator.interpolator = Interpolators.EMPHASIZED
+        animator.interpolator = InterpolatorsAndroidX.EMPHASIZED
         this.animator = animator
         when (animationType) {
             AnimationType.FADE ->

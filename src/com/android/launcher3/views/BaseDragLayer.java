@@ -21,6 +21,7 @@ import static android.view.MotionEvent.ACTION_DOWN;
 import static android.view.MotionEvent.ACTION_OUTSIDE;
 import static android.view.MotionEvent.ACTION_UP;
 
+import static com.android.launcher3.Flags.enableSystemDrag;
 import static com.android.launcher3.util.window.RefreshRateTracker.getSingleFrameMs;
 
 import android.content.Context;
@@ -38,9 +39,12 @@ import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.FrameLayout;
 
+import androidx.annotation.Nullable;
+
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.InsettableFrameLayout;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
 import com.android.launcher3.util.MultiValueAlpha;
@@ -125,6 +129,14 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
         super(context, attrs);
         mContainer = ActivityContext.lookupContext(context);
         mMultiValueAlpha = new MultiValueAlpha(this, alphaChannelCount);
+
+        if (enableSystemDrag()) {
+            // Delegate handling of system drag events to the drag controller.
+            super.setOnDragListener((view, event) -> {
+                final DragController dragController = mContainer.getDragController();
+                return dragController != null && dragController.onDragEvent(event);
+            });
+        }
     }
 
     /**
@@ -204,7 +216,7 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
             if (mActiveController != null) {
                 // Logging here won't show log on every touch event, only on the start of new
                 // gestures to prevent spamming the logcat with logs.
-                Log.i(TAG, mActiveController.dump());
+                Log.i(TAG, "findActiveController: mActiveController=" + mActiveController.dump());
             }
 
         }
@@ -361,6 +373,11 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
                 }
                 if ((mTouchDispatchState & TOUCH_DISPATCHING_FROM_PROXY) != 0) {
                     mProxyTouchController = findControllerToHandleTouch(ev);
+                    if (mProxyTouchController != null) {
+                        // Logging here won't show log on every touch event, only on the start of
+                        // new gestures to prevent spamming the logcat with logs.
+                        Log.i(TAG, "found mProxyTouchController=" + mProxyTouchController.dump());
+                    }
                 }
                 handled = mProxyTouchController != null;
             }
@@ -449,10 +466,8 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
     public void mapCoordInSelfToDescendant(View descendant, int[] coord) {
         mTmpXY[0] = coord[0];
         mTmpXY[1] = coord[1];
-        if (descendant != null) {
-            Utilities.mapCoordInSelfToDescendant(descendant, this, mTmpXY);
-            Utilities.roundArray(mTmpXY, coord);
-        }
+        Utilities.mapCoordInSelfToDescendant(descendant, this, mTmpXY);
+        Utilities.roundArray(mTmpXY, coord);
     }
 
     public void getViewRectRelativeToSelf(View v, Rect r) {
@@ -530,7 +545,14 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
         if (mActiveController != null) {
             writer.println(prefix + "\tactiveController: " + mActiveController);
             writer.println(prefix + "\t" + mActiveController.dump());
-
+        } else {
+            writer.println(prefix + "\tactiveController: null");
+        }
+        if (mProxyTouchController != null) {
+            writer.println(prefix + "\tproxyController: " + mProxyTouchController);
+            writer.println(prefix + "\t" + mProxyTouchController.dump());
+        } else {
+            writer.println(prefix + "\tproxyController: null");
         }
         writer.println(prefix + "\tdragLayerAlpha : " + mMultiValueAlpha );
     }
@@ -552,6 +574,7 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
         }
     }
 
+    @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
         int count = getChildCount();
@@ -569,16 +592,24 @@ public abstract class BaseDragLayer<T extends Context & ActivityContext>
 
     @Override
     public WindowInsets dispatchApplyWindowInsets(WindowInsets insets) {
-        if (Utilities.ATLEAST_R) {
-            Insets gestureInsets = insets.getMandatorySystemGestureInsets();
+        Insets gestureInsets = insets.getMandatorySystemGestureInsets();
         mSystemGestureRegion.set(gestureInsets.left, gestureInsets.top, gestureInsets.right,
                 gestureInsets.bottom);
-        if (mContainer.getDeviceProfile().isTaskbarPresent) {
+        if (mContainer.getDeviceProfile().getDeviceProperties()
+                .getTaskbarConfiguration().isTaskbarPresent()) {
             // Ignore taskbar gesture insets to avoid interfering with TouchControllers.
             mSystemGestureRegion.bottom = ResourceUtils.getNavbarSize(
                     ResourceUtils.NAVBAR_BOTTOM_GESTURE_SIZE, getResources());
-            }
         }
         return super.dispatchApplyWindowInsets(insets);
+    }
+
+    @Override
+    public void setOnDragListener(@Nullable OnDragListener listener) {
+        if (enableSystemDrag()) {
+            Log.e(TAG, "Use `DragController#addSystemDragHandler()` instead.");
+            return;
+        }
+        super.setOnDragListener(listener);
     }
 }

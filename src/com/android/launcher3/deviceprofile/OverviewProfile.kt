@@ -19,14 +19,12 @@ package com.android.launcher3.deviceprofile
 import android.content.res.Resources
 import com.android.launcher3.Flags
 import com.android.launcher3.R
-import com.android.launcher3.util.OverviewReleaseFlags.enableOverviewIconMenu
 
 data class OverviewProfile(
     val taskMarginPx: Int,
     val taskIconSizePx: Int,
     val taskIconDrawableSizePx: Int,
     val taskIconDrawableSizeGridPx: Int,
-    val taskThumbnailTopMarginPx: Int,
     val actionsHeight: Int,
     val actionsTopMarginPx: Int,
     val pageSpacing: Int,
@@ -37,9 +35,7 @@ data class OverviewProfile(
     companion object Factory {
         fun createOverviewProfile(res: Resources): OverviewProfile {
             val taskIconSizePx =
-                if (enableOverviewIconMenu())
-                    res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_menu_drawable_touch_size)
-                else res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_size)
+                res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_menu_drawable_touch_size)
             val taskMarginPx = res.getDimensionPixelSize(R.dimen.overview_task_margin)
             return OverviewProfile(
                 taskMarginPx = taskMarginPx,
@@ -48,8 +44,6 @@ data class OverviewProfile(
                     res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_drawable_size),
                 taskIconDrawableSizeGridPx =
                     res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_drawable_size_grid),
-                taskThumbnailTopMarginPx =
-                    if (enableOverviewIconMenu()) 0 else taskIconSizePx + taskMarginPx,
                 // Don't add margin with floating search bar to minimize risk of overlapping.
                 actionsTopMarginPx =
                     if (Flags.floatingSearchBar()) 0

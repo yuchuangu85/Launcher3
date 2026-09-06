@@ -16,33 +16,30 @@
 
 package com.android.launcher3.taskbar
 
-import android.animation.AnimatorTestRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.AbstractFloatingView.TYPE_TASKBAR_PINNING_POPUP
 import com.android.launcher3.R
 import com.android.launcher3.popup.ArrowPopup.OPEN_DURATION_U
-import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnMainSync
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.launcher3.taskbar.TaskbarViewTestUtil.createHotseatItems
 import com.android.launcher3.taskbar.customization.TaskbarDividerContainer
+import com.android.launcher3.taskbar.rules.TaskbarAnimatorTestRule
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule
-import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule.InjectController
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
-import com.android.launcher3.util.LauncherMultivalentJUnit
-import com.android.launcher3.util.LauncherMultivalentJUnit.EmulatedDevices
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RunWith(LauncherMultivalentJUnit::class)
-@EmulatedDevices(["pixelFoldable2023", "pixelTablet2023"])
+@RunWith(AndroidJUnit4::class)
 class TaskbarPinningControllerTest {
     @get:Rule(order = 0) val context = TaskbarWindowSandboxContext.create()
-    @get:Rule(order = 1) val taskbarUnitTestRule = TaskbarUnitTestRule(this, context)
-    @get:Rule(order = 2) val animatorTestRule = AnimatorTestRule(this)
+    @get:Rule(order = 1) val taskbarUnitTestRule = TaskbarUnitTestRule(context)
+    @get:Rule(order = 2) val animatorTestRule = TaskbarAnimatorTestRule(this)
 
-    @InjectController lateinit var pinningController: TaskbarPinningController
+    private val pinningController by taskbarUnitTestRule.delegate { it.taskbarPinningController }
 
     private val taskbarContext: TaskbarActivityContext
         get() = taskbarUnitTestRule.activityContext
@@ -53,10 +50,12 @@ class TaskbarPinningControllerTest {
     @Before
     fun setup() {
         taskbarContext.controllers.uiController.init(taskbarContext.controllers)
-        runOnMainSync { taskbarView = taskbarContext.dragLayer.findViewById(R.id.taskbar_view) }
+        runOnTaskbarUiThreadSync {
+            taskbarView = taskbarContext.dragLayer.findViewById(R.id.taskbar_view)
+        }
 
-        runOnMainSync {
-            taskbarView.updateItems(createHotseatItems(1), emptyList())
+        runOnTaskbarUiThreadSync {
+            taskbarView.updateItems(createHotseatItems(1), emptyList(), emptyList())
             dividerIcon = requireNotNull(taskbarView.taskbarDividerViewContainer)
         }
     }
@@ -64,8 +63,8 @@ class TaskbarPinningControllerTest {
     @Test
     fun showPinningView() {
         assertThat(hasPinningPopUp).isFalse()
-        runOnMainSync { pinningController.showPinningView(dividerIcon) }
-        runOnMainSync {
+        runOnTaskbarUiThreadSync { pinningController.showPinningView(dividerIcon) }
+        runOnTaskbarUiThreadSync {
             // Animation has started. Advance to end of animation.
             animatorTestRule.advanceTimeBy(OPEN_DURATION_U.toLong())
         }

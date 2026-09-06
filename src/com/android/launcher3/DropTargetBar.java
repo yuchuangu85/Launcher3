@@ -96,13 +96,14 @@ public class DropTargetBar extends FrameLayout
         int tooltipLocation = TOOLTIP_DEFAULT;
 
         int horizontalMargin;
-        if (deviceProfile.getDeviceProperties().isTablet()) {
+        if (deviceProfile.getDeviceProperties().isLargeScreen()) {
             // XXX: If the icon size changes across orientations, we will have to take
             //      that into account here too.
-            horizontalMargin = ((widthPx - 2 * deviceProfile.edgeMarginPx
-                    - (deviceProfile.inv.numColumns * deviceProfile.cellWidthPx))
+            horizontalMargin = ((widthPx - 2 * deviceProfile.getWorkspaceProfile().getEdgeMarginPx()
+                    - (deviceProfile.inv.numColumns
+                        * deviceProfile.getWorkspaceProfile().getCellWidthPx()))
                     / (2 * (deviceProfile.inv.numColumns + 1)))
-                    + deviceProfile.edgeMarginPx;
+                    + deviceProfile.getWorkspaceProfile().getEdgeMarginPx();
         } else {
             horizontalMargin = getContext().getResources()
                     .getDimensionPixelSize(R.dimen.drop_target_bar_margin_horizontal);
@@ -250,8 +251,11 @@ public class DropTargetBar extends FrameLayout
             barCenter = (right - left) / 2;
         } else {
             int workspaceCenter = (ws.getLeft() + ws.getRight()) / 2;
-            int cellLayoutCenter = ((dp.getInsets().left + dp.workspacePadding.left) + (dp.getDeviceProperties().getWidthPx()
-                    - dp.getInsets().right - dp.workspacePadding.right)) / 2;
+            int cellLayoutCenter = ((dp.getInsets().left
+                    + dp.getWorkspaceProfile().getWorkspacePadding().left)
+                    + (dp.getDeviceProperties().getWidthPx()
+                    - dp.getInsets().right
+                    - dp.getWorkspaceProfile().getWorkspacePadding().right)) / 2;
             int cellLayoutCenterOffset = (int) ((cellLayoutCenter - workspaceCenter) * scale);
             barCenter = workspaceCenter + cellLayoutCenterOffset - left;
         }

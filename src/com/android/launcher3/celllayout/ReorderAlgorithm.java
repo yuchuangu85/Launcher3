@@ -19,7 +19,6 @@ import android.graphics.Rect;
 import android.view.View;
 
 import com.android.launcher3.CellLayout;
-import com.android.launcher3.Utilities;
 import com.android.launcher3.util.CellAndSpan;
 import com.android.launcher3.util.GridOccupancy;
 
@@ -28,8 +27,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
-import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 /**
  * Contains the logic of a reorder.
@@ -132,12 +129,6 @@ public class ReorderAlgorithm {
 
         ArrayList<View> intersectingViews = new ArrayList<>();
         Rect occupiedRect = new Rect(cellX, cellY, cellX + spanX, cellY + spanY);
-
-        // Lawnchair: Widget overlap
-        if (PreferenceExtensionsKt.firstBlocking(mCellLayout.pref.getAllowWidgetOverlap())) {
-            solution.intersectingViews = new ArrayList<>(intersectingViews);
-            return true;
-        }
 
         // Mark the desired location of the view currently being dragged.
         if (ignoreView != null) {

@@ -1,0 +1,41 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_library {
+    name: "personalcontext_ace_client",
+    srcs: [
+        "**/*.kt",
+    ],
+    manifest: "AndroidManifest.xml",
+    resource_dirs: ["clientsdk/compat/res"],
+    static_libs: [
+        "androidx.activity_activity-compose",
+        "androidx.annotation_annotation",
+        "androidx.appcompat_appcompat",
+        "androidx.compose.animation_animation-core",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.foundation_foundation-layout",
+        "androidx.compose.material3_material3",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.runtime_runtime-saveable",
+        "androidx.compose.ui_ui",
+        "androidx.compose.ui_ui-geometry",
+        "androidx.compose.ui_ui-graphics",
+        "androidx.compose.ui_ui-text",
+        "androidx.compose.ui_ui-unit",
+        "androidx.core_core",
+        "androidx.core_core-ktx",
+        "androidx.dynamicanimation_dynamicanimation",
+        "androidx.fragment_fragment-ktx",
+        "androidx.lifecycle_lifecycle-viewmodel-compose",
+        "androidx.recyclerview_recyclerview",
+        "androidx.window_window",
+        "kotlin-parcelize-runtime",
+        "kotlinx-coroutines-android",
+        "personalcontext_ace_common",
+        "personalcontext_ace_common_embeddedscroll",
+    ],
+    kotlin_plugins: ["kotlin-parcelize-compiler-plugin"],
+    kotlincflags: ["-Xjvm-default=all"],
+}

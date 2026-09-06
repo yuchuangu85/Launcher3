@@ -28,10 +28,20 @@ import androidx.annotation.DrawableRes
  */
 data class WidgetAppIcon(val icon: AppIcon, val badge: AppIconBadge)
 
-/** A data type holding information for rendering an icon */
+/**
+ * A data type holding information for rendering an icon.
+ */
 sealed class AppIcon {
-    /** An icon that can be rendered as a [Bitmap]. */
-    data class HighResBitmapIcon(val bitmap: Bitmap) : AppIcon()
+    /**
+     * An icon that can be rendered as a [Bitmap].
+     *
+     * @property isFullBleed indicates that the contents of icon are safe to be clipped with a shape
+     * within the UI.
+     */
+    data class HighResBitmapIcon(
+        val bitmap: Bitmap,
+        val isFullBleed: Boolean = true
+    ) : AppIcon()
 
     /**
      * A low res icon that should be rendered by filling the icon slot with the provided [color].
@@ -47,7 +57,7 @@ sealed class AppIconBadge {
      * A badge that should be rendered using the provided drawable [drawableResId] and tinted with
      * provided [tintColor].
      */
-    data class DrawableBadge(@DrawableRes val drawableResId: Int, val tintColor: Int) :
+    data class DrawableBadge(@param:DrawableRes val drawableResId: Int, val tintColor: Int) :
         AppIconBadge()
 
     /** Indicates there is no badge available for an app icon. */

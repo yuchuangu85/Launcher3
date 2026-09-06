@@ -1,0 +1,40 @@
+// AOSP ace/common migrated to Gradle (Launcher3-QuickStep-Android17 project)
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.parcelize'
+}
+android {
+    namespace 'com.android.personalcontext.ace.common'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig {
+        minSdk 31
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
+        freeCompilerArgs = ['-Xjvm-default=all']
+    }
+    lint {
+        abortOnError false
+    }
+    sourceSets {
+        main {
+            java.srcDirs = ['../src/com/android/personalcontext/ace/common/', '../src/com/android/personalcontext/ace/common/wrappers/']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    rootProject.addPlatformJarsFor(project, ['SystemUI.jar'])
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.annotation
+    compileOnly project(':pccore')
+
+}

@@ -16,15 +16,13 @@
 package com.android.launcher3.widget;
 
 import static android.app.Activity.RESULT_CANCELED;
+import static android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID;
 
-import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
-import static com.android.launcher3.Flags.enableWorkspaceInflation;
+import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.fromProviderInfo;
 import static com.android.launcher3.widget.ListenableAppWidgetHost.getWidgetHolderExecutor;
 
-import android.app.ActivityOptions;
-import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
@@ -33,7 +31,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Looper;
-import android.util.Log;
 import android.util.SparseArray;
 import android.widget.Toast;
 
@@ -49,8 +46,6 @@ import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
-import com.android.launcher3.util.ActivityOptionsWrapper;
-import com.android.launcher3.util.ResourceBasedOverride;
 import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.widget.ListenableAppWidgetHost.ProviderChangedListener;
@@ -66,15 +61,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import app.lawnchair.LawnchairAppWidgetHostView;
-
 /**
  * A wrapper for LauncherAppWidgetHost. This class is created so the AppWidgetHost could run in
  * background.
  */
 public class LauncherWidgetHolder {
-
-    private static final String TAG = "LauncherWidgetHolder";
 
     public static final int APPWIDGET_HOST_ID = 1024;
 
@@ -112,8 +103,14 @@ public class LauncherWidgetHolder {
     @Nullable IntConsumer mAppWidgetRemovedCallback;
 
     @AssistedInject
-    protected LauncherWidgetHolder(@Assisted("UI_CONTEXT") @NonNull Context context) {
+    protected LauncherWidgetHolder(
+            @Assisted("UI_CONTEXT") @NonNull Context context,
+            ProvidersUpdateDispatcher updateDispatcher) {
         this(context, APPWIDGET_HOST_ID);
+        // In case of Launcher3, there is no central widget host, but there can only be one active
+        // host at a time. Adding a dispatcher to every created host ensures and the active host
+        // eventually dispatches the update
+        mWidgetHost.registerUpdateDispatcher(updateDispatcher);
     }
 
     public LauncherWidgetHolder(@NonNull Context context, int hostId) {
@@ -138,20 +135,26 @@ public class LauncherWidgetHolder {
                 mWidgetHost.startListening();
             } catch (Exception e) {
                 if (!Utilities.isBinderSizeError(e)) {
-                    Log.e(TAG, "RuntimeException 1");
-                    return;
+                    throw new RuntimeException(e);
                 }
                 // We're willing to let this slide. The exception is being caused by the list of
                 // RemoteViews which is being passed back. The startListening relationship will
                 // have been established by this point, and we will end up populating the
                 // widgets upon bind anyway. See issue 14255011 for more context.
             }
-        // TODO: Investigate why widgetHost.startListening() always return non-empty updates
+            // TODO: Investigate why widgetHost.startListening() always return non-empty updates
             setListeningFlag(true);
 
             MAIN_EXECUTOR.execute(this::updateDeferredView);
         });
     }
+
+    /**
+     * Tries to start listening for widget updates from a non-primary surface. Widget host only
+     * support listener and adding another listener removes previous listener. Some implementations
+     * like QuickstepWidgetHolder support multiple listener by adding another layer of delegation
+     */
+    public void startListeningForSharedUpdate() { }
 
     /** Update any views which have been deferred because the host was not listening */
     protected void updateDeferredView() {
@@ -200,14 +203,10 @@ public class LauncherWidgetHolder {
      * Called when the launcher is destroyed
      */
     public void destroy() {
-        try {
-            MAIN_EXECUTOR.submit(() -> {
-                clearViews();
-                mWidgetHost.getHolders().remove(this);
-            }).get();
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to remove self from holder list", e);
-        }
+        MAIN_EXECUTOR.execute(() -> {
+            clearViews();
+            mWidgetHost.getHolders().remove(this);
+        });
     }
 
     /**
@@ -215,7 +214,7 @@ public class LauncherWidgetHolder {
      */
     public int allocateAppWidgetId() {
         if (!WIDGETS_ENABLED) {
-            return AppWidgetManager.INVALID_APPWIDGET_ID;
+            return INVALID_APPWIDGET_ID;
         }
 
         return mWidgetHost.allocateAppWidgetId();
@@ -244,6 +243,12 @@ public class LauncherWidgetHolder {
         mOnViewCreationCallback = callback;
     }
 
+    /** Returns a previously set view creation callback */
+    @Nullable
+    public Consumer<LauncherAppWidgetHostView> getOnViewCreationCallback() {
+        return mOnViewCreationCallback;
+    }
+
     /** Sets a callback for listening app widget removals */
     public void setAppWidgetRemovedCallback(@Nullable IntConsumer callback) {
         mAppWidgetRemovedCallback = callback;
@@ -256,27 +261,7 @@ public class LauncherWidgetHolder {
      * @param requestCode The request code
      */
     public void startConfigActivity(@NonNull BaseActivity activity, int widgetId, int requestCode) {
-        startConfigActivity(activity, widgetId, requestCode, 0);
-    }
-
-    /**
-     * Starts the configuration activity for the widget with retry counter
-     * 
-     * @param activity    The activity in which to start the configuration page
-     * @param widgetId    The ID of the widget
-     * @param requestCode The request code
-     * @param retryCount  The number of retries attempted
-     */
-    private void startConfigActivity(@NonNull BaseActivity activity, int widgetId,
-            int requestCode, int retryCount) {
         if (!WIDGETS_ENABLED) {
-            sendActionCancelled(activity, requestCode);
-            return;
-        }
-
-        // Prevent infinite loops by limiting retries
-        if (retryCount >= 3) {
-            Log.e(this.getClass().getName(), "Too many retries for widget configuration, cancelling");
             sendActionCancelled(activity, requestCode);
             return;
         }
@@ -288,38 +273,12 @@ public class LauncherWidgetHolder {
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(activity, R.string.activity_not_found, Toast.LENGTH_SHORT).show();
             sendActionCancelled(activity, requestCode);
-        } catch (IllegalArgumentException e) {
-            // Widget ID became invalid, possibly due to two-step configuration some cases
-            Log.e(this.getClass().getName(), "Widget ID became invalid during configuration (retry " + retryCount + ")", e);
-            handleInvalidWidgetId(activity, widgetId, requestCode, retryCount + 1);
-        }
-    }
-
-    private void handleInvalidWidgetId(BaseActivity activity, int widgetId, int requestCode) {
-        handleInvalidWidgetId(activity, widgetId, requestCode, 0);
-    }
-
-    private void handleInvalidWidgetId(BaseActivity activity, int widgetId, int requestCode, int retryCount) {
-        // Remove the invalid widget
-        deleteAppWidgetId(widgetId);
-
-        int newWidgetId = allocateAppWidgetId();
-        if (newWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            startConfigActivity(activity, newWidgetId, requestCode, retryCount);
-        } else {
-            sendActionCancelled(activity, requestCode);
         }
     }
 
     private void sendActionCancelled(final BaseActivity activity, final int requestCode) {
         MAIN_EXECUTOR.execute(
                 () -> activity.onActivityResult(requestCode, RESULT_CANCELED, null));
-    }
-
-    private Bundle getDefaultConfigurationActivityOptions() {
-        // Must allow background activity start for U.
-        return Utilities.allowBGLaunch(ActivityOptions.makeBasic())
-                .toBundle();
     }
 
     /**
@@ -424,16 +383,13 @@ public class LauncherWidgetHolder {
     public AppWidgetHostView createView(
             int appWidgetId, @NonNull LauncherAppWidgetProviderInfo appWidget) {
         if (appWidget.isCustomWidget()) {
-            LauncherAppWidgetHostView lahv = new LauncherAppWidgetHostView(mContext);
-            lahv.setAppWidget(0, appWidget);
-            CustomWidgetManager.INSTANCE.get(mContext).onViewCreated(lahv);
-            return lahv;
+            return CustomWidgetManager.INSTANCE.get(mContext).createView(mContext, appWidget);
         }
 
         LauncherAppWidgetHostView view = createViewInternal(appWidgetId, appWidget);
         if (mOnViewCreationCallback != null) mOnViewCreationCallback.accept(view);
         // Do not update mViews on a background thread call, as the holder is not thread safe.
-        if (!enableWorkspaceInflation() || Looper.myLooper() == Looper.getMainLooper()) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
             mViews.put(appWidgetId, view);
         }
         return view;
@@ -499,7 +455,7 @@ public class LauncherWidgetHolder {
             // RemoteViews from system process.
             return new PendingAppWidgetHostView(mContext, this, appWidgetId, appWidget);
         } else {
-            if (enableWorkspaceInflation() && Looper.myLooper() != Looper.getMainLooper()) {
+            if (Looper.myLooper() != Looper.getMainLooper()) {
                 // Widget is being inflated a background thread, just create and
                 // return a placeholder view
                 ListenableHostView hostView = new ListenableHostView(mContext);
@@ -575,6 +531,14 @@ public class LauncherWidgetHolder {
      */
     protected boolean shouldListen(int flags) {
         return (flags & FLAGS_SHOULD_LISTEN) == FLAGS_SHOULD_LISTEN;
+    }
+
+    /**
+     * Get the widget views, mapped by widget ID. This should only be called on the main thread.
+     */
+    @NonNull
+    public SparseArray<LauncherAppWidgetHostView> getViews() {
+        return mViews;
     }
 
     /**

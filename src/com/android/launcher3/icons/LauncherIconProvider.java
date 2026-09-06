@@ -41,15 +41,14 @@ import javax.inject.Inject;
 @LauncherAppSingleton
 public class LauncherIconProvider extends IconProvider {
 
-    public static final String TAG_ICON = "icon";
-    public static final String ATTR_PACKAGE = "package";
-    public static final String ATTR_DRAWABLE = "drawable";
-    public static final String ATTR_COMPONENT = "component";
+    private static final String TAG_ICON = "icon";
+    private static final String ATTR_PACKAGE = "package";
+    private static final String ATTR_DRAWABLE = "drawable";
 
-    protected static final String TAG = "LIconProvider";
-    protected static final Map<String, ThemeData> DISABLED_MAP = Collections.emptyMap();
+    private static final String TAG = "LIconProvider";
+    private static final Map<String, ThemeData> DISABLED_MAP = Collections.emptyMap();
 
-    protected Map<String, ThemeData> mThemedIconMap;
+    private Map<String, ThemeData> mThemedIconMap;
 
     protected final ThemeManager mThemeManager;
 
@@ -70,10 +69,12 @@ public class LauncherIconProvider extends IconProvider {
     @Override
     public void updateSystemState() {
         super.updateSystemState();
-        mSystemState += "," + mThemeManager.getIconState().toUniqueId();
+        mSystemState = mSystemState.withTheme(
+                mThemeManager.getIconState().getThemeCode(),
+                mThemeManager.getIconState().isCircle());
     }
 
-    protected Map<String, ThemeData> getThemedIconMap() {
+    private Map<String, ThemeData> getThemedIconMap() {
         if (mThemedIconMap != null) {
             return mThemedIconMap;
         }

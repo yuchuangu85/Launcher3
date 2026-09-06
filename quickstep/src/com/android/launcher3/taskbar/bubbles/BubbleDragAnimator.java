@@ -29,11 +29,9 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.FloatPropertyCompat;
 
 import com.android.launcher3.R;
+import com.android.wm.shell.shared.animation.PhysicsAnimator;
 import com.android.wm.shell.shared.bubbles.DismissCircleView;
 import com.android.wm.shell.shared.bubbles.DismissView;
-//import com.android.wm.shell.shared.animation.PhysicsAnimator;
-
-import app.lawnchair.animation.PhysicsAnimator;
 
 /**
  * The animator performs the bubble animations while dragging and coordinates bubble and dismiss
@@ -152,7 +150,7 @@ public class BubbleDragAnimator {
                 .start();
 
         if (mDismissAnimator != null) {
-            mDismissAnimator.cancel();
+            mDismissAnimator.cancel(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y);
             mDismissAnimator
                     .spring(DynamicAnimation.SCALE_X, mDismissCapturedScale)
                     .spring(DynamicAnimation.SCALE_Y, mDismissCapturedScale)
@@ -173,7 +171,7 @@ public class BubbleDragAnimator {
                 .start();
 
         if (mDismissAnimator != null) {
-            mDismissAnimator.cancel();
+            mDismissAnimator.cancel(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y);
             mDismissAnimator
                     .spring(DynamicAnimation.SCALE_X, 1f)
                     .spring(DynamicAnimation.SCALE_Y, 1f)

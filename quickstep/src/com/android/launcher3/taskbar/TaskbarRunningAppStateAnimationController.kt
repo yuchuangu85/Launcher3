@@ -34,6 +34,7 @@ import com.android.internal.dynamicanimation.animation.SpringAnimation
 import com.android.internal.dynamicanimation.animation.SpringForce
 import com.android.internal.dynamicanimation.animation.SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
 import com.android.internal.dynamicanimation.animation.SpringForce.DAMPING_RATIO_NO_BOUNCY
+import com.android.internal.jank.Cuj
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.BubbleTextView.RunningAppState
 import com.android.launcher3.BubbleTextView.RunningAppState.MINIMIZED
@@ -42,9 +43,10 @@ import com.android.launcher3.BubbleTextView.RunningAppState.RUNNING
 import com.android.launcher3.R
 import com.android.launcher3.Utilities as LauncherUtilities
 import com.android.launcher3.model.data.TaskItemInfo
-import com.android.launcher3.taskbar.TaskbarViewController.TRANSITION_DEFAULT_DURATION
+import com.android.launcher3.taskbar.TaskbarLayoutTransitionFactory.Companion.TRANSITION_DEFAULT_DURATION
 import com.android.launcher3.util.MultiPropertyFactory
 import com.android.launcher3.util.MultiTranslateDelegate.INDEX_TASKBAR_APP_RUNNING_STATE_ANIM
+import com.android.systemui.shared.system.InteractionJankMonitorWrapper
 
 private const val SPRING_START = 0f
 private const val SPRING_END = 100f
@@ -156,11 +158,16 @@ class TaskbarRunningAppStateAnimationController(context: Context) {
             )
 
             doOnEnd {
+                InteractionJankMonitorWrapper.end(Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE)
                 runningAnimations.remove(btv)
                 applyRunningState(btv)
             }
 
-            runningAnimations[btv] = this::cancel
+            runningAnimations[btv] = {
+                InteractionJankMonitorWrapper.cancel(Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE)
+                cancel()
+            }
+            InteractionJankMonitorWrapper.begin(btv, Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE)
             start()
         }
     }
@@ -182,6 +189,7 @@ class TaskbarRunningAppStateAnimationController(context: Context) {
             btv.invalidate()
         }
 
+        InteractionJankMonitorWrapper.begin(btv, Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE)
         SpringAnimation(FloatValueHolder()).run {
             spring = SPRING_NO_BOUNCY
             addUpdateListener { _, v, _ ->
@@ -193,7 +201,12 @@ class TaskbarRunningAppStateAnimationController(context: Context) {
 
             addEndListener { _, canceled, _, _ ->
                 runningAnimations.remove(btv)
-                if (canceled) return@addEndListener applyRunningState(btv)
+                if (canceled) {
+                    InteractionJankMonitorWrapper.cancel(
+                        Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE
+                    )
+                    return@addEndListener applyRunningState(btv)
+                }
 
                 val startLineWidth = if (isMinimized) lineWidthSpring else prevLineWidth
                 val endLineWidth = btv.runningAppState.lineWidth
@@ -221,11 +234,25 @@ class TaskbarRunningAppStateAnimationController(context: Context) {
                         },
                     )
 
-                runningAnimations[btv] = { for (s in springs) s.cancel() }
+                runningAnimations[btv] = {
+                    InteractionJankMonitorWrapper.cancel(
+                        Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE
+                    )
+                    for (s in springs) s.cancel()
+                }
                 var runningSprings = springs.size
                 for (s in springs) {
                     s.addEndListener { _, canceled2, _, _ ->
                         if (--runningSprings == 0) {
+                            if (canceled2) {
+                                InteractionJankMonitorWrapper.cancel(
+                                    Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE
+                                )
+                            } else {
+                                InteractionJankMonitorWrapper.end(
+                                    Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE
+                                )
+                            }
                             runningAnimations.remove(btv)
                             if (canceled2) applyRunningState(btv)
                         }
@@ -234,7 +261,10 @@ class TaskbarRunningAppStateAnimationController(context: Context) {
                 }
             }
 
-            runningAnimations[btv] = this::cancel
+            runningAnimations[btv] = {
+                InteractionJankMonitorWrapper.cancel(Cuj.CUJ_DESKTOP_MODE_TASKBAR_INDICATOR_UPDATE)
+                cancel()
+            }
             start()
         }
     }

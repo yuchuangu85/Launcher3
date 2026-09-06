@@ -16,44 +16,48 @@
 
 package com.android.quickstep.task.thumbnail
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
+import android.animation.Animator
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
-import android.graphics.Outline
-import android.graphics.Path
 import android.graphics.Rect
+import android.os.Bundle
 import android.provider.Settings
 import android.util.AttributeSet
-import android.util.FloatProperty
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewOutlineProvider
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewStub
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
 import android.widget.TextView
 import androidx.annotation.IdRes
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ComposeView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
-import com.android.launcher3.Flags.enableCursorHoverStates
+import com.android.compose.theme.PlatformTheme
 import com.android.launcher3.Flags.enableRefactorDigitalWellbeingToast
 import com.android.launcher3.R
-import com.android.launcher3.util.KFloatProperty
-import com.android.launcher3.util.MultiPropertyDelegate
-import com.android.launcher3.util.MultiPropertyFactory
+import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT
+import com.android.launcher3.util.SplitConfigurationOptions.StagePosition
 import com.android.launcher3.util.ViewPool
-import com.android.quickstep.DesktopFullscreenDrawParams.Companion.computeCornerRadius
+import com.android.quickstep.orientation.RecentsPagedOrientationHandler
 import com.android.quickstep.task.apptimer.TaskAppTimerUiState
+import com.android.quickstep.task.apptimer.TaskAppTimerUiState.Uninitialized
+import com.android.quickstep.task.apptimer.TaskAppTimerViewModel
 import com.android.quickstep.task.apptimer.TimerTextHelper
+import com.android.quickstep.task.apptimer.ui.composable.AppTimerToast
 import com.android.quickstep.util.BorderAnimator
 import com.android.quickstep.util.BorderAnimator.Companion.DEFAULT_BORDER_COLOR
-import com.android.quickstep.util.BorderAnimator.Companion.DEFAULT_INTERPOLATOR
 import com.android.quickstep.util.BorderAnimator.Companion.createSimpleBorderAnimator
 import com.android.quickstep.util.setActivityStarterClickListener
+import com.android.quickstep.views.RecentsViewContainer
 import com.android.quickstep.views.TaskHeaderView
-import kotlin.math.max
+import com.android.wm.shell.shared.split.SplitBounds
 
 /**
  * TaskContentView is a wrapper around the TaskHeaderView, TaskThumbnailView and Digital wellbeing
@@ -66,50 +70,38 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
     ConstraintLayout(context, attrs), ViewPool.Reusable {
 
     private var taskHeaderView: TaskHeaderView? = null
+
     private var taskThumbnailView: TaskThumbnailView? = null
+    private val useComposeTaskAppTimer
+        get() = enableRefactorDigitalWellbeingToast()
+
+    @Deprecated("This toast is getting replaced by the compose version taskAppTimerToastCompose")
     private var taskAppTimerToast: TextView? = null
 
+    private var taskAppTimerToastCompose: View? = null
+    private val taskAppTimerViewModel by lazy { TaskAppTimerViewModel() }
+    private val recentsViewContainer by
+        lazy<RecentsViewContainer> { RecentsViewContainer.containerFromContext(context) }
+
     private var timerTextHelper: TimerTextHelper? = null
-    private var timerUiState: TaskAppTimerUiState = TaskAppTimerUiState.Uninitialized
+    private var timerUiState: TaskAppTimerUiState = Uninitialized
     private var timerUsageAccessibilityAction: AccessibilityAction? = null
-    private val timerToastHeight =
-        context.resources.getDimensionPixelSize(R.dimen.digital_wellbeing_toast_height)
 
     private var onSizeChanged: ((width: Int, height: Int) -> Unit)? = null
-    private val outlinePath = Path()
 
     private val borderWidthPx: Int by lazy {
-        context.resources.getDimensionPixelSize(R.dimen.keyboard_quick_switch_border_width)
+        context.resources.getDimensionPixelSize(R.dimen.task_hover_focus_border_width)
     }
 
-    private var activeFocusAnimator: AnimatorSet? = null
-    private var activeHoverAnimator: AnimatorSet? = null
-
-    private val focusBorderAnimator: BorderAnimator by lazy {
-        createSimpleBorderAnimator(
-            borderRadiusPx = computeCornerRadius(context).toInt(),
-            borderWidthPx = borderWidthPx,
-            boundsBuilder = { it.set(0, 0, width, height) },
-            targetView = this,
-            borderColor =
-                context
-                    .obtainStyledAttributes(attrs, R.styleable.TaskContentView)
-                    .getColor(R.styleable.TaskContentView_focusBorderColor, DEFAULT_BORDER_COLOR),
-        )
+    private val borderOffsetPx: Int by lazy {
+        context.resources.getDimensionPixelSize(R.dimen.task_hover_focus_offset_size)
     }
 
-    private val hoverBorderAnimator: BorderAnimator by lazy {
-        createSimpleBorderAnimator(
-            borderRadiusPx = computeCornerRadius(context).toInt(),
-            borderWidthPx = borderWidthPx,
-            boundsBuilder = { it.set(0, 0, width, height) },
-            targetView = this,
-            borderColor =
-                context
-                    .obtainStyledAttributes(attrs, R.styleable.TaskContentView)
-                    .getColor(R.styleable.TaskContentView_hoverBorderColor, DEFAULT_BORDER_COLOR),
-        )
-    }
+    private var activeFocusAnimator: Animator? = null
+    private var activeHoverAnimator: Animator? = null
+
+    private val focusBorderColor: Int
+    private val hoverBorderColor: Int
 
     private var hoverBorderVisible = false
         set(value) {
@@ -120,47 +112,59 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
             field = value
 
             activeHoverAnimator?.cancel()
-            activeHoverAnimator = animateBorder(OUTLINE_EXPANSION_HOVER, hoverBorderAnimator, value)
+            activeHoverAnimator = animateBorder(hoverBorderAnimator, value)
         }
 
-    /**
-     * Sets the outline bounds of the view. Default to use view's bound as outline when set to null.
-     */
-    var outlineBounds: Rect? = null
-        set(value) {
-            field = value
-            invalidateOutline()
-        }
-
-    private val bounds = Rect()
+    var isHoverable: Boolean = false
 
     var cornerRadius: Float = 0f
         set(value) {
             field = value
-            invalidateOutline()
+            taskThumbnailView?.cornerRadius = value
         }
 
-    private var outlineExpansion = 0.0f
+    var taskCornerRadius: Float = 0f
+
+    var outlineBounds: Rect? = null
         set(value) {
             field = value
-            invalidateOutline()
+            taskThumbnailView?.outlineBounds = value
         }
-
-    private val outlineExpansionFactory: MultiPropertyFactory<TaskContentView> =
-        MultiPropertyFactory(this, OUTLINE_EXPANSION, OutlineExpansion.entries.size) {
-            a: Float,
-            b: Float ->
-            max(a, b)
-        }
-    private var outlineExpansionFocus by
-        MultiPropertyDelegate(outlineExpansionFactory, OutlineExpansion.FOCUS)
-    private var outlineExpansionHover by
-        MultiPropertyDelegate(outlineExpansionFactory, OutlineExpansion.HOVER)
-
-    var isHoverable: Boolean = false;
 
     init {
-        setWillNotDraw(!enableCursorHoverStates())
+        setWillNotDraw(false)
+        context.obtainStyledAttributes(attrs, R.styleable.TaskContentView).use {
+            focusBorderColor =
+                it.getColor(R.styleable.TaskContentView_focusBorderColor, DEFAULT_BORDER_COLOR)
+            hoverBorderColor =
+                it.getColor(R.styleable.TaskContentView_hoverBorderColor, DEFAULT_BORDER_COLOR)
+        }
+    }
+
+    private val focusBorderAnimator: BorderAnimator by lazy {
+        createSimpleBorderAnimator(
+            borderRadiusPx = taskCornerRadius.toInt() + borderOffsetPx,
+            borderWidthPx = borderWidthPx,
+            boundsBuilder = {
+                it.set(0, 0, width, height)
+                it.inset(-borderOffsetPx, -borderOffsetPx)
+            },
+            targetView = this,
+            borderColor = focusBorderColor,
+        )
+    }
+
+    private val hoverBorderAnimator: BorderAnimator by lazy {
+        createSimpleBorderAnimator(
+            borderRadiusPx = taskCornerRadius.toInt() + borderOffsetPx,
+            borderWidthPx = borderWidthPx,
+            boundsBuilder = {
+                it.set(0, 0, width, height)
+                it.inset(-borderOffsetPx, -borderOffsetPx)
+            },
+            targetView = this,
+            borderColor = hoverBorderColor,
+        )
     }
 
     override fun onFinishInflate() {
@@ -170,53 +174,27 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
 
     override fun setScaleX(scaleX: Float) {
         super.setScaleX(scaleX)
-        taskThumbnailView?.parentScaleXUpdated(scaleX)
+        taskThumbnailView?.parentScaleX = scaleX
     }
 
     override fun setScaleY(scaleY: Float) {
         super.setScaleY(scaleY)
-        taskThumbnailView?.parentScaleYUpdated(scaleY)
-    }
-
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        clipToOutline = true
-        outlineProvider =
-            object : ViewOutlineProvider() {
-                override fun getOutline(view: View, outline: Outline) {
-                    val outlineRect = outlineBounds ?: bounds
-                    val expansion = outlineExpansion.toInt()
-                    outlinePath.apply {
-                        rewind()
-                        addRoundRect(
-                            outlineRect.left.toFloat() - expansion,
-                            outlineRect.top.toFloat() - expansion,
-                            outlineRect.right.toFloat() + expansion,
-                            outlineRect.bottom.toFloat() + expansion,
-                            (cornerRadius + expansion) / scaleX,
-                            (cornerRadius + expansion) / scaleY,
-                            Path.Direction.CW,
-                        )
-                    }
-                    outline.setPath(outlinePath)
-                }
-            }
+        taskThumbnailView?.parentScaleY = scaleY
     }
 
     override fun onRecycle() {
         taskHeaderView?.isInvisible = true
         taskHeaderView?.alpha = 1.0f
         onSizeChanged = null
-        outlineBounds = null
         alpha = 1.0f
         taskThumbnailView?.onRecycle()
         taskAppTimerToast?.isInvisible = true
-        timerUiState = TaskAppTimerUiState.Uninitialized
+        timerUiState = Uninitialized
+        if (taskAppTimerToastCompose != null) taskAppTimerViewModel.setState(Uninitialized)
         timerTextHelper = null
         timerUsageAccessibilityAction = null
-        outlineExpansionHover = 0f
-        outlineExpansionFocus = 0f
         hoverBorderVisible = false
+        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
 
     fun doOnSizeChange(action: (width: Int, height: Int) -> Unit) {
@@ -226,14 +204,12 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         onSizeChanged?.invoke(width, height)
-        bounds.set(0, 0, w, h)
         updateTimerText(w)
-        invalidateOutline()
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
-        if (isFocusable()) {
+        if (isFocusable) {
             focusBorderAnimator.drawBorder(canvas)
         }
         if (isHoverable) {
@@ -249,25 +225,30 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
         super.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
 
         activeFocusAnimator?.cancel()
-        activeFocusAnimator = animateBorder(OUTLINE_EXPANSION_FOCUS, focusBorderAnimator, gainFocus)
+        activeFocusAnimator = animateBorder(focusBorderAnimator, gainFocus)
     }
 
     override fun onHoverEvent(event: MotionEvent): Boolean {
-        if (enableCursorHoverStates() && isHoverable) {
-            when (event.action) {
-                MotionEvent.ACTION_HOVER_ENTER -> {
-                    hoverBorderVisible = true
-                }
-                MotionEvent.ACTION_HOVER_EXIT -> {
-                    hoverBorderVisible = false
-                }
+        if (!isHoverable) return false
+        when (event.action) {
+            MotionEvent.ACTION_HOVER_ENTER -> {
+                hoverBorderVisible = true
+            }
+            MotionEvent.ACTION_HOVER_EXIT -> {
+                hoverBorderVisible = false
             }
         }
-        return super.onHoverEvent(event)
+        return true
+    }
+
+    override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {
+        super.onInitializeAccessibilityNodeInfo(info)
+        with(info) { taskHeaderView?.getSupportedAccessibilityActions()?.forEach(::addAction) }
     }
 
     fun onParentAnimationProgress(progress: Float) {
-        taskAppTimerToast?.apply { translationY = timerToastHeight * (1f - progress) }
+        taskAppTimerToast?.apply { alpha = progress }
+        taskAppTimerToastCompose?.apply { alpha = progress }
     }
 
     /** Returns accessibility actions supported by items in the task content view. */
@@ -281,8 +262,19 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
                 return taskAppTimerToast?.callOnClick() ?: false
             }
         }
-
         return false
+    }
+
+    fun getTaskAppTimerToastHeight() =
+        (if (useComposeTaskAppTimer) taskAppTimerToastCompose else taskAppTimerToast)?.height ?: 0
+
+    override fun performAccessibilityAction(action: Int, arguments: Bundle?): Boolean {
+        taskHeaderView?.let {
+            if (it.handleAccessibilityAction(action)) {
+                return true
+            }
+        }
+        return super.performAccessibilityAction(action, arguments)
     }
 
     private fun createHeaderView(taskHeaderState: TaskHeaderUiState) {
@@ -304,16 +296,37 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
     }
 
     private fun createAppTimerToastView(taskAppTimerUiState: TaskAppTimerUiState) {
-        if (
-            enableRefactorDigitalWellbeingToast() &&
-                taskAppTimerToast == null &&
-                taskAppTimerUiState is TaskAppTimerUiState.Timer
-        ) {
-            taskAppTimerToast =
-                findViewById<ViewStub>(R.id.task_app_timer_toast)
-                    .apply { layoutResource = R.layout.task_app_timer_toast }
-                    .inflate() as TextView
+        if (taskAppTimerUiState is TaskAppTimerUiState.Timer) {
+            when {
+                useComposeTaskAppTimer && taskAppTimerToastCompose == null -> {
+                    taskAppTimerToastCompose =
+                        ComposeView(context).apply {
+                            setContent {
+                                val timerUiState by taskAppTimerViewModel.uiState
+                                PlatformTheme { AppTimerToast(timerUiState, taskAppTimerViewModel) }
+                            }
+                        }
+                    addAppTimerToastToLayout()
+                }
+
+                !useComposeTaskAppTimer && taskAppTimerToast == null -> {
+                    taskAppTimerToast =
+                        findViewById<ViewStub>(R.id.task_app_timer_toast)
+                            .apply { layoutResource = R.layout.task_app_timer_toast }
+                            .inflate() as TextView
+                }
+            }
         }
+    }
+
+    private fun addAppTimerToastToLayout() {
+        val params =
+            LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+                startToStart = PARENT_ID
+                endToEnd = PARENT_ID
+                bottomToBottom = R.id.snapshot
+            }
+        addView(taskAppTimerToastCompose, params)
     }
 
     fun setState(
@@ -326,6 +339,7 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
         taskHeaderView?.setState(taskHeaderState)
         taskThumbnailView?.setState(taskThumbnailUiState, taskId)
         createAppTimerToastView(taskAppTimerUiState)
+
         if (enableRefactorDigitalWellbeingToast() && timerUiState != taskAppTimerUiState) {
             setAppTimerToastState(taskAppTimerUiState)
             updateContentDescriptionWithTimer(taskAppTimerUiState)
@@ -336,28 +350,121 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
         taskHeaderView?.alpha = alpha
     }
 
+    fun onTaskViewDisplayConfigChanged(
+        taskViewWidth: Int,
+        taskViewHeight: Int,
+        isGroupedTaskView: Boolean,
+        splitBounds: SplitBounds?,
+        orientationHandler: RecentsPagedOrientationHandler,
+        @StagePosition stagePosition: Int,
+    ) {
+        if (enableRefactorDigitalWellbeingToast()) {
+            updateTaskAppTimerOrientation(
+                taskViewWidth,
+                taskViewHeight,
+                isGroupedTaskView,
+                splitBounds,
+                orientationHandler,
+                stagePosition,
+            )
+        }
+    }
+
+    /**
+     * This method updates the orientation of the task app timer toast. Practically This is only
+     * needed while Recents(overview) relies on Fake Landscape/Seascape. This code may be removed
+     * when Recents in a window project is completed b/292269949
+     */
+    private fun updateTaskAppTimerOrientation(
+        taskViewWidth: Int,
+        taskViewHeight: Int,
+        isGroupedTaskView: Boolean,
+        splitBounds: SplitBounds?,
+        orientationHandler: RecentsPagedOrientationHandler,
+        @StagePosition stagePosition: Int,
+    ) {
+        val appTimer = if (useComposeTaskAppTimer) taskAppTimerToastCompose else taskAppTimerToast
+        if (appTimer == null) return
+
+        val (snapshotWidth, snapshotHeight) =
+            computeSnapshotDimensions(
+                splitBounds,
+                taskViewWidth,
+                taskViewHeight,
+                orientationHandler,
+                stagePosition,
+            )
+
+        orientationHandler.updateAppTimerLayout(
+            taskViewWidth,
+            taskViewHeight,
+            isGroupedTaskView,
+            recentsViewContainer.deviceProfile,
+            snapshotWidth,
+            snapshotHeight,
+            appTimer,
+        )
+    }
+
+    private fun computeSnapshotDimensions(
+        splitBounds: SplitBounds?,
+        taskViewWidth: Int,
+        taskViewHeight: Int,
+        pagedOrientationHandler: RecentsPagedOrientationHandler,
+        @StagePosition stagePosition: Int,
+    ): Pair<Int, Int> {
+        val snapshotWidth: Int
+        val snapshotHeight: Int
+        if (splitBounds == null) {
+            snapshotWidth = taskViewWidth
+            snapshotHeight = taskViewHeight
+        } else {
+            val groupedTaskSize =
+                pagedOrientationHandler.getGroupedTaskViewSizes(
+                    recentsViewContainer.deviceProfile,
+                    splitBounds,
+                    taskViewWidth,
+                    taskViewHeight,
+                )
+            if (stagePosition == STAGE_POSITION_TOP_OR_LEFT) {
+                snapshotWidth = groupedTaskSize.first.x
+                snapshotHeight = groupedTaskSize.first.y
+            } else {
+                snapshotWidth = groupedTaskSize.second.x
+                snapshotHeight = groupedTaskSize.second.y
+            }
+        }
+
+        return Pair(snapshotWidth, snapshotHeight)
+    }
+
     private fun updateContentDescriptionWithTimer(state: TaskAppTimerUiState) {
         taskThumbnailView?.contentDescription =
             when (state) {
-                is TaskAppTimerUiState.Uninitialized -> return
+                is Uninitialized -> return
                 is TaskAppTimerUiState.NoTimer -> state.taskDescription
                 is TaskAppTimerUiState.Timer ->
-                    timerTextHelper?.let {
+                    context.getString(
+                        R.string.task_contents_description_with_remaining_time,
+                        state.taskDescription,
                         context.getString(
-                            R.string.task_contents_description_with_remaining_time,
-                            state.taskDescription,
-                            context.getString(R.string.time_left_for_app, it.formattedDuration),
-                        )
-                    }
+                            R.string.time_left_for_app,
+                            taskAppTimerViewModel.getFormattedDuration(state.timeRemaining, context),
+                        ),
+                    )
             }
     }
 
     private fun setAppTimerToastState(state: TaskAppTimerUiState) {
         timerUiState = state
+        if (useComposeTaskAppTimer) {
+            if (taskAppTimerToastCompose != null) taskAppTimerViewModel.setState(state)
+            return
+        }
 
         taskAppTimerToast?.apply {
             when (state) {
-                is TaskAppTimerUiState.Uninitialized -> isInvisible = true
+                is Uninitialized -> isInvisible = true
                 is TaskAppTimerUiState.NoTimer -> isInvisible = true
                 is TaskAppTimerUiState.Timer -> {
                     timerTextHelper = TimerTextHelper(context, state.timeRemaining)
@@ -371,7 +478,7 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
                     )
 
                     timerUsageAccessibilityAction =
-                        appUsageSettingsAccessibilityAction(
+                        createAppUsageSettingsAccessibilityAction(
                             context,
                             state.accessibilityActionId,
                             state.taskDescription,
@@ -391,22 +498,8 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
         }
     }
 
-    private fun animateBorder(
-        outlineProperty: FloatProperty<TaskContentView>,
-        borderAnimator: BorderAnimator,
-        show: Boolean,
-    ): AnimatorSet? {
-        val targetOutlineExpansion = if (show) borderWidthPx.toFloat() else 0f
-        val outlineExpansionAnimator =
-            ObjectAnimator.ofFloat(this, outlineProperty, targetOutlineExpansion)
-        val borderEffectAnimator = borderAnimator.buildAnimator(show)
-        return AnimatorSet().apply {
-            playTogether(outlineExpansionAnimator, borderEffectAnimator)
-            duration = borderEffectAnimator.duration
-            interpolator = DEFAULT_INTERPOLATOR
-            start()
-        }
-    }
+    private fun animateBorder(borderAnimator: BorderAnimator, show: Boolean) =
+        borderAnimator.buildAnimator(show).apply { start() }
 
     companion object {
         const val TAG = "TaskContentView"
@@ -416,7 +509,7 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
                 .putExtra(Intent.EXTRA_PACKAGE_NAME, packageName)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
 
-        private fun appUsageSettingsAccessibilityAction(
+        private fun createAppUsageSettingsAccessibilityAction(
             context: Context,
             @IdRes actionId: Int,
             taskDescription: String?,
@@ -425,17 +518,5 @@ class TaskContentView @JvmOverloads constructor(context: Context, attrs: Attribu
                 actionId,
                 context.getString(R.string.split_app_usage_settings, taskDescription),
             )
-
-        private enum class OutlineExpansion {
-            FOCUS,
-            HOVER,
-        }
-
-        private val OUTLINE_EXPANSION: FloatProperty<TaskContentView> =
-            KFloatProperty(TaskContentView::outlineExpansion)
-        private val OUTLINE_EXPANSION_FOCUS: FloatProperty<TaskContentView> =
-            KFloatProperty(TaskContentView::outlineExpansionFocus)
-        private val OUTLINE_EXPANSION_HOVER: FloatProperty<TaskContentView> =
-            KFloatProperty(TaskContentView::outlineExpansionHover)
     }
 }

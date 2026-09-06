@@ -31,6 +31,12 @@ public class DragOptions {
     /** Whether or not the drag operation is controlled by keyboard. */
     public boolean isKeyboardDrag = false;
 
+    // TODO: All usages of DragOptions.isMouseDrag are intended to suppress popups during a
+    //  drag and are not actually specific to mouse. Refactor isMouseDrag to showPopup to
+    //  make this intent more explicit.
+    /** Whether or not the drag operation is controlled by mouse. */
+    public boolean isMouseDrag = false;
+
     /**
      * Specifies the start location for a simulated DnD (like system drag or accessibility drag),
      * null when using internal DnD
@@ -46,8 +52,16 @@ public class DragOptions {
      */
     public float preDragEndScale;
 
+    /**
+     * If true, the drag view will not be moved during pre-drag.
+     */
+    public boolean deferDragToPreDragEnd;
+
     /** Scale of the icons over the workspace icon size. */
     public float intrinsicIconScaleFactor = 1f;
+
+    /** Whether or not the drag operation is controlled by the SystemDragController. */
+    public boolean isSystemDrag = false;
 
     public boolean isFlingToDelete;
 

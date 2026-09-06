@@ -99,7 +99,7 @@ public class TaskKeyByLastActiveTimeCache<V> implements TaskKeyCache<V> {
     public synchronized V getAndInvalidateIfModified(Task.TaskKey key) {
         Entry<V> entry = mMap.get(key.id);
         if (entry != null && entry.mKey.windowingMode == key.windowingMode
-                && entry.mKey.lastActiveTime == key.lastActiveTime) {
+                && entry.mKey.lastActiveTime >= key.lastActiveTime) {
             return entry.mValue;
         } else {
             remove(key);

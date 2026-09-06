@@ -20,21 +20,17 @@ import static android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS;
 
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 
-import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
 
-import com.android.launcher3.BuildConfig;
-import com.android.launcher3.BuildConfigs;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.util.PluginManagerWrapper;
 import com.android.systemui.plugins.Plugin;
 import com.android.systemui.plugins.PluginListener;
-import com.android.systemui.shared.plugins.PluginActionManager;
-import com.android.systemui.shared.plugins.PluginInstance;
 import com.android.systemui.shared.plugins.PluginManagerImpl;
 import com.android.systemui.shared.plugins.PluginPrefs;
 
@@ -54,25 +50,13 @@ public class PluginManagerWrapperImpl extends PluginManagerWrapper {
     private final PluginEnablerImpl mPluginEnabler;
 
     @Inject
-    public PluginManagerWrapperImpl(@ApplicationContext Context c) {
+    public PluginManagerWrapperImpl(@ApplicationContext Context c, LauncherPrefs launcherPrefs) {
         mContext = c;
-        mPluginEnabler = new PluginEnablerImpl(c);
-        List<String> privilegedPlugins = Collections.emptyList();
-        PluginInstance.Factory instanceFactory = new PluginInstance.Factory(
-                getClass().getClassLoader(), new PluginInstance.InstanceFactory<>(),
-                new PluginInstance.VersionCheckerImpl(), privilegedPlugins,
-                BuildConfigs.IS_DEBUG_DEVICE);
-        PluginActionManager.Factory instanceManagerFactory = new PluginActionManager.Factory(
-                c, c.getPackageManager(), c.getMainExecutor(), MODEL_EXECUTOR,
-                c.getSystemService(NotificationManager.class), mPluginEnabler,
-                privilegedPlugins, instanceFactory);
-
+        mPluginEnabler = new PluginEnablerImpl(launcherPrefs);
         // Use null preHandlerManager, as the handler is never unregistered which can cause leaks
         // when using multiple dagger graphs.
-        mPluginManager = new PluginManagerImpl(c, instanceManagerFactory,
-                BuildConfigs.IS_DEBUG_DEVICE,
-                null /* preHandlerManager */, mPluginEnabler,
-                new PluginPrefs(c), privilegedPlugins);
+        mPluginManager = PluginManagerImpl.create(c, Collections.emptyList(),
+                mPluginEnabler, MODEL_EXECUTOR, null /* preHandlerManager */);
     }
 
     public PluginEnablerImpl getPluginEnabler() {

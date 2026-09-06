@@ -35,7 +35,8 @@ public class RemoteAnimationTargets {
 
     private static final String TAG = "RemoteAnimationTargets";
 
-    private final CopyOnWriteArrayList<ReleaseCheck> mReleaseChecks = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<SurfaceReleaseCheck> mReleaseChecks =
+            new CopyOnWriteArrayList<>();
 
     public final RemoteAnimationTarget[] unfilteredApps;
     public final RemoteAnimationTarget[] apps;
@@ -124,7 +125,8 @@ public class RemoteAnimationTargets {
         return false;
     }
 
-    public void addReleaseCheck(ReleaseCheck check) {
+    /** Adds a {@link SurfaceReleaseCheck} to the list of release checks */
+    public void addReleaseCheck(SurfaceReleaseCheck check) {
         mReleaseChecks.add(check);
     }
 
@@ -132,8 +134,8 @@ public class RemoteAnimationTargets {
         if (mReleased) {
             return;
         }
-        for (ReleaseCheck check : mReleaseChecks) {
-            if (!check.mCanRelease) {
+        for (SurfaceReleaseCheck check : mReleaseChecks) {
+            if (!check.canRelease()) {
                 check.addOnSafeToReleaseCallback(this::release);
                 return;
             }
@@ -146,7 +148,6 @@ public class RemoteAnimationTargets {
     }
 
     private static void release(RemoteAnimationTarget[] targets) {
-        if (targets == null) return;
         for (RemoteAnimationTarget target : targets) {
             if (target.leash != null) {
                 target.leash.release();
@@ -163,42 +164,5 @@ public class RemoteAnimationTargets {
         pw.println(prefix + "\ttargetMode=" + targetMode);
         pw.println(prefix + "\thasRecents=" + hasRecents);
         pw.println(prefix + "\tmReleased=" + mReleased);
-    }
-
-    /**
-     * Interface for intercepting surface release method
-     */
-    public static class ReleaseCheck {
-
-        boolean mCanRelease = false;
-        private Runnable mAfterApplyCallback;
-
-        protected void setCanRelease(boolean canRelease) {
-            mCanRelease = canRelease;
-            if (mCanRelease && mAfterApplyCallback != null) {
-                Runnable r = mAfterApplyCallback;
-                mAfterApplyCallback = null;
-                r.run();
-            }
-        }
-
-        /**
-         * Adds a callback to notify when the surface can safely be released
-         */
-        void addOnSafeToReleaseCallback(Runnable callback) {
-            if (mCanRelease) {
-                callback.run();
-            } else {
-                if (mAfterApplyCallback == null) {
-                    mAfterApplyCallback = callback;
-                } else {
-                    final Runnable oldCallback = mAfterApplyCallback;
-                    mAfterApplyCallback = () -> {
-                        callback.run();
-                        oldCallback.run();
-                    };
-                }
-            }
-        }
     }
 }

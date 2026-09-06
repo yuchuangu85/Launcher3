@@ -32,7 +32,7 @@ import javax.inject.Inject
 @WidgetPickerSingleton
 class FilterWidgetsForHostUseCase
 @Inject
-constructor(@WidgetPickerHostInfo private val hostInfo: WidgetHostInfo) {
+constructor(@param:WidgetPickerHostInfo private val hostInfo: WidgetHostInfo) {
     operator fun invoke(widgets: List<PickableWidget>) =
         widgets.filter { widget ->
             val widgetInfo = widget.widgetInfo

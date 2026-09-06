@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"Ghim"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"Dạng tự do"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Máy tính"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"Chế độ máy tính cho %1$s"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Chuyển sang màn hình ngoài"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"Xoá"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"Máy tính"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"Hôm nay còn <xliff:g id="TIME">%1$s</xliff:g>"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"Các ứng dụng đề xuất"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"Các ứng dụng gợi ý của bạn"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"Nhận các ứng dụng đề xuất ở cuối Màn hình chính"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"Nhận các ứng dụng đề xuất trên hàng mục ưa thích của Màn hình chính"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"Bạn có thể dễ dàng truy cập những ứng dụng mà mình dùng thường xuyên nhất ngay trên màn hình chính. Các ứng dụng đề xuất sẽ thay đổi dựa trên thói quen của bạn. Các ứng dụng ở hàng dưới cùng sẽ chuyển lên phía trên của Màn hình chính."</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"Bạn có thể dễ dàng mở những ứng dụng mà mình dùng thường xuyên nhất ngay trên màn hình chính. Các ứng dụng đề xuất sẽ thay đổi dựa trên thói quen của bạn. Các ứng dụng ở hàng mục ưa thích sẽ chuyển sang Màn hình chính."</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"Nhận ứng dụng đề xuất"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"Không, cảm ơn"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"Cài đặt"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"Các ứng dụng dùng thường xuyên nhất sẽ hiển thị ở đây và thay đổi dựa trên thói quen"</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"Kéo ứng dụng ra khỏi hàng dưới cùng để xem ứng dụng đề xuất"</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"Thêm ứng dụng đề xuất vào không gian trống"</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"Đã bật tính năng Ứng dụng đề xuất"</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"Tính năng Ứng dụng đề xuất bị tắt"</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"Ứng dụng dự đoán: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"Hướng dẫn thực hiện điều hướng bằng cử chỉ"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"Xoay thiết bị của bạn"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"Vui lòng xoay thiết bị của bạn để hoàn tất hướng dẫn điều hướng bằng cử chỉ"</string>
@@ -96,7 +90,10 @@
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Cài đặt cách điều hướng trên hệ thống"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"<xliff:g id="DEVICE">%1$s</xliff:g> của bạn đã \nsẵn sàng!"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"Thiết bị của bạn đã \nsẵn sàng!"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"Bạn đã sẵn sàng bắt đầu!"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"Hãy trải nghiệm <xliff:g id="DEVICE">%1$s</xliff:g> mới của bạn!"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"Vuốt lên để bắt đầu sử dụng <xliff:g id="DEVICE">%1$s</xliff:g>"</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"Nhấn để bắt đầu sử dụng <xliff:g id="DEVICE">%1$s</xliff:g>"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"Chọn cách thao tác"</annotation></string>
     <string name="allset_hint_expressive" msgid="756856423510976261">"Vuốt lên"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"Nhấn vào nút màn hình chính"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"Chọn một ứng dụng khác để dùng chế độ chia đôi màn hình"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"Ứng dụng hoặc tổ chức của bạn không cho phép thực hiện hành động này"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"Các tiện ích hiện không được hỗ trợ, vui lòng chọn một ứng dụng khác"</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"Sao chép"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"Lưu"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"Xoay màn hình"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"Ảnh động minh hoạ cách thanh tác vụ xuất hiện từ cuối màn hình và tự động ẩn khi người dùng không sử dụng"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"Ảnh động minh hoạ cách ghim thanh tác vụ bằng nút bật/tắt để thanh tác vụ luôn hiển thị ở cuối màn hình"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"Ảnh động minh hoạ cách tạo một bong bóng từ thanh tác vụ bằng cử chỉ kéo"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"Ảnh động minh hoạ cách tạo chế độ chia đôi màn hình bằng cách kéo và thả một ứng dụng từ thanh tác vụ lên trên một ứng dụng đang mở"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"Ảnh động minh hoạ cách truy cập vào các ứng dụng được đề xuất trên thiết bị của bạn"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"Ảnh động minh hoạ cách tìm một mục trên màn hình bằng cách chạm và giữ phím hành động rồi chọn khu vực có mục đó"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"Cách sử dụng thanh tác vụ"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"Kéo một ứng dụng sang bên để dùng 2 ứng dụng cùng lúc"</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"Từ từ vuốt lên để Thanh tác vụ xuất hiện"</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"Kéo xuống các góc dưới cùng để làm cho ứng dụng nổi"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"Từ từ vuốt lên để làm hiện Thanh tác vụ"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"Nhận ứng dụng đề xuất dựa trên thói quen của bạn"</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Nhấn và giữ trên đường phân chia để ghim Thanh tác vụ"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"Tăng năng suất qua Thanh tác vụ"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"Luôn hiện Taskbar"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"Để luôn hiện Taskbar ở cuối màn hình, hãy nhấn và giữ đường phân chia"</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"Kéo một ứng dụng vào góc để làm ứng dụng đó nổi"</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"Chạm và giữ phím hành động để tìm nội dung trên màn hình của bạn"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"Sản phẩm này dùng phần được chọn trên màn hình để tìm kiếm. Có áp dụng <xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>Chính sách quyền riêng tư<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g> và <xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>Điều khoản dịch vụ<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g> của Google."</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"Đóng"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"Xong"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"Tiếp theo"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"Màn hình chính"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"Hỗ trợ tiếp cận"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"Quay lại"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"Gần đây"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"Thông báo"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"Cài đặt nhanh"</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"Tuỳ chọn khác"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"Thanh tác vụ"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"Đã hiện thanh thao tác"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"Hiện thanh tác vụ, b.bóng trái"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"Hiện thanh tác vụ, b.bóng phải"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"Thanh bong bóng"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"Thanh điều hướng"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"Luôn hiện Thanh tác vụ"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"Thay đổi chế độ điều hướng"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"Đường phân chia Taskbar"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"Các ứng dụng khác gần đây"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"Các ứng dụng khác gần đây"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"Ứng dụng khác"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"Xoá"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"Chuyển lên trên cùng/sang bên trái"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"Chuyển xuống dưới cùng/sang bên phải"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"Mở ứng dụng dưới dạng bong bóng"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"Di chuyển mục sang trái"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"Di chuyển mục sang phải"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"Các ứng dụng gần đây"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"Danh sách ứng dụng gần đây"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{ứng dụng khác}other{ứng dụng khác}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"Máy tính"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"<xliff:g id="APP_NAME_1">%1$s</xliff:g> và <xliff:g id="APP_NAME_2">%2$s</xliff:g>"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, mục <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> trong số <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, mục <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> trong số <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>, thả các liên kết phím để chọn"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"Cuộn sang trái"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"Cuộn sang phải"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"Bong bóng"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"Di chuyển sang trái"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"Di chuyển sang phải"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"Đóng tất cả"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"mở rộng <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"thu gọn <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"Khoanh tròn để tìm kiếm"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"Biểu tượng ứng dụng"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"Tên ứng dụng"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"Nút đóng"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"Ghim vào thanh tác vụ"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"Bỏ ghim khỏi thanh tác vụ"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"Đóng"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"Dịch chuyển"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"Đóng"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"Dịch chuyển hình ảnh"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"Biểu tượng"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"Nhận đề xuất hữu ích"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"Chúng tôi sử dụng AI để chủ động đề xuất thông tin và hành động phù hợp với những việc bạn đang làm trên màn hình"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"Đóng"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"mở rộng"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"Biểu tượng đề xuất môi trường xung quanh"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"Chạm và giữ để xem cách tạo đề xuất"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"tự động điền"</string>
 </resources>

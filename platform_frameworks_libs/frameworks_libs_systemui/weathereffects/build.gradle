@@ -1,0 +1,164 @@
+// Copyright (C) 2023 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+buildscript {
+    ext.versions = [
+            'gradle'       : '8.9.2',
+            'minSdk'       : 36,
+            'targetSdk'    : 36,
+            'compileSdk'   : 36,
+            'buildTools'   : '30.0.3',
+            'kotlin'       : '1.6.21',
+            'ktx'          : '1.10.1',
+            'coroutines'   : '1.6.4',
+            'appcompat'    : '1.6.1',
+            'androidXLib'  : '1.1.0-alpha02',
+            'androidXRun'  : '1.1.0-alpha4',
+            'guava'        : '31.0.1-android',
+            'filament'     : '1.12.5',
+            'dagger'       : '2.51',
+            'material'     : '1.9.0',
+            'junit'        : '4.13.2',
+            'androidXTest' : '1.5.0',
+            'mockito'      : '2.28.3',
+            'jacoco'       : '0.8.11',
+    ]
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:$versions.gradle"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.0"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.kapt'
+
+android {
+    namespace 'com.android.wallpaper.weathereffects'
+    compileSdk versions.compileSdk
+
+    defaultConfig {
+        applicationId 'com.android.wallpaper.weathereffects'
+        minSdk versions.minSdk
+        targetSdk versions.targetSdk
+        versionCode 1
+        versionName '0.1.0'
+        signingConfig signingConfigs.debug
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets {
+        main {
+            // TODO: Split out debug source.
+            java.srcDirs = ["${rootDir}/src", "${rootDir}/debug/src"]
+            res.srcDirs = ["${rootDir}/res", "${rootDir}/debug/res"]
+            manifest.srcFile "AndroidManifest.xml"
+        }
+
+        debug {
+            java.srcDirs = ["${rootDir}/debug/src"]
+            res.srcDirs = ["${rootDir}/debug/res"]
+            assets.srcDirs = ["${rootDir}/debug/assets"]
+            manifest.srcFile "debug/AndroidManifest.xml"
+        }
+
+        test {
+            java.srcDirs = ["${rootDir}/unitTests/src"]
+            res.srcDirs = ["${rootDir}/unitTests/res"]
+        }
+
+        androidTest {
+            java.srcDirs = ["${rootDir}/tests/src"]
+            res.srcDirs = ["${rootDir}/tests/res"]
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            testCoverageEnabled true
+            debuggable true
+        }
+
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            testCoverageEnabled true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = '21'
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
+}
+
+dependencies {
+    implementation project(':toruslib')
+    implementation project(':graphics')
+
+    implementation "androidx.slice:slice-builders:$versions.androidXLib"
+    implementation "androidx.slice:slice-core:$versions.androidXLib"
+    implementation "androidx.core:core-ktx:$versions.ktx"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versions.coroutines"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$versions.coroutines"
+    implementation "androidx.appcompat:appcompat:$versions.appcompat"
+    implementation "androidx.constraintlayout:constraintlayout:2.1.4"
+
+    debugImplementation "com.google.android.material:material:$versions.material"
+
+    androidTestImplementation "junit:junit:$versions.junit"
+    androidTestImplementation "androidx.test:core:$versions.androidXTest"
+    androidTestImplementation "androidx.test:rules:$versions.androidXTest"
+    androidTestImplementation "androidx.test:runner:1.5.2"
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.1.5'
+    androidTestImplementation "com.google.truth:truth:1.1.3"
+    androidTestImplementation "org.mockito:mockito-core:5.3.1"
+    androidTestImplementation "com.linkedin.dexmaker:dexmaker-mockito-inline:$versions.mockito"
+    androidTestImplementation "com.linkedin.dexmaker:dexmaker-mockito-inline-extended:$versions.mockito"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$versions.coroutines"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$versions.coroutines"
+
+    // Dagger
+    api "com.google.dagger:dagger:$versions.dagger"
+    api "com.google.dagger:dagger-android:$versions.dagger"
+    kapt "com.google.dagger:dagger-compiler:$versions.dagger"
+    kapt "com.google.dagger:dagger-android-processor:$versions.dagger"
+    kaptAndroidTest "com.google.dagger:dagger-compiler:$versions.dagger"
+    kaptAndroidTest "com.google.dagger:dagger-android-processor:$versions.dagger"
+}

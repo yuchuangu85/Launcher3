@@ -35,7 +35,6 @@ public class SimpleDragLayer<T extends Context & ActivityContext> extends BaseDr
 
     public SimpleDragLayer(Context context, AttributeSet attrs, int alphaChannelCount) {
         super(context, attrs, alphaChannelCount);
-        recreateControllers();
     }
 
     @Override

@@ -16,10 +16,22 @@
 
 package com.android.launcher3.deviceprofile
 
-import com.android.launcher3.util.DisplayController
+import android.graphics.Rect
+import com.android.launcher3.display.LauncherDisplayInfo
 import com.android.launcher3.util.WindowBounds
+import com.android.wm.shell.Flags
 import kotlin.math.max
 import kotlin.math.min
+
+data class DeviceConfiguration(
+    val isExternalDisplay: Boolean,
+    val transposeLayoutWithOrientation: Boolean,
+    val isMultiDisplay: Boolean,
+    val isGestureMode: Boolean,
+    val isWorkspaceItemsLabelHidden: Boolean,
+)
+
+data class TaskbarConfiguration(val isTaskbarPresent: Boolean)
 
 data class DeviceProperties(
     val windowX: Int,
@@ -30,26 +42,27 @@ data class DeviceProperties(
     val availableWidthPx: Int,
     val availableHeightPx: Int,
     val aspectRatio: Float,
-    val isTablet: Boolean,
+    val isLargeScreen: Boolean,
     val isPhone: Boolean,
-    val transposeLayoutWithOrientation: Boolean,
-    val isMultiDisplay: Boolean,
     val isTwoPanels: Boolean,
     val isLandscape: Boolean,
-    val isMultiWindowMode: Boolean,
-    val isGestureMode: Boolean,
+    val insets: Rect,
+    val deviceConfiguration: DeviceConfiguration,
+    val taskbarConfiguration: TaskbarConfiguration,
 ) {
+
+    fun createWindowBounds() =
+        WindowBounds(widthPx, heightPx, availableWidthPx, availableHeightPx, rotationHint)
+
     companion object Factory {
         // b/419264328 adding here all the improvements/cleanup for this class
         fun createDeviceProperties(
-            info: DisplayController.Info,
+            info: LauncherDisplayInfo,
             windowBounds: WindowBounds,
-            transposeLayoutWithOrientation: Boolean,
-            isMultiDisplay: Boolean,
-            isMultiWindowMode: Boolean,
-            isGestureMode: Boolean,
+            deviceConfiguration: DeviceConfiguration,
+            isTaskbarDrawnInProcess: Boolean,
         ): DeviceProperties {
-            val isTablet = info.isTablet(windowBounds)
+            val isLargeScreen = info.isLargeScreen(windowBounds)
             val windowX = windowBounds.bounds.left
             val windowY = windowBounds.bounds.top
             val rotationHint = windowBounds.rotationHint
@@ -57,6 +70,9 @@ data class DeviceProperties(
             val heightPx = windowBounds.bounds.height()
             val availableWidthPx = windowBounds.availableSize.x
             val availableHeightPx = windowBounds.availableSize.y
+            val taskbarOrBubbleBarOnPhones =
+                Flags.enableTinyTaskbar() ||
+                    (Flags.enableBubbleBar() && Flags.enableBubbleBarOnPhones())
             return DeviceProperties(
                 windowX = windowX,
                 windowY = windowY,
@@ -66,14 +82,19 @@ data class DeviceProperties(
                 availableWidthPx = availableWidthPx,
                 availableHeightPx = availableHeightPx,
                 aspectRatio = max(widthPx, heightPx).toFloat() / min(widthPx, heightPx).toFloat(),
-                isTablet = isTablet,
-                isPhone = !isTablet,
-                transposeLayoutWithOrientation = transposeLayoutWithOrientation,
-                isMultiDisplay = isMultiDisplay,
-                isTwoPanels = isTablet && isMultiDisplay,
+                isLargeScreen = isLargeScreen,
+                isPhone = !isLargeScreen,
+                isTwoPanels = isLargeScreen && deviceConfiguration.isMultiDisplay,
                 isLandscape = windowBounds.isLandscape,
-                isMultiWindowMode = isMultiWindowMode,
-                isGestureMode = isGestureMode,
+                insets = windowBounds.insets,
+                deviceConfiguration = deviceConfiguration,
+                taskbarConfiguration =
+                    TaskbarConfiguration(
+                        isTaskbarPresent =
+                            (isLargeScreen ||
+                                (taskbarOrBubbleBarOnPhones &&
+                                    deviceConfiguration.isGestureMode)) && isTaskbarDrawnInProcess
+                    ),
             )
         }
     }

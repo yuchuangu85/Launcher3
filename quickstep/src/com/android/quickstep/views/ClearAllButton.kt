@@ -51,6 +51,11 @@ constructor(
     var contentAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.CONTENT)
     var visibilityAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.VISIBILITY)
     var dismissAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.DISMISS)
+    private var splitAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.SPLIT)
+
+    fun setSplitSelectionActive(isActive: Boolean) {
+        splitAlpha = if (isActive) 0f else 1f
+    }
 
     var fullscreenProgress = 1f
         set(value) {
@@ -195,20 +200,19 @@ constructor(
             )
     }
 
-    fun getScrollAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean): Float {
-        var scrollAdjustment = 0f
+    fun getScrollAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean) =
+        getOffsetAdjustment(fullscreenEnabled, gridEnabled) + scrollOffsetPrimary
+
+    fun getOffsetAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean): Float {
+        var offsetAdjustment = 0f
         if (fullscreenEnabled) {
-            scrollAdjustment += fullscreenTranslationPrimary
+            offsetAdjustment += fullscreenTranslationPrimary
         }
         if (gridEnabled) {
-            scrollAdjustment += gridTranslationPrimary + gridScrollOffset
+            offsetAdjustment += gridTranslationPrimary + gridScrollOffset
         }
-        scrollAdjustment += scrollOffsetPrimary
-        return scrollAdjustment
+        return offsetAdjustment
     }
-
-    fun getOffsetAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean) =
-        getScrollAdjustment(fullscreenEnabled, gridEnabled)
 
     private fun applyPrimaryTranslation() {
         val recentsView = recentsView ?: return
@@ -242,6 +246,7 @@ constructor(
             CONTENT,
             VISIBILITY,
             DISMISS,
+            SPLIT,
         }
 
         @JvmField

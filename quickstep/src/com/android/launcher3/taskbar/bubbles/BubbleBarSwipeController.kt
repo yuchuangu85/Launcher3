@@ -18,6 +18,7 @@ package com.android.launcher3.taskbar.bubbles
 
 import android.animation.ValueAnimator
 import android.content.Context
+import androidx.annotation.AnyThread
 import androidx.annotation.VisibleForTesting
 import androidx.core.animation.doOnEnd
 import androidx.dynamicanimation.animation.SpringForce
@@ -47,7 +48,7 @@ class BubbleBarSwipeController {
     private val unstashThreshold: Int
     private val maxOverscroll: Int
 
-    private var swipeState: SwipeState = SwipeState(startState = UNKNOWN)
+    @Volatile private var swipeState: SwipeState = SwipeState(startState = UNKNOWN)
 
     constructor(tac: TaskbarActivityContext) : this(tac, DefaultDimensionProvider(tac))
 
@@ -113,6 +114,7 @@ class BubbleBarSwipeController {
     }
 
     /** Returns `true` if we are tracking a swipe gesture */
+    @AnyThread
     fun isSwipeGesture(): Boolean {
         return swipeState.isSwipe
     }
@@ -181,7 +183,7 @@ class BubbleBarSwipeController {
         val startState: BarState,
         var currentState: BarState = UNKNOWN,
         var passedUnstash: Boolean = false,
-        var isSwipe: Boolean = false,
+        @Volatile var isSwipe: Boolean = false,
     )
 
     internal enum class BarState {

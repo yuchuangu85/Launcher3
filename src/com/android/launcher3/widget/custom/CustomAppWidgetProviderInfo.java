@@ -37,8 +37,7 @@ public class CustomAppWidgetProviderInfo extends LauncherAppWidgetProviderInfo
     protected CustomAppWidgetProviderInfo(Parcel parcel, boolean readSelf) {
         super(parcel);
         if (readSelf) {
-            provider = new ComponentName(parcel.readString(),
-                    CLS_CUSTOM_WIDGET_PREFIX + parcel.readString());
+            provider = new ComponentName(parcel.readString(), parcel.readString());
 
             label = parcel.readString();
             initialLayout = parcel.readInt();

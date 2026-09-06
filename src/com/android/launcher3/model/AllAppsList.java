@@ -12,8 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Modifications copyright 2021, Lawnchair
  */
 
 package com.android.launcher3.model;
@@ -24,19 +22,17 @@ import static com.android.launcher3.model.data.AppInfo.EMPTY_ARRAY;
 
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
 import android.os.LocaleList;
 import android.os.UserHandle;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.android.launcher3.AppFilter;
 import com.android.launcher3.Flags;
+import com.android.launcher3.automation.AutomationRepository;
 import com.android.launcher3.compat.AlphabeticIndexCompat;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.icons.IconCache;
@@ -47,17 +43,17 @@ import com.android.launcher3.model.repository.AppsListRepository;
 import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.ApiWrapper;
-import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.FlagOp;
 import com.android.launcher3.util.PackageManagerHelper;
-import com.android.launcher3.util.SafeCloseable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -70,7 +66,6 @@ import javax.inject.Provider;
 public class AllAppsList {
 
     private static final String TAG = "AllAppsList";
-    private static final Consumer<AppInfo> NO_OP_CONSUMER = a -> { };
     private static final boolean DEBUG = true;
 
     public static final int DEFAULT_APPLICATIONS_NUMBER = 42;
@@ -87,7 +82,6 @@ public class AllAppsList {
     @NonNull private final Provider<AppsListRepository> mRepo;
 
     private boolean mDataChanged = false;
-    private Consumer<AppInfo> mRemoveListener = NO_OP_CONSUMER;
 
     private AlphabeticIndexCompat mIndex;
 
@@ -164,57 +158,23 @@ public class AllAppsList {
         if (!mAppFilter.shouldShowApp(info.componentName)) {
             return;
         }
-        if (findAppInfo(info.componentName, info.user) != null) {
+        if (data.stream().anyMatch(it ->
+                it.getTargetComponent().equals(info.componentName) && it.user.equals(info.user))) {
             return;
         }
         if (loadIcon) {
             mIconCache.getTitleAndIcon(info, activityInfo, DEFAULT_LOOKUP_FLAG);
-            info.sectionName = mIndex.computeSectionName(info.title == null ? "" : info.title);
+            info.sectionName = mIndex.computeSectionName(info.title);
         } else {
-            try {
-                info.title = activityInfo != null ? activityInfo.getLabel() : "";
-            } catch (Throwable t) {
-                info.title = "";
-            }
-            info.sectionName = mIndex.computeSectionName(info.title == null ? "" : info.title);
+            info.title = "";
         }
 
         data.add(info);
         mDataChanged = true;
     }
 
-    @Nullable
-    public AppInfo addPromiseApp(Context context, PackageInstallInfo installInfo) {
-        return addPromiseApp(context, installInfo, true);
-    }
-
-    @Nullable
-    public AppInfo addPromiseApp(
-            Context context, PackageInstallInfo installInfo, boolean loadIcon) {
-        // only if not yet installed
-        if (new ApplicationInfoWrapper(context, installInfo.packageName, installInfo.user)
-                .isInstalled()) {
-            return null;
-        }
-        AppInfo promiseAppInfo = new AppInfo(installInfo);
-
-        if (loadIcon) {
-            mIconCache.getTitleAndIcon(promiseAppInfo, promiseAppInfo.getMatchingLookupFlag());
-            promiseAppInfo.sectionName = mIndex.computeSectionName(
-                    promiseAppInfo.title == null ? "" : promiseAppInfo.title);
-        } else {
-            promiseAppInfo.title = "";
-        }
-
-        data.add(promiseAppInfo);
-        mDataChanged = true;
-
-        return promiseAppInfo;
-    }
-
     public void updateSectionName(AppInfo appInfo) {
-        appInfo.sectionName = mIndex.computeSectionName(appInfo.title == null ? "" : appInfo.title);
-
+        appInfo.sectionName = mIndex.computeSectionName(appInfo.title);
     }
 
     /** Updates the given PackageInstallInfo's associated AppInfo's installation info. */
@@ -224,8 +184,7 @@ public class AllAppsList {
         UserHandle user = installInfo.user;
         for (int i = data.size() - 1; i >= 0; i--) {
             final AppInfo appInfo = data.get(i);
-            final ComponentName tgtComp = appInfo.getTargetComponent();
-            if (tgtComp != null && tgtComp.getPackageName().equals(installInfo.packageName)
+            if (installInfo.packageName.equals(appInfo.getTargetPackage())
                     && appInfo.user.equals(user)) {
                 if (installInfo.state == PackageInstallInfo.STATUS_INSTALLED_DOWNLOADING
                         || installInfo.state == PackageInstallInfo.STATUS_INSTALLING
@@ -247,27 +206,10 @@ public class AllAppsList {
                         mRepo.get().dispatchIncrementationUpdate(appInfo);
                     }
                     updatedAppInfos.add(appInfo);
-                } else if (installInfo.state == PackageInstallInfo.STATUS_FAILED
-                        && !appInfo.isAppStartable()) {
-                    if (DEBUG) {
-                        Log.w(TAG, "updatePromiseInstallInfo: removing app due to install"
-                                + " failure and appInfo not startable."
-                                + " package=" + appInfo.getTargetPackage()
-                                + ", user=" + user);
-                    }
-                    removeApp(i);
                 }
             }
         }
         return updatedAppInfos;
-    }
-
-    private void removeApp(int index) {
-        AppInfo removed = data.remove(index);
-        if (removed != null) {
-            mDataChanged = true;
-            mRemoveListener.accept(removed);
-        }
     }
 
     public void clear() {
@@ -278,37 +220,18 @@ public class AllAppsList {
     }
 
     /**
-     * Add the icons for the supplied apk called packageName.
-     */
-    public List<LauncherActivityInfo> addPackage(
-            Context context, String packageName, UserHandle user) {
-        List<LauncherActivityInfo> activities = context.getSystemService(LauncherApps.class)
-                .getActivityList(packageName, user);
-
-        for (LauncherActivityInfo info : activities) {
-            add(new AppInfo(context, info, user), info);
-        }
-
-        return activities;
-    }
-
-    /**
      * Remove the apps for the given apk identified by packageName.
      */
     public void removePackage(String packageName, UserHandle user) {
-        final List<AppInfo> data = this.data;
-        for (int i = data.size() - 1; i >= 0; i--) {
-            AppInfo info = data.get(i);
-            if (info.user.equals(user) && packageName.equals(info.componentName.getPackageName())) {
-                removeApp(i);
-            }
-        }
+        boolean removed = data.removeIf(
+                info -> info.user.equals(user) && packageName.equals(info.getTargetPackage()));
+        mDataChanged |= removed;
     }
 
     /**
-     * Updates the disabled flags of apps matching {@param matcher} based on {@param op}.
+     * Updates the runtime flags of apps matching {@param matcher} based on {@param op}.
      */
-    public void updateDisabledFlags(Predicate<ItemInfo> matcher, FlagOp op) {
+    public void updateRuntimeFlags(Predicate<ItemInfo> matcher, FlagOp op) {
         final List<AppInfo> data = this.data;
         for (int i = data.size() - 1; i >= 0; i--) {
             AppInfo info = data.get(i);
@@ -322,121 +245,61 @@ public class AllAppsList {
     public void updateIconsAndLabels(HashSet<String> packages, UserHandle user) {
         for (AppInfo info : data) {
             if (info.user.equals(user) && packages.contains(info.componentName.getPackageName())) {
-                CharSequence oldTitle = info.title;
-                String oldSectionName = info.sectionName;
                 mIconCache.updateTitleAndIcon(info);
-                info.sectionName = mIndex.computeSectionName(info.title == null ? "" : info.title);
-                if (!TextUtils.equals(oldTitle, info.title) 
-                        || !TextUtils.equals(oldSectionName, info.sectionName)) {
-                    mDataChanged = true;
-                }
+                info.sectionName = mIndex.computeSectionName(info.title);
+                mDataChanged = true;
             }
         }
     }
 
-    /**
-     * Add and remove icons for this package which has been updated.
-     */
+    /** Add and remove icons for this package which has been updated. */
     public List<LauncherActivityInfo> updatePackage(
             Context context, String packageName, UserHandle user) {
         final ApiWrapper apiWrapper = ApiWrapper.INSTANCE.get(context);
         final UserCache userCache = UserCache.getInstance(context);
         final PackageManagerHelper pmHelper = PackageManagerHelper.INSTANCE.get(context);
+        final AutomationRepository automationRepo = AutomationRepository.INSTANCE.get(context);
         final List<LauncherActivityInfo> matches = context.getSystemService(LauncherApps.class)
                 .getActivityList(packageName, user);
-        if (matches.size() > 0) {
-            // Find disabled/removed activities and remove them from data and add them
-            // to the removed list.
-            for (int i = data.size() - 1; i >= 0; i--) {
-                final AppInfo applicationInfo = data.get(i);
-                if (user.equals(applicationInfo.user)
-                        && packageName.equals(applicationInfo.componentName.getPackageName())) {
-                    if (!findActivity(matches, applicationInfo.componentName)) {
-                        if (DEBUG) {
-                            Log.w(TAG, "Changing shortcut target due to app component name change."
-                                    + " component=" + applicationInfo.componentName
-                                    + ", user=" + user);
-                        }
-                        removeApp(i);
+
+        Map<ComponentName, LauncherActivityInfo> activityMap = matches.stream().collect(
+                Collectors.toMap(LauncherActivityInfo::getComponentName, lai -> lai,
+                    (existing, replacement) -> existing));
+
+        Iterator<AppInfo> iterator = data.iterator();
+        while (iterator.hasNext()) {
+            AppInfo appInfo = iterator.next();
+            if (user.equals(appInfo.user) && packageName.equals(appInfo.getTargetPackage())) {
+                ComponentName cn = appInfo.getTargetComponent();
+                // Keep removing entries from the map, so that we are only left with missing entries
+                LauncherActivityInfo lai = activityMap.remove(cn);
+                if (lai == null) {
+                    // Remove any component which is no longer in the list
+                    mIconCache.remove(cn, user);
+                    iterator.remove();
+                    if (DEBUG) {
+                        Log.w(TAG, "updatePackage: removing unavailable component, cn=" + cn
+                                + ", user=" + user);
                     }
-                }
-            }
-
-            // Find enabled activities and add them to the adapter
-            // Also updates existing activities with new labels/icons
-            for (final LauncherActivityInfo info : matches) {
-                AppInfo applicationInfo = findAppInfo(info.getComponentName(), user);
-                if (applicationInfo == null) {
-                    add(new AppInfo(context, info, user), info);
                 } else {
-                    Intent launchIntent = AppInfo.makeLaunchIntent(info);
-
-                    mIconCache.getTitleAndIcon(applicationInfo, info, DEFAULT_LOOKUP_FLAG);
-                    applicationInfo.sectionName = mIndex.computeSectionName(
-                            applicationInfo.title == null ? "" : applicationInfo.title);
-                    applicationInfo.intent = launchIntent;
-                    AppInfo.updateRuntimeFlagsForActivityTarget(applicationInfo, info,
-                            userCache.getUserInfo(user), apiWrapper, pmHelper);
-                    mDataChanged = true;
+                    appInfo.intent = AppInfo.makeLaunchIntent(lai);
+                    mIconCache.getTitleAndIcon(appInfo, lai, DEFAULT_LOOKUP_FLAG);
+                    appInfo.sectionName = mIndex.computeSectionName(appInfo.title);
+                    AppInfo.updateRuntimeFlagsForActivityTarget(appInfo, lai,
+                            userCache.getUserInfo(user), apiWrapper, pmHelper, automationRepo);
                 }
-            }
-        } else {
-            // Remove all data for this package.
-            if (DEBUG) {
-                Log.w(TAG, "updatePackage: no Activities matched updated package,"
-                        + " removing any AppInfo with package=" + packageName
-                        + ", user=" + user);
-            }
-            for (int i = data.size() - 1; i >= 0; i--) {
-                final AppInfo applicationInfo = data.get(i);
-                if (user.equals(applicationInfo.user)
-                        && packageName.equals(applicationInfo.componentName.getPackageName())) {
-                    mIconCache.remove(applicationInfo.componentName, user);
-                    removeApp(i);
-                }
+                mDataChanged = true;
             }
         }
 
+        // Add any new activities to the list
+        activityMap.values().forEach(lai -> add(new AppInfo(context, lai, user), lai));
         return matches;
-    }
-
-    /**
-     * Returns whether <em>apps</em> contains <em>component</em>.
-     */
-    private static boolean findActivity(List<LauncherActivityInfo> apps,
-            ComponentName component) {
-        for (LauncherActivityInfo info : apps) {
-            if (info.getComponentName().equals(component)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Find an AppInfo object for the given componentName
-     *
-     * @return the corresponding AppInfo or null
-     */
-    public @Nullable AppInfo findAppInfo(@NonNull ComponentName componentName,
-                                          @NonNull UserHandle user) {
-        for (AppInfo info: data) {
-            if (componentName.equals(info.componentName) && user.equals(info.user)) {
-                return info;
-            }
-        }
-        return null;
     }
 
     public AppInfo[] copyData() {
         AppInfo[] result = data.toArray(EMPTY_ARRAY);
         Arrays.sort(result, COMPONENT_KEY_COMPARATOR);
         return result;
-    }
-
-    public SafeCloseable trackRemoves(Consumer<AppInfo> removeListener) {
-        mRemoveListener = removeListener;
-
-        return () -> mRemoveListener = NO_OP_CONSUMER;
     }
 }

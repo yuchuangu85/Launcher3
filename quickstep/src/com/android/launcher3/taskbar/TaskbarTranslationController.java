@@ -29,6 +29,7 @@ import androidx.dynamicanimation.animation.SpringForce;
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.SpringAnimationBuilder;
+import com.android.launcher3.util.Preconditions;
 
 import java.io.PrintWriter;
 
@@ -103,6 +104,7 @@ public class TaskbarTranslationController implements TaskbarControllers.Loggable
      * Starts a spring aniamtion to set the views back to the resting state.
      */
     public void startSpring() {
+        Preconditions.assertTaskbarUiThread();
         if (mHasSprungOnceThisGesture || mAnimationToHomeRunning) {
             return;
         }
@@ -113,6 +115,7 @@ public class TaskbarTranslationController implements TaskbarControllers.Loggable
                 .setStiffness(SpringForce.STIFFNESS_LOW)
                 .build(mTranslationYForSwipe, VALUE);
         mSpringBounce.addListener(forEndCallback(() -> {
+            Preconditions.assertTaskbarUiThread();
             if (!mGestureEnded) {
                 return;
             }

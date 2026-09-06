@@ -23,13 +23,28 @@ import com.android.launcher3.R
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.logger.LauncherAtom
 import com.android.launcher3.views.ActivityContext
+import com.android.wm.shell.Flags
 
 /** A type of app collection that launches multiple apps into split screen. */
 class AppPairInfo() : CollectionInfo() {
+    companion object {
+        const val MIN_ITEMS = 2
+        const val MAX_ITEMS = 3
+
+        @JvmStatic
+        fun hasValidItemCount(count: Int): Boolean {
+            if (Flags.enable2x1Split()) {
+                return count in MIN_ITEMS..MAX_ITEMS
+            }
+
+            return count == 2
+        }
+    }
+
     private var contents = mutableListOf<WorkspaceItemInfo>()
 
     init {
-        itemType = LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR
+        itemType = LauncherSettings.Favorites.ITEM_TYPE_APP_GROUP
     }
 
     /** Convenience constructor, calls primary constructor and init block */
@@ -73,7 +88,7 @@ class AppPairInfo() : CollectionInfo() {
             (ActivityContext.lookupContext(context) as ActivityContext)
                 .getDeviceProfile()
                 .deviceProperties
-                .isTablet
+                .isLargeScreen
         return Pair(
             isTablet || !getFirstApp().isNonResizeable,
             isTablet || !getSecondApp().isNonResizeable,

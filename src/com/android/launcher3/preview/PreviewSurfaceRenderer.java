@@ -16,7 +16,6 @@
 
 package com.android.launcher3.preview;
 
-import static android.app.WallpaperManager.FLAG_SYSTEM;
 import static android.content.res.Configuration.UI_MODE_NIGHT_NO;
 import static android.content.res.Configuration.UI_MODE_NIGHT_YES;
 import static android.view.Display.DEFAULT_DISPLAY;
@@ -26,10 +25,8 @@ import static com.android.launcher3.LauncherPrefs.NON_FIXED_LANDSCAPE_GRID_NAME;
 import static com.android.launcher3.WorkspaceLayoutManager.FIRST_SCREEN_ID;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.LauncherWidgetHolder.APPWIDGET_HOST_ID;
-import static com.android.systemui.shared.Flags.extendibleThemeManager;
 
 import android.app.WallpaperColors;
-import android.app.WallpaperManager;
 import android.appwidget.AppWidgetHost;
 import android.content.Context;
 import android.content.res.Configuration;
@@ -57,9 +54,10 @@ import com.android.launcher3.graphics.GridCustomizationsProxy;
 import com.android.launcher3.preview.PreviewContext.PreviewAppComponent;
 import com.android.launcher3.util.RunnableList;
 import com.android.launcher3.util.Themes;
+import com.android.launcher3.widget.ColorsOverride;
 import com.android.launcher3.widget.LocalColorExtractor;
-import com.android.systemui.shared.Flags;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -74,9 +72,12 @@ public class PreviewSurfaceRenderer {
     public static final String KEY_VIEW_WIDTH = "width";
     public static final String KEY_VIEW_HEIGHT = "height";
     public static final String KEY_DISPLAY_ID = "display_id";
+    private static final String KEY_WORKSPACE_ITEMS_LABELS_HIDDEN = "workspace_items_label_hidden";
     public static final String KEY_COLORS = "wallpaper_colors";
     public static final String KEY_COLOR_RESOURCE_IDS = "color_resource_ids";
     public static final String KEY_COLOR_VALUES = "color_values";
+    public static final String KEY_SEED_COLOR_LIST = "seed_color_list";
+    public static final String KEY_THEME_STYLE = "theme_style";
     public static final String KEY_DARK_MODE = "use_dark_mode";
     public static final String KEY_LAYOUT_XML = "layout_xml";
     public static final String KEY_BITMAP_GENERATION_DELAY_MS = "bitmap_delay_ms";
@@ -116,15 +117,18 @@ public class PreviewSurfaceRenderer {
 
     @Nullable private SurfaceControlViewHost.SurfacePackage mSurfacePackage;
 
+    private int[] mSeedColorList;
+    private int mThemeStyle = -1;
+    private ColorsOverride mColorsOverride;
+
     public PreviewSurfaceRenderer(Context context, RunnableList lifecycleTracker, Bundle bundle,
             int callingPid, boolean skipAnimations) throws Exception {
         mContext = context;
         mLifeCycleTracker = lifecycleTracker;
 
         mWallpaperColors = bundle.getParcelable(KEY_COLORS);
-        if (Flags.newCustomizationPickerUi()) {
-            updateColorOverrides(bundle);
-        }
+        updateColorOverrides(bundle);
+
         mHideQsb = bundle.getBoolean(GridCustomizationsProxy.KEY_HIDE_BOTTOM_ROW);
 
         mHostToken = bundle.getBinder(KEY_HOST_TOKEN);
@@ -149,7 +153,7 @@ public class PreviewSurfaceRenderer {
 
         // Create the preview context
         String layoutXml = bundle.getString(KEY_LAYOUT_XML);
-        boolean isCustomLayout = extendibleThemeManager() && !TextUtils.isEmpty(layoutXml);
+        boolean isCustomLayout = !TextUtils.isEmpty(layoutXml);
         int widgetHostId = isCustomLayout ? APPWIDGET_HOST_ID + callingPid : APPWIDGET_HOST_ID;
 
 
@@ -166,7 +170,10 @@ public class PreviewSurfaceRenderer {
                 context.createDisplayContext(display),
                 gridName,
                 widgetHostId,
-                layoutXml);
+                layoutXml,
+                mWorkspacePageId,
+                bundle.getBoolean(KEY_WORKSPACE_ITEMS_LABELS_HIDDEN, false)
+        );
 
         mViewRoot = new FrameLayout(mPreviewContext);
         mAppComponent = (PreviewAppComponent) LauncherComponentProvider.get(mPreviewContext);
@@ -176,7 +183,7 @@ public class PreviewSurfaceRenderer {
         mAppComponent.getModelInitializer().initializeDisplayEvents(mAppComponent.getModel());
 
         // When using a custom layout, reset the widget host on destroy
-        if (extendibleThemeManager() && isCustomLayout) {
+        if (isCustomLayout) {
             mLifeCycleTracker.add(() -> {
                 AppWidgetHost host = new AppWidgetHost(mContext, widgetHostId);
                 // Start listening here, so that any previous active host is disabled
@@ -266,8 +273,15 @@ public class PreviewSurfaceRenderer {
     private boolean updateColorOverrides(Bundle bundle) {
         Boolean oldDarkMode = mDarkMode;
         SparseIntArray oldColorsOverride = mPreviewColorOverride;
+        int[] oldSeedColorList = mSeedColorList;
+        int oldThemeStyle = mThemeStyle;
+
         mDarkMode =
                 bundle.containsKey(KEY_DARK_MODE) ? bundle.getBoolean(KEY_DARK_MODE) : null;
+
+        mSeedColorList = bundle.getIntArray(KEY_SEED_COLOR_LIST);
+        mThemeStyle = bundle.getInt(KEY_THEME_STYLE, -1);
+
         int[] ids = bundle.getIntArray(KEY_COLOR_RESOURCE_IDS);
         int[] colors = bundle.getIntArray(KEY_COLOR_VALUES);
         if (ids != null && colors != null) {
@@ -279,8 +293,9 @@ public class PreviewSurfaceRenderer {
             mPreviewColorOverride = null;
         }
         return  !Objects.equals(oldDarkMode, mDarkMode)
-                || mPreviewColorOverride != null
-                || oldColorsOverride != null;
+                || !Arrays.equals(oldSeedColorList, mSeedColorList)
+                || oldThemeStyle != mThemeStyle
+                || mPreviewColorOverride != oldColorsOverride;
     }
 
     /***
@@ -309,29 +324,25 @@ public class PreviewSurfaceRenderer {
                 ? Themes.getActivityThemeRes(context)
                 : Themes.getActivityThemeRes(context, mWallpaperColors.getColorHints());
 
-        final SparseIntArray wallpaperColorResources;
+        LocalColorExtractor localColorExtractor = mAppComponent.getLocalColorExtractor();
 
-        if (Flags.newCustomizationPickerUi() && mPreviewColorOverride != null) {
-            LocalColorExtractor.newInstance(context)
+        if (mSeedColorList != null) {
+            mColorsOverride = localColorExtractor
+                    .applyColorOverlay(context, mSeedColorList, mThemeStyle);
+        } else if (mPreviewColorOverride != null) {
+            mColorsOverride = localColorExtractor
                     .applyColorsOverride(context, mPreviewColorOverride);
-            wallpaperColorResources = mPreviewColorOverride;
         } else if (mWallpaperColors != null) {
-            LocalColorExtractor.newInstance(context)
+            mColorsOverride = localColorExtractor
                     .applyColorsOverride(context, mWallpaperColors);
-            wallpaperColorResources = LocalColorExtractor.newInstance(context)
-                    .generateColorsOverride(mWallpaperColors);
         } else {
-            WallpaperColors wallpaperColors =
-                    WallpaperManager.getInstance(context).getWallpaperColors(FLAG_SYSTEM);
-            wallpaperColorResources = wallpaperColors == null ? null
-                    : LocalColorExtractor.newInstance(context)
-                            .generateColorsOverride(wallpaperColors);
+            mColorsOverride = null;
         }
 
         final LauncherPreviewRenderer oldRenderer = mCurrentRenderer;
         LauncherPreviewRenderer renderer = new LauncherPreviewRenderer(
                 context, mWorkspacePageId,
-                wallpaperColorResources, mAppComponent.getModel(), themeRes);
+                mColorsOverride, mAppComponent.getModel(), themeRes);
         renderer.hideBottomRow(mHideQsb);
 
         CompletableFuture<Void> renderTask = renderer.initialRender
@@ -350,20 +361,6 @@ public class PreviewSurfaceRenderer {
                 mHeight / (float) view.getMeasuredHeight());
         view.setScaleX(scale);
         view.setScaleY(scale);
-
-        if (!Flags.newCustomizationPickerUi()) {
-            view.setAlpha(mSkipAnimations ? 1 : 0);
-            view.animate().alpha(1)
-                    .setInterpolator(new AccelerateDecelerateInterpolator())
-                    .setDuration(FADE_IN_ANIMATION_DURATION)
-                    .start();
-            mSurfaceControlViewHost.setView(
-                    view,
-                    view.getMeasuredWidth(),
-                    view.getMeasuredHeight()
-            );
-            return;
-        }
 
         LayoutParams lp = new LayoutParams(view.getMeasuredWidth(), view.getMeasuredHeight());
         lp.gravity = Gravity.CENTER;

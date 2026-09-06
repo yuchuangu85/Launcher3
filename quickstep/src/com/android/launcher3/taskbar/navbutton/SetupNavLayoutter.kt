@@ -43,7 +43,11 @@ class SetupNavLayoutter(
     startContextualContainer: ViewGroup,
     imeSwitcher: ImageView?,
     a11yButton: ImageView?,
+    moreOptionsButton: ImageView?,
     space: Space?,
+    backButton: ImageView?,
+    homeButton: ImageView?,
+    recentsButton: ImageView?,
 ) :
     AbstractNavButtonLayoutter(
         resources,
@@ -52,7 +56,11 @@ class SetupNavLayoutter(
         startContextualContainer,
         imeSwitcher,
         a11yButton,
+        moreOptionsButton,
         space,
+        backButton,
+        homeButton,
+        recentsButton,
     ) {
     // mNearestTouchFrame is a ViewGroup that contains start, end, nav button ViewGroups
     private val mNearestTouchFrame = nearestTouchFrame
@@ -78,7 +86,8 @@ class SetupNavLayoutter(
         // If SUW is on a large screen device that is landscape (or has a square aspect
         // ratio) the back button has to be placed accordingly
         if (
-            deviceProfile.deviceProperties.isTablet && deviceProfile.deviceProperties.isLandscape ||
+            deviceProfile.deviceProperties.isLargeScreen &&
+                deviceProfile.deviceProperties.isLandscape ||
                 (deviceProfile.deviceProperties.aspectRatio > SQUARE_ASPECT_RATIO_BOTTOM_BOUND &&
                     deviceProfile.deviceProperties.aspectRatio < SQUARE_ASPECT_RATIO_UPPER_BOUND)
         ) {
@@ -97,12 +106,14 @@ class SetupNavLayoutter(
         endContextualContainer.removeAllViews()
         startContextualContainer.removeAllViews()
 
+        val contextualButtonWidth =
+            resources.getDimensionPixelSize(R.dimen.taskbar_contextual_button_suw_width)
         val contextualMargin =
             resources.getDimensionPixelSize(R.dimen.taskbar_contextual_button_padding)
         repositionContextualContainer(endContextualContainer, WRAP_CONTENT, 0, 0, Gravity.END)
         repositionContextualContainer(
             startContextualContainer,
-            WRAP_CONTENT,
+            contextualButtonWidth,
             contextualMargin,
             contextualMargin,
             Gravity.START,
@@ -116,5 +127,9 @@ class SetupNavLayoutter(
             endContextualContainer.addView(a11yButton)
             a11yButton.layoutParams = getParamsToCenterView()
         }
+    }
+
+    override fun addThreeButtons() {
+        // No-op
     }
 }

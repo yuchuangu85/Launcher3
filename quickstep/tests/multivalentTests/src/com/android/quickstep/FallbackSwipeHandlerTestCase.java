@@ -20,7 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.test.filters.SmallTest;
 
 import com.android.launcher3.util.LauncherMultivalentJUnit;
-import com.android.quickstep.fallback.FallbackRecentsView;
+import com.android.quickstep.fallback.FallbackActivityRecentsView;
 import com.android.quickstep.fallback.RecentsState;
 
 import org.junit.runner.RunWith;
@@ -31,27 +31,27 @@ import org.mockito.Mock;
 public class FallbackSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase<
         RecentsState,
         RecentsActivity,
-        FallbackRecentsView<RecentsActivity>,
+        FallbackActivityRecentsView,
         FallbackSwipeHandler,
         FallbackActivityInterface> {
 
     @Mock private RecentsActivity mRecentsActivity;
-    @Mock private FallbackRecentsView<RecentsActivity> mRecentsView;
+    @Mock private FallbackActivityRecentsView mRecentsView;
 
 
+    @NonNull
     @Override
-    protected FallbackSwipeHandler createSwipeHandler(
-            long touchTimeMs, boolean continuingLastGesture) {
+    protected FallbackSwipeHandler createSwipeHandlerInternal(boolean continuingLastGesture) {
         return new FallbackSwipeHandler(
                 mContext,
                 mTaskAnimationManager,
                 mDeviceState,
                 mRotationTouchHelper,
                 mGestureState,
-                touchTimeMs,
                 continuingLastGesture,
                 mInputConsumerController,
-                mMSDLPlayerWrapper);
+                mMSDLPlayerWrapper,
+                mContext.getDisplayId());
     }
 
     @NonNull
@@ -62,7 +62,7 @@ public class FallbackSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase<
 
     @NonNull
     @Override
-    protected FallbackRecentsView<RecentsActivity> getRecentsView() {
+    protected FallbackActivityRecentsView getRecentsView() {
         return mRecentsView;
     }
 
@@ -70,5 +70,17 @@ public class FallbackSwipeHandlerTestCase extends AbsSwipeUpHandlerTestCase<
     @Override
     protected RecentsState getBaseState() {
         return RecentsState.BG_LAUNCHER;
+    }
+
+    @NonNull
+    @Override
+    protected RecentsState[] getAllStates() {
+        return RecentsState.values();
+    }
+
+    @NonNull
+    @Override
+    protected RecentsState getOverviewState() {
+        return RecentsState.DEFAULT;
     }
 }

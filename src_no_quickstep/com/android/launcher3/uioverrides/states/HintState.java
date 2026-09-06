@@ -26,11 +26,11 @@ import com.android.launcher3.views.ActivityContext;
 public class HintState extends LauncherState {
 
     public HintState(int id) {
-        super(id, LAUNCHER_STATE_HOME, FLAG_DISABLE_RESTORE);
+        super(id, LAUNCHER_STATE_HOME, FLAG_DISABLE_RESTORE_EXCEPT_UI_MODE_CHANGE);
     }
 
     public HintState(int id, int statsLogOrdinal) {
-        super(id, statsLogOrdinal, FLAG_DISABLE_RESTORE);
+        super(id, statsLogOrdinal, FLAG_DISABLE_RESTORE_EXCEPT_UI_MODE_CHANGE);
     }
 
     @Override

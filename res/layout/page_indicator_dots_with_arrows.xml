@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright (C) 2025 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/page_indicator_content_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:padding="4dp"
+        android:background="@drawable/page_indicator_rounded_background">
+
+        <com.android.launcher3.pageindicators.PaginationArrow
+            android:id="@+id/left_indicator_arrow"
+            android:layout_width="@dimen/folder_arrow_touchbox_length"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/folder_arrow_margin_compensation"
+            android:layout_marginEnd="@dimen/folder_arrow_margin_compensation"
+            android:contentDescription="@string/paginate_left"
+            android:elevation="1dp"
+            android:foreground="@drawable/ic_chevron_left_rounded_700"
+            android:foregroundTint="@color/workspace_page_indicator_arrow_color"
+            android:foregroundGravity="center"
+            android:visibility="gone" />
+
+        <com.android.launcher3.pageindicators.PageIndicatorDots
+            android:id="@+id/page_indicator_dots"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:theme="@style/HomeScreenElementTheme" />
+
+        <com.android.launcher3.pageindicators.PaginationArrow
+            android:id="@+id/right_indicator_arrow"
+            android:layout_width="@dimen/folder_arrow_touchbox_length"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/folder_arrow_margin_compensation"
+            android:layout_marginEnd="@dimen/folder_arrow_margin_compensation"
+            android:contentDescription="@string/paginate_right"
+            android:elevation="1dp"
+            android:foreground="@drawable/ic_chevron_left_rounded_700"
+            android:foregroundTint="@color/workspace_page_indicator_arrow_color"
+            android:foregroundGravity="center"
+            android:rotation="180"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

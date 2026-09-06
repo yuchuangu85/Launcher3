@@ -81,7 +81,7 @@ open class FloatingAppPairBackground(
         // Set up timings and interpolators
         val timings =
             AnimUtils.getDeviceAppPairLaunchTimings(
-                container.deviceProfile.deviceProperties.isTablet
+                container.deviceProfile.deviceProperties.isLargeScreen
             )
         expandXInterpolator =
             Interpolators.clampToProgress(
@@ -115,13 +115,13 @@ open class FloatingAppPairBackground(
             resources.getDimensionPixelSize(R.dimen.multi_window_task_divider_size) / 2f
         val dividerCenterPos = dividerPos + deviceHalfDividerSize
         desiredSplitRatio =
-            if (dp.isLeftRightSplit) dividerCenterPos / dp.deviceProperties.widthPx
+            if (dp.sysuiProfile.isLeftRightSplit) dividerCenterPos / dp.deviceProperties.widthPx
             else dividerCenterPos / dp.deviceProperties.heightPx
         dividerPaint.color = resources.getColor(R.color.taskbar_background_dark, null /*theme*/)
     }
 
     override fun draw(canvas: Canvas) {
-        if (container.deviceProfile.isLeftRightSplit) {
+        if (container.deviceProfile.sysuiProfile.isLeftRightSplit) {
             drawLeftRightSplit(canvas)
         } else {
             drawTopBottomSplit(canvas)

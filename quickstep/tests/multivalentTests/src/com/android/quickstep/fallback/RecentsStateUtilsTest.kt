@@ -63,4 +63,9 @@ class RecentsStateUtilsTest {
         assertThat(RecentsState.OVERVIEW_SPLIT_SELECT.toLauncherStateOrdinal())
             .isEqualTo(OVERVIEW_SPLIT_SELECT_ORDINAL)
     }
+
+    @Test
+    fun testRecentsStateWindowHidden_toLauncherStateOrdinal_isNormalStateOrdinal() {
+        assertThat(RecentsState.HIDDEN.toLauncherStateOrdinal()).isEqualTo(NORMAL_STATE_ORDINAL)
+    }
 }

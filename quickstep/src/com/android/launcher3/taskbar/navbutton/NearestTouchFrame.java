@@ -36,13 +36,13 @@ import java.util.stream.Collectors;
 
 /**
  * Redirects touches that aren't handled by any child view to the nearest
- * clickable child. Only takes effect on <sw600dp.
+ * clickable child. Only takes effect on < sw600dp and the primary display.
  */
 public class NearestTouchFrame extends FrameLayout {
 
     private final List<View> mClickableChildren = new ArrayList<>();
     private final List<View> mAttachedChildren = new ArrayList<>();
-    private final boolean mIsActive;
+    private boolean mIsActive;
     private final int[] mTmpInt = new int[2];
 
     // Offset (as the base) to translate window cords to view cords.
@@ -66,12 +66,16 @@ public class NearestTouchFrame extends FrameLayout {
             };
 
     public NearestTouchFrame(Context context, AttributeSet attrs) {
-        this(context, attrs, context.getResources().getConfiguration());
+        super(context, attrs);
     }
 
-    public NearestTouchFrame(Context context, AttributeSet attrs, Configuration c) {
-        super(context, attrs);
-        mIsActive = c.smallestScreenWidthDp < 600;
+    /**
+     * This method sets the {@code mIsActive} flag based on the smallest screen width
+     * and if the view is on the primary display. This is called after the view has been inflated.
+     */
+    public void initialize(boolean isPrimaryDisplay) {
+        Configuration c = getResources().getConfiguration();
+        mIsActive = c.smallestScreenWidthDp < 600 && isPrimaryDisplay;
     }
 
     @Override

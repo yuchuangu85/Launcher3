@@ -17,8 +17,6 @@
 package com.android.quickstep.recents.data
 
 import android.graphics.drawable.Drawable
-import androidx.core.util.forEach
-import androidx.core.util.putAll
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +30,14 @@ class FakeTasksRepository : RecentTasksRepository {
     private var taskIconDataMap: Map<Int, FakeIconData> = emptyMap()
     private var tasks: MutableStateFlow<List<Task>> = MutableStateFlow(emptyList())
     private var visibleTasks: MutableStateFlow<Map<Int, Set<Int>>> = MutableStateFlow(mapOf())
+
+    private var highResThumbnailsRequired: Boolean = true
+
+    fun getHighResThumbnailsRequired() = highResThumbnailsRequired
+
+    override fun setHighResThumbnailsRequired(highResThumbnailsRequired: Boolean) {
+        this.highResThumbnailsRequired = highResThumbnailsRequired
+    }
 
     override fun getAllTaskData(displayId: Int, forceRefresh: Boolean): Flow<List<Task>> =
         tasks.map { it.filter { it.key.displayId == displayId }.toList() }

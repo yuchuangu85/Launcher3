@@ -1,0 +1,65 @@
+<!--
+     Copyright (C) 2026 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources>
+  <declare-styleable name="AceEmbeddedSurfaceViewCompat">
+
+    <!--  The background color that matches the color of the surface under the [AceEmbeddedSurfaceViewCompat].  -->
+    <attr name="compat_backgroundSurfaceColor" format="color" />
+
+    <!--  Behavior of [AceEmbeddedSurfaceViewCompat] on overlap. Determines the z-order and other details like whether to fade out. Does not provide access to [AceEmbeddedOverlapBehavior.SetZOrderBehind.WithCustomHint], which must be set manually in code.  -->
+    <attr name="compat_overlapBehavior" format="enum">
+      <enum name="KeepZOrderOnTop" value="0" />
+      <enum name="SetZOrderBehind.NoFade" value="1" />
+      <enum name="SetZOrderBehind.WithFade" value="2" />
+    </attr>
+
+    <!--  The insets relative to the left edge of the window where the [AceEmbeddedSurfaceViewCompat] should not overlap. The default value is unset, which is different from 0.  -->
+    <attr name="compat_overlapInsetsLeft" format="dimension" />
+    <!--  The insets relative to the top edge of the window where the [AceEmbeddedSurfaceViewCompat] should not overlap. The default value is unset, which is different from 0.  -->
+    <attr name="compat_overlapInsetsTop" format="dimension" />
+    <!--  The insets relative to the right edge of the window where the [AceEmbeddedSurfaceViewCompat] should not overlap. The default value is unset, which is different from 0.  -->
+    <attr name="compat_overlapInsetsRight" format="dimension" />
+    <!--  The insets relative to the bottom edge of the window where the [AceEmbeddedSurfaceViewCompat] should not overlap. The default value is unset, which is different from 0.  -->
+    <attr name="compat_overlapInsetsBottom" format="dimension" />
+
+    <!--  The nested scroll axes supported by the client. This ensures that the ACE embedded session will only send these nested scroll events back to the client.  -->
+    <attr name="compat_clientNestedScrollAxes" format="flags">
+      <flag name="scroll_axis_none" value="0x00" />
+      <flag name="scroll_axis_horizontal" value="0x01" />
+      <flag name="scroll_axis_vertical" value="0x02" />
+    </attr>
+
+    <!--  Whether the ACE embedded session should report a specific axis when a nested scroll gesture is detected, and whether that axis should be locked such that subsequent nested scroll events are only reported for that axis. A value of `true` is typical for Android UIs where scroll axes are locked during a gesture, while a value of `false` can be used to give the illusion of a 2D canvas. Only applicable when [compat_clientNestedScrollAxes] is set to `scroll_axis_horizontal|scroll_axis_vertical`.  -->
+    <attr name="compat_clientNestedScrollAxisLocked" format="boolean" />
+
+    <!--  Whether the [AceEmbeddedSurfaceViewCompat should have a blur effect applied to its remote UI window.  -->
+    <attr name="compat_shouldBlur" format="boolean" />
+
+    <!--  The custom {@link android.R.styleable#PersonalContextTheme} to be passed to a connected visualizer. A visualizer can use this name to look up the theme resource in the client's resources, which can then be used when creating an embedded surface for the client.  -->
+    <attr name="compat_themeResourceId" format="reference" />
+
+    <!-- Whether the [AceEmbeddedSurfaceViewCompat] should hide on the [Shown.Updating] state.  -->
+    <attr name="compat_shouldHideOnUpdating" format="boolean"/>
+
+    <!--  The [LayoutTransition] for the optional contents, which can be animated when the ACE Embedded session state changes.  -->
+    <attr name="compat_animateStateChanges" format="boolean"/>
+
+    <!--  Whether to draw a debug border inside the bounds of the view, showing z-order and overlap.  -->
+    <attr name="compat_debugBorderEnabled" format="boolean" />
+    <!--  Stroke width of the debug border.  -->
+    <attr name="compat_debugBorderWidth" format="dimension" />
+  </declare-styleable>
+</resources>

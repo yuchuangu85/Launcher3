@@ -21,6 +21,7 @@ import com.android.quickstep.recents.data.HighResLoadingStateNotifier
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** Determines when high res or low res thumbnails should be loaded. */
+@Deprecated("will be removed with flag: enable_low_res_thumbnail_preloading")
 class HighResLoadingState : HighResLoadingStateNotifier {
     // If the device does not support low-res thumbnails, only attempt to load high-res thumbnails
     private val forceHighResThumbnails = !supportsLowResThumbnails()

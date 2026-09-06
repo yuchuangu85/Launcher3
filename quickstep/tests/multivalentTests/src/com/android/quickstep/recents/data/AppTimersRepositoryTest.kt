@@ -18,28 +18,36 @@ package com.android.quickstep.recents.data
 
 import android.content.pm.LauncherApps
 import android.os.UserHandle
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.android.launcher3.util.TestDispatcherProvider
+import com.android.launcher3.Flags
+import com.android.quickstep.recents.data.AppTimerResponse.AppTimerDuration
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppTimersRepositoryTest {
+    @get:Rule val setFlagsRule = SetFlagsRule()
+
     private val launcherAppsMock: LauncherApps = mock()
     private val testDispatcher = UnconfinedTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
-    private val systemUnderTest =
-        AppTimersRepositoryImpl(launcherAppsMock, TestDispatcherProvider(testDispatcher))
+    private val systemUnderTest = AppTimersRepositoryImpl(launcherAppsMock, testDispatcher)
 
     @Test
     fun getRemainingDuration_noSetLimit_returnsNull() =
@@ -48,7 +56,7 @@ class AppTimersRepositoryTest {
 
             val remainingDuration = systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
 
-            assertThat(remainingDuration).isNull()
+            assertThat(remainingDuration).isEqualTo(AppTimerResponse.NoTimer)
         }
 
     @Test
@@ -66,7 +74,65 @@ class AppTimersRepositoryTest {
 
             val remainingDuration = systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
 
-            assertThat(remainingDuration).isEqualTo(usageRemaining)
+            assertThat(remainingDuration).isEqualTo(AppTimerDuration(usageRemaining))
+        }
+
+    @Test
+    @DisableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun getRemainingDurationTwice_flagOff_doesNotCacheResponse() =
+        testScope.runTest {
+            val usageRemaining = Duration.ofMinutes(5).plusSeconds(10)
+            whenever(launcherAppsMock.getAppUsageLimit(PACKAGE_NAME, USER_HANDLE))
+                .thenReturn(
+                    LauncherApps.AppUsageLimit(
+                        Duration.ofMinutes(20).toMillis(),
+                        usageRemaining.toMillis(),
+                    )
+                )
+
+            systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
+            systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
+
+            verify(launcherAppsMock, times(2)).getAppUsageLimit(PACKAGE_NAME, USER_HANDLE)
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun getRemainingDurationTwice_cachesResponse() =
+        testScope.runTest {
+            val usageRemaining = Duration.ofMinutes(5).plusSeconds(10)
+            whenever(launcherAppsMock.getAppUsageLimit(PACKAGE_NAME, USER_HANDLE))
+                .thenReturn(
+                    LauncherApps.AppUsageLimit(
+                        Duration.ofMinutes(20).toMillis(),
+                        usageRemaining.toMillis(),
+                    )
+                )
+
+            systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
+            systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
+
+            verify(launcherAppsMock, times(1)).getAppUsageLimit(PACKAGE_NAME, USER_HANDLE)
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun invalidateCache_enablesMoreRequests() =
+        testScope.runTest {
+            val usageRemaining = Duration.ofMinutes(5).plusSeconds(10)
+            whenever(launcherAppsMock.getAppUsageLimit(PACKAGE_NAME, USER_HANDLE))
+                .thenReturn(
+                    LauncherApps.AppUsageLimit(
+                        Duration.ofMinutes(20).toMillis(),
+                        usageRemaining.toMillis(),
+                    )
+                )
+
+            systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
+            systemUnderTest.invalidateCache()
+            systemUnderTest.getRemainingDuration(PACKAGE_NAME, USER_HANDLE)
+
+            verify(launcherAppsMock, times(2)).getAppUsageLimit(PACKAGE_NAME, USER_HANDLE)
         }
 
     companion object {

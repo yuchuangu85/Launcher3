@@ -19,12 +19,16 @@ package com.android.quickstep.recents.data
 import android.content.ComponentName
 import android.content.Intent
 import android.os.UserHandle
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.android.launcher3.Flags
 import com.android.quickstep.recents.data.TaskVisualsChangedDelegate.TaskIconChangedCallback
 import com.android.quickstep.recents.data.TaskVisualsChangedDelegate.TaskThumbnailChangedCallback
 import com.android.systemui.shared.recents.model.Task.TaskKey
 import com.android.systemui.shared.recents.model.ThumbnailData
 import com.google.common.truth.Truth.assertThat
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
@@ -33,6 +37,8 @@ import org.mockito.kotlin.verifyNoMoreInteractions
 
 @RunWith(AndroidJUnit4::class)
 class TaskVisualsChangedDelegateTest {
+    @get:Rule val flagsRule = SetFlagsRule()
+
     private val taskVisualsChangeNotifier = FakeTaskVisualsChangeNotifier()
     private val highResLoadingStateNotifier = FakeHighResLoadingStateNotifier()
 
@@ -149,6 +155,7 @@ class TaskVisualsChangedDelegateTest {
     }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
     fun onHighResLoadingStateChanged_toEnabled_notifiesAllListeners() {
         val expectedListener = mock<TaskThumbnailChangedCallback>()
         val additionalListener = mock<TaskThumbnailChangedCallback>()
@@ -168,6 +175,7 @@ class TaskVisualsChangedDelegateTest {
     }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
     fun onHighResLoadingStateChanged_toDisabled_notifiesAllListeners() {
         val expectedListener = mock<TaskThumbnailChangedCallback>()
         val additionalListener = mock<TaskThumbnailChangedCallback>()

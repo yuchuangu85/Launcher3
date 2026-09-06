@@ -42,7 +42,6 @@ import android.view.ViewOutlineProvider;
 import android.view.animation.Interpolator;
 import android.window.BackEvent;
 
-import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.Px;
@@ -187,13 +186,17 @@ public abstract class AbstractSlideInView<T extends Context & ActivityContext>
      * @see #setUpOpenCloseAnimation(float, float, long)
      */
     protected final AnimatorPlaybackController setUpOpenAnimation(long duration) {
-        return setUpOpenCloseAnimation(
-                TRANSLATION_SHIFT_CLOSED, TRANSLATION_SHIFT_OPENED, duration);
+        boolean isTranslating = mTranslationShift != TRANSLATION_SHIFT_OPENED
+                && mTranslationShift != TRANSLATION_SHIFT_CLOSED;
+        return setUpOpenCloseAnimation(isTranslating ? mTranslationShift
+                : TRANSLATION_SHIFT_CLOSED, TRANSLATION_SHIFT_OPENED, duration);
     }
 
     private AnimatorPlaybackController setUpCloseAnimation(long duration) {
-        return setUpOpenCloseAnimation(
-                TRANSLATION_SHIFT_OPENED, TRANSLATION_SHIFT_CLOSED, duration);
+        boolean isTranslating = mTranslationShift != TRANSLATION_SHIFT_OPENED
+                && mTranslationShift != TRANSLATION_SHIFT_CLOSED;
+        return setUpOpenCloseAnimation(isTranslating ? mTranslationShift
+                : TRANSLATION_SHIFT_OPENED, TRANSLATION_SHIFT_CLOSED, duration);
     }
 
     /**
@@ -224,6 +227,12 @@ public abstract class AbstractSlideInView<T extends Context & ActivityContext>
 
         mOpenCloseAnimation = animation.createPlaybackController();
         return mOpenCloseAnimation;
+    }
+
+    protected void setScrimAlpha(float alpha) {
+        if (mColorScrim != null) {
+            mColorScrim.setAlpha(alpha);
+        }
     }
 
     /**
@@ -408,7 +417,7 @@ public abstract class AbstractSlideInView<T extends Context & ActivityContext>
         return getPopupContainer().isEventOverView(mContent, ev);
     }
 
-    private boolean isOpeningAnimationRunning() {
+    protected boolean isOpeningAnimationRunning() {
         return mIsOpen && mOpenCloseAnimation.getAnimationPlayer().isRunning();
     }
 
@@ -436,8 +445,10 @@ public abstract class AbstractSlideInView<T extends Context & ActivityContext>
 
     @Override
     public void onDragEnd(float velocity) {
-        float successfulShiftThreshold = mActivityContext.getDeviceProfile().getDeviceProperties().isTablet()
-                ? TABLET_BOTTOM_SHEET_SUCCESS_TRANSITION_PROGRESS : SUCCESS_TRANSITION_PROGRESS;
+        float successfulShiftThreshold =
+                mActivityContext.getDeviceProfile().getDeviceProperties().isLargeScreen()
+                        ? TABLET_BOTTOM_SHEET_SUCCESS_TRANSITION_PROGRESS
+                        : SUCCESS_TRANSITION_PROGRESS;
         if ((mSwipeDetector.isFling(velocity) && velocity > 0)
                 || mTranslationShift > successfulShiftThreshold) {
             mScrollInterpolator = scrollInterpolatorForVelocity(velocity);

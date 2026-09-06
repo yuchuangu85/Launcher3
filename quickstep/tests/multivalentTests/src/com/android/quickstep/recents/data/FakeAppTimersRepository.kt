@@ -24,16 +24,21 @@ import java.time.Duration
  * testing.
  */
 class FakeAppTimersRepository : AppTimersRepository {
-    private val timers: MutableMap<TimerKey, Duration> = mutableMapOf()
+    private val timers: MutableMap<TimerKey, AppTimerResponse> = mutableMapOf()
 
     override suspend fun getRemainingDuration(
         packageName: String,
         userHandle: UserHandle,
-    ): Duration? = timers[TimerKey(packageName, userHandle)]
+    ): AppTimerResponse = timers[TimerKey(packageName, userHandle)] ?: AppTimerResponse.NoTimer
+
+    override fun invalidateCache() {
+        timers.clear()
+    }
 
     /** Seed timer info for an app identified by the provided [packageName] and [userHandle]. */
     fun setTimer(packageName: String, userHandle: UserHandle, remainingDuration: Duration) {
-        timers[TimerKey(packageName, userHandle)] = remainingDuration
+        timers[TimerKey(packageName, userHandle)] =
+            AppTimerResponse.AppTimerDuration(remainingDuration)
     }
 
     /** Clear timer for an app identified by the provided [packageName] and [userHandle]. */

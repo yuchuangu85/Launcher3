@@ -15,17 +15,19 @@
  */
 package com.android.launcher3.uioverrides.states;
 
-import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_BACKGROUND;
 
-import android.content.Context;
 import android.graphics.Color;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherUiState;
 import com.android.launcher3.allapps.AllAppsTransitionController;
+import com.android.launcher3.statehandlers.DepthController;
+import com.android.launcher3.uioverrides.QuickstepLauncher;
+import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimColors;
-import com.android.quickstep.util.BaseDepthController;
+import com.android.quickstep.fallback.RecentsState;
 import com.android.quickstep.util.LayoutUtils;
 import com.android.quickstep.views.RecentsView;
 
@@ -34,8 +36,11 @@ import com.android.quickstep.views.RecentsView;
  */
 public class BackgroundAppState extends OverviewState {
 
-    private static final int STATE_FLAGS = FLAG_DISABLE_RESTORE | FLAG_RECENTS_VIEW_VISIBLE
-            | FLAG_WORKSPACE_INACCESSIBLE | FLAG_NON_INTERACTIVE | FLAG_CLOSE_POPUPS
+    private static final int STATE_FLAGS = FLAG_DISABLE_RESTORE_ABSOLUTE
+            | FLAG_RECENTS_VIEW_VISIBLE
+            | FLAG_WORKSPACE_INACCESSIBLE
+            | FLAG_NON_INTERACTIVE
+            | FLAG_CLOSE_POPUPS
             | FLAG_SKIP_STATE_ANNOUNCEMENT;
 
     public BackgroundAppState(int id) {
@@ -65,7 +70,7 @@ public class BackgroundAppState extends OverviewState {
 
     @Override
     public float[] getOverviewScaleAndOffset(Launcher launcher) {
-        return getOverviewScaleAndOffsetForBackgroundState(launcher.getOverviewPanel());
+        return RecentsState.BACKGROUND_APP.getOverviewScaleAndOffset((QuickstepLauncher) launcher);
     }
 
     @Override
@@ -74,8 +79,8 @@ public class BackgroundAppState extends OverviewState {
     }
 
     @Override
-    public int getVisibleElements(Launcher launcher) {
-        return super.getVisibleElements(launcher)
+    public int getVisibleElements(LauncherUiState launcherUiState) {
+        return super.getVisibleElements(launcherUiState)
                 & ~OVERVIEW_ACTIONS
                 & ~CLEAR_ALL_BUTTON
                 & ~VERTICAL_SWIPE_INDICATOR
@@ -93,19 +98,17 @@ public class BackgroundAppState extends OverviewState {
     }
 
     @Override
-    public boolean showExplodedDesktopView() {
+    public boolean isInOverview() {
         return false;
     }
 
     @Override
-    protected float getDepthUnchecked(Context context) {
-        if (Launcher.getLauncher(context).areDesktopTasksVisible()) {
+    protected float getDepthUnchecked(ActivityContext context) {
+        if (Launcher.getLauncher(context.asContext()).areDesktopTasksVisible()) {
             // Don't blur the background while desktop tasks are visible
-            return BaseDepthController.DEPTH_0_PERCENT;
-        } else if (enableScalingRevealHomeAnimation()) {
-            return BaseDepthController.DEPTH_70_PERCENT;
+            return DepthController.DEPTH_0_PERCENT;
         } else {
-            return 1f;
+            return DepthController.DEPTH_70_PERCENT;
         }
     }
 
@@ -114,11 +117,6 @@ public class BackgroundAppState extends OverviewState {
         return new ScrimColors(
                 /* backgroundColor= */ Color.TRANSPARENT,
                 /* foregroundColor= */ Color.TRANSPARENT);
-    }
-
-    @Override
-    public boolean isTaskbarAlignedWithHotseat(Launcher launcher) {
-        return false;
     }
 
     @Override
@@ -133,8 +131,4 @@ public class BackgroundAppState extends OverviewState {
         return false;
     }
 
-    public static float[] getOverviewScaleAndOffsetForBackgroundState(
-            RecentsView recentsView) {
-        return new float[] {recentsView.getMaxScaleForFullScreen(), NO_OFFSET};
-    }
 }

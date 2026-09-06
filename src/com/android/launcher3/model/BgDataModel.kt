@@ -24,19 +24,23 @@ import android.util.Log
 import android.util.SparseArray
 import androidx.annotation.AnyThread
 import com.android.launcher3.BuildConfig
-import com.android.launcher3.BuildConfigs
 import com.android.launcher3.Flags
-import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR
+import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_GROUP
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_FOLDER
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.logging.DumpManager
 import com.android.launcher3.logging.DumpManager.LauncherDumpable
 import com.android.launcher3.logging.FileLog
+import com.android.launcher3.model.BgDataModel.ModificationSource.ModelTask
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.model.data.PredictedContainerInfo
+import com.android.launcher3.model.data.WorkspaceChangeEvent.AddEvent
+import com.android.launcher3.model.data.WorkspaceChangeEvent.FullRefresh
+import com.android.launcher3.model.data.WorkspaceChangeEvent.RemoveEvent
+import com.android.launcher3.model.data.WorkspaceChangeEvent.UpdateEvent
 import com.android.launcher3.model.data.WorkspaceData
 import com.android.launcher3.model.data.WorkspaceData.MutableWorkspaceData
 import com.android.launcher3.model.data.WorkspaceItemInfo
@@ -48,7 +52,9 @@ import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.DaggerSingletonTracker
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.IntSparseArrayMap
+import com.android.launcher3.util.ItemInfoMatcher
 import com.android.launcher3.util.PackageUserKey
+import com.android.launcher3.views.ActivityContext
 import com.android.launcher3.widget.model.WidgetsListBaseEntry
 import java.io.PrintWriter
 import java.util.Collections
@@ -68,7 +74,7 @@ class BgDataModel
 constructor(
     /** Entire list of widgets. */
     @JvmField val widgetsModel: WidgetsModel,
-    homeDataProvider: Provider<HomeScreenRepository?>,
+    private val repo: Provider<HomeScreenRepository>,
     dumpManager: DumpManager,
     lifeCycle: DaggerSingletonTracker,
 ) : LauncherDumpable {
@@ -87,12 +93,12 @@ constructor(
     val extraItems = IntSparseArrayMap<FixedContainerItems>()
 
     /** Maps all launcher activities to counts of their shortcuts. */
-    @JvmField val deepShortcutMap = HashMap<ComponentKey, Int>()
+    var deepShortcutMap: Map<ComponentKey, Int> = emptyMap()
+        private set
 
     /** Cache for strings used in launcher */
-    @JvmField val stringCache = StringCache()
-
-    private val repo = if (Flags.modelRepository()) homeDataProvider.get() else null
+    var stringCache = StringCache.EMPTY
+        private set
 
     /** Id when the model was last bound */
     @JvmField var lastBindId: Int = 0
@@ -107,8 +113,9 @@ constructor(
     /** Clears all the data */
     @Synchronized
     fun clear() {
-        deepShortcutMap.clear()
+        deepShortcutMap = emptyMap()
         extraItems.clear()
+        mutableWorkspaceData.replaceDataMap(SparseArray())
     }
 
     @Synchronized
@@ -123,17 +130,11 @@ constructor(
     }
 
     @Synchronized
-    fun removeItem(context: Context, vararg items: ItemInfo) {
-        removeItem(context, listOf(*items))
-    }
-
-    @Synchronized
-    @JvmOverloads
-    fun removeItem(context: Context, items: Collection<ItemInfo>, owner: Any? = null) {
-        if (BuildConfigs.IS_STUDIO_BUILD) {
+    fun removeItems(context: Context, items: List<ItemInfo>, owner: ModificationSource) {
+        if (BuildConfig.IS_STUDIO_BUILD) {
             items
                 .asSequence()
-                .filter { it.itemType == ITEM_TYPE_FOLDER || it.itemType == ITEM_TYPE_APP_PAIR }
+                .filter { it.itemType == ITEM_TYPE_FOLDER || it.itemType == ITEM_TYPE_APP_GROUP }
                 .forEach { item: ItemInfo ->
 
                     // We are deleting a collection which still contains items that think they are
@@ -149,55 +150,77 @@ constructor(
                 }
         }
 
-        mutableWorkspaceData.removeItems(items, owner)
+        mutableWorkspaceData.modifyItems { items.forEach { remove(it.id) } }
+
+        if (Flags.modelRepository()) {
+            repo
+                .get()
+                .dispatchWorkspaceDataChange(
+                    mutableWorkspaceData.copy(),
+                    RemoveEvent(ItemInfoMatcher.ofItems(items), owner),
+                )
+        }
+
         items
             .asSequence()
             .map { it.user }
             .distinct()
             .forEach { updateShortcutPinnedState(context, it) }
-
-        updateHomeRepository()
-    }
-
-    private fun updateHomeRepository() {
-        if (Flags.modelRepository() && repo != null) {
-            repo.dispatchChange(mutableWorkspaceData.copy())
-        }
-    }
-
-    @JvmOverloads
-    fun addItem(context: Context, item: ItemInfo, owner: Any? = null) {
-        addItems(context, listOf(item), owner)
     }
 
     @Synchronized
-    @JvmOverloads
-    fun addItems(context: Context, items: List<ItemInfo>, owner: Any? = null) {
-        mutableWorkspaceData.addItems(items, owner)
+    fun addItems(context: Context, items: List<ItemInfo>, owner: ModificationSource) {
+        mutableWorkspaceData.modifyItems { items.forEach { put(it.id, it) } }
+
+        if (Flags.modelRepository()) {
+            repo
+                .get()
+                .dispatchWorkspaceDataChange(mutableWorkspaceData.copy(), AddEvent(items, owner))
+        }
         items
             .filter { it.itemType == ITEM_TYPE_DEEP_SHORTCUT }
             .map { it.user }
             .distinct()
             .forEach { updateShortcutPinnedState(context, it) }
-        updateHomeRepository()
     }
 
     @Synchronized
-    fun updateAndDispatchItem(item: ItemInfo, owner: Any?) {
-        mutableWorkspaceData.replaceItem(item, owner)
-        updateHomeRepository()
+    fun updateAndDispatchItem(item: ItemInfo, owner: ModificationSource) {
+        mutableWorkspaceData.modifyItems { put(item.id, item) }
+        if (Flags.modelRepository()) {
+            repo
+                .get()
+                .dispatchWorkspaceDataChange(
+                    mutableWorkspaceData.copy(),
+                    UpdateEvent(setOf(item), owner),
+                )
+        }
     }
 
     @Synchronized
-    fun updateItems(items: List<ItemInfo>, owner: Any?) {
-        mutableWorkspaceData.notifyItemsUpdated(items, owner)
-        updateHomeRepository()
+    fun updateItems(items: List<ItemInfo>, owner: ModificationSource) {
+        mutableWorkspaceData.modifyItems {}
+        if (Flags.modelRepository()) {
+            repo
+                .get()
+                .dispatchWorkspaceDataChange(
+                    mutableWorkspaceData.copy(),
+                    UpdateEvent(items.toSet(), owner),
+                )
+        }
     }
 
     @Synchronized
-    fun dataLoadComplete(allItems: SparseArray<ItemInfo>) {
+    fun dataLoadComplete(allItems: SparseArray<ItemInfo>, reason: String) {
         mutableWorkspaceData.replaceDataMap(allItems)
-        updateHomeRepository()
+        dispatchRebind(reason)
+    }
+
+    @Synchronized
+    fun dispatchRebind(reason: String) {
+        if (Flags.modelRepository()) {
+            repo.get().dispatchWorkspaceDataChange(mutableWorkspaceData.copy(), FullRefresh(reason))
+        }
     }
 
     /**
@@ -210,13 +233,22 @@ constructor(
         }
     }
 
+    /** Reloads the [stringCache] */
+    fun updateStringCache(context: Context) {
+        stringCache = StringCache.fromContext(context)
+    }
+
+    fun notifyWidgetsUpdate(allWidgets: List<WidgetsListBaseEntry>) {
+        if (Flags.modelRepository()) repo.get().dispatchWidgetsChange(allWidgets)
+    }
+
     /**
      * Updates the deep shortcuts state in system to match out internal model, pinning any missing
      * shortcuts and unpinning any extra shortcuts.
      */
     @Synchronized
     fun updateShortcutPinnedState(context: Context, user: UserHandle) {
-        if (!BuildConfigs.WIDGETS_ENABLED) {
+        if (!BuildConfig.WIDGETS_ENABLED) {
             return
         }
 
@@ -277,7 +309,7 @@ constructor(
                 try {
                     FileLog.d(
                         TAG,
-                        ("updateShortcutPinnedState:" + " Pinning Shortcuts: $key: $modelShortcuts"),
+                        "updateShortcutPinnedState: Pinning Shortcuts: $key: $modelShortcuts",
                     )
                     context
                         .getSystemService(LauncherApps::class.java)
@@ -296,8 +328,7 @@ constructor(
             try {
                 FileLog.d(
                     TAG,
-                    ("updateShortcutPinnedState:" +
-                        " Unpinning extra Shortcuts for package: $packageName: ${systemMap[packageName]}"),
+                    "updateShortcutPinnedState: Unpinning extra Shortcuts for package: $packageName: ${systemMap[packageName]}",
                 )
                 context
                     .getSystemService(LauncherApps::class.java)
@@ -314,15 +345,13 @@ constructor(
      * Clear all the deep shortcut counts for the given package, and re-add the new shortcut counts.
      */
     @Synchronized
+    @JvmOverloads
     fun updateDeepShortcutCounts(
-        packageName: String?,
-        user: UserHandle,
         shortcuts: List<ShortcutInfo>,
+        keysToRemove: ((ComponentKey) -> Boolean)? = null,
     ) {
-        if (packageName != null) {
-            deepShortcutMap.keys.removeAll {
-                it.componentName.packageName == packageName && it.user == user
-            }
+        if (keysToRemove != null) {
+            deepShortcutMap = deepShortcutMap.filterKeys { !keysToRemove.invoke(it) }
         }
 
         // Now add the new shortcuts to the map.
@@ -343,6 +372,7 @@ constructor(
      * synchronized over the model, that should be handled by the caller.
      */
     @JvmOverloads
+    @Synchronized
     fun updateAndCollectWorkspaceItemInfos(
         userHandle: UserHandle,
         workspaceItemOp: (WorkspaceItemInfo) -> Boolean,
@@ -369,7 +399,7 @@ constructor(
             }
             .apply {
                 // Dispatch an update
-                if (isNotEmpty()) updateItems(this, null)
+                if (isNotEmpty()) updateItems(this, ModelTask)
             }
 
     /** An object containing items corresponding to a fixed container */
@@ -386,39 +416,54 @@ constructor(
          * Does a complete model rebind. The callback can be called on any thread and it is up to
          * the client to move the executor to appropriate thread
          */
+        // Migrated to repository
         @AnyThread
         fun bindCompleteModelAsync(itemIdMap: WorkspaceData, isBindingSync: Boolean) {
             Executors.MAIN_EXECUTOR.execute { bindCompleteModel(itemIdMap, isBindingSync) }
         }
 
+        // Migrated to repository
         fun bindCompleteModel(itemIdMap: WorkspaceData, isBindingSync: Boolean) {}
 
+        // Migrated to repository
         fun bindItemsAdded(items: List<@JvmSuppressWildcards ItemInfo>) {}
 
+        // Migrated to repository
         /** Called when a runtime property of the ItemInfo is updated due to some system event */
         fun bindItemsUpdated(updates: Set<@JvmSuppressWildcards ItemInfo>) {}
 
+        // Migrated to repository
         fun bindWorkspaceComponentsRemoved(matcher: Predicate<ItemInfo?>) {}
 
+        // Migrated to repository
         /** Binds updated incremental download progress */
         fun bindIncrementalDownloadProgressUpdated(app: AppInfo) {}
 
+        // Migrated to repository
         /** Binds the app widgets to the providers that share widgets with the UI. */
         fun bindAllWidgets(widgets: List<@JvmSuppressWildcards WidgetsListBaseEntry>) {}
 
-        fun bindDeepShortcutMap(deepShortcutMap: HashMap<ComponentKey, Int>) {}
-
         /** Binds extra item provided any external source */
+        // Migrated to repository
         fun bindExtraContainerItems(item: FixedContainerItems) {}
 
+        // Migrated to repository
         fun bindAllApplications(
             apps: Array<AppInfo>,
             flags: Int,
             packageUserKeytoUidMap: Map<PackageUserKey, Int>,
         ) {}
 
+        // Migrated to repository
         /** Binds the cache of string resources */
         fun bindStringCache(cache: StringCache) {}
+    }
+
+    sealed class ModificationSource {
+
+        data class UISurface(val surface: ActivityContext) : ModificationSource()
+
+        data object ModelTask : ModificationSource()
     }
 
     companion object {

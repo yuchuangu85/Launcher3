@@ -34,7 +34,7 @@ import kotlin.LazyThreadSafetyMode.NONE
 /**
  * A set of utility methods around ApplicationInfo with support for fetching the actual info lazily
  */
-class ApplicationInfoWrapper(provider: () -> ApplicationInfo?) {
+class ApplicationInfoWrapper private constructor(provider: () -> ApplicationInfo?) {
 
     constructor(appInfo: ApplicationInfo?) : this({ appInfo })
 
@@ -112,4 +112,12 @@ class ApplicationInfoWrapper(provider: () -> ApplicationInfo?) {
     fun isSystem() = hasFlag(FLAG_SYSTEM)
 
     fun getInfo(): ApplicationInfo? = appInfo
+
+    /** Returns whether the target app supports App Lock for a given user */
+    fun isAppLockSupported() =
+        android.security.Flags.appLockApis() && appInfo?.isAppLockSupported ?: false
+
+    /** Returns whether the target app has App Lock enabled for a given user */
+    fun isAppLockEnabled() =
+        android.security.Flags.appLockApis() && appInfo?.isAppLockEnabled ?: false
 }

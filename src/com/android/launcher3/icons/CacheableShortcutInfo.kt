@@ -24,23 +24,34 @@ import android.content.pm.ShortcutInfo
 import android.graphics.drawable.Drawable
 import android.os.UserHandle
 import android.util.Log
-import com.android.launcher3.LauncherAppState
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.icons.BaseIconFactory.IconOptions
-import com.android.launcher3.icons.cache.BaseIconCache
 import com.android.launcher3.icons.cache.CachingLogic
+import com.android.launcher3.icons.cache.IconLoadRequest
 import com.android.launcher3.shortcuts.ShortcutKey
-import com.android.launcher3.util.ApiWrapper
 import com.android.launcher3.util.ApplicationInfoWrapper
 import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.util.Themes
 
 /** Wrapper over ShortcutInfo to provide extra information related to ShortcutInfo */
-class CacheableShortcutInfo(val shortcutInfo: ShortcutInfo, val appInfo: ApplicationInfoWrapper) {
+class CacheableShortcutInfo
+@JvmOverloads
+constructor(
+    val shortcutInfo: ShortcutInfo,
+    val appInfo: ApplicationInfoWrapper,
+    val fallbackIconProvider: (BaseIconFactory) -> BitmapInfo? = { null },
+) {
 
+    @JvmOverloads
     constructor(
         info: ShortcutInfo,
         ctx: Context,
-    ) : this(info, ApplicationInfoWrapper(ctx, info.getPackage(), info.userHandle))
+        fallbackIconProvider: (BaseIconFactory) -> BitmapInfo? = { null },
+    ) : this(
+        info,
+        ApplicationInfoWrapper(ctx, info.getPackage(), info.userHandle),
+        fallbackIconProvider,
+    )
 
     companion object {
         private const val TAG = "CacheableShortcutInfo"
@@ -51,7 +62,7 @@ class CacheableShortcutInfo(val shortcutInfo: ShortcutInfo, val appInfo: Applica
          */
         @JvmStatic
         fun getIcon(context: Context, shortcutInfo: ShortcutInfo, density: Int): Drawable? {
-            if (!true) {
+            if (!BuildConfig.WIDGETS_ENABLED) {
                 return null
             }
             try {
@@ -93,48 +104,38 @@ class CacheableShortcutInfo(val shortcutInfo: ShortcutInfo, val appInfo: Applica
 /** Caching logic for CacheableShortcutInfo. */
 object CacheableShortcutCachingLogic : CachingLogic<CacheableShortcutInfo> {
 
-    override fun getComponent(info: CacheableShortcutInfo): ComponentName =
-        ShortcutKey.fromInfo(info.shortcutInfo).componentName
+    override fun getComponent(item: CacheableShortcutInfo): ComponentName =
+        ShortcutKey.fromInfo(item.shortcutInfo).componentName
 
-    override fun getUser(info: CacheableShortcutInfo): UserHandle = info.shortcutInfo.userHandle
+    override fun getUser(item: CacheableShortcutInfo): UserHandle = item.shortcutInfo.userHandle
 
-    override fun getLabel(info: CacheableShortcutInfo): CharSequence? = info.shortcutInfo.shortLabel
+    override fun getLabel(item: CacheableShortcutInfo): CharSequence? = item.shortcutInfo.shortLabel
 
-    override fun getApplicationInfo(info: CacheableShortcutInfo) = info.appInfo.getInfo()
+    override fun getApplicationInfo(item: CacheableShortcutInfo) = item.appInfo.getInfo()
 
-    override fun loadIcon(context: Context, cache: BaseIconCache, info: CacheableShortcutInfo) =
-        LauncherIcons.obtain(context).use { li ->
-            CacheableShortcutInfo.getIcon(
-                    context,
-                    info.shortcutInfo,
-                    LauncherAppState.getIDP(context).fillResIconDpi,
-                )
-                ?.let { d ->
+    override fun loadIcon(request: IconLoadRequest<CacheableShortcutInfo>): BitmapInfo =
+        request.run {
+            iconFactory.use { li ->
+                CacheableShortcutInfo.getIcon(context, item.shortcutInfo, li.fullResIconDpi)?.let {
+                    d ->
                     li.createBadgedIconBitmap(
                         d,
                         IconOptions()
                             .setExtractedColor(Themes.getColorAccent(context))
-                            .setSourceHint(
-                                getSourceHint(info, cache)
-                                    .copy(
-                                        isFileDrawable =
-                                            ApiWrapper.INSTANCE[context].isFileDrawable(
-                                                info.shortcutInfo
-                                            )
-                                    )
-                            ),
+                            .setSourceHint(sourceHint),
                     )
-                } ?: BitmapInfo.LOW_RES_INFO
+                } ?: item.fallbackIconProvider.invoke(li) ?: BitmapInfo.LOW_RES_INFO
+            }
         }
 
-    override fun getFreshnessIdentifier(
-        item: CacheableShortcutInfo,
-        provider: IconProvider,
-    ): String? =
-        // Manifest shortcuts get updated on every reboot. Don't include their change timestamp as
-        // it gets covered by the app's version
-        (if (item.shortcutInfo.isDeclaredInManifest) ""
-        else item.shortcutInfo.lastChangedTimestamp.toString()) +
-            "-" +
-            provider.getStateForApp(getApplicationInfo(item))
+    override fun getFreshnessIdentifier(item: CacheableShortcutInfo, provider: IconProvider) =
+        provider
+            .getStateForApp(getApplicationInfo(item))
+            .withAdditionalValues(
+                // Manifest shortcuts get updated on every reboot. Don't include their change
+                // timestamp as
+                // it gets covered by the app's version
+                (if (item.shortcutInfo.isDeclaredInManifest) ""
+                else item.shortcutInfo.lastChangedTimestamp.toString())
+            )
 }

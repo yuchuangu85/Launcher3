@@ -1,0 +1,13 @@
+{
+  "presubmit": [
+    {
+      "name": "iconloader_tests"
+    }
+  ],
+  // v2/sysui/suite/test-mapping-sysui-screenshot-test
+  "sysui-screenshot-test": [
+    {
+      "name": "SystemUIGoogleScreenshotTests_Presubmit"
+    }
+  ]
+}

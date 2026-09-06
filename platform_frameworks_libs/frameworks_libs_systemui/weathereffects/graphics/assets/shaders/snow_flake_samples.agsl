@@ -1,0 +1,79 @@
+/*
+ * Copyright (C) 2025 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+uniform float2 canvasSize;
+uniform float snowFlakeSamplesSize;
+
+#include "shaders/constants.agsl"
+#include "shaders/utils.agsl"
+
+
+const vec2 snowFlakeShape = vec2(0.28, 0.26);
+// Used in generate snow flake samples, and sampling it afterwards, to make sure snow flakes
+// will not go beyond bounding box
+const float minDecreaseFactor = 0.5 / 0.28;
+
+const float layerIndex = 0;
+
+const mat2 rot45 = mat2(
+    0.7071067812, 0.7071067812, // First column.
+    -0.7071067812, 0.7071067812 // second column.
+);
+
+/**
+ * This shader generates snow flake samples per cell. It stores the flake mask in the red channel,
+ * and pre-calculated `cellIntensity` and `cellId` in the green and blue channels for optimized access.
+ */
+vec4 main(float2 fragCoord) {
+    // Calculate uv for snow based on transformed coordinates
+    float2 uv = fragCoord / canvasSize;
+    float layerR = idGenerator(layerIndex);
+    // Number of rows and columns (each one is a cell, a snowflake).
+    vec2 gridSize = floor(canvasSize / snowFlakeSamplesSize);
+    float cellAspectRatio = gridSize.x / gridSize.y;
+    // Aspect ratio impacts visible cells.
+    vec2 gridUv = uv * gridSize;
+
+    /* Cell. */
+    // Get the cell ID based on the grid position. Value from 0 to 1.
+    float cellId = idGenerator(floor(gridUv));
+    // For each cell, we set the internal UV from -0.5 (left, bottom) to 0.5 (right, top).
+    vec2 cellUv = fract(gridUv) - 0.5;
+    cellUv.y *= -1.;
+
+   /*
+    * Disable snow flakes with some probabilty. This is done by 1) assigning a random intensity
+    * value to the cell 2) then compare it with the given intensity.
+    */
+    half cellIntensity = idGenerator(floor(vec2(cellId * 856.16, 272.2)));
+
+    /* Cell snow flake. */
+    // Calculate snow flake.
+    // With decreaseFactor <= minSnowShapeScale, we can make sure snow flakes not going out its
+    // snowFlakeSamplesSize * snowFlakeSamplesSize bounding box
+    float decreaseFactor = clamp(2.0 + map(cellId, 0., 1., 1., 1 + 5. * (1 - cellIntensity)),
+        minDecreaseFactor, 4);
+    // snowFlake center should be (0,0) in the cell when generating snowflake samples
+    vec2 snowFlakePos = vec2(cellUv.x, cellUv.y);
+    snowFlakePos *= snowFlakeShape * decreaseFactor;
+    vec2 snowFlakeShapeVariation = vec2(0.055) * // max variation
+        vec2((cellId * 2. - 1.), // random A based on cell ID
+        (fract((cellId + 0.03521) * 34.21) * 2. - 1.)); // random B based on cell ID
+    vec2 snowFlakePosR = 1.016 * abs(rot45 * (snowFlakePos + snowFlakeShapeVariation));
+    snowFlakePos = abs(snowFlakePos);
+    // Create the snowFlake mask.
+    float baseMask = 1 - clamp(snowFlakePos.x + snowFlakePos.y + snowFlakePosR.x + snowFlakePosR.y, 0, 1);
+    return vec4(baseMask, cellIntensity, cellId , 1);
+}

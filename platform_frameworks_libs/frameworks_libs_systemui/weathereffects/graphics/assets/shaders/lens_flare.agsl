@@ -1,0 +1,55 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+vec3 addFlareCircle(
+    vec2 uv, vec2 sunPos, float distScale, float size, float chroAb, float definition) {
+    float dR = distance(uv, distScale * (1. - chroAb) * sunPos) / (size * (1. - chroAb));
+    float dG = distance(uv, distScale * 1. * sunPos) / (size);
+    float dB = distance(uv, distScale * (1 + chroAb) * sunPos) / (size * (1. + chroAb));
+    float wR = 1.0 - smoothstep(definition, 0.75, dR);
+    float wG = 1.0 - smoothstep(definition, 0.75, dG);
+    float wB = 1.0 - smoothstep(definition, 0.75, dB);
+    return vec3(wR, wG, wB);
+}
+
+vec3 addFlareRing(vec2 uv, vec2 sunPos, float distScale, float size, float chroAb, float stroke) {
+    float dR = distance(uv, distScale * (1. - chroAb) * sunPos) / (size * (1. - chroAb));
+    float dG = distance(uv, distScale * 1. * sunPos) / (size);
+    float dB = distance(uv, distScale * (1 + chroAb) * sunPos) / (size * (1. + chroAb));
+    float wR = smoothstep(0.75 - stroke, 0.75, dR) - smoothstep(0.75, 0.75 + stroke, dR);
+    float wG = smoothstep(0.75 - stroke, 0.75, dG) - smoothstep(0.75, 0.75 + stroke, dG);
+    float wB = smoothstep(0.75 - stroke, 0.75, dB) - smoothstep(0.75, 0.75 + stroke, dB);
+    return vec3(wR, wG, wB);
+}
+
+vec3 addFlareCircle(vec2 uv, vec2 sunPos, float distScale, float size, float chroAb) {
+    return addFlareCircle(uv, sunPos, distScale, size, chroAb, 0.25);
+}
+
+vec3 addFlareDistorted(vec2 uv, vec2 sunPos, float distScale, float size, float chroAb) {
+    vec2 uvd = uv*(length(uv));
+    return addFlareCircle(uvd, sunPos, distScale, size, chroAb, 0.35);
+}
+
+vec3 addFlare(vec3 color, vec2 uv, vec2 sunPos, float intensity, float time) {
+    vec3 ret = vec3(0.0);
+    ret += vec3(0.7) * addFlareCircle(uv, sunPos, -0.1, 0.1, 0.04);
+    ret += vec3(0.64) * addFlareCircle(uv, sunPos, 0.05, 0.035, 0.04);
+    ret += vec3(0.5) * addFlareCircle(uv, sunPos, -0.22, 0.18, 0.04);
+    ret += vec3(0.34) * addFlareRing(uv, sunPos, -0.35, 0.4, 0.02, 0.16);
+    ret += vec3(0.52) * addFlareDistorted(uv, sunPos, -0.4, 0.3, 0.08);
+    ret += vec3(0.57) * addFlareDistorted(uv, sunPos, 0.4, 0.15, 0.06);
+    return mix(color.rgb, vec3(1., 0.95, 0.88), intensity * ret);
+}

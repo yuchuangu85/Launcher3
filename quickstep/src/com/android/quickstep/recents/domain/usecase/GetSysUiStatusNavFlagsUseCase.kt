@@ -23,9 +23,10 @@ import com.android.launcher3.util.SystemUiController.FLAG_DARK_STATUS
 import com.android.launcher3.util.SystemUiController.FLAG_LIGHT_NAV
 import com.android.launcher3.util.SystemUiController.FLAG_LIGHT_STATUS
 import com.android.systemui.shared.recents.model.ThumbnailData
+import javax.inject.Inject
 
 /** UseCase to calculate flags for status bar and navigation bar */
-class GetSysUiStatusNavFlagsUseCase {
+class GetSysUiStatusNavFlagsUseCase @Inject constructor() {
     operator fun invoke(thumbnailData: ThumbnailData?): Int {
         if (thumbnailData == null) return 0
         val thumbnailAppearance = thumbnailData.appearance

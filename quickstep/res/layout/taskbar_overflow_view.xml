@@ -18,5 +18,4 @@
 <com.android.launcher3.taskbar.TaskbarOverflowView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="@dimen/taskbar_icon_min_touch_size"
     android:layout_height="@dimen/taskbar_icon_min_touch_size"
-    android:backgroundTint="@android:color/transparent"
-    android:contentDescription="@string/taskbar_overflow_a11y_title" />
+    android:backgroundTint="@android:color/transparent" />

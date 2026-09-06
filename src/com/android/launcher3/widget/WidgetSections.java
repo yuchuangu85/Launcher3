@@ -17,22 +17,22 @@ package com.android.launcher3.widget;
 
 import static android.content.res.Resources.ID_NULL;
 
+import static com.android.launcher3.util.XmlElement.getRootElement;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
 import android.util.ArrayMap;
-import android.util.AttributeSet;
 import android.util.SparseArray;
-import android.util.Xml;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.StringRes;
 
 import com.android.launcher3.R;
 import com.android.launcher3.util.IntSet;
+import com.android.launcher3.util.XmlElement;
 
-import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
@@ -69,45 +69,32 @@ public final class WidgetSections {
     }
 
     private static synchronized void parseWidgetSectionsXml(Context context) {
-        SparseArray<WidgetSection> widgetSections = new SparseArray();
+        SparseArray<WidgetSection> widgetSections = new SparseArray<>();
         Map<ComponentName, IntSet> widgetsToCategories = new ArrayMap<>();
         try (XmlResourceParser parser = context.getResources().getXml(R.xml.widget_sections)) {
-            final int depth = parser.getDepth();
-            int type;
-            while (((type = parser.next()) != XmlPullParser.END_TAG
-                    || parser.getDepth() > depth) && type != XmlPullParser.END_DOCUMENT) {
-                if ((type == XmlPullParser.START_TAG)
-                        && TAG_SECTION_NAME.equals(parser.getName())) {
-                    AttributeSet sectionAttributes = Xml.asAttributeSet(parser);
-                    WidgetSection section = new WidgetSection(context, sectionAttributes);
-                    final int sectionDepth = parser.getDepth();
-                    while (((type = parser.next()) != XmlPullParser.END_TAG
-                                    || parser.getDepth() > sectionDepth)
-                            && type != XmlPullParser.END_DOCUMENT) {
-                        if ((type == XmlPullParser.START_TAG)
-                                && TAG_WIDGET_NAME.equals(parser.getName())) {
-                            TypedArray a = context.obtainStyledAttributes(
-                                    Xml.asAttributeSet(parser), R.styleable.WidgetSections);
-                            ComponentName provider = ComponentName.unflattenFromString(
-                                    a.getString(R.styleable.WidgetSections_provider));
-                            boolean alsoKeepInApp = a.getBoolean(
-                                    R.styleable.WidgetSections_alsoKeepInApp,
-                                    /* defValue= */ false);
-                            final IntSet categories;
-                            if (widgetsToCategories.containsKey(provider)) {
-                                categories = widgetsToCategories.get(provider);
-                            } else {
-                                categories = new IntSet();
-                                widgetsToCategories.put(provider, categories);
-                            }
-                            if (alsoKeepInApp) {
-                                categories.add(NO_CATEGORY);
-                            }
-                            categories.add(section.mCategory);
-                        }
+            for (XmlElement sectionEl : getRootElement(parser).childIterator(TAG_SECTION_NAME)) {
+                WidgetSection section = new WidgetSection(context, sectionEl);
+                for (XmlElement widgetEl: sectionEl.childIterator(TAG_WIDGET_NAME)) {
+                    TypedArray a = widgetEl.obtainAttrs(context, R.styleable.WidgetSections);
+                    ComponentName provider = ComponentName.unflattenFromString(
+                            a.getString(R.styleable.WidgetSections_provider));
+                    boolean alsoKeepInApp = a.getBoolean(
+                            R.styleable.WidgetSections_alsoKeepInApp,
+                            /* defValue= */ false);
+                    a.recycle();
+                    final IntSet categories;
+                    if (widgetsToCategories.containsKey(provider)) {
+                        categories = widgetsToCategories.get(provider);
+                    } else {
+                        categories = new IntSet();
+                        widgetsToCategories.put(provider, categories);
                     }
-                    widgetSections.put(section.mCategory, section);
+                    if (alsoKeepInApp) {
+                        categories.add(NO_CATEGORY);
+                    }
+                    categories.add(section.mCategory);
                 }
+                widgetSections.put(section.mCategory, section);
             }
             sWidgetSections = widgetSections;
             sWidgetsToCategories = widgetsToCategories;
@@ -124,11 +111,12 @@ public final class WidgetSections {
         @DrawableRes
         public final int mSectionDrawable;
 
-        public WidgetSection(Context context, AttributeSet attrs) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.WidgetSections);
+        public WidgetSection(Context context, XmlElement el) {
+            TypedArray a = el.obtainAttrs(context, R.styleable.WidgetSections);
             mCategory = a.getInt(R.styleable.WidgetSections_category, NO_CATEGORY);
             mSectionTitle = a.getResourceId(R.styleable.WidgetSections_sectionTitle, ID_NULL);
             mSectionDrawable = a.getResourceId(R.styleable.WidgetSections_sectionDrawable, ID_NULL);
+            a.recycle();
         }
     }
 }

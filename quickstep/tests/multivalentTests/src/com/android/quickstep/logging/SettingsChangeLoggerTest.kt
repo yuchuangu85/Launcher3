@@ -16,29 +16,28 @@
 
 package com.android.quickstep.logging
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.android.launcher3.LauncherPrefs
-import com.android.launcher3.LauncherPrefs.Companion.ALLOW_ROTATION
 import com.android.launcher3.SessionCommitReceiver.ADD_ICON_PREFERENCE_KEY
+import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.graphics.ThemeManager
 import com.android.launcher3.logging.InstanceId
 import com.android.launcher3.logging.StatsLogManager
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ADD_NEW_APPS_TO_HOME_SCREEN_ENABLED
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALL_APPS_SUGGESTIONS_ENABLED
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME_SCREEN_ROTATION_DISABLED
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME_SCREEN_ROTATION_ENABLED
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME_SCREEN_SUGGESTIONS_ENABLED
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_NAVIGATION_MODE_GESTURE_BUTTON
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_NOTIFICATION_DOT_ENABLED
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_THEMED_ICON_DISABLED
-import com.android.launcher3.states.RotationHelper.ALLOW_ROTATION_PREFERENCE_KEY
-import com.android.launcher3.util.DaggerSingletonTracker
-import com.android.launcher3.util.DisplayController
-import com.android.launcher3.util.SettingsCache
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.FakePrefsModule
+import com.android.launcher3.util.SandboxApplication
+import com.android.launcher3.util.TestUtil
+import com.android.launcher3.util.rule.TestStabilityRule
+import com.android.launcher3.util.rule.TestStabilityRule.DesktopStability
+import com.android.launcher3.util.rule.TestStabilityRule.LOCAL
+import com.android.tools.dagger.mutation.annotations.BindValue
+import com.android.tools.dagger.mutation.annotations.MutatedComponent
 import com.google.common.truth.Truth.assertThat
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -50,110 +49,54 @@ import org.mockito.Mock
 import org.mockito.junit.MockitoJUnit
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.capture
-import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 
 @RunWith(AndroidJUnit4::class)
+@MutatedComponent(target = LauncherAppComponent::class, installModules = [FakePrefsModule::class])
 class SettingsChangeLoggerTest {
 
     @get:Rule val mockito = MockitoJUnit.rule()
-
-    private val mContext: Context = ApplicationProvider.getApplicationContext()
+    @get:Rule val context = SandboxApplication()
+    @get:Rule val testStabilityRule = TestStabilityRule()
 
     private val mInstanceId = InstanceId.fakeInstanceId(1)
 
-    private lateinit var mSystemUnderTest: SettingsChangeLogger
-
-    @Mock private lateinit var mStatsLogFactory: StatsLogManager.StatsLogManagerFactory
-
-    @Mock private lateinit var mStatsLogManager: StatsLogManager
-
+    @BindValue
     @Mock(answer = Answers.RETURNS_SELF)
-    private lateinit var mMockLogger: StatsLogManager.StatsLogger
-    @Mock private lateinit var mTracker: DaggerSingletonTracker
-    private var displayController: DisplayController = DisplayController.INSTANCE.get(mContext)
-    private var settingsCache: SettingsCache = SettingsCache.INSTANCE.get(mContext)
+    lateinit var mMockLogger: StatsLogManager.StatsLogger
 
     @Captor private lateinit var mEventCaptor: ArgumentCaptor<StatsLogManager.EventEnum>
 
-    private var mDefaultThemedIcons = false
-    private var mDefaultAllowRotation = false
-
-    private val themeManager: ThemeManager
-        get() = ThemeManager.INSTANCE.get(mContext)
-
     @Before
     fun setUp() {
-        whenever(mStatsLogFactory.create(mContext)).doReturn(mStatsLogManager)
-        whenever(mStatsLogManager.logger()).doReturn(mMockLogger)
-        mDefaultThemedIcons = themeManager.isMonoThemeEnabled
-        mDefaultAllowRotation = LauncherPrefs.get(mContext).get(ALLOW_ROTATION)
+        context.initDaggerComponent(mutatedComponentBuilder())
+
         // To match the default value of THEMED_ICONS
-        themeManager.isMonoThemeEnabled = false
-        // To match the default value of ALLOW_ROTATION
-        LauncherPrefs.get(mContext).put(item = ALLOW_ROTATION, value = false)
-
-        mSystemUnderTest =
-            SettingsChangeLogger(
-                mContext,
-                mTracker,
-                displayController,
-                settingsCache,
-                mStatsLogFactory,
-            )
-    }
-
-    @After
-    fun tearDown() {
-        themeManager.isMonoThemeEnabled = mDefaultThemedIcons
-        LauncherPrefs.get(mContext).put(ALLOW_ROTATION, mDefaultAllowRotation)
+        ThemeManager.INSTANCE.get(context).isMonoThemeEnabled = false
     }
 
     @Test
     fun loggingPrefs_correctDefaultValue() {
-        val systemUnderTest =
-            SettingsChangeLogger(
-                mContext,
-                mTracker,
-                displayController,
-                settingsCache,
-                mStatsLogFactory,
-            )
+        val systemUnderTest = SettingsChangeLogger.INSTANCE.get(context)
 
-        assertThat(systemUnderTest.loggingPrefs[ALLOW_ROTATION_PREFERENCE_KEY]!!.defaultValue)
-            .isFalse()
         assertThat(systemUnderTest.loggingPrefs[ADD_ICON_PREFERENCE_KEY]!!.defaultValue).isTrue()
         assertThat(systemUnderTest.loggingPrefs[OVERVIEW_SUGGESTED_ACTIONS]!!.defaultValue).isTrue()
         assertThat(systemUnderTest.loggingPrefs[KEY_ENABLE_MINUS_ONE]!!.defaultValue).isTrue()
     }
 
     @Test
+    @DesktopStability(flavors = LOCAL, bug = 486280752)
     fun logSnapshot_defaultValue() {
-        mSystemUnderTest.logSnapshot(mInstanceId)
+        SettingsChangeLogger.INSTANCE.get(context).apply {
+            // Wait for all the states in SettingsChangeLogger to get initialized
+            TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
+            logSnapshot(mInstanceId)
+        }
 
         verify(mMockLogger, atLeastOnce()).log(capture(mEventCaptor))
         val capturedEvents = mEventCaptor.allValues
         assertThat(capturedEvents.isNotEmpty()).isTrue()
         verifyDefaultEvent(capturedEvents)
-        assertThat(capturedEvents.any { it.id == LAUNCHER_HOME_SCREEN_ROTATION_DISABLED.id })
-            .isTrue()
-    }
-
-    @Test
-    fun logSnapshot_updateAllowRotation() {
-        LauncherPrefs.get(mContext).put(item = ALLOW_ROTATION, value = true)
-
-        // This a new object so the values of mLoggablePrefs will be different
-        SettingsChangeLogger(mContext, mTracker, displayController, settingsCache, mStatsLogFactory)
-            .logSnapshot(mInstanceId)
-
-        verify(mMockLogger, atLeastOnce()).log(capture(mEventCaptor))
-        val capturedEvents = mEventCaptor.allValues
-        assertThat(capturedEvents.isNotEmpty()).isTrue()
-        verifyDefaultEvent(capturedEvents)
-        assertThat(capturedEvents.any { it.id == LAUNCHER_HOME_SCREEN_ROTATION_ENABLED.id })
-            .isTrue()
     }
 
     private fun verifyDefaultEvent(capturedEvents: MutableList<StatsLogManager.EventEnum>) {

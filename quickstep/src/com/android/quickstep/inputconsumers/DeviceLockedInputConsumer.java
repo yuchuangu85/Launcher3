@@ -42,9 +42,9 @@ import android.window.TransitionInfo;
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.R;
 import com.android.launcher3.anim.AnimatedFloat;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
-import com.android.launcher3.util.DisplayController;
 import com.android.quickstep.GestureState;
 import com.android.quickstep.InputConsumer;
 import com.android.quickstep.MultiStateCallback;
@@ -54,7 +54,9 @@ import com.android.quickstep.RecentsAnimationDeviceState;
 import com.android.quickstep.RecentsAnimationTargets;
 import com.android.quickstep.RemoteAnimationTargets;
 import com.android.quickstep.RotationTouchHelper;
+import com.android.quickstep.SurfaceReleaseCheck;
 import com.android.quickstep.TaskAnimationManager;
+import com.android.quickstep.util.ActiveGestureLog;
 import com.android.quickstep.util.SurfaceTransaction.SurfaceProperties;
 import com.android.quickstep.util.TransformParams;
 import com.android.quickstep.util.TransformParams.BuilderProxy;
@@ -222,7 +224,8 @@ public class DeviceLockedInputConsumer implements InputConsumer,
                         // This will come back and cancel the interaction.
                         startHomeIntentSafely(mContext, mGestureState.getHomeIntent(), null, TAG);
                         mHomeLaunched = true;
-                    } else if (mTaskAnimationManager.getCurrentCallbacks() != null) {
+                    }
+                    if (mTaskAnimationManager.getCurrentCallbacks() != null) {
                         if (mRecentsAnimationController != null) {
                             finishRecentsAnimationForShell(dismissTask);
                         } else {
@@ -278,7 +281,10 @@ public class DeviceLockedInputConsumer implements InputConsumer,
 
     private void finishRecentsAnimationForShell(boolean dismissTask) {
         mCancelWhenRecentsStart = false;
-        mTaskAnimationManager.finishRunningRecentsAnimation(dismissTask /* toHome */);
+        mTaskAnimationManager.finishRunningRecentsAnimation(
+                /* toHome= */ dismissTask,
+                /* reason= */ new ActiveGestureLog.CompoundString(
+                        "DeviceLockedInputConsumer.finishRecentsAnimationForShell"));
         if (dismissTask) {
             mHomeLaunched = true;
         }
@@ -287,7 +293,11 @@ public class DeviceLockedInputConsumer implements InputConsumer,
     private void endRemoteAnimation() {
         if (!mHomeLaunched && mRecentsAnimationController != null) {
             mRecentsAnimationController.finishController(
-                    false /* toRecents */, null /* callback */, false /* sendUserLeaveHint */);
+                    /* toHome= */ false,
+                    /* callback= */ null,
+                    /* sendUserLeaveHint= */ false,
+                    /* reason= */ new ActiveGestureLog.CompoundString(
+                            "DeviceLockedInputConsumer.endRemoteAnimation"));
         }
     }
 
@@ -315,8 +325,7 @@ public class DeviceLockedInputConsumer implements InputConsumer,
         return !mThresholdCrossed;
     }
 
-    private static final class DeviceLockedReleaseCheck extends
-            RemoteAnimationTargets.ReleaseCheck {
+    private static final class DeviceLockedReleaseCheck extends SurfaceReleaseCheck {
 
         private DeviceLockedReleaseCheck(Animator animator) {
             setCanRelease(true);

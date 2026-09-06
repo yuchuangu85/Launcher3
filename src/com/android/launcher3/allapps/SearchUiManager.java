@@ -37,6 +37,11 @@ public interface SearchUiManager {
     void resetSearch();
 
     /**
+     * Returns whether or not the search query is empty.
+     */
+    boolean isSearchQueryEmpty();
+
+    /**
      * Called before dispatching a key event, in case the search manager wants to initialize
      * some UI beforehand.
      */

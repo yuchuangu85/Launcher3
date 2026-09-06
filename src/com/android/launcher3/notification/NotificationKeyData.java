@@ -18,8 +18,6 @@ package com.android.launcher3.notification;
 
 import android.app.Notification;
 import android.app.Person;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.service.notification.StatusBarNotification;
 
 import androidx.annotation.NonNull;
@@ -65,12 +63,8 @@ public class NotificationKeyData {
         if (people == null || people.isEmpty()) {
             return Utilities.EMPTY_STRING_ARRAY;
         }
-        if (Utilities.ATLEAST_P) {
-            return people.stream().filter(person -> person.getKey() != null)
-                    .map(Person::getKey).sorted().toArray(String[]::new);
-        } else {
-            return Utilities.EMPTY_STRING_ARRAY;
-        }
+        return people.stream().filter(person -> person.getKey() != null)
+                .map(Person::getKey).sorted().toArray(String[]::new);
     }
 
     @Override

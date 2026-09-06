@@ -13,12 +13,12 @@ import android.widget.Space
 import androidx.test.runner.AndroidJUnit4
 import com.android.launcher3.DeviceProfile
 import com.android.launcher3.R
-import com.android.launcher3.config.FeatureFlags.ENABLE_TASKBAR_NAVBAR_UNIFICATION
 import com.android.launcher3.deviceprofile.DeviceProperties
+import com.android.launcher3.deviceprofile.TaskbarConfiguration
 import com.android.launcher3.taskbar.navbutton.LayoutResourceHelper.ID_END_CONTEXTUAL_BUTTONS
 import com.android.launcher3.taskbar.navbutton.LayoutResourceHelper.ID_END_NAV_BUTTONS
 import com.android.launcher3.taskbar.navbutton.LayoutResourceHelper.ID_START_CONTEXTUAL_BUTTONS
-import org.junit.Assume.assumeTrue
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,6 +28,8 @@ import org.mockito.kotlin.whenever
 @RunWith(AndroidJUnit4::class)
 class NavButtonLayoutFactoryTest {
 
+    private val mockDeviceProperties: DeviceProperties = mock()
+    private val mockDeviceTaskbarConfiguration: TaskbarConfiguration = mock()
     private val mockDeviceProfile: DeviceProfile = mock()
     private val mockParentButtonContainer: NearestTouchFrame = mock()
     private val mockNavLayout: LinearLayout = mock()
@@ -39,6 +41,7 @@ class NavButtonLayoutFactoryTest {
     private val mockHomeButton: ImageView = mock()
     private val mockImeSwitcher: ImageView = mock()
     private val mockA11yButton: ImageView = mock()
+    private val mockMoreOptionsButton: ImageView = mock()
     private val mockSpace: Space = mock()
     private val mockConfiguration: Configuration = mock()
 
@@ -66,10 +69,16 @@ class NavButtonLayoutFactoryTest {
         whenever(mockConfiguration.layoutDirection).thenReturn(0)
     }
 
+    fun initializeIsTaskbarPresent(isTaskbarPresent: Boolean) {
+        whenever(mockDeviceProfile.deviceProperties).thenReturn(mockDeviceProperties)
+        whenever(mockDeviceProperties.taskbarConfiguration)
+            .thenReturn(mockDeviceTaskbarConfiguration)
+        whenever(mockDeviceTaskbarConfiguration.isTaskbarPresent).thenReturn(isTaskbarPresent)
+    }
+
     @Test
     fun getKidsLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = true
+        initializeIsTaskbarPresent(true)
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
                 isKidsMode = true,
@@ -83,8 +92,7 @@ class NavButtonLayoutFactoryTest {
 
     @Test
     fun getSetupLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = true
+        initializeIsTaskbarPresent(true)
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
                 isKidsMode = false,
@@ -98,8 +106,7 @@ class NavButtonLayoutFactoryTest {
 
     @Test
     fun getTaskbarNavLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = true
+        initializeIsTaskbarPresent(true)
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
                 isKidsMode = false,
@@ -111,23 +118,23 @@ class NavButtonLayoutFactoryTest {
         assert(layoutter is TaskbarNavLayoutter)
     }
 
-    @Test(expected = IllegalStateException::class)
+    @Test
     fun noValidLayoutForLargeScreenTaskbarNotPresent() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = false
-        getLayoutter(
-            isKidsMode = false,
-            isInSetup = false,
-            isThreeButtonNav = false,
-            phoneMode = false,
-            surfaceRotation = surfaceRotation,
-        )
+        initializeIsTaskbarPresent(false)
+        assertThrows(IllegalStateException::class.java) {
+            getLayoutter(
+                isKidsMode = false,
+                isInSetup = false,
+                isThreeButtonNav = false,
+                phoneMode = false,
+                surfaceRotation = surfaceRotation,
+            )
+        }
     }
 
     @Test
     fun getTaskbarPortraitLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = false
+        initializeIsTaskbarPresent(false)
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
                 isKidsMode = false,
@@ -141,8 +148,7 @@ class NavButtonLayoutFactoryTest {
 
     @Test
     fun getTaskbarLandscapeLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = false
+        initializeIsTaskbarPresent(false)
         setDeviceProfileLandscape()
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
@@ -157,8 +163,7 @@ class NavButtonLayoutFactoryTest {
 
     @Test
     fun getTaskbarSeascapeLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = false
+        initializeIsTaskbarPresent(false)
         setDeviceProfileLandscape()
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
@@ -173,8 +178,8 @@ class NavButtonLayoutFactoryTest {
 
     @Test
     fun getTaskbarPhoneGestureNavLayoutter() {
-        assumeTrue(ENABLE_TASKBAR_NAVBAR_UNIFICATION)
-        mockDeviceProfile.isTaskbarPresent = false
+        initializeIsTaskbarPresent(false)
+
         val layoutter: NavButtonLayoutFactory.NavButtonLayoutter =
             getLayoutter(
                 isKidsMode = false,
@@ -208,6 +213,7 @@ class NavButtonLayoutFactoryTest {
             surfaceRotation = surfaceRotation,
             imeSwitcher = mockImeSwitcher,
             a11yButton = mockA11yButton,
+            moreOptionsButton = mockMoreOptionsButton,
             space = mockSpace,
         )
     }

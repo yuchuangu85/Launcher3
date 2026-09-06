@@ -36,13 +36,13 @@ import android.os.UserHandle;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
-import com.android.launcher3.Utilities;
-import com.android.launcher3.icons.cache.BaseIconCache;
 import com.android.launcher3.icons.cache.CachedObject;
+import com.android.launcher3.icons.cache.IconLoadRequest;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.PackageUserKey;
@@ -89,9 +89,6 @@ public abstract class ShortcutConfigActivityInfo implements CachedObject {
     public int getItemType() {
         return LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
     }
-
-    @Override
-    public abstract Drawable getFullResIcon(BaseIconCache cache);
 
     /**
      * Return a WorkspaceItemInfo, if it can be created directly on drop, without requiring any
@@ -149,12 +146,8 @@ public abstract class ShortcutConfigActivityInfo implements CachedObject {
         }
 
         @Override
-        public Drawable getFullResIcon(BaseIconCache cache) {
-            if (Utilities.ATLEAST_S) {
-                return cache.getFullResIcon(mInfo.getActivityInfo());
-            } else {
-                return cache.getFullResIcon(mInfo.getComponentName().getPackageName());
-            }
+        public Drawable getFullResIcon(@NonNull IconLoadRequest<CachedObject> request) {
+            return request.getIcon(mInfo.getActivityInfo());
         }
 
         @Override

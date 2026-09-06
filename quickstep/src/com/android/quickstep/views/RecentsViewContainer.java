@@ -16,6 +16,7 @@
 
 package com.android.quickstep.views;
 
+import android.animation.Animator;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.LocusId;
@@ -25,20 +26,23 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 
+import androidx.annotation.AnyThread;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.BaseActivity;
 import com.android.launcher3.logger.LauncherAtom;
-import com.android.launcher3.taskbar.TaskbarUIController;
+import com.android.launcher3.taskbar.RecentsViewInteractor;
+import com.android.launcher3.taskbar.TaskbarInteractor;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimView;
 import com.android.quickstep.BaseContainerInterface;
-import com.android.quickstep.util.SplitSelectStateController;
+import com.android.quickstep.fallback.RecentsState;
+import com.android.quickstep.split.SplitSelectStateController;
 
 /**
  * Interface to be implemented by the parent view of RecentsView
  */
-public interface RecentsViewContainer extends ActivityContext {
+public interface RecentsViewContainer extends ActivityContext, RecentsViewContainerInteractor {
 
     /**
      * Returns an instance of an implementation of RecentsViewContainer
@@ -68,6 +72,25 @@ public interface RecentsViewContainer extends ActivityContext {
      * Returns the Overview Panel as a View
      */
     <T extends View> T getOverviewPanel();
+
+    @AnyThread
+    default RecentsViewInteractor getRecentsViewInteractor(
+            @Nullable RecentsViewInteractor oldInteractor) {
+        View overviewPanel = getOverviewPanel();
+        if (overviewPanel == null) {
+            return null;
+        }
+
+        if (!(overviewPanel instanceof RecentsView<?, ?> recentsView)) {
+            return null;
+        }
+
+        if (oldInteractor != null && oldInteractor.hasSameRecentsView(recentsView)) {
+            return oldInteractor;
+        }
+
+        return new RecentsViewInteractor(recentsView);
+    }
 
     /**
      * @see Window.Callback#dispatchGenericMotionEvent(MotionEvent)
@@ -124,32 +147,9 @@ public interface RecentsViewContainer extends ActivityContext {
     void removeEventCallback(@BaseActivity.ActivityEvent int event, Runnable callback);
 
     /**
-     * @see com.android.quickstep.util.TISBindHelper#runOnBindToTouchInteractionService(Runnable)
-     * @param r runnable to be executed upon event
+     * Begins transition from overview back to homescreen after clicking freeform shortuct.
      */
-    void runOnBindToTouchInteractionService(Runnable r);
-
-    /**
-     * @see
-     * BaseActivity#addMultiWindowModeChangedListener(BaseActivity.MultiWindowModeChangedListener)
-     * @param listener {@link BaseActivity.MultiWindowModeChangedListener}
-     */
-    void addMultiWindowModeChangedListener(
-            BaseActivity.MultiWindowModeChangedListener listener);
-
-    /**
-     * @see
-     * BaseActivity#removeMultiWindowModeChangedListener(
-     * BaseActivity.MultiWindowModeChangedListener)
-     * @param listener {@link BaseActivity.MultiWindowModeChangedListener}
-     */
-    void removeMultiWindowModeChangedListener(
-            BaseActivity.MultiWindowModeChangedListener listener);
-
-    /**
-     * Begins transition from overview back to homescreen
-     */
-    void returnToHomescreen();
+    void returnToHomescreenAfterFreeformShortcut();
 
     /**
      * True if the overview panel is visible.
@@ -158,11 +158,9 @@ public interface RecentsViewContainer extends ActivityContext {
     boolean isRecentsViewVisible();
 
     /**
-     * Begins transition to start home through container
+     * Begins transition to start home through container.
      */
-    default void startHome(){
-        // no op
-    }
+    void startHome(boolean animated, @Nullable Runnable onHomeAnimationComplete);
 
     /**
      * Checks container to see if we can start home transition safely
@@ -202,12 +200,20 @@ public interface RecentsViewContainer extends ActivityContext {
                         .build());
     }
 
-    void setTaskbarUIController(@Nullable TaskbarUIController taskbarUIController);
-
-    @Nullable TaskbarUIController getTaskbarUIController();
+    @Nullable TaskbarInteractor getTaskbarInteractor();
 
     /**
      * Returns the Split Select State Controller
      */
     SplitSelectStateController getSplitSelectStateController();
+
+    /**
+     * Changes the state to the provided {@link RecentsState} or equivalent.
+     *
+     * @param animated false if the state should change immediately without any animation,
+     *                true otherwise
+     * @param listener a callback that is invoked after the state change logic completes.
+     */
+    void goToRecentsState(RecentsState recentsState, boolean animated,
+            Animator.AnimatorListener listener);
 }

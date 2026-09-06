@@ -15,13 +15,12 @@
 ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ** See the License for the specific language governing permissions and
 ** limitations under the License.
-**
-** Modifications copyright 2021, Lawnchair
 */
 -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.android.launcher3">
 
     <!--
     The manifest defines the common entries that should be present in any derivative of Launcher3.
@@ -41,42 +40,25 @@
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
-    <uses-permission android:name="android.permission.ACCESS_RESTRICTED_SETTINGS" />
-    
-    <!-- for rotating surface by arbitrary degree -->
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- for rotating surface by arbitrary degree -->
     <uses-permission android:name="android.permission.ROTATE_SURFACE_FLINGER" />
     <uses-permission android:name="android.permission.WAKEUP_SURFACE_FLINGER" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.LOCK_APPS"
+                     android:featureFlag="android.security.app_lock_apis" />
+    <uses-permission android:name="com.android.systemui.permission.LAUNCH_ACCESSIBILITY_SHORTCUT_CHOOSER_DIALOG" />
 
-    <!--
-    Permissions required for read/write access to the workspace data. These permission name
-    should not conflict with that defined in other apps, as such an app should embed its package
-    name in the permissions. eq com.mypackage.permission.READ_SETTINGS
-    -->
-    <permission
-        android:name="${applicationId}.permission.READ_SETTINGS"
-        android:protectionLevel="signatureOrSystem"
-        android:label="@string/permlab_read_settings"
-        android:description="@string/permdesc_read_settings"/>
-    <permission
-        android:name="${applicationId}.permission.WRITE_SETTINGS"
-        android:protectionLevel="signatureOrSystem"
-        android:label="@string/permlab_write_settings"
-        android:description="@string/permdesc_write_settings"/>
     <permission
         android:name="${applicationId}.permission.GRID_CONTROL"
         android:knownCerts="@array/grid_control_known_signers"
         android:protectionLevel="signature|knownSigner"/>
 
-    <uses-permission android:name="${applicationId}.permission.READ_SETTINGS" />
-    <uses-permission android:name="${applicationId}.permission.WRITE_SETTINGS" />
     <uses-permission android:name="${applicationId}.permission.GRID_CONTROL" />
 
     <application
         android:backupAgent="com.android.launcher3.LauncherBackupAgent"
-        android:name="app.lawnchair.LawnchairApp"
+        android:name="com.android.launcher3.LauncherApplication"
         android:fullBackupOnly="true"
         android:backupInForeground="true"
         android:fullBackupContent="@xml/backupscheme"
@@ -85,8 +67,7 @@
         android:label="@string/derived_app_name"
         android:largeHeap="@bool/config_largeHeap"
         android:restoreAnyVersion="true"
-        android:supportsRtl="true"
-        tools:replace="android:label">
+        android:supportsRtl="true" >
 
         <!-- Intent received when a session is committed -->
         <receiver
@@ -138,8 +119,8 @@
             android:name="com.android.launcher3.LauncherProvider"
             android:authorities="${applicationId}.settings"
             android:exported="true"
-            android:writePermission="${applicationId}.permission.WRITE_SETTINGS"
-            android:readPermission="${applicationId}.permission.READ_SETTINGS" />
+            android:writePermission="android.permission.ACCESS_LAUNCHER_DATA"
+            android:readPermission="android.permission.ACCESS_LAUNCHER_DATA" />
 
         <!--
           The content provider for exposing various launcher grid options.
@@ -158,10 +139,11 @@
         <activity
             android:name="com.android.launcher3.settings.SettingsActivity"
             android:label="@string/settings_button_text"
+            android:icon="@drawable/ic_setting"
             android:theme="@style/HomeSettings.Theme"
             android:exported="true"
             android:autoRemoveFromRecents="true">
-            <intent-filter android:priority="-1">
+            <intent-filter>
                 <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -200,5 +182,30 @@
         <property
             android:name="android.window.PROPERTY_ACTIVITY_EMBEDDING_SPLITS_ENABLED"
             android:value="true" />
+
+        <activity
+            android:name="com.android.launcher3.organizer.creation.screen.ui.OrganizerActivity"
+            android:autoRemoveFromRecents="true"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/OrganizerTheme">
+            <intent-filter>
+                <action android:name="com.android.launcher3.ORGANIZER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.android.launcher3.organizer.creation.screen.ui.foldercreator.FolderCreatorActivity"
+            android:autoRemoveFromRecents="true"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/FolderCreatorTheme">
+            <intent-filter>
+                <action android:name="com.android.launcher3.FOLDER_CREATION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
     </application>
 </manifest>

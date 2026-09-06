@@ -17,6 +17,7 @@ package com.android.launcher3.taskbar.bubbles;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
+import android.graphics.Rect;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,9 +30,9 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import com.android.launcher3.R;
 import com.android.launcher3.taskbar.TaskbarActivityContext;
 import com.android.launcher3.taskbar.TaskbarDragLayer;
+import com.android.wm.shell.Flags;
 import com.android.wm.shell.shared.bubbles.DismissView;
 import com.android.wm.shell.shared.magnetictarget.MagnetizedObject;
-
 
 /**
  * Controls dismiss view presentation for the bubble bar dismiss functionality.
@@ -152,9 +153,15 @@ public class BubbleDismissController {
     }
 
     private void setupDismissView() {
-        if (mDismissView != null) return;
+        if (mDismissView != null) {
+            if (Flags.bubbleDismissMagnetizeCollisionPrevention()) {
+                BubbleDismissViewUtils.setup(mDismissView, isDismissViewIntersectingBarOnXAxis());
+            }
+            return;
+        }
         mDismissView = new DismissView(mActivity.getApplicationContext());
-        BubbleDismissViewUtils.setup(mDismissView);
+        BubbleDismissViewUtils.setup(mDismissView, isDismissViewIntersectingBarOnXAxis()
+                && Flags.bubbleDismissMagnetizeCollisionPrevention());
         mDragLayer.addView(mDismissView, /* index = */ 0,
                 new FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
         mDismissView.setElevation(mDismissView.getResources().getDimensionPixelSize(
@@ -162,10 +169,33 @@ public class BubbleDismissController {
         setupMagneticTarget(mDismissView.getCircle());
     }
 
+    /**
+     * Checks whether the dismiss view's magnetic field intersects with the bubble bar on the X
+     * axis.
+     */
+    private boolean isDismissViewIntersectingBarOnXAxis() {
+        BubbleControllers bubbleControllers = mActivity.getBubbleControllers();
+        if (bubbleControllers == null) {
+            return false;
+        }
+        Rect bubbleBarBounds = bubbleControllers.bubbleBarViewController.getBubbleBarBounds();
+        int screenWidth = mActivity.getScreenSize().x;
+        int circleViewWidth = mActivity.getResources()
+                .getDimensionPixelSize(R.dimen.bubblebar_dismiss_target_size);
+        int circleLeft = screenWidth / 2 - circleViewWidth / 2;
+        int circleRight = screenWidth / 2 + circleViewWidth / 2;
+        // Intersection will starts with the max left and ends with the min right
+        int intersectionLeft = Math.max(bubbleBarBounds.left, circleLeft);
+        int intersectionRight = Math.min(bubbleBarBounds.right, circleRight);
+        // If intersectionLeft <= intersectionRight, there is a valid intersection
+        return intersectionLeft <= intersectionRight;
+    }
+
     private void setupMagneticTarget(@NonNull View view) {
-        int magneticFieldRadius = mActivity.getResources().getDimensionPixelSize(
+        int magneticFieldDiameter = mActivity.getResources().getDimensionPixelSize(
                 R.dimen.bubblebar_dismiss_target_size);
-        mMagneticTarget = new MagnetizedObject.MagneticTarget(view, magneticFieldRadius);
+        mMagneticTarget = new MagnetizedObject.MagneticTarget(view,
+                /* magneticFieldRadiusPx = */ magneticFieldDiameter);
     }
 
     private void setupMagnetizedObject(@NonNull View magnetizedView) {

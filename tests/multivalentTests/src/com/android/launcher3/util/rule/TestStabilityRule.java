@@ -21,6 +21,7 @@ import static org.junit.Assume.assumeTrue;
 
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
@@ -56,6 +57,8 @@ public class TestStabilityRule implements TestRule {
     public static final int PLATFORM_PRESUBMIT = 0x8;
     public static final int PLATFORM_POSTSUBMIT = 0x10;
 
+    private static final boolean sIsDesktop = SystemProperties
+            .get("ro.build.characteristics").contains("desktop");
     private static int sRunFlavor;
 
     @Retention(RetentionPolicy.RUNTIME)
@@ -64,8 +67,43 @@ public class TestStabilityRule implements TestRule {
         int flavors();
     }
 
+    /**
+     * A desktop-only alternative to {@link Stability} for excluding tests from specific run
+     * flavors.
+     * <p>
+     * On desktop builds, this annotation takes precedence over {@link Stability}. If both are
+     * present on a test method, {@link Stability} is ignored.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface DesktopStability {
+        /**
+         * Bitmask of allowed run flavors ({@link TestStabilityRule#LOCAL},
+         * {@link TestStabilityRule#PLATFORM_PRESUBMIT},
+         * {@link TestStabilityRule#PLATFORM_POSTSUBMIT}).
+         */
+        int flavors();
+
+        /**
+         * Buganizer bug id.
+         */
+        long bug();
+    }
+
     @Override
     public Statement apply(Statement base, Description description) {
+        final DesktopStability desktopStability = description.getAnnotation(DesktopStability.class);
+        if (sIsDesktop && desktopStability != null) {
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    assumeTrue("Ignoring the test due to @DesktopStability annotation",
+                            (desktopStability.flavors() & getRunFlavor()) != 0);
+                    base.evaluate();
+                }
+            };
+        }
+
         final Stability stability = description.getAnnotation(Stability.class);
         if (stability != null) {
             return new Statement() {
@@ -76,9 +114,9 @@ public class TestStabilityRule implements TestRule {
                     base.evaluate();
                 }
             };
-        } else {
-            return base;
         }
+
+        return base;
     }
 
     public static int getRunFlavor() {

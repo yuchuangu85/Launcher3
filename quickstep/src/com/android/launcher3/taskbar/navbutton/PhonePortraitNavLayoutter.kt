@@ -29,21 +29,29 @@ import com.android.launcher3.taskbar.TaskbarActivityContext
 
 class PhonePortraitNavLayoutter(
     resources: Resources,
-    navBarContainer: LinearLayout,
+    navButtonContainer: LinearLayout,
     endContextualContainer: ViewGroup,
     startContextualContainer: ViewGroup,
     imeSwitcher: ImageView?,
     a11yButton: ImageView?,
+    moreOptionsButton: ImageView?,
     space: Space?,
+    backButton: ImageView?,
+    homeButton: ImageView?,
+    recentsButton: ImageView?,
 ) :
     AbstractNavButtonLayoutter(
         resources,
-        navBarContainer,
+        navButtonContainer,
         endContextualContainer,
         startContextualContainer,
         imeSwitcher,
         a11yButton,
+        moreOptionsButton,
         space,
+        backButton,
+        homeButton,
+        recentsButton,
     ) {
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
@@ -75,12 +83,7 @@ class PhonePortraitNavLayoutter(
         }
 
         // Ensure order of buttons is correct
-        navButtonContainer.removeAllViews()
-        navButtonContainer.orientation = LinearLayout.HORIZONTAL
-
-        navButtonContainer.addView(backButton)
-        navButtonContainer.addView(homeButton)
-        navButtonContainer.addView(recentsButton)
+        addThreeButtons()
 
         navButtonContainer.layoutParams = navContainerParams
         navButtonContainer.gravity = Gravity.CENTER

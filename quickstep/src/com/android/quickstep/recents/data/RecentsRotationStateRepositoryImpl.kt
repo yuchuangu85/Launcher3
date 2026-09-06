@@ -17,18 +17,20 @@
 package com.android.quickstep.recents.data
 
 import com.android.quickstep.util.RecentsOrientedState
+import javax.inject.Inject
 
 /**
  * Repository for [RecentsRotationState] which holds orientation/rotation related information
  * related to Recents
  */
-class RecentsRotationStateRepositoryImpl(private val state: RecentsOrientedState) :
-    RecentsRotationStateRepository {
+class RecentsRotationStateRepositoryImpl
+@Inject
+constructor(private val state: RecentsOrientedState) : RecentsRotationStateRepository {
     override fun getRecentsRotationState() =
         with(state) {
             RecentsRotationState(
                 activityRotation = recentsActivityRotation,
-                orientationHandlerRotation = orientationHandler.rotation
+                orientationHandlerRotation = orientationHandler.rotation,
             )
         }
 }

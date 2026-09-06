@@ -19,12 +19,30 @@ package com.android.launcher3.util
 import com.android.launcher3.Flags
 
 object OverviewReleaseFlags {
-    private fun enableOverviewNewLayout() =
-        Flags.enableRefactorTaskThumbnail() &&
-            Flags.enableOverviewIconMenu() &&
-            Flags.enableGridOnlyOverview()
 
-    @JvmStatic fun enableOverviewIconMenu() = enableOverviewNewLayout()
+    @JvmStatic fun enableOverviewPagination() = Flags.enableOverviewPagination()
 
-    @JvmStatic fun enableGridOnlyOverview() = enableOverviewNewLayout()
+    @JvmStatic fun enablePredictiveBackInOverview() = Flags.enablePredictiveBackInOverview()
+
+    @JvmStatic
+    fun enableSimultaneousOverviewTriggerOnExtendedDesktop() =
+        Flags.enableSimultaneousOverviewTriggerOnExtendedDesktop()
+
+    @JvmStatic
+    fun enableOverviewDesktopTileWallpaperBackground() =
+        Flags.enableOverviewDesktopTileWallpaperBackground()
+
+    @JvmStatic fun enableLaterIsLockedCheck() = Flags.enableLaterIsLockedCheck()
+
+    @JvmStatic fun enableOverviewSelectTextView() = Flags.enableOverviewSelectTextView()
+
+    @JvmStatic fun enableTasksDragAndDropInOverview() = Flags.enableTasksDragAndDropInOverview()
+
+    @JvmStatic fun enableRecentsWindowBlur() = Flags.enableRecentsWindowBlur()
+
+    @JvmStatic fun enableLauncherOverviewInWindow() = Flags.enableLauncherOverviewInWindow()
+
+    @JvmStatic fun enableFallbackOverviewInWindow() = Flags.enableFallbackOverviewInWindow()
+
+    @JvmStatic fun enableSaveActionInOverviewShare() = Flags.enableSaveActionInOverviewShare()
 }

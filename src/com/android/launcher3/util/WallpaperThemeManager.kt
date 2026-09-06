@@ -20,16 +20,12 @@ import android.app.Activity
 import android.content.ComponentCallbacks
 import android.content.res.Configuration
 import android.os.Bundle
-import app.lawnchair.theme.ThemeProvider
-import app.lawnchair.wallpaper.WallpaperManagerCompat
 import com.android.launcher3.LauncherConstants.SavedInstanceKeys.RUNTIME_STATE_RECREATE_TO_UPDATE_THEME
 import com.android.launcher3.R
-import com.android.launcher3.Utilities
 
 /** Utility class to manage activity's theme in case it is wallpaper dependent */
 class WallpaperThemeManager(private val activity: Activity) :
-    OnColorHintListener, ActivityLifecycleCallbacksAdapter, ComponentCallbacks,
-    WallpaperManagerCompat.OnColorsChangedListener {
+    OnColorHintListener, ActivityLifecycleCallbacksAdapter, ComponentCallbacks {
 
     private var themeRes: Int = R.style.AppTheme
 
@@ -37,7 +33,6 @@ class WallpaperThemeManager(private val activity: Activity) :
 
     init {
         // Update theme
-        WallpaperManagerCompat.INSTANCE.get(activity).addOnChangeListener(this);
         WallpaperColorHints.get(activity).registerOnColorHintsChangedListener(this)
         val expectedTheme = Themes.getActivityThemeRes(activity)
         if (expectedTheme != themeRes) {
@@ -45,21 +40,15 @@ class WallpaperThemeManager(private val activity: Activity) :
             activity.setTheme(expectedTheme)
         }
 
-        if (Utilities.ATLEAST_Q) {
-            activity.registerActivityLifecycleCallbacks(this)
-        } else {
-            activity.application.registerActivityLifecycleCallbacks(this)
-        }
+        activity.registerActivityLifecycleCallbacks(this)
         activity.registerComponentCallbacks(this)
     }
 
     override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) =
         bundle.putBoolean(RUNTIME_STATE_RECREATE_TO_UPDATE_THEME, recreateToUpdateTheme)
 
-    override fun onActivityDestroyed(unused: Activity) {
-        WallpaperManagerCompat.INSTANCE.get(activity).removeOnChangeListener(this);
+    override fun onActivityDestroyed(unused: Activity) =
         WallpaperColorHints.get(activity).unregisterOnColorsChangedListener(this)
-    }
 
     override fun onConfigurationChanged(config: Configuration) = updateTheme()
 
@@ -67,7 +56,7 @@ class WallpaperThemeManager(private val activity: Activity) :
 
     override fun onColorHintsChanged(colorHints: Int) = updateTheme()
 
-    fun updateTheme() {
+    private fun updateTheme() {
         if (themeRes != Themes.getActivityThemeRes(activity)) {
             recreateToUpdateTheme()
         }
@@ -76,10 +65,6 @@ class WallpaperThemeManager(private val activity: Activity) :
     fun recreateToUpdateTheme() {
         recreateToUpdateTheme = true
         activity.recreate()
-    }
-
-    override fun onColorsChanged() {
-        updateTheme()
     }
 
     companion object {

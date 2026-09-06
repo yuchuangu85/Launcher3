@@ -197,8 +197,23 @@ public final class KeyboardQuickSwitch {
      * @param expectedPackageName the package name of the expected launched app
      */
     public LaunchedAppState launchFocusedAppTask(@NonNull String expectedPackageName) {
+        return launchFocusedAppTask(expectedPackageName, null);
+    }
+
+    /**
+     * Launches the currently-focused app task.
+     * <p>
+     * This method should only be used if the focused task is for a recent running app, otherwise
+     * use {@link #launchFocusedOverviewTask()}.
+     *
+     * @param expectedPackageName the package name of the expected launched app
+     * @param expectedVisibleText the uniquely identifying text expected to be visible in the
+     *                            launched app
+     */
+    public LaunchedAppState launchFocusedAppTask(
+            @NonNull String expectedPackageName, @Nullable String expectedVisibleText) {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
-            return (LaunchedAppState) launchFocusedTask(expectedPackageName);
+            return (LaunchedAppState) launchFocusedTask(expectedPackageName, expectedVisibleText);
         }
     }
 
@@ -210,18 +225,20 @@ public final class KeyboardQuickSwitch {
      */
     public Overview launchFocusedOverviewTask() {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
-            return (Overview) launchFocusedTask(null);
+            return (Overview) launchFocusedTask(null, null);
         }
     }
 
     private LauncherInstrumentation.VisibleContainer launchFocusedTask(
-            @Nullable String expectedPackageName) {
+            @Nullable String expectedPackageName, @Nullable String expectedVisibleText) {
         try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
                 "want to launch focused task: "
                         + (expectedPackageName == null ? "Overview" : expectedPackageName))) {
             mLauncher.expectEvent(TestProtocol.SEQUENCE_MAIN, EVENT_KQS_ALT_LEFT_UP);
 
-            if (expectedPackageName == null || !mIsHomeState) {
+            if (expectedPackageName == null
+                    || !mIsHomeState
+                    || mLauncher.getLauncherPackageName().equals(expectedPackageName)) {
                 mLauncher.unpressKeyCode(KeyEvent.KEYCODE_ALT_LEFT, 0);
             } else {
                 mLauncher.executeAndWaitForLauncherStop(
@@ -234,7 +251,7 @@ public final class KeyboardQuickSwitch {
                 mLauncher.waitUntilLauncherObjectGone(KEYBOARD_QUICK_SWITCH_RES_ID);
 
                 if (expectedPackageName != null) {
-                    mLauncher.assertAppLaunched(expectedPackageName);
+                    mLauncher.assertAppLaunched(expectedPackageName, expectedVisibleText);
                     return mLauncher.getLaunchedAppState();
                 } else {
                     return mLauncher.getOverview();

@@ -18,7 +18,6 @@ package com.android.launcher3.taskbar;
 import static android.view.KeyEvent.ACTION_UP;
 import static android.view.KeyEvent.KEYCODE_BACK;
 
-import static com.android.launcher3.config.FeatureFlags.ENABLE_TASKBAR_NAVBAR_UNIFICATION;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -28,7 +27,6 @@ import android.util.AttributeSet;
 import android.util.FloatProperty;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 
@@ -37,9 +35,8 @@ import androidx.annotation.Nullable;
 import androidx.core.graphics.Insets;
 import androidx.core.view.WindowInsetsCompat;
 
-//import com.android.app.viewcapture.ViewCaptureFactory;
+import com.android.app.viewcapture.ViewCaptureFactory;
 import com.android.launcher3.AbstractFloatingView;
-import com.android.launcher3.Utilities;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.util.MultiPropertyFactory;
@@ -144,25 +141,21 @@ public class TaskbarDragLayer extends BaseDragLayer<TaskbarActivityContext> {
     }
 
     protected void onDestroy() {
-        onDestroy(!ENABLE_TASKBAR_NAVBAR_UNIFICATION);
+        onDestroy(false /*forceDestroy*/);
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         getViewTreeObserver().addOnComputeInternalInsetsListener(mTaskbarInsetsComputer);
-//        if (Utilities.ATLEAST_U) {
-//            mViewCaptureCloseable = SettingsAwareViewCapture.getInstance(getContext())
-//                    .startCapture(getRootView(), ".Taskbar");
-//        }
+        mViewCaptureCloseable = ViewCaptureFactory.getInstance(getContext())
+                .startCapture(getRootView(), ".Taskbar");
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (Utilities.ATLEAST_U) {
-            mViewCaptureCloseable.close();
-        }
+        mViewCaptureCloseable.close();
         onDestroy(true);
     }
 
@@ -183,18 +176,10 @@ public class TaskbarDragLayer extends BaseDragLayer<TaskbarActivityContext> {
     }
 
     @Override
-    public void onViewRemoved(View child) {
-        super.onViewRemoved(child);
-        if (mControllerCallbacks != null) {
-            mControllerCallbacks.onDragLayerViewRemoved();
-        }
-    }
-
-    @Override
     protected void dispatchDraw(Canvas canvas) {
         if (mContainer.isDestroyed()) return;
         float backgroundHeight = mControllerCallbacks.getTaskbarBackgroundHeight()
-                * (1f - mTaskbarBackgroundOffset);
+                * Math.max(1f - mTaskbarBackgroundOffset, 0f);
         mBackgroundRenderer.setBackgroundHeight(backgroundHeight);
         mBackgroundRenderer.setBackgroundProgress(mTaskbarBackgroundProgress);
         mBackgroundRenderer.draw(canvas);
@@ -281,7 +266,11 @@ public class TaskbarDragLayer extends BaseDragLayer<TaskbarActivityContext> {
     /** Called while Taskbar window is focusable, e.g. when pressing back while a folder is open */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == ACTION_UP && event.getKeyCode() == KEYCODE_BACK) {
+        final boolean backEvent =
+                event.getAction() == ACTION_UP && event.getKeyCode() == KEYCODE_BACK;
+        final boolean escEvent = event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_ESCAPE && event.hasNoModifiers();
+        if (backEvent || escEvent) {
             AbstractFloatingView topView = AbstractFloatingView.getTopOpenView(mContainer);
             if (topView != null && topView.canHandleBack()) {
                 topView.onBackInvoked();

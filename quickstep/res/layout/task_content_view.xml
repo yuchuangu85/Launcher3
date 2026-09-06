@@ -19,7 +19,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:importantForAccessibility="no"
-    app:focusBorderColor="@color/materialColorOutline"
+    app:focusBorderColor="@color/materialColorSecondary"
     app:hoverBorderColor="@color/materialColorPrimary">
 
     <ViewStub

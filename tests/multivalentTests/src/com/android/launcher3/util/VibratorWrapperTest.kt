@@ -36,7 +36,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import org.mockito.MockitoAnnotations
+import org.mockito.junit.MockitoJUnit
 import org.mockito.kotlin.never
 import org.mockito.kotlin.same
 
@@ -49,17 +49,20 @@ class VibratorWrapperTest {
     @get:Rule val context = SandboxApplication()
     @Captor private lateinit var vibrationEffectCaptor: ArgumentCaptor<VibrationEffect>
     @Mock private lateinit var tracker: DaggerSingletonTracker
+    private val listenableRef = MutableListenableRef(true)
     private lateinit var underTest: VibratorWrapper
+
+    @get:Rule val mockitoRule = MockitoJUnit.rule()
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
         vibrator = context.spyService(Vibrator::class.java)
-        `when`(settingsCache.getValue(HAPTIC_FEEDBACK_URI, 0)).thenReturn(true)
+        `when`(settingsCache.getValue(HAPTIC_FEEDBACK_URI)).thenReturn(true)
         `when`(vibrator.hasVibrator()).thenReturn(true)
         `when`(vibrator.areAllPrimitivesSupported(PRIMITIVE_TICK)).thenReturn(true)
         `when`(vibrator.areAllPrimitivesSupported(PRIMITIVE_LOW_TICK)).thenReturn(true)
         `when`(vibrator.getPrimitiveDurations(PRIMITIVE_LOW_TICK)).thenReturn(intArrayOf(10))
+        `when`(settingsCache.getListenableRef(HAPTIC_FEEDBACK_URI)).thenReturn(listenableRef)
 
         underTest = VibratorWrapper(context, settingsCache, tracker)
     }
@@ -67,7 +70,7 @@ class VibratorWrapperTest {
     @Test
     fun init_register_onChangeListener() {
         TestUtil.runOnExecutorSync(Executors.MAIN_EXECUTOR) {}
-        verify(settingsCache).register(HAPTIC_FEEDBACK_URI, underTest.mHapticChangeListener)
+        verify(settingsCache).getListenableRef(HAPTIC_FEEDBACK_URI)
     }
 
     @Test

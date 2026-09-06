@@ -34,13 +34,13 @@
         android:layout_height="match_parent"
         android:clipChildren="false">
 
-        <app.lawnchair.views.LawnchairScrimView
+        <com.android.launcher3.views.ScrimView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/scrim_view"
             android:background="@android:color/transparent" />
 
-        <com.android.quickstep.fallback.FallbackRecentsView
+        <ViewStub
             android:id="@id/overview_panel"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -51,6 +51,11 @@
         <include
             android:id="@+id/overview_actions_view"
             layout="@layout/overview_actions_container" />
+
+        <include
+            android:id="@+id/empty_recents_message_view"
+            layout="@layout/overview_empty_recents_message"
+            android:visibility="gone"/>
 
     </com.android.quickstep.fallback.RecentsDragLayer>
 </com.android.launcher3.LauncherRootView>

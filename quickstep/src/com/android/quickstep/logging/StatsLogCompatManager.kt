@@ -16,6 +16,9 @@
 package com.android.quickstep.logging
 
 import android.content.Context
+import android.net.Uri
+import android.provider.Settings.Secure
+import android.uilatencystats.UiLatencyStatsManager
 import android.util.Log
 import android.util.StatsEvent
 import android.view.Surface
@@ -23,9 +26,11 @@ import android.view.View
 import androidx.annotation.WorkerThread
 import androidx.slice.SliceItem
 import com.android.internal.jank.Cuj
-import com.android.launcher3.LauncherAppState
+import com.android.launcher3.LauncherModel
 import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.Utilities
+import com.android.launcher3.dagger.ApplicationContext
+import com.android.launcher3.display.DisplayController
 import com.android.launcher3.logger.LauncherAtom
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo.ContainerCase.ALL_APPS_CONTAINER
@@ -59,30 +64,40 @@ import com.android.launcher3.logger.LauncherAtomExtensions.DeviceSearchResultCon
 import com.android.launcher3.logger.LauncherAtomExtensions.ExtendedContainers.ContainerCase.DEVICE_SEARCH_RESULT_CONTAINER
 import com.android.launcher3.logging.InstanceId
 import com.android.launcher3.logging.StatsLogManager
+import com.android.launcher3.logging.StatsLogManager.Companion.LAUNCHER_STATE_UNSPECIFIED
+import com.android.launcher3.logging.StatsLogManager.EventEnum
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_VERTICAL_SWIPE_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_VERTICAL_SWIPE_END
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_LOCK_ANIMATION_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_LOCK_ANIMATION_END
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_UNLOCK_ANIMATION_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_UNLOCK_ANIMATION_END
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_BEGIN
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_END
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_BEGIN
+import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_END
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORKSPACE_SNAPSHOT
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_UTILITY_VIEW_EXPAND_ANIMATION_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_UTILITY_VIEW_EXPAND_ANIMATION_END
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_UTILITY_VIEW_SHRINK_ANIMATION_BEGIN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WORK_UTILITY_VIEW_SHRINK_ANIMATION_END
+import com.android.launcher3.logging.StatsLogManager.StatsImpressionLogger
 import com.android.launcher3.logging.StatsLogManager.StatsImpressionLogger.State
+import com.android.launcher3.logging.StatsLogManager.StatsLatencyLogger
 import com.android.launcher3.logging.StatsLogManager.StatsLatencyLogger.LatencyType
 import com.android.launcher3.logging.StatsLogManager.StatsLatencyLogger.LatencyType.UNKNOWN
+import com.android.launcher3.logging.StatsLogManager.StatsLogger
 import com.android.launcher3.model.data.CollectionInfo
 import com.android.launcher3.model.data.ItemInfo
-import com.android.launcher3.util.DisplayController
-import com.android.launcher3.util.Executors
+import com.android.launcher3.util.Executors.MODEL_EXECUTOR
 import com.android.launcher3.util.LogConfig
 import com.android.launcher3.views.ActivityContext
 import com.android.systemui.shared.system.InteractionJankMonitorWrapper
 import com.android.systemui.shared.system.SysUiStatsLog
 import java.util.concurrent.CopyOnWriteArrayList
 import javax.inject.Inject
+import javax.inject.Provider
 
 /**
  * This class calls StatsLog compile time generated methods.
@@ -92,34 +107,17 @@ import javax.inject.Inject
  * $ wwdebug (to turn on the logcat printout) $ wwlogcat (see logcat with grep filter on) $
  * statsd_testdrive (see how ww is writing the proto to statsd buffer)
  */
-class StatsLogCompatManager private constructor(context: Context) : StatsLogManager(context) {
-    /**
-     * This class is purely used to support dagger bindings to be overridden in launcher variants.
-     * Very similar to [dagger.assisted.AssistedFactory]. But [dagger.assisted.AssistedFactory]
-     * cannot be overridden and this makes dagger binding difficult.
-     */
-    class StatsLogCompatManagerFactory @Inject internal constructor() : StatsLogManagerFactory() {
-        override fun create(context: Context): StatsLogManager {
-            return StatsLogCompatManager(context)
-        }
-    }
-
-    override fun createLogger(): StatsLogger {
-        return StatsCompatLogger(mContext, mActivityContext)
-    }
-
-    override fun createLatencyLogger(): StatsLatencyLogger {
-        return StatsCompatLatencyLogger()
-    }
-
-    override fun createImpressionLogger(): StatsImpressionLogger {
-        return StatsCompatImpressionLogger()
-    }
+object StatsLogCompatManager {
+    /** Hidden field Settings.Secure.NAV_BAR_KIDS_MODE */
+    private val NAV_BAR_KIDS_MODE: Uri = Secure.getUriFor("nav_bar_kids_mode")
 
     /** Helps to construct and write statsd compatible log message. */
-    private class StatsCompatLogger(
-        private val context: Context,
-        private val activityContext: ActivityContext?,
+    class StatsCompatLogger
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        displayController: DisplayController,
+        private val modelProvider: Provider<LauncherModel>,
     ) : StatsLogger {
 
         private var mItemInfo: ItemInfo? = DEFAULT_ITEM_INFO
@@ -138,8 +136,10 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
         private var mFeatures: Int? = null
         private var mPackageName: String? = null
 
+        private var activityContext: ActivityContext? = null
+
         /** Indicates the current rotation of the display. Uses [values.][android.view.Surface] */
-        private val mDisplayRotation = DisplayController.INSTANCE[context].info.rotation
+        private val mDisplayRotation = displayController.info.rotation
 
         override fun withItemInfo(itemInfo: ItemInfo?) = apply {
             require(mContainerInfo == null) {
@@ -149,6 +149,10 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
         }
 
         override fun withInstanceId(instanceId: InstanceId?) = apply { mInstanceId = instanceId }
+
+        override fun withActivityContext(activityContext: ActivityContext?) = apply {
+            this.activityContext = activityContext
+        }
 
         override fun withRank(rank: Int) = apply { mRank = rank }
 
@@ -201,7 +205,7 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 mSlice = Slice.newBuilder().setUri(mSliceItem!!.slice!!.uri.toString()).build()
 
             if (mSlice != null) {
-                Executors.MODEL_EXECUTOR.execute {
+                MODEL_EXECUTOR.execute {
                     val itemInfoBuilder = LauncherAtom.ItemInfo.newBuilder().setSlice(mSlice)
                     mContainerInfo?.let { itemInfoBuilder.setContainerInfo(it) }
                     write(event, applyOverwrites(itemInfoBuilder.build()))
@@ -211,14 +215,13 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
 
             val info = mItemInfo ?: return
 
-            // If the item is inside a collection, fetch collection info in a BG thread
-            // and then write to StatsLog.
-            LauncherAppState.INSTANCE[context].model.enqueueModelUpdateTask { _, dataModel, _ ->
+            // If the item is inside a collection, fetch collection info and then write to StatsLog
+            modelProvider.get().enqueueModelUpdateTask { _, dataModel, _ ->
                 write(
                     event,
                     applyOverwrites(
                         info.buildProto(
-                            dataModel.itemsIdMap[info.container] as CollectionInfo?,
+                            dataModel.itemsIdMap[info.container] as? CollectionInfo,
                             context,
                         )
                     ),
@@ -261,6 +264,19 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
 
                 LAUNCHER_WORK_UTILITY_VIEW_SHRINK_ANIMATION_END ->
                     InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_WORK_UTILITY_VIEW_SHRINK)
+
+                LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_BEGIN ->
+                    InteractionJankMonitorWrapper.begin(view, Cuj.CUJ_LAUNCHER_WIDGET_PICKER_OPEN)
+                LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_END ->
+                    InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_WIDGET_PICKER_OPEN)
+
+                LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_BEGIN ->
+                    InteractionJankMonitorWrapper.begin(
+                        view,
+                        Cuj.CUJ_LAUNCHER_WIDGET_PICKER_APP_EXPAND,
+                    )
+                LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_END ->
+                    InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_WIDGET_PICKER_APP_EXPAND)
 
                 else -> {}
             }
@@ -327,8 +343,6 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
             val cardinality = mCardinality ?: getCardinality(atomInfo)
 
             val features = mFeatures ?: getFeatures(atomInfo)
-
-            if (!Utilities.ATLEAST_R) return
 
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_EVENT,
@@ -398,11 +412,14 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
     }
 
     /** Helps to construct and log statsd compatible latency events. */
-    private class StatsCompatLatencyLogger : StatsLatencyLogger {
+    class StatsCompatLatencyLogger
+    @Inject
+    constructor(private val uiLatencyStatsManager: UiLatencyStatsManager?) : StatsLatencyLogger {
         private var mInstanceId: InstanceId? = DEFAULT_INSTANCE_ID
         private var mType: LatencyType? = UNKNOWN
         private var mPackageId = 0
         private var mLatencyInMillis: Long = 0
+        private var mEndTimeInMillis: Long = -1
         private var mQueryLength = -1
         private var mSubEventType = 0
         private var mCardinality = -1
@@ -419,6 +436,10 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
             this.mLatencyInMillis = latencyInMillis
         }
 
+        override fun withEndTimestamp(endTimeInMillis: Long) = apply {
+            this.mEndTimeInMillis = endTimeInMillis
+        }
+
         override fun withQueryLength(queryLength: Int) = apply { this.mQueryLength = queryLength }
 
         override fun withSubEventType(type: Int) = apply { this.mSubEventType = type }
@@ -432,8 +453,6 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 Log.d(LATENCY_TAG, "InstanceId=$mInstanceId $name=${mLatencyInMillis}ms")
             }
 
-            if (!Utilities.ATLEAST_R) return
-
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_LATENCY,
                 event.id, // event_id
@@ -445,11 +464,22 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 mSubEventType, // sub_event_type
                 mCardinality, // cardinality
             )
+
+            if (
+                event ==
+                    StatsLogManager.LauncherLatencyEvent.LAUNCHER_LATENCY_STARTUP_TOTAL_DURATION &&
+                    mEndTimeInMillis > 0
+            ) {
+                uiLatencyStatsManager?.reportEvent(
+                    UiLatencyStatsManager.EVENT_LAUNCHER_SHOWN,
+                    mEndTimeInMillis,
+                )
+            }
         }
     }
 
     /** Helps to construct and log statsd compatible impression events. */
-    private class StatsCompatImpressionLogger : StatsImpressionLogger {
+    class StatsCompatImpressionLogger @Inject constructor() : StatsImpressionLogger {
         private var mInstanceId: InstanceId? = DEFAULT_INSTANCE_ID
         private var mLauncherState: State? = State.UNKNOWN
         private var mQueryLength = -1
@@ -496,8 +526,6 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
                 )
             }
 
-            if (!Utilities.ATLEAST_R) return
-
             SysUiStatsLog.write(
                 SysUiStatsLog.LAUNCHER_IMPRESSION_EVENT_V2,
                 event.id, // event_id
@@ -517,291 +545,283 @@ class StatsLogCompatManager private constructor(context: Context) : StatsLogMana
         @WorkerThread fun consume(event: EventEnum?, atomInfo: LauncherAtom.ItemInfo?)
     }
 
-    companion object {
-        private const val TAG = "StatsLog"
-        private const val LATENCY_TAG = "StatsLatencyLog"
-        private const val IMPRESSION_TAG = "StatsImpressionLog"
-        private val IS_VERBOSE = Utilities.isPropertyEnabled(LogConfig.STATSLOG)
-        private val DEBUG = !Utilities.isRunningInTestHarness()
-        private val DEFAULT_INSTANCE_ID: InstanceId = InstanceId.fakeInstanceId(0)
+    private const val TAG = "StatsLog"
+    private const val LATENCY_TAG = "StatsLatencyLog"
+    private const val IMPRESSION_TAG = "StatsImpressionLog"
+    private val IS_VERBOSE = Utilities.isPropertyEnabled(LogConfig.STATSLOG)
+    private val DEBUG = !Utilities.isRunningInTestHarness()
+    private val DEFAULT_INSTANCE_ID: InstanceId = InstanceId.fakeInstanceId(0)
 
-        // LauncherAtom.ItemInfo.getDefaultInstance() should be used but until launcher proto
-        // migrates
-        // from nano to lite, bake constant to prevent robo test failure.
-        private const val DEFAULT_PAGE_INDEX = -2
-        private const val FOLDER_HIERARCHY_OFFSET = 100
-        private const val SEARCH_RESULT_HIERARCHY_OFFSET = 200
-        private const val EXTENDED_CONTAINERS_HIERARCHY_OFFSET = 300
-        private const val ALL_APPS_HIERARCHY_OFFSET = 400
+    // LauncherAtom.ItemInfo.getDefaultInstance() should be used but until launcher proto
+    // migrates
+    // from nano to lite, bake constant to prevent robo test failure.
+    private const val DEFAULT_PAGE_INDEX = -2
+    private const val FOLDER_HIERARCHY_OFFSET = 100
+    private const val SEARCH_RESULT_HIERARCHY_OFFSET = 200
+    private const val EXTENDED_CONTAINERS_HIERARCHY_OFFSET = 300
+    private const val ALL_APPS_HIERARCHY_OFFSET = 400
 
-        /** Flags for converting SearchAttribute to integer value. */
-        private const val SEARCH_ATTRIBUTES_CORRECTED_QUERY = 1 shl 0
-        private const val SEARCH_ATTRIBUTES_DIRECT_MATCH = 1 shl 1
-        private const val SEARCH_ATTRIBUTES_ENTRY_STATE_ALL_APPS = 1 shl 2
-        private const val SEARCH_ATTRIBUTES_ENTRY_STATE_QSB = 1 shl 3
-        private const val SEARCH_ATTRIBUTES_ENTRY_STATE_OVERVIEW = 1 shl 4
-        private const val SEARCH_ATTRIBUTES_ENTRY_STATE_TASKBAR = 1 shl 5
+    /** Flags for converting SearchAttribute to integer value. */
+    private const val SEARCH_ATTRIBUTES_CORRECTED_QUERY = 1 shl 0
+    private const val SEARCH_ATTRIBUTES_DIRECT_MATCH = 1 shl 1
+    private const val SEARCH_ATTRIBUTES_ENTRY_STATE_ALL_APPS = 1 shl 2
+    private const val SEARCH_ATTRIBUTES_ENTRY_STATE_QSB = 1 shl 3
+    private const val SEARCH_ATTRIBUTES_ENTRY_STATE_OVERVIEW = 1 shl 4
+    private const val SEARCH_ATTRIBUTES_ENTRY_STATE_TASKBAR = 1 shl 5
 
-        @JvmField val LOGS_CONSUMER: CopyOnWriteArrayList<StatsLogConsumer> = CopyOnWriteArrayList()
+    @JvmField val LOGS_CONSUMER: CopyOnWriteArrayList<StatsLogConsumer> = CopyOnWriteArrayList()
 
-        /** Synchronously writes an itemInfo to stats log */
-        @WorkerThread
-        @JvmStatic
-        fun writeSnapshot(info: LauncherAtom.ItemInfo, instanceId: InstanceId) {
-            if (IS_VERBOSE) {
-                Log.d(TAG, String.format("\nwriteSnapshot(%d):\n%s", instanceId.id, info))
+    /** Synchronously writes an itemInfo to stats log */
+    @WorkerThread
+    @JvmStatic
+    fun writeSnapshot(info: LauncherAtom.ItemInfo, instanceId: InstanceId) {
+        if (IS_VERBOSE) {
+            Log.d(TAG, String.format("\nwriteSnapshot(%d):\n%s", instanceId.id, info))
+        }
+        if (Utilities.isRunningInTestHarness()) {
+            return
+        }
+        SysUiStatsLog.write(
+            SysUiStatsLog.LAUNCHER_SNAPSHOT,
+            LAUNCHER_WORKSPACE_SNAPSHOT.id, /* event_id */
+            info.itemCase.number, /* target_id */
+            instanceId.id, /* instance_id */
+            0, /* uid */
+            getPackageName(info), /* package_name */
+            getComponentName(info), /* component_name */
+            getGridX(info, false), /* grid_x */
+            getGridY(info, false), /* grid_y */
+            getPageId(info), /* page_id */
+            getGridX(info, true), /* grid_x_parent */
+            getGridY(info, true), /* grid_y_parent */
+            getParentPageId(info), /* page_id_parent */
+            getHierarchy(info), /* hierarchy */
+            info.isWork, /* is_work_profile */
+            0, /* origin */
+            getCardinality(info), /* cardinality */
+            info.widget.spanX,
+            info.widget.spanY,
+            getFeatures(info),
+            getAttributes(info), /* attributes */
+        )
+    }
+
+    private fun getAttributes(itemInfo: LauncherAtom.ItemInfo): ByteArray =
+        LauncherAttributes.newBuilder()
+            .apply { itemInfo.itemAttributesList.forEach { addItemAttributes(it.number) } }
+            .build()
+            .toByteArray()
+
+    /**
+     * Builds [StatsEvent] from [LauncherAtom.ItemInfo]. Used for pulled atom callback
+     * implementation.
+     */
+    @JvmStatic
+    fun buildStatsEvent(info: LauncherAtom.ItemInfo, instanceId: InstanceId?): StatsEvent {
+        return SysUiStatsLog.buildStatsEvent(
+            SysUiStatsLog.LAUNCHER_LAYOUT_SNAPSHOT, // atom ID,
+            LAUNCHER_WORKSPACE_SNAPSHOT.id, // event_id = 1;
+            info.itemCase.number, // item_id = 2;
+            instanceId?.id ?: 0, // instance_id = 3;
+            0, // uid = 4 [(is_uid) = true];
+            getPackageName(info), // package_name = 5;
+            getComponentName(info), // component_name = 6;
+            getGridX(info, false), // grid_x = 7 [default = -1];
+            getGridY(info, false), // grid_y = 8 [default = -1];
+            getPageId(info), // page_id = 9 [default = -2];
+            getGridX(info, true), // grid_x_parent = 10 [default = -1];
+            getGridY(info, true), // grid_y_parent = 11 [default = -1];
+            getParentPageId(info), // page_id_parent = 12 [default = -2];
+            getHierarchy(info), // container_id = 13;
+            info.isWork, // is_work_profile = 14;
+            0, // attribute_id = 15;
+            getCardinality(info), // cardinality = 16;
+            info.widget.spanX, // span_x = 17 [default = 1];
+            info.widget.spanY, // span_y = 18 [default = 1];
+            getAttributes(info), /* attributes = 19 [(log_mode) = MODE_BYTES] */
+            info.isKidsMode, /* is_kids_mode = 20 */
+        )
+    }
+
+    private fun getCardinality(info: LauncherAtom.ItemInfo): Int {
+        if (Utilities.isRunningInTestHarness()) return 0
+
+        when (info.containerInfo.containerCase) {
+            PREDICTED_HOTSEAT_CONTAINER ->
+                return info.containerInfo.predictedHotseatContainer.cardinality
+            TASK_BAR_CONTAINER -> return info.containerInfo.taskBarContainer.cardinality
+            SEARCH_RESULT_CONTAINER -> return info.containerInfo.searchResultContainer.queryLength
+            EXTENDED_CONTAINERS -> {
+                val extendedCont = info.containerInfo.extendedContainers
+                if (extendedCont.containerCase == DEVICE_SEARCH_RESULT_CONTAINER) {
+                    val deviceSearchResultCont = extendedCont.deviceSearchResultContainer
+                    return if (deviceSearchResultCont.hasQueryLength())
+                        deviceSearchResultCont.queryLength
+                    else -1
+                }
+                return when (info.itemCase) {
+                    FOLDER_ICON -> info.folderIcon.cardinality
+                    TASK_VIEW -> info.taskView.cardinality
+                    else -> 0
+                }
             }
-            if (Utilities.isRunningInTestHarness()) {
-                return
-            }
 
-            if (!Utilities.ATLEAST_R) return
+            else ->
+                return when (info.itemCase) {
+                    FOLDER_ICON -> info.folderIcon.cardinality
+                    TASK_VIEW -> info.taskView.cardinality
+                    else -> 0
+                }
+        }
+    }
 
-            SysUiStatsLog.write(
-                SysUiStatsLog.LAUNCHER_SNAPSHOT,
-                LAUNCHER_WORKSPACE_SNAPSHOT.id, /* event_id */
-                info.itemCase.number, /* target_id */
-                instanceId.id, /* instance_id */
-                0, /* uid */
-                getPackageName(info), /* package_name */
-                getComponentName(info), /* component_name */
-                getGridX(info, false), /* grid_x */
-                getGridY(info, false), /* grid_y */
-                getPageId(info), /* page_id */
-                getGridX(info, true), /* grid_x_parent */
-                getGridY(info, true), /* grid_y_parent */
-                getParentPageId(info), /* page_id_parent */
-                getHierarchy(info), /* hierarchy */
-                info.isWork, /* is_work_profile */
-                0, /* origin */
-                getCardinality(info), /* cardinality */
-                info.widget.spanX,
-                info.widget.spanY,
-                getFeatures(info),
-                getAttributes(info), /* attributes */
-            )
+    private fun getPackageName(info: LauncherAtom.ItemInfo): String? =
+        when (info.itemCase) {
+            APPLICATION -> info.application.packageName
+            SHORTCUT -> info.shortcut.shortcutName
+            WIDGET -> info.widget.packageName
+            TASK -> info.task.packageName
+            SEARCH_ACTION_ITEM -> info.searchActionItem.packageName
+            else -> null
         }
 
-        private fun getAttributes(itemInfo: LauncherAtom.ItemInfo): ByteArray =
-            LauncherAttributes.newBuilder()
-                .apply { itemInfo.itemAttributesList.forEach { addItemAttributes(it.number) } }
-                .build()
-                .toByteArray()
-
-        /**
-         * Builds [StatsEvent] from [LauncherAtom.ItemInfo]. Used for pulled atom callback
-         * implementation.
-         */
-        @JvmStatic
-        fun buildStatsEvent(info: LauncherAtom.ItemInfo, instanceId: InstanceId?): StatsEvent {
-            return SysUiStatsLog.buildStatsEvent(
-                SysUiStatsLog.LAUNCHER_LAYOUT_SNAPSHOT, // atom ID,
-                LAUNCHER_WORKSPACE_SNAPSHOT.id, // event_id = 1;
-                info.itemCase.number, // item_id = 2;
-                instanceId?.id ?: 0, // instance_id = 3;
-                0, // uid = 4 [(is_uid) = true];
-                getPackageName(info), // package_name = 5;
-                getComponentName(info), // component_name = 6;
-                getGridX(info, false), // grid_x = 7 [default = -1];
-                getGridY(info, false), // grid_y = 8 [default = -1];
-                getPageId(info), // page_id = 9 [default = -2];
-                getGridX(info, true), // grid_x_parent = 10 [default = -1];
-                getGridY(info, true), // grid_y_parent = 11 [default = -1];
-                getParentPageId(info), // page_id_parent = 12 [default = -2];
-                getHierarchy(info), // container_id = 13;
-                info.isWork, // is_work_profile = 14;
-                0, // attribute_id = 15;
-                getCardinality(info), // cardinality = 16;
-                info.widget.spanX, // span_x = 17 [default = 1];
-                info.widget.spanY, // span_y = 18 [default = 1];
-                getAttributes(info), /* attributes = 19 [(log_mode) = MODE_BYTES] */
-                info.isKidsMode, /* is_kids_mode = 20 */
-            )
+    private fun getComponentName(info: LauncherAtom.ItemInfo): String? =
+        when (info.itemCase) {
+            APPLICATION -> info.application.componentName
+            SHORTCUT -> info.shortcut.shortcutName
+            WIDGET -> info.widget.componentName
+            TASK -> info.task.componentName
+            TASK_VIEW -> info.taskView.componentName
+            SEARCH_ACTION_ITEM -> info.searchActionItem.title
+            SLICE -> info.slice.uri
+            else -> null
         }
 
-        private fun getCardinality(info: LauncherAtom.ItemInfo): Int {
-            if (Utilities.isRunningInTestHarness()) return 0
+    private fun getGridX(info: LauncherAtom.ItemInfo, parent: Boolean): Int {
+        val containerInfo = info.containerInfo
+        return if (containerInfo.containerCase == FOLDER) {
+            if (parent) {
+                containerInfo.folder.workspace.gridX
+            } else {
+                containerInfo.folder.gridX
+            }
+        } else if (containerInfo.containerCase == EXTENDED_CONTAINERS) {
+            containerInfo.extendedContainers.deviceSearchResultContainer.gridX
+        } else {
+            containerInfo.workspace.gridX
+        }
+    }
 
-            when (info.containerInfo.containerCase) {
-                PREDICTED_HOTSEAT_CONTAINER ->
-                    return info.containerInfo.predictedHotseatContainer.cardinality
-                TASK_BAR_CONTAINER -> return info.containerInfo.taskBarContainer.cardinality
+    private fun getGridY(info: LauncherAtom.ItemInfo, parent: Boolean): Int =
+        if (info.containerInfo.containerCase == FOLDER) {
+            if (parent) {
+                info.containerInfo.folder.workspace.gridY
+            } else {
+                info.containerInfo.folder.gridY
+            }
+        } else {
+            info.containerInfo.workspace.gridY
+        }
+
+    private fun getPageId(info: LauncherAtom.ItemInfo): Int =
+        when (info.itemCase) {
+            TASK -> info.task.index
+            TASK_VIEW -> info.taskView.index
+            else -> getPageIdFromContainerInfo(info.containerInfo)
+        }
+
+    private fun getPageIdFromContainerInfo(containerInfo: ContainerInfo): Int =
+        when (containerInfo.containerCase) {
+            FOLDER -> containerInfo.folder.pageIndex
+            HOTSEAT -> containerInfo.hotseat.index
+            PREDICTED_HOTSEAT_CONTAINER -> containerInfo.predictedHotseatContainer.index
+            TASK_BAR_CONTAINER -> containerInfo.taskBarContainer.index
+            else -> containerInfo.workspace.pageIndex
+        }
+
+    private fun getParentPageId(info: LauncherAtom.ItemInfo): Int =
+        info.containerInfo.run {
+            when {
+                containerCase == FOLDER &&
+                    folder.parentContainerCase == ParentContainerCase.HOTSEAT ->
+                    folder.hotseat.index
+
+                containerCase == FOLDER -> folder.workspace.pageIndex
+                containerCase == SEARCH_RESULT_CONTAINER ->
+                    searchResultContainer.workspace.pageIndex
+
+                else -> workspace.pageIndex
+            }
+        }
+
+    private fun getHierarchy(info: LauncherAtom.ItemInfo): Int {
+        if (Utilities.isRunningInTestHarness()) return 0
+
+        return info.containerInfo.run {
+            when (containerCase) {
+                FOLDER -> folder.parentContainerCase.number + FOLDER_HIERARCHY_OFFSET
                 SEARCH_RESULT_CONTAINER ->
-                    return info.containerInfo.searchResultContainer.queryLength
-                EXTENDED_CONTAINERS -> {
-                    val extendedCont = info.containerInfo.extendedContainers
-                    if (extendedCont.containerCase == DEVICE_SEARCH_RESULT_CONTAINER) {
-                        val deviceSearchResultCont = extendedCont.deviceSearchResultContainer
-                        return if (deviceSearchResultCont.hasQueryLength())
-                            deviceSearchResultCont.queryLength
-                        else -1
-                    }
-                    return when (info.itemCase) {
-                        FOLDER_ICON -> info.folderIcon.cardinality
-                        TASK_VIEW -> info.taskView.cardinality
-                        else -> 0
-                    }
-                }
-
-                else ->
-                    return when (info.itemCase) {
-                        FOLDER_ICON -> info.folderIcon.cardinality
-                        TASK_VIEW -> info.taskView.cardinality
-                        else -> 0
-                    }
+                    searchResultContainer.parentContainerCase.number +
+                        SEARCH_RESULT_HIERARCHY_OFFSET
+                EXTENDED_CONTAINERS ->
+                    extendedContainers.containerCase.number + EXTENDED_CONTAINERS_HIERARCHY_OFFSET
+                ALL_APPS_CONTAINER ->
+                    allAppsContainer.parentContainerCase.number + ALL_APPS_HIERARCHY_OFFSET
+                else -> containerCase.number
             }
         }
+    }
 
-        private fun getPackageName(info: LauncherAtom.ItemInfo): String? =
-            when (info.itemCase) {
-                APPLICATION -> info.application.packageName
-                SHORTCUT -> info.shortcut.shortcutName
-                WIDGET -> info.widget.packageName
-                TASK -> info.task.packageName
-                SEARCH_ACTION_ITEM -> info.searchActionItem.packageName
-                else -> null
-            }
-
-        private fun getComponentName(info: LauncherAtom.ItemInfo): String? =
-            when (info.itemCase) {
-                APPLICATION -> info.application.componentName
-                SHORTCUT -> info.shortcut.shortcutName
-                WIDGET -> info.widget.componentName
-                TASK -> info.task.componentName
-                TASK_VIEW -> info.taskView.componentName
-                SEARCH_ACTION_ITEM -> info.searchActionItem.title
-                SLICE -> info.slice.uri
-                else -> null
-            }
-
-        private fun getGridX(info: LauncherAtom.ItemInfo, parent: Boolean): Int {
-            val containerInfo = info.containerInfo
-            return if (containerInfo.containerCase == FOLDER) {
-                if (parent) {
-                    containerInfo.folder.workspace.gridX
-                } else {
-                    containerInfo.folder.gridX
-                }
-            } else if (containerInfo.containerCase == EXTENDED_CONTAINERS) {
-                containerInfo.extendedContainers.deviceSearchResultContainer.gridX
-            } else {
-                containerInfo.workspace.gridX
-            }
+    private fun getStateString(state: Int): String =
+        when (state) {
+            SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__BACKGROUND -> "BACKGROUND"
+            SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__HOME -> "HOME"
+            SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__OVERVIEW -> "OVERVIEW"
+            SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__ALLAPPS -> "ALLAPPS"
+            else -> "INVALID"
         }
 
-        private fun getGridY(info: LauncherAtom.ItemInfo, parent: Boolean): Int =
-            if (info.containerInfo.containerCase == FOLDER) {
-                if (parent) {
-                    info.containerInfo.folder.workspace.gridY
-                } else {
-                    info.containerInfo.folder.gridY
-                }
-            } else {
-                info.containerInfo.workspace.gridY
-            }
-
-        private fun getPageId(info: LauncherAtom.ItemInfo): Int =
-            when (info.itemCase) {
-                TASK -> info.task.index
-                TASK_VIEW -> info.taskView.index
-                else -> getPageIdFromContainerInfo(info.containerInfo)
-            }
-
-        private fun getPageIdFromContainerInfo(containerInfo: ContainerInfo): Int =
-            when (containerInfo.containerCase) {
-                FOLDER -> containerInfo.folder.pageIndex
-                HOTSEAT -> containerInfo.hotseat.index
-                PREDICTED_HOTSEAT_CONTAINER -> containerInfo.predictedHotseatContainer.index
-                TASK_BAR_CONTAINER -> containerInfo.taskBarContainer.index
-                else -> containerInfo.workspace.pageIndex
-            }
-
-        private fun getParentPageId(info: LauncherAtom.ItemInfo): Int =
-            info.containerInfo.run {
-                when {
-                    containerCase == FOLDER &&
-                        folder.parentContainerCase == ParentContainerCase.HOTSEAT ->
-                        folder.hotseat.index
-
-                    containerCase == FOLDER -> folder.workspace.pageIndex
-                    containerCase == SEARCH_RESULT_CONTAINER ->
-                        searchResultContainer.workspace.pageIndex
-
-                    else -> workspace.pageIndex
-                }
-            }
-
-        private fun getHierarchy(info: LauncherAtom.ItemInfo): Int {
-            if (Utilities.isRunningInTestHarness()) return 0
-
-            return info.containerInfo.run {
-                when (containerCase) {
-                    FOLDER -> folder.parentContainerCase.number + FOLDER_HIERARCHY_OFFSET
-                    SEARCH_RESULT_CONTAINER ->
-                        searchResultContainer.parentContainerCase.number +
-                            SEARCH_RESULT_HIERARCHY_OFFSET
-                    EXTENDED_CONTAINERS ->
-                        extendedContainers.containerCase.number +
-                            EXTENDED_CONTAINERS_HIERARCHY_OFFSET
-                    ALL_APPS_CONTAINER ->
-                        allAppsContainer.parentContainerCase.number + ALL_APPS_HIERARCHY_OFFSET
-                    else -> containerCase.number
-                }
-            }
+    private fun getFeatures(info: LauncherAtom.ItemInfo): Int =
+        when (info.itemCase) {
+            WIDGET -> info.widget.widgetFeatures
+            TASK_VIEW -> info.taskView.type
+            else -> 0
         }
 
-        private fun getStateString(state: Int): String =
-            when (state) {
-                SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__BACKGROUND -> "BACKGROUND"
-                SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__HOME -> "HOME"
-                SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__OVERVIEW -> "OVERVIEW"
-                SysUiStatsLog.LAUNCHER_UICHANGED__DST_STATE__ALLAPPS -> "ALLAPPS"
-                else -> "INVALID"
-            }
+    private fun getSearchAttributes(info: LauncherAtom.ItemInfo): Int {
+        if (Utilities.isRunningInTestHarness()) return 0
 
-        private fun getFeatures(info: LauncherAtom.ItemInfo): Int =
-            when (info.itemCase) {
-                WIDGET -> info.widget.widgetFeatures
-                TASK_VIEW -> info.taskView.type
-                else -> 0
-            }
-
-        private fun getSearchAttributes(info: LauncherAtom.ItemInfo): Int {
-            if (Utilities.isRunningInTestHarness()) return 0
-
-            val containerInfo = info.containerInfo
-            if (
-                containerInfo.containerCase == EXTENDED_CONTAINERS &&
-                    (containerInfo.extendedContainers.containerCase ==
-                        DEVICE_SEARCH_RESULT_CONTAINER) &&
-                    containerInfo.extendedContainers.deviceSearchResultContainer
-                        .hasSearchAttributes()
-            ) {
-                return searchAttributesToInt(
-                    containerInfo.extendedContainers.deviceSearchResultContainer.searchAttributes
-                )
-            }
-            return 0
+        val containerInfo = info.containerInfo
+        if (
+            containerInfo.containerCase == EXTENDED_CONTAINERS &&
+                (containerInfo.extendedContainers.containerCase ==
+                    DEVICE_SEARCH_RESULT_CONTAINER) &&
+                containerInfo.extendedContainers.deviceSearchResultContainer.hasSearchAttributes()
+        ) {
+            return searchAttributesToInt(
+                containerInfo.extendedContainers.deviceSearchResultContainer.searchAttributes
+            )
         }
+        return 0
+    }
 
-        private fun searchAttributesToInt(searchAttributes: SearchAttributes): Int {
-            var response = 0
-            if (searchAttributes.correctedQuery)
-                response = response or SEARCH_ATTRIBUTES_CORRECTED_QUERY
+    private fun searchAttributesToInt(searchAttributes: SearchAttributes): Int {
+        var response = 0
+        if (searchAttributes.correctedQuery)
+            response = response or SEARCH_ATTRIBUTES_CORRECTED_QUERY
 
-            if (searchAttributes.directMatch) response = response or SEARCH_ATTRIBUTES_DIRECT_MATCH
+        if (searchAttributes.directMatch) response = response or SEARCH_ATTRIBUTES_DIRECT_MATCH
 
-            response =
-                response or
-                    when (searchAttributes.entryState) {
-                        ALL_APPS -> SEARCH_ATTRIBUTES_ENTRY_STATE_ALL_APPS
-                        QSB -> SEARCH_ATTRIBUTES_ENTRY_STATE_QSB
-                        OVERVIEW -> SEARCH_ATTRIBUTES_ENTRY_STATE_OVERVIEW
-                        TASKBAR -> SEARCH_ATTRIBUTES_ENTRY_STATE_TASKBAR
-                        else -> 0
-                    }
+        response =
+            response or
+                when (searchAttributes.entryState) {
+                    ALL_APPS -> SEARCH_ATTRIBUTES_ENTRY_STATE_ALL_APPS
+                    QSB -> SEARCH_ATTRIBUTES_ENTRY_STATE_QSB
+                    OVERVIEW -> SEARCH_ATTRIBUTES_ENTRY_STATE_OVERVIEW
+                    TASKBAR -> SEARCH_ATTRIBUTES_ENTRY_STATE_TASKBAR
+                    else -> 0
+                }
 
-            return response
-        }
+        return response
     }
 }

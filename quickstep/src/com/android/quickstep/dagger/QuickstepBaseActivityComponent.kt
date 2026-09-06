@@ -17,6 +17,35 @@
 package com.android.quickstep.dagger
 
 import com.android.launcher3.dagger.BaseActivityContextComponent
+import com.android.launcher3.taskbar.TaskbarEduTooltipController
+import com.android.launcher3.taskbar.allapps.TaskbarSearchSessionController
+import com.android.launcher3.taskbar.customization.TaskbarFeatureEvaluator
+import com.android.quickstep.fallback.FallbackActivityRecentsView
+import com.android.quickstep.fallback.FallbackWindowRecentsView
+import com.android.quickstep.views.DesktopTaskView
+import com.android.quickstep.views.GroupedTaskView
+import com.android.quickstep.views.LauncherRecentsView
+import com.android.quickstep.views.TaskView
 
 /** Activity Quickstep base component for Dagger injection. */
-interface QuickstepBaseActivityComponent : BaseActivityContextComponent {}
+interface QuickstepBaseActivityComponent : BaseActivityContextComponent {
+
+    fun createTaskbarSearchSessionController(): TaskbarSearchSessionController
+
+    fun createTaskbarEduTooltipController(): TaskbarEduTooltipController
+
+    fun getTaskbarFeatureEvaluator(): TaskbarFeatureEvaluator
+
+    /** Recents Specific methods */
+    fun inject(taskView: TaskView)
+
+    fun inject(taskView: GroupedTaskView)
+
+    fun inject(taskView: DesktopTaskView)
+
+    fun inject(recentsView: LauncherRecentsView)
+
+    fun inject(recentsView: FallbackActivityRecentsView)
+
+    fun inject(recentsView: FallbackWindowRecentsView)
+}

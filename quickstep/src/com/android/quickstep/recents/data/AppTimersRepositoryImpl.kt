@@ -18,27 +18,58 @@ package com.android.quickstep.recents.data
 
 import android.content.pm.LauncherApps
 import android.os.UserHandle
-import com.android.launcher3.util.coroutines.DispatcherProvider
+import com.android.launcher3.Flags.enableLowResThumbnailPreloading
+import com.android.launcher3.concurrent.annotations.Background
+import com.android.quickstep.recents.data.AppTimerResponse.AppTimerDuration
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
+import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 /**
  * An [AppTimersRepository] that uses [LauncherApps] service to get information about app timers.
  */
-class AppTimersRepositoryImpl(
+class AppTimersRepositoryImpl
+@Inject
+constructor(
     private val dataSource: LauncherApps,
-    private val dispatcherProvider: DispatcherProvider,
+    @Background private val backgroundDispatcher: CoroutineDispatcher,
 ) : AppTimersRepository {
+    private val cache: ConcurrentMap<AppTimerRequest, AppTimerResponse> = ConcurrentHashMap()
 
     /** Returns the remaining time on the app usage timer set by the user. */
     override suspend fun getRemainingDuration(
         packageName: String,
         userHandle: UserHandle,
-    ): Duration? =
-        withContext(dispatcherProvider.ioBackground) {
-            val appUsageLimit =
-                dataSource.getAppUsageLimit(packageName, userHandle) ?: return@withContext null
+    ): AppTimerResponse =
+        if (enableLowResThumbnailPreloading()) {
+            cache.getOrPut(AppTimerRequest(packageName, userHandle)) {
+                withContext(backgroundDispatcher) {
+                    val appUsageLimit =
+                        dataSource.getAppUsageLimit(packageName, userHandle)
+                            ?: return@withContext AppTimerResponse.NoTimer
 
-            Duration.ofMillis(appUsageLimit.usageRemaining)
+                    AppTimerDuration(Duration.ofMillis(appUsageLimit.usageRemaining))
+                }
+            }
+        } else {
+            // No caching when thumbnail preloading is disabled.
+            withContext(backgroundDispatcher) {
+                val appUsageLimit =
+                    dataSource.getAppUsageLimit(packageName, userHandle)
+                        ?: return@withContext AppTimerResponse.NoTimer
+
+                AppTimerDuration(Duration.ofMillis(appUsageLimit.usageRemaining))
+            }
         }
+
+    override fun invalidateCache() {
+        if (enableLowResThumbnailPreloading()) {
+            cache.clear()
+        }
+    }
+
+    private data class AppTimerRequest(val packageName: String, val userHandle: UserHandle)
 }

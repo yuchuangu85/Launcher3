@@ -19,8 +19,8 @@ package com.android.launcher3;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION;
 import static com.android.launcher3.LauncherSettings.Favorites.TABLE_NAME;
 import static com.android.launcher3.provider.LauncherDbUtils.itemIdMatch;
-import static com.android.launcher3.util.UserIconInfo.TYPE_CLONED;
-import static com.android.launcher3.util.UserIconInfo.TYPE_WORK;
+import static com.android.launcher3.util.XmlElement.getRootElement;
+import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.CUSTOM_WIDGET_PACKAGE;
 
 import android.content.ComponentName;
 import android.content.ContentValues;
@@ -39,30 +39,29 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.ArrayMap;
-import android.util.AttributeSet;
 import android.util.Log;
-import android.util.Xml;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-import androidx.annotation.WorkerThread;
 import androidx.annotation.XmlRes;
 
 import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.model.data.AppInfo;
+import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.UserCache;
-import com.android.launcher3.qsb.QsbContainerView;
+import com.android.launcher3.qsb.OseCustomWidget;
 import com.android.launcher3.shortcuts.ShortcutKey;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.Partner;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.util.UserIconInfo;
+import com.android.launcher3.util.XmlElement;
 import com.android.launcher3.widget.LauncherWidgetHolder;
+import com.android.launcher3.widget.custom.CustomWidgetManager;
 
-import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
@@ -70,7 +69,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.concurrent.Callable;
 
 /**
  * Layout parsing code for auto installs layout
@@ -79,14 +78,12 @@ public class AutoInstallsLayout {
     private static final String TAG = "AutoInstalls";
     private static final boolean LOGD = false;
 
-    /**
-     * Marker action used to discover a package which defines launcher customization
-     */
-    static final String ACTION_LAUNCHER_CUSTOMIZATION = "android.autoinstalls.config.action.PLAY_AUTO_INSTALL";
+    /** Marker action used to discover a package which defines launcher customization */
+    static final String ACTION_LAUNCHER_CUSTOMIZATION =
+            "android.autoinstalls.config.action.PLAY_AUTO_INSTALL";
 
     /**
-     * Layout resource which also includes grid size and hotseat count, e.g.,
-     * default_layout_6x6_h5
+     * Layout resource which also includes grid size and hotseat count, e.g., default_layout_6x6_h5
      */
     private static final String FORMATTED_LAYOUT_RES_WITH_HOSTEAT = "default_layout_%dx%d_h%s";
     private static final String FORMATTED_LAYOUT_RES = "default_layout_%dx%d";
@@ -94,11 +91,6 @@ public class AutoInstallsLayout {
 
     public static AutoInstallsLayout get(Context context, LauncherWidgetHolder appWidgetHolder,
             LayoutParserCallback callback) {
-        // LC: c51b2a221838aefb610b7146fc4ef7cb34e5e495
-        if (!BuildConfig.ENABLE_AUTO_INSTALLS_LAYOUT) {
-            return null;
-        }
-        
         Partner partner = Partner.get(context.getPackageManager(), ACTION_LAUNCHER_CUSTOMIZATION);
         if (partner == null) {
             return null;
@@ -139,6 +131,7 @@ public class AutoInstallsLayout {
     private static final String TAG_APP_ICON = "appicon";
     public static final String TAG_AUTO_INSTALL = "autoinstall";
     public static final String TAG_FOLDER = "folder";
+    public static final String TAG_APP_PAIR = "apppair";
     public static final String TAG_APPWIDGET = "appwidget";
     protected static final String TAG_SEARCH_WIDGET = "searchwidget";
     public static final String TAG_SHORTCUT = "shortcut";
@@ -154,8 +147,7 @@ public class AutoInstallsLayout {
     public static final String ATTR_SCREEN = "screen";
     public static final String ATTR_SHORTCUT_ID = "shortcutId";
 
-    // x and y can be specified as negative integers, in which case -1 represents
-    // the
+    // x and y can be specified as negative integers, in which case -1 represents the
     // last row / column, -2 represents the second last, and so on.
     public static final String ATTR_X = "x";
     public static final String ATTR_Y = "y";
@@ -174,7 +166,8 @@ public class AutoInstallsLayout {
     private static final String ATTR_KEY = "key";
     private static final String ATTR_VALUE = "value";
 
-    private static final String HOTSEAT_CONTAINER_NAME = Favorites.containerToString(Favorites.CONTAINER_HOTSEAT);
+    private static final String HOTSEAT_CONTAINER_NAME =
+            Favorites.containerToString(Favorites.CONTAINER_HOTSEAT);
 
     protected final Context mContext;
     protected final LauncherWidgetHolder mAppWidgetHolder;
@@ -182,7 +175,7 @@ public class AutoInstallsLayout {
 
     protected final PackageManager mPackageManager;
     protected final SourceResources mSourceRes;
-    protected final Supplier<XmlPullParser> mInitialLayoutSupplier;
+    protected final Callable<XmlElement> mInitialLayoutSupplier;
 
     private final Map<String, Long> mUserTypeToSerial;
 
@@ -193,7 +186,6 @@ public class AutoInstallsLayout {
     private final int[] mTemp = new int[2];
     @Thunk
     final ContentValues mValues;
-    protected final String mRootTag;
 
     protected SQLiteDatabase mDb;
 
@@ -201,19 +193,18 @@ public class AutoInstallsLayout {
             LayoutParserCallback callback, Resources res,
             int layoutId, String rootTag) {
         this(context, appWidgetHolder, callback, SourceResources.wrap(res),
-                () -> res.getXml(layoutId), rootTag);
+                () -> getRootElement(res.getXml(layoutId), rootTag));
     }
 
     public AutoInstallsLayout(Context context, LauncherWidgetHolder appWidgetHolder,
             LayoutParserCallback callback, SourceResources res,
-            Supplier<XmlPullParser> initialLayoutSupplier, String rootTag) {
+            Callable<XmlElement> initialLayoutSupplier) {
         mContext = context;
         mAppWidgetHolder = appWidgetHolder;
         mCallback = callback;
 
         mPackageManager = context.getPackageManager();
         mValues = new ContentValues();
-        mRootTag = rootTag;
 
         mSourceRes = res;
         mInitialLayoutSupplier = initialLayoutSupplier;
@@ -228,20 +219,20 @@ public class AutoInstallsLayout {
         for (UserHandle user : cache.getUserProfiles()) {
             UserIconInfo uii = cache.getUserInfo(user);
             switch (uii.type) {
-                case TYPE_WORK -> mUserTypeToSerial.put(USER_TYPE_WORK, uii.userSerial);
-                case TYPE_CLONED -> mUserTypeToSerial.put(USER_TYPE_CLONED, uii.userSerial);
+                case WORK -> mUserTypeToSerial.put(USER_TYPE_WORK, uii.userSerial);
+                case CLONED -> mUserTypeToSerial.put(USER_TYPE_CLONED, uii.userSerial);
+                default -> { }
             }
         }
     }
 
     /**
-     * Loads the layout in the db and returns the number of entries added on the
-     * desktop.
+     * Loads the layout in the db and returns the number of entries added on the desktop.
      */
     public int loadLayout(SQLiteDatabase db) {
         mDb = db;
         try {
-            return parseLayout(mInitialLayoutSupplier.get());
+            return parseLayout(mInitialLayoutSupplier.call());
         } catch (Exception e) {
             Log.e(TAG, "Error parsing layout: ", e);
             return -1;
@@ -251,46 +242,37 @@ public class AutoInstallsLayout {
     /**
      * Parses the layout and returns the number of elements added on the homescreen.
      */
-    protected int parseLayout(XmlPullParser parser)
+    protected int parseLayout(XmlElement rootElement)
             throws XmlPullParserException, IOException {
-        beginDocument(parser, mRootTag);
-        final int depth = parser.getDepth();
-        int type;
+
         ArrayMap<String, TagParser> tagParserMap = getLayoutElementsMap();
         int count = 0;
-
-        while (((type = parser.next()) != XmlPullParser.END_TAG ||
-                parser.getDepth() > depth) && type != XmlPullParser.END_DOCUMENT) {
-            if (type != XmlPullParser.START_TAG) {
-                continue;
-            }
-            count += parseAndAddNode(parser, tagParserMap);
+        for (XmlElement child: rootElement.childIterator()) {
+            count += parseAndAddNode(child, tagParserMap);
         }
         return count;
     }
 
-    private void addProfileId(XmlPullParser parser) {
-        Long profileId = mUserTypeToSerial.get(getAttributeValue(parser, ATTR_USER_TYPE));
+    private void addProfileId(XmlElement element) {
+        Long profileId = mUserTypeToSerial.get(element.get(ATTR_USER_TYPE));
         if (profileId != null) {
             mValues.put(Favorites.PROFILE_ID, profileId);
         }
     }
 
     /**
-     * Parses container and screenId attribute from the current tag, and puts it in
-     * the out.
-     * 
+     * Parses container and screenId attribute from the current tag, and puts it in the out.
      * @param out array of size 2.
      */
-    protected void parseContainerAndScreen(XmlPullParser parser, int[] out)
+    protected void parseContainerAndScreen(XmlElement element, int[] out)
             throws XmlPullParserException {
-        if (HOTSEAT_CONTAINER_NAME.equals(getAttributeValue(parser, ATTR_CONTAINER))) {
+        if (HOTSEAT_CONTAINER_NAME.equals(element.get(ATTR_CONTAINER))) {
             out[0] = Favorites.CONTAINER_HOTSEAT;
             // Hack: hotseat items are stored using screen ids
-            out[1] = getAttributeValueAsInt(parser, ATTR_RANK);
+            out[1] = element.getAsInt(ATTR_RANK);
         } else {
             out[0] = Favorites.CONTAINER_DESKTOP;
-            out[1] = getAttributeValueAsInt(parser, ATTR_SCREEN);
+            out[1] = element.getAsInt(ATTR_SCREEN);
         }
     }
 
@@ -298,39 +280,36 @@ public class AutoInstallsLayout {
      * Parses the current node and returns the number of elements added.
      */
     protected int parseAndAddNode(
-            XmlPullParser parser, ArrayMap<String, TagParser> tagParserMap)
+            XmlElement element, ArrayMap<String, TagParser> tagParserMap)
             throws XmlPullParserException, IOException {
 
-        if (TAG_INCLUDE.equals(parser.getName())) {
-            final int resId = getAttributeResourceValue(parser, ATTR_WORKSPACE, 0);
+        if (TAG_INCLUDE.equals(element.getName())) {
+            final int resId = element.getResource(ATTR_WORKSPACE, 0);
             if (resId != 0) {
                 // recursively load some more favorites, why not?
-                return parseLayout(mSourceRes.getXml(resId));
+                return parseLayout(getRootElement(mSourceRes.getXml(resId)));
             } else {
                 return 0;
             }
         }
 
         mValues.clear();
-        parseContainerAndScreen(parser, mTemp);
+        parseContainerAndScreen(element, mTemp);
         final int container = mTemp[0];
         final int screenId = mTemp[1];
 
         mValues.put(Favorites.CONTAINER, container);
         mValues.put(Favorites.SCREEN, screenId);
 
-        mValues.put(Favorites.CELLX,
-                convertToDistanceFromEnd(getAttributeValue(parser, ATTR_X), mColumnCount));
-        mValues.put(Favorites.CELLY,
-                convertToDistanceFromEnd(getAttributeValue(parser, ATTR_Y), mRowCount));
+        mValues.put(Favorites.CELLX, convertToDistanceFromEnd(element.get(ATTR_X), mColumnCount));
+        mValues.put(Favorites.CELLY, convertToDistanceFromEnd(element.get(ATTR_Y), mRowCount));
 
-        TagParser tagParser = tagParserMap.get(parser.getName());
+        TagParser tagParser = tagParserMap.get(element.getName());
         if (tagParser == null) {
-            if (LOGD)
-                Log.d(TAG, "Ignoring unknown element tag: " + parser.getName());
+            if (LOGD) Log.d(TAG, "Ignoring unknown element tag: " + element.getName());
             return 0;
         }
-        return tagParser.parseAndAdd(parser) >= 0 ? 1 : 0;
+        return tagParser.parseAndAdd(element) >= 0 ? 1 : 0;
     }
 
     protected int addShortcut(String title, Intent intent, int type) {
@@ -365,6 +344,15 @@ public class AutoInstallsLayout {
         parsers.put(TAG_APP_ICON, new AppShortcutParser());
         parsers.put(TAG_AUTO_INSTALL, new AutoInstallParser());
         parsers.put(TAG_SHORTCUT, new ShortcutParser());
+        parsers.put(TAG_APP_PAIR, new AppPairParser());
+        return parsers;
+    }
+
+    protected ArrayMap<String, TagParser> getAppPairElementsMap() {
+        ArrayMap<String, TagParser> parsers = new ArrayMap<>();
+        parsers.put(TAG_APP_ICON, new AppShortcutParser());
+        parsers.put(TAG_AUTO_INSTALL, new AutoInstallParser());
+        parsers.put(TAG_SHORTCUT, new ShortcutParser());
         return parsers;
     }
 
@@ -373,6 +361,7 @@ public class AutoInstallsLayout {
         parsers.put(TAG_APP_ICON, new AppShortcutParser());
         parsers.put(TAG_AUTO_INSTALL, new AutoInstallParser());
         parsers.put(TAG_FOLDER, new FolderParser());
+        parsers.put(TAG_APP_PAIR, new AppPairParser());
         parsers.put(TAG_APPWIDGET, new PendingWidgetParser());
         parsers.put(TAG_SEARCH_WIDGET, new SearchWidgetParser());
         parsers.put(TAG_SHORTCUT, new ShortcutParser());
@@ -382,11 +371,9 @@ public class AutoInstallsLayout {
     protected interface TagParser {
         /**
          * Parses the tag and adds to the db
-         * 
          * @return the id of the row added or -1;
          */
-        int parseAndAdd(XmlPullParser parser)
-                throws XmlPullParserException, IOException;
+        int parseAndAdd(XmlElement element) throws XmlPullParserException, IOException;
     }
 
     /**
@@ -395,10 +382,10 @@ public class AutoInstallsLayout {
     protected class AppShortcutParser implements TagParser {
 
         @Override
-        public int parseAndAdd(XmlPullParser parser) {
-            final String packageName = getAttributeValue(parser, ATTR_PACKAGE_NAME);
-            final String className = getAttributeValue(parser, ATTR_CLASS_NAME);
-            addProfileId(parser);
+        public int parseAndAdd(XmlElement element) {
+            final String packageName = element.get(ATTR_PACKAGE_NAME);
+            final String className = element.get(ATTR_CLASS_NAME);
+            addProfileId(element);
             if (!TextUtils.isEmpty(packageName) && !TextUtils.isEmpty(className)) {
                 ActivityInfo info;
                 try {
@@ -408,7 +395,7 @@ public class AutoInstallsLayout {
                         info = mPackageManager.getActivityInfo(cn, 0);
                     } catch (PackageManager.NameNotFoundException nnfe) {
                         String[] packages = mPackageManager.currentToCanonicalPackageNames(
-                                new String[] { packageName });
+                                new String[]{packageName});
                         cn = new ComponentName(packages[0], className);
                         info = mPackageManager.getActivityInfo(cn, 0);
                     }
@@ -425,14 +412,14 @@ public class AutoInstallsLayout {
                 }
                 return -1;
             } else {
-                return invalidPackageOrClass(parser);
+                return invalidPackageOrClass(element);
             }
         }
 
         /**
          * Helper method to allow extending the parser capabilities
          */
-        protected int invalidPackageOrClass(XmlPullParser parser) {
+        protected int invalidPackageOrClass(XmlElement element) {
             Log.w(TAG, "Skipping invalid <favorite> with no component");
             return -1;
         }
@@ -444,13 +431,12 @@ public class AutoInstallsLayout {
     protected class AutoInstallParser implements TagParser {
 
         @Override
-        public int parseAndAdd(XmlPullParser parser) {
-            final String packageName = getAttributeValue(parser, ATTR_PACKAGE_NAME);
-            final String className = getAttributeValue(parser, ATTR_CLASS_NAME);
-            addProfileId(parser);
+        public int parseAndAdd(XmlElement element) {
+            final String packageName = element.get(ATTR_PACKAGE_NAME);
+            final String className = element.get(ATTR_CLASS_NAME);
+            addProfileId(element);
             if (TextUtils.isEmpty(packageName) || TextUtils.isEmpty(className)) {
-                if (LOGD)
-                    Log.d(TAG, "Skipping invalid <favorite> with no component");
+                if (LOGD) Log.d(TAG, "Skipping invalid <favorite> with no component");
                 return -1;
             }
 
@@ -467,10 +453,10 @@ public class AutoInstallsLayout {
     protected class ShortcutParser implements TagParser {
 
         @Override
-        public int parseAndAdd(XmlPullParser parser) {
-            final String packageName = getAttributeValue(parser, ATTR_PACKAGE_NAME);
-            final String shortcutId = getAttributeValue(parser, ATTR_SHORTCUT_ID);
-            addProfileId(parser);
+        public int parseAndAdd(XmlElement element) {
+            final String packageName = element.get(ATTR_PACKAGE_NAME);
+            final String shortcutId = element.get(ATTR_SHORTCUT_ID);
+            addProfileId(element);
             try {
                 LauncherApps launcherApps = mContext.getSystemService(LauncherApps.class);
                 launcherApps.pinShortcuts(packageName, Collections.singletonList(shortcutId),
@@ -487,24 +473,20 @@ public class AutoInstallsLayout {
     }
 
     /**
-     * AppWidget parser: Required attributes packageName, className, spanX and
-     * spanY.
+     * AppWidget parser: Required attributes packageName, className, spanX and spanY.
      * Options child nodes: <extra key=... value=... />
-     * It adds a pending widget which allows the widget to come later. If there are
-     * extras, those
+     * It adds a pending widget which allows the widget to come later. If there are extras, those
      * are passed to widget options during bind.
-     * The config activity for the widget (if present) is not shown, so any optional
-     * configurations
-     * should be passed as extras and the widget should support reading these widget
-     * options.
+     * The config activity for the widget (if present) is not shown, so any optional configurations
+     * should be passed as extras and the widget should support reading these widget options.
      */
     protected class PendingWidgetParser implements TagParser {
 
         @Nullable
-        public ComponentName getComponentName(XmlPullParser parser) {
-            final String packageName = getAttributeValue(parser, ATTR_PACKAGE_NAME);
-            final String className = getAttributeValue(parser, ATTR_CLASS_NAME);
-            addProfileId(parser);
+        public ComponentName getComponentName(XmlElement element) {
+            final String packageName = element.get(ATTR_PACKAGE_NAME);
+            final String className = element.get(ATTR_CLASS_NAME);
+            addProfileId(element);
             if (TextUtils.isEmpty(packageName) || TextUtils.isEmpty(className)) {
                 return null;
             }
@@ -512,39 +494,27 @@ public class AutoInstallsLayout {
         }
 
         @Override
-        public int parseAndAdd(XmlPullParser parser)
+        public int parseAndAdd(XmlElement element)
                 throws XmlPullParserException, IOException {
-            ComponentName cn = getComponentName(parser);
+            ComponentName cn = getComponentName(element);
             if (cn == null) {
-                if (LOGD)
-                    Log.d(TAG, "Skipping invalid <appwidget> with no component");
+                if (LOGD) Log.d(TAG, "Skipping invalid <appwidget> with no component");
                 return -1;
             }
 
-            mValues.put(Favorites.SPANX, getAttributeValue(parser, ATTR_SPAN_X));
-            mValues.put(Favorites.SPANY, getAttributeValue(parser, ATTR_SPAN_Y));
+            mValues.put(Favorites.SPANX, element.get(ATTR_SPAN_X));
+            mValues.put(Favorites.SPANY, element.get(ATTR_SPAN_Y));
             mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_APPWIDGET);
 
             // Read the extras
             Bundle extras = new Bundle();
-            int widgetDepth = parser.getDepth();
-            int type;
-            while ((type = parser.next()) != XmlPullParser.END_TAG ||
-                    parser.getDepth() > widgetDepth) {
-                if (type != XmlPullParser.START_TAG) {
-                    continue;
-                }
-
-                if (TAG_EXTRA.equals(parser.getName())) {
-                    String key = getAttributeValue(parser, ATTR_KEY);
-                    String value = getAttributeValue(parser, ATTR_VALUE);
-                    if (key != null && value != null) {
-                        extras.putString(key, value);
-                    } else {
-                        throw new RuntimeException("Widget extras must have a key and value");
-                    }
+            for (XmlElement extraEntry: element.childIterator(TAG_EXTRA)) {
+                String key = extraEntry.get(ATTR_KEY);
+                String value = extraEntry.get(ATTR_VALUE);
+                if (key != null && value != null) {
+                    extras.putString(key, value);
                 } else {
-                    throw new RuntimeException("Widgets can contain only extras");
+                    throw new RuntimeException("Widget extras must have a key and value");
                 }
             }
             return verifyAndInsert(cn, extras);
@@ -570,82 +540,87 @@ public class AutoInstallsLayout {
         }
     }
 
-    protected class SearchWidgetParser extends PendingWidgetParser {
-        @Override
-        @Nullable
-        @WorkerThread
-        public ComponentName getComponentName(XmlPullParser parser) {
-            return QsbContainerView.getSearchComponentName(mContext);
-        }
+    protected class SearchWidgetParser implements TagParser {
 
         @Override
-        protected int verifyAndInsert(ComponentName cn, Bundle extras) {
-            mValues.put(Favorites.OPTIONS, LauncherAppWidgetInfo.OPTION_SEARCH_WIDGET);
-            int flags = mValues.getAsInteger(Favorites.RESTORED)
-                    | WorkspaceItemInfo.FLAG_RESTORE_STARTED;
-            mValues.put(Favorites.RESTORED, flags);
-            return super.verifyAndInsert(cn, extras);
+        public int parseAndAdd(XmlElement element) throws XmlPullParserException, IOException {
+            var cn = new ComponentName(CUSTOM_WIDGET_PACKAGE, OseCustomWidget.INSTANCE.getId());
+            mValues.put(Favorites.SPANX, element.get(ATTR_SPAN_X));
+            mValues.put(Favorites.SPANY, element.get(ATTR_SPAN_Y));
+            mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_APPWIDGET);
+            mValues.put(Favorites.APPWIDGET_PROVIDER, cn.flattenToString());
+            mValues.put(Favorites._ID, mCallback.generateNewItemId());
+            mValues.put(Favorites.RESTORED, LauncherAppWidgetInfo.RESTORE_COMPLETED);
+            mValues.put(Favorites.APPWIDGET_ID,
+                    CustomWidgetManager.INSTANCE.get(mContext).allocateCustomAppWidgetId(cn));
+
+            int insertedId = mCallback.insertAndCheck(mDb, mValues);
+            if (insertedId < 0) {
+                return -1;
+            } else {
+                return insertedId;
+            }
         }
     }
 
     protected class FolderParser implements TagParser {
         private final ArrayMap<String, TagParser> mFolderElements;
+        private final int mFolderType;
 
         public FolderParser() {
             this(getFolderElementsMap());
         }
 
         public FolderParser(ArrayMap<String, TagParser> elements) {
+            this(elements, Favorites.ITEM_TYPE_FOLDER);
+        }
+
+        protected FolderParser(ArrayMap<String, TagParser> elements, int folderType) {
             mFolderElements = elements;
+            mFolderType = folderType;
         }
 
         @Override
-        public int parseAndAdd(XmlPullParser parser) throws XmlPullParserException, IOException {
+        public int parseAndAdd(XmlElement element) throws XmlPullParserException, IOException {
             final String title;
-            final int titleResId = getAttributeResourceValue(parser, ATTR_TITLE, 0);
+            final int titleResId = element.getResource(ATTR_TITLE, 0);
             if (titleResId != 0) {
                 title = mSourceRes.getString(titleResId);
             } else {
-                String titleText = getAttributeValue(parser, ATTR_TITLE_TEXT);
+                String titleText = element.get(ATTR_TITLE_TEXT);
                 title = TextUtils.isEmpty(titleText) ? "" : titleText;
             }
 
             mValues.put(Favorites.TITLE, title);
-            mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_FOLDER);
+            mValues.put(Favorites.ITEM_TYPE, mFolderType);
             mValues.put(Favorites.SPANX, 1);
             mValues.put(Favorites.SPANY, 1);
             mValues.put(Favorites._ID, mCallback.generateNewItemId());
             int folderId = mCallback.insertAndCheck(mDb, mValues);
             if (folderId < 0) {
-                if (LOGD)
-                    Log.e(TAG, "Unable to add folder");
+                if (LOGD) Log.e(TAG, "Unable to add folder");
                 return -1;
             }
 
             final ContentValues myValues = new ContentValues(mValues);
             IntArray folderItems = new IntArray();
 
-            int type;
-            int folderDepth = parser.getDepth();
             int rank = 0;
-            while ((type = parser.next()) != XmlPullParser.END_TAG ||
-                    parser.getDepth() > folderDepth) {
-                if (type != XmlPullParser.START_TAG) {
-                    continue;
-                }
+            for (XmlElement folderChild: element.childIterator()) {
                 mValues.clear();
                 mValues.put(Favorites.CONTAINER, folderId);
                 mValues.put(Favorites.RANK, rank);
 
-                TagParser tagParser = mFolderElements.get(parser.getName());
+                String childTag = folderChild.getName();
+                TagParser tagParser = mFolderElements.get(childTag);
                 if (tagParser != null) {
-                    final int id = tagParser.parseAndAdd(parser);
+                    final int id = tagParser.parseAndAdd(folderChild);
                     if (id >= 0) {
                         folderItems.add(id);
                         rank++;
                     }
                 } else {
-                    throw new RuntimeException("Invalid folder item " + parser.getName());
+                    throw new RuntimeException("Invalid folder item " + childTag);
                 }
             }
 
@@ -654,7 +629,7 @@ public class AutoInstallsLayout {
             // We can only have folders with >= 2 items, so we need to remove the
             // folder and clean up if less than 2 items were included, or some
             // failed to add, and less than 2 were actually added
-            if (folderItems.size() < 2) {
+            if (isInvalidSize(folderItems.size())) {
                 // Delete the folder
                 mDb.delete(TABLE_NAME, itemIdMatch(folderId), null);
                 addedId = -1;
@@ -675,22 +650,20 @@ public class AutoInstallsLayout {
             }
             return addedId;
         }
+
+        protected boolean isInvalidSize(int size) {
+            return size < 2;
+        }
     }
 
-    public static void beginDocument(XmlPullParser parser, String firstElementName)
-            throws XmlPullParserException, IOException {
-        int type;
-        while ((type = parser.next()) != XmlPullParser.START_TAG
-                && type != XmlPullParser.END_DOCUMENT)
-            ;
-
-        if (type != XmlPullParser.START_TAG) {
-            throw new XmlPullParserException("No start tag found");
+    protected class AppPairParser extends FolderParser {
+        public AppPairParser() {
+            super(getAppPairElementsMap(), Favorites.ITEM_TYPE_APP_GROUP);
         }
 
-        if (!parser.getName().equals(firstElementName)) {
-            throw new XmlPullParserException("Unexpected start tag: found " + parser.getName() +
-                    ", expected " + firstElementName);
+        @Override
+        public boolean isInvalidSize(int size) {
+            return !AppPairInfo.hasValidItemCount(size);
         }
     }
 
@@ -700,45 +673,6 @@ public class AutoInstallsLayout {
             if (x < 0) {
                 return Integer.toString(endValue + x);
             }
-        }
-        return value;
-    }
-
-    protected static int getAttributeValueAsInt(XmlPullParser parser, String attribute)
-            throws XmlPullParserException {
-        String value = getAttributeValue(parser, attribute);
-        if (value == null) {
-            throw new XmlPullParserException("Missing attribute " + attribute);
-        } else {
-            return Integer.parseInt(value);
-        }
-    }
-
-    /**
-     * Return attribute value, attempting launcher-specific namespace first
-     * before falling back to anonymous attribute.
-     */
-    protected static String getAttributeValue(XmlPullParser parser, String attribute) {
-        String value = parser.getAttributeValue(
-                "http://schemas.android.com/apk/res-auto/com.android.launcher3", attribute);
-        if (value == null) {
-            value = parser.getAttributeValue(null, attribute);
-        }
-        return value;
-    }
-
-    /**
-     * Return attribute resource value, attempting launcher-specific namespace
-     * first before falling back to anonymous attribute.
-     */
-    protected static int getAttributeResourceValue(XmlPullParser parser, String attribute,
-            int defaultValue) {
-        AttributeSet attrs = Xml.asAttributeSet(parser);
-        int value = attrs.getAttributeResourceValue(
-                "http://schemas.android.com/apk/res-auto/com.android.launcher3", attribute,
-                defaultValue);
-        if (value == defaultValue) {
-            value = attrs.getAttributeResourceValue(null, attribute, defaultValue);
         }
         return value;
     }
@@ -790,4 +724,6 @@ public class AutoInstallsLayout {
             };
         }
     }
+
+
 }

@@ -169,7 +169,7 @@ class TaskbarPinningControllerTest : TaskbarBaseTestCase() {
 
         verify(pinningController, times(1)).getPopupView(view)
         verify(popupView, times(1)).requestFocus()
-        verify(popupView, times(1)).onCloseCallback = any()
+        verify(popupView, times(1)).onCloseStartedCallback = any()
         verify(taskbarActivityContext, times(1)).onPopupVisibilityChanged(true)
         verify(popupView, times(1)).show()
         verify(statsLogger, times(1)).log(LAUNCHER_TASKBAR_DIVIDER_MENU_OPEN)
@@ -228,8 +228,6 @@ class TaskbarPinningControllerTest : TaskbarBaseTestCase() {
     @Test
     fun testRecreateTaskbarAndUpdatePinningValue_whenAnimationEnds_shouldUpdateTaskbarPinningLauncherPref() {
         pinningController.recreateTaskbarAndUpdatePinningValue()
-        verify(taskbarDragLayer, times(1)).setAnimatingTaskbarPinning(false)
-        assertThat(pinningController.isAnimatingTaskbarPinning).isFalse()
         verify(launcherPrefs, times(1)).put(TASKBAR_PINNING, true)
     }
 }

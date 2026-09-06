@@ -41,3 +41,8 @@ annotation class WidgetPickerHostInfo
 @MustBeDocumented
 @Retention(AnnotationRetention.RUNTIME)
 annotation class WidgetPickerRepository
+
+@Qualifier
+@MustBeDocumented
+@Retention(AnnotationRetention.RUNTIME)
+annotation class WidgetPickerUi

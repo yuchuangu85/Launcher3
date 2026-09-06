@@ -20,4 +20,24 @@ package com.android.launcher3.model.data
  * A Task info class holding a Task ID to allow us to reference a Task when clicking a hotseat item.
  * This is also used to help identify the shortcuts shown in the long-press menu.
  */
-class TaskItemInfo(val taskId: Int, itemInfo: WorkspaceItemInfo) : WorkspaceItemInfo(itemInfo)
+class TaskItemInfo(val taskId: Int, private val itemInfo: WorkspaceItemInfo) :
+    WorkspaceItemInfo(itemInfo) {
+
+    companion object {
+        /**
+         * Returns `true` if the items are the same, accounting for either being a [TaskItemInfo].
+         *
+         * If an operand is a [TaskItemInfo], the comparison uses its [itemInfo].
+         */
+        @JvmStatic
+        fun ItemInfo.isSameItem(that: Any?): Boolean {
+            return this.unwrappedItem === that.unwrappedItem
+        }
+
+        /**
+         * Returns [itemInfo] if it is a [TaskItemInfo], itself if it is a [ItemInfo], or `null`.
+         */
+        private val Any?.unwrappedItem: ItemInfo?
+            get() = (this as? TaskItemInfo)?.itemInfo ?: this as? ItemInfo
+    }
+}

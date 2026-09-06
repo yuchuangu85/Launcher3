@@ -15,14 +15,8 @@
  */
 package com.android.launcher3.util.ui;
 
-import static androidx.test.InstrumentationRegistry.getInstrumentation;
-
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
-import static org.junit.Assert.assertTrue;
-
-import android.content.ComponentName;
-import android.content.Intent;
 import android.os.Process;
 import android.system.OsConstants;
 import android.util.Log;
@@ -30,18 +24,15 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.test.uiautomator.By;
-import androidx.test.uiautomator.BySelector;
 import androidx.test.uiautomator.Until;
 
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.tapl.LauncherInstrumentation;
 import com.android.launcher3.tapl.TestHelpers;
 import com.android.launcher3.testcomponent.TestCommandReceiver;
 import com.android.launcher3.util.LooperExecutor;
 import com.android.launcher3.util.TestUtil;
-import com.android.launcher3.util.Wait;
 import com.android.launcher3.util.rule.FailureWatcher;
 import com.android.launcher3.util.rule.ShellCommandRule;
 import com.android.launcher3.util.rule.TestIsolationRule;
@@ -89,8 +80,12 @@ public abstract class AbstractLauncherUiTest<LAUNCHER_TYPE extends Launcher,
     protected void performInitialization() {
         reinitializeLauncherData();
         mDevice.pressHome();
-        // Check that we switched to home.
-        mLauncher.getWorkspace();
+
+        // Wait for all apps view to be gone.
+        mDevice.wait(Until.gone(By.res(mTargetPackage, "apps_view")), DEFAULT_UI_TIMEOUT);
+
+        // Check that we switched to home
+        getBaseContainer();
 
         waitForLauncherCondition("Launcher didn't start", Objects::nonNull);
         waitForState(
@@ -99,13 +94,13 @@ public abstract class AbstractLauncherUiTest<LAUNCHER_TYPE extends Launcher,
                 () -> LauncherState.NORMAL);
         waitForResumed("Launcher internal state is still Background");
 
-        checkDetectedLeaks(mLauncher, true);
+        checkDetectedLeaks(mLauncher);
     }
 
     @Override
     protected TestRule getRulesInsideActivityMonitor() {
         final RuleChain inner = RuleChain
-                .outerRule(new PortraitLandscapeRunner<>(this))
+                .outerRule(new PortraitLandscapeRunner(this))
                 .around(new FailureWatcher(mLauncher))
                 .around(new TestIsolationRule(mLauncher, true));
 
@@ -218,7 +213,7 @@ public abstract class AbstractLauncherUiTest<LAUNCHER_TYPE extends Launcher,
             String message, Function<LAUNCHER_TYPE, Boolean> condition, long timeout) {
         verifyKeyguardInvisible();
         if (!TestHelpers.isInLauncherProcess()) return;
-        Wait.atMost(message, () -> getFromLauncher(condition), mLauncher, timeout);
+        mLauncher.waitForCondition(message, timeout, () -> getFromLauncher(condition));
     }
 
     // Cannot be used in TaplTests after injecting any gesture using Tapl because this can hide
@@ -227,11 +222,11 @@ public abstract class AbstractLauncherUiTest<LAUNCHER_TYPE extends Launcher,
         if (!TestHelpers.isInLauncherProcess()) return null;
 
         final Object[] output = new Object[1];
-        Wait.atMost(message, () -> {
+        mLauncher.waitForCondition(message, TestUtil.DEFAULT_UI_TIMEOUT, () -> {
             final Object fromLauncher = getFromLauncher(f);
             output[0] = fromLauncher;
             return fromLauncher != null;
-        }, mLauncher);
+        });
         return (T) output[0];
     }
 
@@ -242,77 +237,10 @@ public abstract class AbstractLauncherUiTest<LAUNCHER_TYPE extends Launcher,
             Runnable testThreadAction, Function<LAUNCHER_TYPE, Boolean> condition,
             long timeout) {
         if (!TestHelpers.isInLauncherProcess()) return;
-        Wait.atMost(message, () -> {
+        mLauncher.waitForCondition(message, timeout, () -> {
             testThreadAction.run();
             return getFromLauncher(condition);
-        }, mLauncher, timeout);
-    }
-
-    public static void startAppFast(String packageName) {
-        startIntent(
-                getInstrumentation().getContext().getPackageManager().getLaunchIntentForPackage(
-                        packageName),
-                By.pkg(packageName).depth(0),
-                true /* newTask */);
-    }
-
-    public static void startTestActivity(String activityName, String activityLabel) {
-        final String packageName = getAppPackageName();
-        final Intent intent = getInstrumentation().getContext().getPackageManager().
-                getLaunchIntentForPackage(packageName);
-        intent.setComponent(new ComponentName(packageName,
-                "com.android.launcher3.tests." + activityName));
-        startIntent(intent, By.pkg(packageName).text(activityLabel),
-                false /* newTask */);
-    }
-
-    public static void startTestActivity(int activityNumber) {
-        startTestActivity("Activity" + activityNumber, "TestActivity" + activityNumber);
-    }
-
-    public static void startImeTestActivity() {
-        final String packageName = getAppPackageName();
-        final Intent intent = getInstrumentation().getContext().getPackageManager().
-                getLaunchIntentForPackage(packageName);
-        intent.setComponent(new ComponentName(packageName,
-                "com.android.launcher3.testcomponent.ImeTestActivity"));
-        startIntent(intent, By.pkg(packageName).text("ImeTestActivity"),
-                false /* newTask */);
-    }
-
-    /** Starts ExcludeFromRecentsTestActivity, which has excludeFromRecents="true". */
-    public static void startExcludeFromRecentsTestActivity() {
-        final String packageName = getAppPackageName();
-        final Intent intent = getInstrumentation().getContext().getPackageManager()
-                .getLaunchIntentForPackage(packageName);
-        intent.setComponent(new ComponentName(packageName,
-                "com.android.launcher3.testcomponent.ExcludeFromRecentsTestActivity"));
-        startIntent(intent, By.pkg(packageName).text("ExcludeFromRecentsTestActivity"),
-                false /* newTask */);
-    }
-
-    private static void startIntent(Intent intent, BySelector selector, boolean newTask) {
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        if (newTask) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        } else {
-            intent.addFlags(
-                    Intent.FLAG_ACTIVITY_MULTIPLE_TASK | Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
-        }
-        getInstrumentation().getTargetContext().startActivity(intent);
-        assertTrue("App didn't start: " + selector,
-                TestHelpers.wait(Until.hasObject(selector), TestUtil.DEFAULT_UI_TIMEOUT));
-
-        // Wait for the Launcher to stop.
-        final LauncherInstrumentation launcherInstrumentation = new LauncherInstrumentation();
-        Wait.atMost("Launcher activity didn't stop",
-                () -> !launcherInstrumentation.isLauncherActivityStarted(),
-                launcherInstrumentation);
-    }
-
-
-    public static String resolveSystemApp(String category) {
-        return resolveSystemAppInfo(category).packageName;
+        });
     }
 
     protected void closeLauncherActivity() {

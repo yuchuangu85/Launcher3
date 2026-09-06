@@ -17,12 +17,9 @@
 package com.android.launcher3.deviceprofile
 
 import android.content.res.Resources
-import android.util.DisplayMetrics
-import androidx.core.content.res.ResourcesCompat
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.R
 import com.android.launcher3.icons.IconNormalizer.ICON_VISIBLE_AREA_FACTOR
-import com.android.launcher3.testing.shared.ResourceUtils.pxFromDp
 
 data class TaskbarProfile(
     val height: Int,
@@ -33,19 +30,28 @@ data class TaskbarProfile(
     // If true, used to layout taskbar in 3 button navigation mode.
     val isStartAlignTaskbar: Boolean,
     val isTransientTaskbar: Boolean,
+    val isTaskbarPresentInApps: Boolean,
 ) {
+
+    @Deprecated(
+        " TODO(B/477295763) Properties of an immutable object shouldn't be updated, " +
+            "this change doesn't ensure that the update values get propagated through the " +
+            "system. This functionality has been here since 2021 this function was created as " +
+            "part of a refactor and is kept to prevent altering the behaviour."
+    )
+    fun updateIsTaskbarPresentInApps(value: Boolean): TaskbarProfile {
+        return copy(isTaskbarPresentInApps = value)
+    }
+
     companion object Factory {
         fun createTaskbarProfile(
             res: Resources,
             isTransientTaskbar: Boolean,
             isTaskbarPresent: Boolean,
-            metrics: DisplayMetrics,
             displayOptionSpec: InvariantDeviceProfile.DisplayOptionSpec,
-            typeIndex: Int,
-            inv: InvariantDeviceProfile,
         ): TaskbarProfile {
             val transientTaskbarIconSize =
-                pxFromDp(inv.transientTaskbarIconSize.get(typeIndex), metrics)
+                res.getDimension(R.dimen.transient_taskbar_icon_size).toInt()
             val transientTaskbarBottomMargin: Int =
                 res.getDimensionPixelSize(R.dimen.transient_taskbar_bottom_margin)
             val transientTaskbarHeight =
@@ -57,37 +63,42 @@ data class TaskbarProfile(
                 transientTaskbarHeight + 2 * transientTaskbarBottomMargin
 
             return when {
-                !isTaskbarPresent -> TaskbarProfile(
-                    bottomMargin = 0,
-                    stashedTaskbarHeight = 0,
-                    height = 0,
-                    iconSize = 0,
-                    isStartAlignTaskbar = false,
-                    transientTaskbarClaimedSpace = transientTaskbarClaimedSpace,
-                    isTransientTaskbar = isTransientTaskbar,
-                )
-                isTransientTaskbar -> TaskbarProfile(
-                    iconSize = transientTaskbarIconSize,
-                    height = transientTaskbarHeight,
-                    stashedTaskbarHeight =
-                        res.getDimensionPixelSize(R.dimen.transient_taskbar_stashed_height),
-                    bottomMargin = transientTaskbarBottomMargin,
-                    isStartAlignTaskbar = false,
-                    transientTaskbarClaimedSpace = transientTaskbarClaimedSpace,
-                    isTransientTaskbar = isTransientTaskbar,
-                )
-                else -> TaskbarProfile(
-                    iconSize =
-                        pxFromDp(ResourcesCompat.getFloat(res, R.dimen.taskbar_icon_size), metrics),
-                    height = res.getDimensionPixelSize(R.dimen.taskbar_size),
-                    stashedTaskbarHeight = res.getDimensionPixelSize(R.dimen.taskbar_stashed_size),
-                    bottomMargin = 0,
-                    isStartAlignTaskbar = displayOptionSpec.startAlignTaskbar,
-                    isTransientTaskbar = isTransientTaskbar,
-                    transientTaskbarClaimedSpace = transientTaskbarClaimedSpace,
-                )
+                !isTaskbarPresent ->
+                    TaskbarProfile(
+                        bottomMargin = 0,
+                        stashedTaskbarHeight = 0,
+                        height = 0,
+                        iconSize = 0,
+                        isStartAlignTaskbar = false,
+                        transientTaskbarClaimedSpace = transientTaskbarClaimedSpace,
+                        isTransientTaskbar = isTransientTaskbar,
+                        isTaskbarPresentInApps = false,
+                    )
+                isTransientTaskbar ->
+                    TaskbarProfile(
+                        iconSize = transientTaskbarIconSize,
+                        height = transientTaskbarHeight,
+                        stashedTaskbarHeight =
+                            res.getDimensionPixelSize(R.dimen.transient_taskbar_stashed_height),
+                        bottomMargin = transientTaskbarBottomMargin,
+                        isStartAlignTaskbar = false,
+                        transientTaskbarClaimedSpace = transientTaskbarClaimedSpace,
+                        isTransientTaskbar = isTransientTaskbar,
+                        isTaskbarPresentInApps = false,
+                    )
+                else ->
+                    TaskbarProfile(
+                        iconSize = res.getDimension(R.dimen.persistent_taskbar_icon_size).toInt(),
+                        height = res.getDimensionPixelSize(R.dimen.taskbar_size),
+                        stashedTaskbarHeight =
+                            res.getDimensionPixelSize(R.dimen.taskbar_stashed_size),
+                        bottomMargin = 0,
+                        isStartAlignTaskbar = displayOptionSpec.startAlignTaskbar,
+                        isTransientTaskbar = isTransientTaskbar,
+                        transientTaskbarClaimedSpace = transientTaskbarClaimedSpace,
+                        isTaskbarPresentInApps = false,
+                    )
             }
-
         }
     }
 }

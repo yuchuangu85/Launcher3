@@ -92,13 +92,6 @@ class DeviceConfigWrapper private constructor(propReader: PropReader) {
             "Shrinks navbar when long pressing if ANIMATE_LPNH is enabled"
         )
 
-    val enableLongPressNavHandle =
-        propReader.get(
-            "ENABLE_LONG_PRESS_NAV_HANDLE",
-            true,
-            "Enables long pressing on the bottom bar nav handle to trigger events."
-        )
-
     val enableSearchHapticHint =
         propReader.get(
             "ENABLE_SEARCH_HAPTIC_HINT",
@@ -155,7 +148,6 @@ class DeviceConfigWrapper private constructor(propReader: PropReader) {
         writer.println("$prefix\tenableLpnhTwoStages=$enableLpnhTwoStages")
         writer.println("$prefix\ttwoStageDurationPercentage=$twoStageDurationPercentage")
         writer.println("$prefix\ttwoStageSlopPercentage=$twoStageSlopPercentage")
-        writer.println("$prefix\tenableLongPressNavHandle=$enableLongPressNavHandle")
         writer.println("$prefix\tenableSearchHapticHint=$enableSearchHapticHint")
         writer.println("$prefix\tenableSearchHapticCommit=$enableSearchHapticCommit")
         writer.println("$prefix\tlpnhHapticHintStartScalePercent=$lpnhHapticHintStartScalePercent")

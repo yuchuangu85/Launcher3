@@ -1,0 +1,9 @@
+filegroup {
+    name: "launcher-tests-shared-utils",
+    srcs: [
+        "testcomponent/TestCommandReceiver.java",
+        "testcomponent/BaseTestingActivity.java",
+        "testcomponent/TestLauncherActivity.java",
+        "util/rule/ScreenRecordRule.java",
+    ],
+}

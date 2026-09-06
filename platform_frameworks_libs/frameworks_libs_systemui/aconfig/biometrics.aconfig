@@ -1,0 +1,12 @@
+package: "com.android.systemui.shared"
+container: "system"
+
+# Note: for shared flags across SystemUI & framework
+# go/keep-sorted start block=yes newline_separated=yes by_regex=name:\s*"([^"]+)"
+flag {
+    name: "sidefps_controller_refactor"
+    namespace: "biometrics_framework"
+    description: "flag for SideFpsController refactor"
+    bug: "288175061"
+}
+# go/keep-sorted end

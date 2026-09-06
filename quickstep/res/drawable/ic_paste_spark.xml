@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright (C) 2025 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:androidprv="http://schemas.android.com/apk/prv/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    >
+    <path
+        android:pathData="M0,0h24v24h-24z"
+        android:fillColor="@color/materialColorSecondaryContainer"/>
+    <group android:scaleX="0.75" android:scaleY="0.75" android:pivotX="12" android:pivotY="12">
+        <clip-path
+            android:pathData="M0,0h24v24h-24z"/>
+        <path
+            android:pathData="M19.5,4.5C18.5,3.5 18,2.3 18,1C18,2.4 17.5,3.6 16.5,4.5C15.5,5.5 14.3,6 13,6C14.4,6 15.6,6.5 16.5,7.5C17.4,8.5 18,9.7 18,11C18,9.6 18.5,8.4 19.5,7.5C20.5,6.6 21.7,6 23,6C21.6,6 20.4,5.5 19.5,4.5Z"
+            android:fillColor="@color/materialColorOnSurface"/>
+        <path
+            android:pathData="M14.32,10.4C14.83,10 14.2,9.2 13.69,9.59C11.18,11.4 9.16,12.55 7,13.72V3H15V1H7C5.9,1 5,1.9 5,3V8.19C3.74,9.44 2.65,10.81 1.79,12.4C1.01,13.7 0.33,16.28 2.32,16.86C3.25,17.11 4.14,16.82 4.92,16.53C5.03,16.48 7.5,15.83 14.32,10.4ZM3.01,15.01C3.32,13.82 4.08,12.68 5,11.65V14.63C4.35,14.86 3.69,15.01 3.01,15.01Z"
+            android:fillColor="@color/materialColorOnSurface"/>
+        <path
+            android:pathData="M16,21H7V17.78C5.81,18.37 5.52,18.46 5,18.62V21C5,22.1 5.9,23 7,23H16C17.1,23 18,22.1 18,21V12H16V21Z"
+            android:fillColor="@color/materialColorOnSurface"/>
+    </group>
+</vector>

@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2024 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<resources>
+    <style name="TextAppearance.SettingsLib.DisplayLarge"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-display-large</item>
+        <item name="android:textSize">57sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">64sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.DisplayMedium"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-display-medium</item>
+        <item name="android:textSize">45sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">52sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.DisplaySmall"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-display-small</item>
+        <item name="android:textSize">36sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">44sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.HeadlineLarge"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-headline-large</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">40sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.HeadlineMedium"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-headline-medium</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">36sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.HeadlineSmall"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-headline-small</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">32sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.TitleLarge"
+        parent="@android:style/TextAppearance.DeviceDefault.Headline">
+        <item name="android:fontFamily">variable-title-large</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">28sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.TitleMedium"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-title-medium</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.TitleSmall"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-title-small</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.LabelLarge"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-label-large</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.LabelMedium"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-label-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.00833333</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.LabelSmall"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-label-small</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.00909091</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.BodyLarge"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-body-large</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.BodyMedium"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-body-medium</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.BodySmall"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-body-small</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.00833333</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.DisplayLarge.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-display-large-emphasized</item>
+        <item name="android:textSize">57sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">64sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.DisplayMedium.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-display-medium-emphasized</item>
+        <item name="android:textSize">45sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">52sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.DisplaySmall.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-display-small-emphasized</item>
+        <item name="android:textSize">36sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">44sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.HeadlineLarge.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-headline-large-emphasized</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">40sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.HeadlineMedium.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-headline-medium-emphasized</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">36sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.HeadlineSmall.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-headline-small-emphasized</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">32sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.TitleLarge.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:fontFamily">variable-title-large-emphasized</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">28sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.TitleMedium.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-title-medium-emphasized</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.TitleSmall.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-title-small-emphasized</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.LabelLarge.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-label-large-emphasized</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.LabelMedium.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-label-medium-emphasized</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.00833333</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.LabelSmall.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:fontFamily">variable-label-small-emphasized</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.00909091</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.BodyLarge.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-body-large-emphasized</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.BodyMedium.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-body-medium-emphasized</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="TextAppearance.SettingsLib.BodySmall.Emphasized"
+        parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:fontFamily">variable-body-small-emphasized</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:hyphenationFrequency">normalFast</item>
+        <item name="android:lineBreakWordStyle">phrase</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="SettingslibSwitchStyle.Expressive" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">@dimen/settingslib_expressive_space_medium4</item>
+        <item name="android:background">@null</item>
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
+        <item name="thumbIcon">@drawable/settingslib_expressive_switch_thumb_icon</item>
+        <item name="thumbIconTint">@color/settingslib_expressive_color_switch_thumb_icon</item>
+        <item name="thumbTint">@color/settingslib_expressive_color_switch_thumb</item>
+        <item name="trackTint">@color/settingslib_expressive_color_switch_track</item>
+    </style>
+
+    <style name="SettingslibMainSwitchStyle.Expressive" parent="SettingslibSwitchStyle.Expressive">
+        <item name="android:layout_gravity">center</item>
+    </style>
+
+    <style name="SettingslibSpinnerStyle.Expressive"
+        parent="android:style/Widget.Material.Spinner">
+        <item name="android:background">@drawable/settingslib_expressive_spinner_background</item>
+        <item name="android:popupBackground">@drawable/settingslib_expressive_spinner_dropdown_background</item>
+        <item name="android:dropDownVerticalOffset">@dimen/settingslib_expressive_space_large3</item>
+    </style>
+
+    <style name="SettingslibSpinnerItemStyle.Expressive"
+        parent="@android:style/Widget.DeviceDefault.TextView.SpinnerItem">
+        <item name="android:textAppearance">@style/TextAppearance.SettingsLib.LabelLarge</item>
+        <item name="android:textColor">@color/settingslib_materialColorOnSecondaryContainer</item>
+        <item name="android:paddingStart">@dimen/settingslib_expressive_space_small1</item>
+        <item name="android:paddingEnd">@dimen/settingslib_expressive_space_small1</item>
+    </style>
+
+    <!-- dropdownPreference dropdown item -->
+    <style name="SettingslibSpinnerDropDownItemStyle.Expressive"
+        parent="@android:style/Widget.Material.DropDownItem.Spinner">
+        <item name="android:textAppearance">@style/TextAppearance.SettingsLib.LabelLarge</item>
+        <item name="android:textColor">@color/settingslib_materialColorOnSurface</item>
+        <item name="android:layout_height">@dimen/settingslib_expressive_space_medium4</item>
+        <item name="android:paddingStart">@dimen/settingslib_expressive_space_small1</item>
+        <item name="android:paddingEnd">@dimen/settingslib_expressive_space_small1</item>
+    </style>
+
+    <style name="SettingslibSpinnerStyle.Expressive.Outlined">
+        <item name="android:background">@drawable/settingslib_expressive_spinner_background_outlined</item>
+    </style>
+
+    <style name="EntityHeader">
+        <item name="android:paddingTop">@dimen/settingslib_expressive_space_small4</item>
+        <item name="android:paddingBottom">@dimen/settingslib_expressive_space_small1</item>
+        <item name="android:paddingEnd">@dimen/settingslib_expressive_space_small1</item>
+    </style>
+
+    <style name="SettingsLibEntityHeader" parent="EntityHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">?android:attr/listPreferredItemPaddingStart</item>
+        <item name="android:paddingEnd">?android:attr/listPreferredItemPaddingEnd</item>
+    </style>
+
+    <style name="SettingsLibEntityHeaderContent">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center_horizontal</item>
+    </style>
+
+    <style name="SettingsLibEntityHeaderIcon">
+        <item name="android:layout_width">@dimen/settingslib_expressive_space_large3</item>
+        <item name="android:layout_height">@dimen/settingslib_expressive_space_large3</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:antialias">true</item>
+    </style>
+
+    <style name="SettingsLibEntityHeaderIconBackground">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_gravity">center</item>
+    </style>
+
+    <style name="SettingsLibEntityHeaderTitle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/settingslib_expressive_space_small1</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:gravity">center</item>
+        <item name="android:ellipsize">marquee</item>
+        <item name="android:textDirection">locale</item>
+        <item name="android:textAppearance">@style/TextAppearance.SettingsLib.TitleLarge.Emphasized</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.PreferenceTitle"
+        parent="@style/TextAppearance.SettingsLib.TitleMedium">
+        <item name="android:textColor">@color/settingslib_text_color_primary</item>
+    </style>
+
+    <style name="TextAppearance.SettingsLib.PreferenceSummary"
+        parent="@style/TextAppearance.SettingsLib.BodyMedium">
+        <item name="android:textColor">@color/settingslib_text_color_secondary</item>
+    </style>
+
+    <style name="TextAppearance.Footer.Title.SettingsLib"
+        parent="@android:style/TextAppearance.DeviceDefault.WindowTitle">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">?android:attr/colorAccent</item>
+    </style>
+
+    <style name="Widget.SettingsLib.DialogWindowTitle" parent="">
+        <item name="android:scrollHorizontally">false</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textAppearance">@style/TextAppearance.SettingsLib.HeadlineSmall</item>
+    </style>
+
+    <style name="Widget.SettingsLib.ButtonBar" parent="@style/Widget.AppCompat.ButtonBar.AlertDialog">
+        <item name="android:minHeight">88dp</item>
+    </style>
+
+    <style name="Widget.SettingsLib.DialogButton" parent="@android:style/Widget.DeviceDefault.Button">
+        <item name="android:layout_marginTop">@dimen/settingslib_expressive_space_extrasmall4</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/settingslib_expressive_space_medium4</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingVertical">@dimen/settingslib_expressive_space_extrasmall5</item>
+        <item name="android:paddingHorizontal">@dimen/settingslib_expressive_space_small1</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textAppearance">@style/TextAppearance.SettingsLib.LabelLarge</item>
+        <item name="android:textColor">@color/settingslib_materialColorPrimary</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <style name="Widget.SettingsLib.DialogButton.Filled">
+        <item name="android:layout_marginEnd">@dimen/settingslib_expressive_space_extrasmall6</item>
+        <item name="android:background">@drawable/settingslib_expressive_button_background_filled</item>
+        <item name="backgroundTint">@color/settingslib_materialColorPrimary</item>
+        <item name="android:textColor">@color/settingslib_materialColorOnPrimary</item>
+    </style>
+
+    <style name="Widget.SettingsLib.DialogButton.Outline">
+        <item name="android:layout_marginEnd">@dimen/settingslib_expressive_space_extrasmall4</item>
+        <item name="android:background">@drawable/settingslib_expressive_button_background_outline</item>
+        <item name="backgroundTint">@color/settingslib_materialColorOutlineVariant</item>
+        <item name="android:textColor">@color/settingslib_materialColorPrimary</item>
+    </style>
+
+    <style name="SettingslibSliderStyle.Expressive" parent="">
+        <item name="trackColorActive">@color/settingslib_expressive_color_slider_track_active</item>
+        <item name="trackColorInactive">@color/settingslib_expressive_color_slider_track_inactive</item>
+        <item name="thumbColor">@color/settingslib_expressive_color_slider_thumb</item>
+        <item name="tickColorActive">@color/settingslib_expressive_color_slider_track_inactive</item>
+        <item name="tickColorInactive">@color/settingslib_expressive_color_slider_track_active</item>
+        <item name="haloColor">@color/settingslib_expressive_color_slider_halo</item>
+    </style>
+</resources>

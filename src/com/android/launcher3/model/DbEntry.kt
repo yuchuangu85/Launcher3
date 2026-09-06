@@ -23,7 +23,7 @@ import com.android.launcher3.LauncherSettings.Favorites.CELLX
 import com.android.launcher3.LauncherSettings.Favorites.CELLY
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET
-import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR
+import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APP_GROUP
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_FOLDER
 import com.android.launcher3.LauncherSettings.Favorites.SCREEN
 import com.android.launcher3.LauncherSettings.Favorites.SPANX
@@ -35,7 +35,7 @@ import java.util.Objects
 class DbEntry : ItemInfo(), Comparable<DbEntry> {
     @JvmField var mIntent: String? = null
     @JvmField var mProvider: String? = null
-    @JvmField var mFolderItems: MutableMap<String, Set<Int>> = HashMap()
+    @JvmField var mFolderItems: MutableMap<String, MutableSet<Int>> = HashMap()
 
     /** Id of the specific widget. */
     @JvmField var appWidgetId: Int = NO_ID
@@ -90,7 +90,7 @@ class DbEntry : ItemInfo(), Comparable<DbEntry> {
     private fun getEntryMigrationId(): String? {
         when (itemType) {
             ITEM_TYPE_FOLDER,
-            ITEM_TYPE_APP_PAIR -> return getFolderMigrationId()
+            ITEM_TYPE_APP_GROUP -> return getFolderMigrationId()
             ITEM_TYPE_APPWIDGET ->
                 // mProvider is the app the widget belongs to and appWidgetId it's the unique
                 // is of the widget, we need both because if you remove a widget and then add it

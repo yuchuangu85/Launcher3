@@ -62,6 +62,7 @@ import com.android.quickstep.views.TaskContainer;
 import com.android.systemui.shared.recents.model.Task;
 
 import java.lang.annotation.Retention;
+import java.util.List;
 
 /**
  * Go-specific extension of the factory class that adds an overlay to TaskView
@@ -95,7 +96,10 @@ public final class TaskOverlayFactoryGo extends TaskOverlayFactory {
 
     private AssistContentRequester mContentRequester;
 
-    public TaskOverlayFactoryGo(Context context) {
+    public TaskOverlayFactoryGo(
+            Context context,
+            List<TaskShortcutFactory> perTaskShortcutFactories) {
+        super(perTaskShortcutFactories);
         mContentRequester = new AssistContentRequester(context);
     }
 

@@ -24,22 +24,28 @@ import static com.android.launcher3.BubbleTextView.DISPLAY_ALL_APPS;
 import static com.android.launcher3.BubbleTextView.DISPLAY_PREDICTION_ROW;
 import static com.android.launcher3.BubbleTextView.DISPLAY_SEARCH_RESULT;
 import static com.android.launcher3.BubbleTextView.DISPLAY_SEARCH_RESULT_SMALL;
-import static com.android.launcher3.Flags.FLAG_ENABLE_SUPPORT_FOR_ARCHIVING;
-import static com.android.launcher3.Flags.FLAG_USE_NEW_ICON_FOR_ARCHIVED_APPS;
+import static com.android.launcher3.BubbleTextView.DISPLAY_TASKBAR;
+import static com.android.launcher3.BubbleTextView.DISPLAY_WORKSPACE;
 import static com.android.launcher3.LauncherPrefs.ENABLE_TWOLINE_ALLAPPS_TOGGLE;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_ARCHIVED;
+import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_AUTOMATED;
+import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_INSTALL_SESSION_ACTIVE;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Typeface;
@@ -50,6 +56,7 @@ import android.platform.test.annotations.EnableFlags;
 import android.platform.test.flag.junit.SetFlagsRule;
 import android.text.SpannedString;
 import android.text.style.ImageSpan;
+import android.util.AttributeSet;
 import android.view.ViewGroup;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -59,17 +66,19 @@ import androidx.test.filters.SmallTest;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherPrefs;
+import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.graphics.PreloadIconDrawable;
+import com.android.launcher3.graphics.AutomatedIconDelegate;
+import com.android.launcher3.graphics.PreloadIconDelegate;
 import com.android.launcher3.icons.BitmapInfo;
+import com.android.launcher3.icons.FastBitmapDrawable;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.search.StringMatcherUtility;
-import com.android.launcher3.util.ActivityContextWrapper;
-import com.android.launcher3.util.FlagOp;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.SandboxApplication;
+import com.android.launcher3.util.TestActivityContext;
 import com.android.launcher3.util.TestUtil;
 import com.android.launcher3.views.BaseDragLayer;
 
@@ -77,7 +86,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 /**
  * Unit tests for testing modifyTitleToSupportMultiLine() in BubbleTextView.java
@@ -119,20 +129,20 @@ public class BubbleTextViewTest {
     private static final float SPACE_EXTRA = 0;
 
     @Rule public SandboxApplication mModelContext = new SandboxApplication();
+    @Rule public TestActivityContext mContext = new TestActivityContext(mModelContext);
+
+    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private BubbleTextView mBubbleTextView;
     private ItemInfoWithIcon mItemInfoWithIcon;
-    private Context mContext;
     private int mLimitedWidth;
     private AppInfo mGmailAppInfo;
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
         Utilities.enableRunningInTestHarnessForTests();
         LauncherPrefs.get(mModelContext).put(ENABLE_TWOLINE_ALLAPPS_TOGGLE, true);
 
-        mContext = new ActivityContextWrapper(mModelContext);
         mBubbleTextView = new BubbleTextView(mContext);
         mBubbleTextView.reset();
 
@@ -408,9 +418,8 @@ public class BubbleTextViewTest {
 
     @Test
     public void applyIconAndLabel_whenDisplay_DISPLAY_SEARCH_RESULT_SMALL_noBadge() {
-        FlagOp op = FlagOp.NO_OP;
         // apply the WORK bitmap flag to show work badge
-        mGmailAppInfo.bitmap.flags = op.apply(WORK_FLAG);
+        mGmailAppInfo.bitmap = mGmailAppInfo.bitmap.withFlags(i -> WORK_FLAG);
         mBubbleTextView.setDisplay(DISPLAY_SEARCH_RESULT_SMALL);
 
         mBubbleTextView.applyIconAndLabel(mGmailAppInfo);
@@ -418,7 +427,34 @@ public class BubbleTextViewTest {
         assertThat(mBubbleTextView.getIcon().hasBadge()).isEqualTo(false);
     }
 
-    @EnableFlags({FLAG_ENABLE_SUPPORT_FOR_ARCHIVING, FLAG_USE_NEW_ICON_FOR_ARCHIVED_APPS})
+    @Test
+    public void configureMinimalPopupOnReset_minimalPopupFalse() {
+        BubbleTextView spyTextView = spy(mBubbleTextView);
+
+        spyTextView.reset();
+
+        verify(spyTextView).configureMinimalPopup(false);
+        assertThat(spyTextView.getShowingMinimalPopup()).isEqualTo(false);
+    }
+
+    @Test
+    public void configureMinimalPopupTrue_minimalPopupTrue() {
+        BubbleTextView spyTextView = spy(mBubbleTextView);
+
+        spyTextView.configureMinimalPopup(true);
+
+        assertThat(spyTextView.getShowingMinimalPopup()).isEqualTo(true);
+    }
+
+    @Test
+    public void configureMinimalPopupFalse_minimalPopupFalse() {
+        BubbleTextView spyTextView = spy(mBubbleTextView);
+
+        spyTextView.configureMinimalPopup(false);
+
+        assertThat(spyTextView.getShowingMinimalPopup()).isEqualTo(false);
+    }
+
     @Test
     public void applyIconAndLabel_setsImageSpan_whenInactiveArchivedApp() {
         // Given
@@ -454,7 +490,6 @@ public class BubbleTextViewTest {
         assertThat(actualSpan.getVerticalAlignment()).isEqualTo(ALIGN_CENTER);
     }
 
-    @EnableFlags({FLAG_ENABLE_SUPPORT_FOR_ARCHIVING, FLAG_USE_NEW_ICON_FOR_ARCHIVED_APPS})
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
     @Test
     public void applyIconAndLabel_setsBoldDrawable_whenBoldedTextForArchivedApp() {
@@ -476,9 +511,8 @@ public class BubbleTextViewTest {
 
     @Test
     public void applyIconAndLabel_whenDisplay_DISPLAY_SEARCH_RESULT_hasBadge() {
-        FlagOp op = FlagOp.NO_OP;
         // apply the WORK bitmap flag to show work badge
-        mGmailAppInfo.bitmap.flags = op.apply(WORK_FLAG);
+        mGmailAppInfo.bitmap = mGmailAppInfo.bitmap.withFlags(i -> WORK_FLAG);
         mBubbleTextView.setDisplay(DISPLAY_SEARCH_RESULT);
 
         mBubbleTextView.applyIconAndLabel(mGmailAppInfo);
@@ -494,9 +528,9 @@ public class BubbleTextViewTest {
 
         TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
                 () -> mBubbleTextView.applyIconAndLabel(mItemInfoWithIcon));
-        assertThat(mBubbleTextView.getIcon()).isInstanceOf(PreloadIconDrawable.class);
+        FastBitmapDrawable oldIcon = mBubbleTextView.getIcon();
+        assertThat(oldIcon.getDelegate()).isInstanceOf(PreloadIconDelegate.class);
         assertThat(mBubbleTextView.getIcon().getLevel()).isEqualTo(30);
-        PreloadIconDrawable oldIcon = (PreloadIconDrawable) mBubbleTextView.getIcon();
 
         // Same icon is used when progress changes
         mItemInfoWithIcon.setProgressLevel(50, PackageInstallInfo.STATUS_INSTALLING);
@@ -511,12 +545,146 @@ public class BubbleTextViewTest {
         TestUtil.runOnExecutorSync(MAIN_EXECUTOR, () -> {
             mBubbleTextView.applyIconAndLabel(mItemInfoWithIcon);
             assertThat(mBubbleTextView.getIcon()).isSameInstanceAs(oldIcon);
-            assertThat(oldIcon.getActiveAnimation()).isNotNull();
-            oldIcon.getActiveAnimation().end();
+            PreloadIconDelegate preloadDelegate = (PreloadIconDelegate) oldIcon.getDelegate();
+            assertThat(preloadDelegate.getActiveAnimation()).isNotNull();
+            preloadDelegate.getActiveAnimation().end();
         });
 
         // Assert that the icon is replaced with a non-pending icon
-        assertThat(mBubbleTextView.getIcon()).isNotInstanceOf(PreloadIconDrawable.class);
+        assertThat(mBubbleTextView.getIcon()).isNotInstanceOf(PreloadIconDelegate.class);
     }
 
+    /**
+     * Creates a BubbleTextView with a mocked display type set during construction.
+     * This allows testing constructor logic that depends on XML attributes.
+     */
+    private BubbleTextView createBubbleTextViewWithDisplay(int displayType) {
+        // Spy on the context to intercept the call to obtainStyledAttributes
+        TestActivityContext spyContext = spy(mContext);
+
+        // Create a real TypedArray by calling the original method. This is more robust than a full
+        // mock, as we only need to override one value.
+        TypedArray realTypedArray = mContext.obtainStyledAttributes(
+                null, R.styleable.BubbleTextView, 0, 0);
+
+        // Spy the real TypedArray to override one of its methods
+        TypedArray spyTypedArray = spy(realTypedArray);
+
+        // When getInteger is called for iconDisplay, return our desired value
+        doReturn(displayType).when(spyTypedArray).getInteger(
+                eq(R.styleable.BubbleTextView_iconDisplay), anyInt());
+
+        // When the spied context calls obtainStyledAttributes, return our spied TypedArray
+        doReturn(spyTypedArray).when(spyContext).obtainStyledAttributes(
+                nullable(AttributeSet.class),
+                eq(R.styleable.BubbleTextView),
+                anyInt(),
+                anyInt());
+
+        return new BubbleTextView(spyContext, null, 0);
+    }
+
+    @Test
+    public void constructor_whenDisplayTaskbar_textIsHidden() {
+        // Verifies that the text is hidden when the view is constructed for the taskbar.
+        BubbleTextView taskbarBtv = createBubbleTextViewWithDisplay(DISPLAY_TASKBAR);
+        float actualAlpha = taskbarBtv.getTextContainerVisibility();
+
+        assertEquals(
+                "The text view is expected to be hidden when displayed in task bar, but the "
+                        + "actual alpha was "
+                        + actualAlpha, 0f, actualAlpha, 1e-5);
+    }
+
+    @Test
+    public void constructor_whenDisplayWorkspace_textIsVisible() {
+        // Verifies that the text is visible for a non-taskbar display type.
+        BubbleTextView workspaceBtv = createBubbleTextViewWithDisplay(DISPLAY_WORKSPACE);
+        float actualAlpha = workspaceBtv.getTextContainerVisibility();
+
+        assertEquals(
+                "The text view is expected to be visible when displayed in workspace, but the "
+                        + "actual alpha was "
+                        + actualAlpha, 1f, actualAlpha, 1e-5);
+    }
+
+    @Test
+    public void applyIconAndLabel_setsAutomation_forItemInfoWithIcon() {
+        mItemInfoWithIcon.runtimeStatusFlags &= ~FLAG_AUTOMATED;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mItemInfoWithIcon));
+
+        mItemInfoWithIcon.runtimeStatusFlags |= FLAG_AUTOMATED;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mItemInfoWithIcon));
+
+        assertThat(mBubbleTextView.getIcon().getDelegate())
+                .isInstanceOf(AutomatedIconDelegate.class);
+    }
+
+    @Test
+    public void applyIconAndLabel_unsetsAutomation_forItemInfoWithIcon() {
+        mItemInfoWithIcon.runtimeStatusFlags |= FLAG_AUTOMATED;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mItemInfoWithIcon));
+
+        mItemInfoWithIcon.runtimeStatusFlags &= ~FLAG_AUTOMATED;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mItemInfoWithIcon));
+
+        assertThat(mBubbleTextView.getIcon().getDelegate())
+                .isNotInstanceOf(AutomatedIconDelegate.class);
+    }
+
+    @Test
+    public void applyIconAndLabel_updatesAutomatedIcon_onBitmapChange() {
+        mGmailAppInfo.runtimeStatusFlags |= FLAG_AUTOMATED;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mGmailAppInfo));
+        FastBitmapDrawable firstIcon = mBubbleTextView.getIcon();
+        assertThat(firstIcon.getDelegate()).isInstanceOf(AutomatedIconDelegate.class);
+
+        mGmailAppInfo.bitmap = BitmapInfo.fromBitmap(Bitmap.createBitmap(1, 1, Config.ARGB_8888));
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mGmailAppInfo));
+
+        assertThat(mBubbleTextView.getIcon()).isNotSameInstanceAs(firstIcon);
+        assertThat(mBubbleTextView.getIcon().getDelegate())
+                .isInstanceOf(AutomatedIconDelegate.class);
+    }
+
+    @Test
+    public void applyIconAndLabel_updatesInstallingIcon_onBitmapChange() {
+        mGmailAppInfo.runtimeStatusFlags |= FLAG_INSTALL_SESSION_ACTIVE;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mGmailAppInfo));
+        FastBitmapDrawable firstIcon = mBubbleTextView.getIcon();
+        assertThat(firstIcon.getDelegate()).isInstanceOf(PreloadIconDelegate.class);
+
+        mGmailAppInfo.bitmap = BitmapInfo.fromBitmap(Bitmap.createBitmap(1, 1, Config.ARGB_8888));
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mGmailAppInfo));
+
+        assertThat(mBubbleTextView.getIcon()).isNotSameInstanceAs(firstIcon);
+        assertThat(mBubbleTextView.getIcon().getDelegate())
+                .isInstanceOf(PreloadIconDelegate.class);
+    }
+
+    @Test
+    public void applyIconAndLabel_updatesUnarchivingIcon_onBitmapChange() {
+        mGmailAppInfo.runtimeStatusFlags |= FLAG_INSTALL_SESSION_ACTIVE;
+        mGmailAppInfo.runtimeStatusFlags |= FLAG_ARCHIVED;
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mGmailAppInfo));
+        FastBitmapDrawable firstIcon = mBubbleTextView.getIcon();
+        assertThat(firstIcon.getDelegate()).isInstanceOf(PreloadIconDelegate.class);
+
+        mGmailAppInfo.bitmap = BitmapInfo.fromBitmap(Bitmap.createBitmap(1, 1, Config.ARGB_8888));
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR,
+                () -> mBubbleTextView.applyIconAndLabel(mGmailAppInfo));
+
+        assertThat(mBubbleTextView.getIcon()).isNotSameInstanceAs(firstIcon);
+        assertThat(mBubbleTextView.getIcon().getDelegate())
+                .isInstanceOf(PreloadIconDelegate.class);
+    }
 }

@@ -1,3 +1,0 @@
-#inherits OWNERS from SystemUI in addition to WEAR framework owners below
-file:platform/frameworks/base:/WEAR_OWNERS
-

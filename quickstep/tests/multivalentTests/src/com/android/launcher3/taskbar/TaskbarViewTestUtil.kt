@@ -23,17 +23,22 @@ import android.graphics.Bitmap.createBitmap
 import android.os.Process
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT
 import com.android.launcher3.icons.BitmapInfo
+import com.android.launcher3.icons.ThemedBitmap
+import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.taskbar.TaskbarIconType.ALL_APPS
 import com.android.launcher3.taskbar.TaskbarIconType.DIVIDER
+import com.android.launcher3.taskbar.TaskbarIconType.HANDOFF_SUGGESTION
 import com.android.launcher3.taskbar.TaskbarIconType.HOTSEAT
 import com.android.launcher3.taskbar.TaskbarIconType.OVERFLOW
 import com.android.launcher3.taskbar.TaskbarIconType.RECENT
+import com.android.launcher3.taskbar.handoff.HandoffSuggestion
 import com.android.quickstep.util.GroupTask
 import com.android.quickstep.util.SingleTask
+import com.android.quickstep.util.SplitTask
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.Task.TaskKey
 import com.google.common.truth.FailureMetadata
@@ -79,7 +84,12 @@ object TaskbarViewTestUtil {
         item.user = user
         item.container = container
         // Create a placeholder icon so that the test  doesn't try to load a high-res icon.
-        item.bitmap = BitmapInfo.fromBitmap(createBitmap(1, 1, Bitmap.Config.ALPHA_8))
+        item.bitmap =
+            BitmapInfo(
+                icon = createBitmap(1, 1, Bitmap.Config.ALPHA_8),
+                color = 0,
+                themedBitmap = ThemedBitmap.NOT_SUPPORTED,
+            )
         return item
     }
 
@@ -104,20 +114,41 @@ object TaskbarViewTestUtil {
         return List(size) { createRecentTask(it) }
     }
 
-    fun createRecentTask(id: Int = 0): GroupTask {
-        return SingleTask(
-            Task().apply {
-                key =
-                    TaskKey(
-                        id,
-                        5,
-                        testIntent(id),
-                        testComponent(id),
-                        Process.myUserHandle().identifier,
-                        System.currentTimeMillis(),
-                    )
-            }
-        )
+    fun createRecentTask(id: Int = 0): GroupTask = SingleTask(createTask(id))
+
+    fun createSplitTask(id: Int = 0): SplitTask =
+        SplitTask(createTask(id), createTask(id + 1), splitBounds = null)
+
+    fun createHandoffSuggestions(size: Int): List<HandoffSuggestion> {
+        return List(size) { createHandoffSuggestion(it) }
+    }
+
+    fun createHandoffSuggestion(id: Int = 0): HandoffSuggestion {
+        return HandoffSuggestion(id, id, AppInfo())
+    }
+
+    private fun createTask(id: Int): Task {
+        return Task().apply {
+            title = "Task$id"
+            key =
+                TaskKey(
+                    id,
+                    5,
+                    testIntent(id),
+                    testComponent(id),
+                    Process.myUserHandle().identifier,
+                    System.currentTimeMillis(),
+                )
+        }
+    }
+
+    fun createAppInfo(id: Int = 0): AppInfo {
+        return AppInfo().apply {
+            componentName = testComponent(id)
+            user = Process.myUserHandle()
+            intent = testIntent(id)
+            title = "Test App $id"
+        }
     }
 }
 
@@ -132,11 +163,14 @@ class TaskbarViewSubject(failureMetadata: FailureMetadata, private val view: Tas
                 when (it) {
                     view.allAppsButtonContainer -> ALL_APPS
                     view.taskbarDividerViewContainer -> DIVIDER
-                    view.taskbarOverflowView -> OVERFLOW
+                    view.taskbarRecentsOverflowView -> OVERFLOW
+                    view.taskbarPinnedOverflowView -> OVERFLOW
+                    view?.taskbarHotseatIconsContainer?.overflowView -> OVERFLOW
                     else ->
                         when (it.tag) {
                             is ItemInfo -> HOTSEAT
                             is GroupTask -> RECENT
+                            is HandoffSuggestion -> HANDOFF_SUGGESTION
                             else -> throw IllegalStateException("Unknown type for $it")
                         }
                 }
@@ -161,7 +195,8 @@ enum class TaskbarIconType {
     DIVIDER,
     HOTSEAT,
     RECENT,
-    OVERFLOW;
+    OVERFLOW,
+    HANDOFF_SUGGESTION;
 
     operator fun times(size: Int) = Array(size) { this }
 }

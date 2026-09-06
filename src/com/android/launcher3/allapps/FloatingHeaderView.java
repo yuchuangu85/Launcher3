@@ -42,13 +42,10 @@ import com.android.launcher3.workprofile.PersonalWorkSlidingTabStrip;
 import com.android.systemui.plugins.AllAppsRow;
 import com.android.systemui.plugins.AllAppsRow.OnHeightUpdatedListener;
 import com.android.systemui.plugins.PluginListener;
-import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-
-import app.lawnchair.preferences2.PreferenceManager2;
 
 public class FloatingHeaderView extends LinearLayout implements
         ValueAnimator.AnimatorUpdateListener, PluginListener<AllAppsRow>, Insettable,
@@ -121,8 +118,6 @@ public class FloatingHeaderView extends LinearLayout implements
     // enabled or disabled, and represent the current set of all rows.
     private FloatingHeaderRow[] mAllRows = NO_ROWS;
 
-    private final PreferenceManager2 pref2;
-
     public FloatingHeaderView(@NonNull Context context) {
         this(context, null);
     }
@@ -133,7 +128,6 @@ public class FloatingHeaderView extends LinearLayout implements
                 .getDimensionPixelSize(R.dimen.all_apps_header_top_adjustment);
         mTabsAdditionalPaddingBottom = context.getResources()
                 .getDimensionPixelSize(R.dimen.all_apps_header_bottom_adjustment);
-        pref2 = PreferenceManager2.getInstance(context);
     }
 
     @Override
@@ -337,9 +331,8 @@ public class FloatingHeaderView extends LinearLayout implements
     }
 
     protected void applyVerticalMove() {
-        int maxTranslation = mMaxTranslation - mCurrentRV.getSavedScrollPosition();
         int uncappedTranslationY = mTranslationY;
-        mTranslationY = Math.max(mTranslationY, -maxTranslation);
+        mTranslationY = Math.max(mTranslationY, -mMaxTranslation);
 
         if (mFloatingRowsCollapsed || uncappedTranslationY < mTranslationY - getPaddingTop()) {
             // we hide it completely if already capped (for opening search anim)
@@ -405,9 +398,7 @@ public class FloatingHeaderView extends LinearLayout implements
         }
         mHeaderCollapsed = false;
         mSnappedScrolledY = -mMaxTranslation;
-        if (!PreferenceExtensionsKt.firstBlocking (pref2.getRememberPosition ())) {
-            mCurrentRV.scrollToTop();
-        }
+        mCurrentRV.scrollToTop();
     }
 
     public boolean isExpanded() {
@@ -481,9 +472,9 @@ public class FloatingHeaderView extends LinearLayout implements
 
     @Override
     public void setInsets(Rect insets) {
-        var dp =  ActivityContext.lookupContext(getContext()).getDeviceProfile();
-        int leftRightPadding = dp.allAppsPadding.left + dp.allAppsPadding.right;
-        setPadding(leftRightPadding, getPaddingTop(), leftRightPadding, getPaddingBottom());
+        Rect allAppsPadding = ActivityContext.lookupContext(getContext())
+                .getDeviceProfile().getAllAppsProfile().getPadding();
+        setPadding(allAppsPadding.left, getPaddingTop(), allAppsPadding.right, getPaddingBottom());
     }
 
     public <T extends FloatingHeaderRow> T findFixedRowByType(Class<T> type) {

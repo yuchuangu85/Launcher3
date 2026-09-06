@@ -15,12 +15,13 @@
  */
 package com.android.launcher3.graphics;
 
-import static com.android.launcher3.BuildConfigs.IS_DEBUG_DEVICE;
+import static com.android.launcher3.BuildConfig.IS_DEBUG_DEVICE;
+import static com.android.launcher3.graphics.ThemeManager.PREF_ICON_SHAPE;
+import static com.android.launcher3.graphics.theme.ThemePreference.MONO_THEME_VALUE;
 import static com.android.launcher3.preview.PreviewSurfaceRenderer.KEY_BITMAP_GENERATION_DELAY_MS;
 import static com.android.launcher3.preview.PreviewSurfaceRenderer.KEY_VIEW_HEIGHT;
 import static com.android.launcher3.preview.PreviewSurfaceRenderer.KEY_VIEW_WIDTH;
 import static com.android.launcher3.preview.PreviewSurfaceRenderer.MIN_BITMAP_GENERATION_DELAY_MS;
-import static com.android.launcher3.graphics.ThemeManager.PREF_ICON_SHAPE;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 
@@ -43,15 +44,16 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.launcher3.InvariantDeviceProfile;
-import com.android.launcher3.InvariantDeviceProfile.GridOption;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherModel;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
-import com.android.launcher3.model.BgDataModel;
+import com.android.launcher3.deviceprofile.parser.GridOption;
+import com.android.launcher3.graphics.theme.ThemePreference;
 import com.android.launcher3.preview.PreviewLifecycleObserver;
 import com.android.launcher3.preview.PreviewSurfaceRenderer;
 import com.android.launcher3.shapes.IconShapeModel;
@@ -59,10 +61,7 @@ import com.android.launcher3.shapes.ShapesProvider;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ContentProviderProxy.ProxyProvider;
 import com.android.launcher3.util.DaggerSingletonTracker;
-import com.android.launcher3.util.Executors;
-import com.android.launcher3.util.Preconditions;
 import com.android.launcher3.util.RunnableList;
-import com.android.systemui.shared.Flags;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -131,6 +130,12 @@ public class GridCustomizationsProxy implements ProxyProvider {
     private static final String GET_ICON_THEMED = "/get_icon_themed";
     private static final String SET_ICON_THEMED = "/set_icon_themed";
     public static final String ICON_THEMED = "/icon_themed";
+
+    private static final String GET_WORKSPACE_ITEMS_LABEL_HIDDEN =
+            "/get_workspace_items_label_hidden";
+    private static final String SET_WORKSPACE_ITEMS_LABEL_HIDDEN =
+            "/set_workspace_items_label_hidden";
+    public static final String WORKSPACE_ITEMS_LABEL_HIDDEN = "/workspace_items_label_hidden";
     public static final String BOOLEAN_VALUE = "boolean_value";
 
     private static final String KEY_SURFACE_PACKAGE = "surface_package";
@@ -139,6 +144,10 @@ public class GridCustomizationsProxy implements ProxyProvider {
     public static final String KEY_GRID_NAME = "grid_name";
     public static final String KEY_IMAGE = "image";
 
+    // Number of rows updated as part of an update call
+    protected static final int UPDATE_SETTING_SUCCESS = 1;
+    protected static final int UPDATE_SETTING_FAILURE = 0;
+
     public static final String KEY_UPDATE_METHOD = "update_method";
 
     // Set of all active previews used to track duplicate memory allocations
@@ -146,20 +155,20 @@ public class GridCustomizationsProxy implements ProxyProvider {
             Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private final Context mContext;
-    private final ThemeManager mThemeManager;
+    private final ThemePreference mThemePreference;
     private final LauncherPrefs mPrefs;
     private final InvariantDeviceProfile mIdp;
 
     @Inject
     protected GridCustomizationsProxy(
             @ApplicationContext Context context,
-            ThemeManager themeManager,
+            ThemePreference themePreference,
             LauncherPrefs prefs,
             InvariantDeviceProfile idp,
             DaggerSingletonTracker lifeCycle
     ) {
         mContext = context;
-        mThemeManager = themeManager;
+        mThemePreference = themePreference;
         mPrefs = prefs;
         mIdp = idp;
         lifeCycle.addCloseable(() -> mActivePreviews.forEach(PreviewLifecycleObserver::binderDied));
@@ -178,42 +187,36 @@ public class GridCustomizationsProxy implements ProxyProvider {
 
         switch (path) {
             case KEY_SHAPE_OPTIONS: {
-                if (Flags.newCustomizationPickerUi()) {
-                    MatrixCursor cursor = new MatrixCursor(new String[]{
-                            KEY_SHAPE_KEY, KEY_SHAPE_TITLE, KEY_PATH, KEY_IS_DEFAULT});
-                    final String currentShape = mPrefs.get(PREF_ICON_SHAPE);
-                    IconShapeModel[] availableShapes = ShapesProvider.INSTANCE.getIconShapes();
+                MatrixCursor cursor = new MatrixCursor(new String[]{
+                        KEY_SHAPE_KEY, KEY_SHAPE_TITLE, KEY_PATH, KEY_IS_DEFAULT});
+                final String currentShape = mPrefs.get(PREF_ICON_SHAPE);
+                IconShapeModel[] availableShapes = ShapesProvider.INSTANCE.getIconShapes();
 
-                    if (availableShapes.length == 0) {
-                        // This is unexpected as we should always provide at least 1 default shape.
-                        Log.e(TAG, "query: No icon shape options are available"
-                                + ", returning null.");
-                        return null;
-                    } else {
-                        Log.d(TAG, "query: Found " + availableShapes.length
-                                + " available shape options");
-                    }
-
-                    // Assign first available shape as default if current shape doesn't exist.
-                    boolean doesCurrentShapeExist = Arrays.stream(availableShapes)
-                            .anyMatch(shape -> shape.getKey().equals(currentShape));
-                    String selectedShape = !TextUtils.isEmpty(currentShape) && doesCurrentShapeExist
-                            ? currentShape
-                            : availableShapes[0].getKey();
-
-                    for (IconShapeModel shape : availableShapes) {
-                        cursor.newRow()
-                                .add(KEY_SHAPE_KEY, shape.getKey())
-                                .add(KEY_SHAPE_TITLE, mContext.getString(shape.getTitleId()))
-                                .add(KEY_PATH, shape.getPathString())
-                                .add(KEY_IS_DEFAULT, shape.getKey().equals(selectedShape));
-                    }
-                    return cursor;
-                } else  {
-                    Log.w(TAG, "query: Shape options queried outside of flag"
+                if (availableShapes.length == 0) {
+                    // This is unexpected as we should always provide at least 1 default shape.
+                    Log.e(TAG, "query: No icon shape options are available"
                             + ", returning null.");
                     return null;
+                } else {
+                    Log.d(TAG, "query: Found " + availableShapes.length
+                            + " available shape options");
                 }
+
+                // Assign first available shape as default if current shape doesn't exist.
+                boolean doesCurrentShapeExist = Arrays.stream(availableShapes)
+                        .anyMatch(shape -> shape.getKey().equals(currentShape));
+                String selectedShape = !TextUtils.isEmpty(currentShape) && doesCurrentShapeExist
+                        ? currentShape
+                        : availableShapes[0].getKey();
+
+                for (IconShapeModel shape : availableShapes) {
+                    cursor.newRow()
+                            .add(KEY_SHAPE_KEY, shape.getKey())
+                            .add(KEY_SHAPE_TITLE, mContext.getString(shape.getTitleId()))
+                            .add(KEY_PATH, shape.getPathString())
+                            .add(KEY_IS_DEFAULT, shape.getKey().equals(selectedShape));
+                }
+                return cursor;
             }
             case KEY_LIST_OPTIONS: {
                 MatrixCursor cursor = new MatrixCursor(new String[]{
@@ -227,11 +230,9 @@ public class GridCustomizationsProxy implements ProxyProvider {
                     Log.d(TAG, "query: Found " + gridOptionList.size()
                             + " available grid options.");
                 }
-                if (com.android.launcher3.Flags.oneGridSpecs()) {
-                    gridOptionList.sort(Comparator
-                            .comparingInt((GridOption option) -> option.numColumns)
-                            .reversed());
-                }
+                gridOptionList.sort(Comparator
+                        .comparingInt((GridOption option) -> option.numColumns)
+                        .reversed());
                 for (GridOption gridOption : gridOptionList) {
                     cursor.newRow()
                             .add(KEY_NAME, gridOption.name)
@@ -248,11 +249,21 @@ public class GridCustomizationsProxy implements ProxyProvider {
             case GET_ICON_THEMED:
             case ICON_THEMED: {
                 MatrixCursor cursor = new MatrixCursor(new String[]{BOOLEAN_VALUE});
-                cursor.newRow().add(BOOLEAN_VALUE, mThemeManager.isMonoThemeEnabled() ? 1 : 0);
-                Log.d(TAG, "query: path=" + path
-                        + ", isMonoThemeEnabled=" + mThemeManager.isMonoThemeEnabled());
+                boolean monoThemeEnabled = MONO_THEME_VALUE.equals(mThemePreference.getValue());
+                cursor.newRow().add(BOOLEAN_VALUE, monoThemeEnabled ? 1 : 0);
+                Log.d(TAG, "query: path=" + path + ", isMonoThemeEnabled=" + monoThemeEnabled);
                 return cursor;
             }
+            case GET_WORKSPACE_ITEMS_LABEL_HIDDEN:
+            case WORKSPACE_ITEMS_LABEL_HIDDEN:
+                if (!com.android.systemui.shared.Flags.workspaceItemsLabelHidden()) {
+                    return null;
+                }
+                MatrixCursor cursor = new MatrixCursor(new String[]{BOOLEAN_VALUE});
+                boolean isWorkspaceItemsLabelHidden =
+                        mPrefs.get(LauncherPrefs.WORKSPACE_ITEMS_LABEL_HIDDEN);
+                cursor.newRow().add(BOOLEAN_VALUE, isWorkspaceItemsLabelHidden ? 1 : 0);
+                return cursor;
             default: {
                 Log.d(TAG, "query: path=" + path + " not found, returning null.");
                 return null;
@@ -261,20 +272,21 @@ public class GridCustomizationsProxy implements ProxyProvider {
     }
 
     @Override
-    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs,
+            Bundle extras) {
         String path = uri.getPath();
         if (path == null) {
             return 0;
         }
 
-        int result = handleUpdate(path, values);
+        int result = handleUpdate(path, values, extras);
         if (result != 0) {
             mContext.getContentResolver().notifyChange(uri, null);
         }
         return result;
     }
 
-    public int handleUpdate(@NonNull String path, ContentValues values) {
+    public int handleUpdate(@NonNull String path, ContentValues values, @Nullable Bundle extras) {
         switch (path) {
             case KEY_DEFAULT_GRID: {
                 String gridName = values.getAsString(KEY_NAME);
@@ -289,52 +301,42 @@ public class GridCustomizationsProxy implements ProxyProvider {
                     }
                 }
                 if (match == null) {
-                    return 0;
+                    return UPDATE_SETTING_FAILURE;
                 }
-                mIdp.setCurrentGrid(mContext, gridName);
+                mIdp.setCurrentGrid(gridName);
 
                 LauncherModel launcherModel = LauncherAppState.getInstance(mContext).getModel();
-                if (Flags.newCustomizationPickerUi() && launcherModel.isActive()) {
-                    try {
-                        // Wait for device profile to be fully reloaded and applied to the launcher
-                        loadModelSync(launcherModel);
-                    } catch (ExecutionException | InterruptedException e) {
-                        Log.e(TAG, "Fail to load model", e);
-                    }
+                try {
+                    // Wait for device profile to be fully reloaded and applied to the launcher
+                    launcherModel.reloadIfActive("KEY_DEFAULT_GRID").toCompletableFuture().get();
+                } catch (ExecutionException | InterruptedException e) {
+                    Log.e(TAG, "Fail to load model", e);
                 }
                 return 1;
             }
             case SET_SHAPE:
-                if (Flags.newCustomizationPickerUi()) {
-                    mPrefs.put(PREF_ICON_SHAPE,
-                            requireNonNullElse(values.getAsString(KEY_SHAPE_KEY), ""));
-                }
-                return 1;
+                mPrefs.put(PREF_ICON_SHAPE,
+                        requireNonNullElse(values.getAsString(KEY_SHAPE_KEY), ""));
+                return UPDATE_SETTING_SUCCESS;
             case ICON_THEMED:
             case SET_ICON_THEMED: {
-                mThemeManager.setMonoThemeEnabled(values.getAsBoolean(BOOLEAN_VALUE));
-                return 1;
+                if (values.getAsBoolean(BOOLEAN_VALUE)) {
+                    mThemePreference.setValue(MONO_THEME_VALUE);
+                } else {
+                    mThemePreference.setValue(null, MONO_THEME_VALUE::equals);
+                }
+                return UPDATE_SETTING_SUCCESS;
+            }
+            case SET_WORKSPACE_ITEMS_LABEL_HIDDEN: {
+                mPrefs.put(
+                        LauncherPrefs.WORKSPACE_ITEMS_LABEL_HIDDEN,
+                        values.getAsBoolean(BOOLEAN_VALUE)
+                );
+                return UPDATE_SETTING_SUCCESS;
             }
             default:
-                return 0;
+                return UPDATE_SETTING_FAILURE;
         }
-    }
-
-    /**
-     * Loads the model in memory synchronously
-     */
-    private void loadModelSync(LauncherModel launcherModel) throws ExecutionException,
-            InterruptedException {
-        Preconditions.assertNonUiThread();
-        BgDataModel.Callbacks emptyCallbacks = new BgDataModel.Callbacks() { };
-        MAIN_EXECUTOR.submit(
-                () -> launcherModel.addCallbacksAndLoad(emptyCallbacks)
-        ).get();
-
-        Executors.MODEL_EXECUTOR.submit(() -> { }).get();
-        MAIN_EXECUTOR.submit(
-                () -> launcherModel.removeCallbacks(emptyCallbacks)
-        ).get();
     }
 
     @Override

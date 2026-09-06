@@ -1,0 +1,126 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+const float SKEW = 0.366025404; // (sqrt(3)-1)/2
+const float UNSKEW = 0.211324865; // (3-sqrt(3))/6
+
+half2 hash2d(vec2 p) {
+    p = vec2(dot(p,vec2(157.1, 235.7)), dot(p,vec2(573.5, 13.3)));
+    return fract(sin(p) * 877.343) * 2. -1.; // [-1, 1]
+}
+
+half hash1d(vec2 p) {
+    return fract(sin(dot(p, vec2(343.0, 49.0)))) * 2. -1.; // [-1, 1]
+}
+
+vec2 getVectorFromAngle(float theta) {
+    return vec2(cos(theta), sin(theta));
+}
+
+int imod(int a, int b) {
+    return a - (b * (a / b));
+}
+
+// 2D hash without bit-wise operations
+vec2 ihash2d(vec2 p) {
+    int a = int(p.x + p.y) * 15823;
+    int b = a * 65536; // a << 16
+
+    a = imod((10 - imod((a + b), 10)), 10); // a ^ b = (base - (a + b) % base) % base
+    a = (a * (a * a * 38833 + 683873) + 19734581);
+    a /= 65536; // a >> 16
+
+    float af = float(a);
+    return vec2(cos(af), sin(af));
+}
+
+// Returns kernel summation from the given simplex vertices (v0, v1, v2), and their corresponding
+// gradients (g0, g1, g2).
+float kernel_summation(vec2 v0, vec2 v1, vec2 v2, vec2 g0, vec2 g1, vec2 g2) {
+   vec3 w = max(0.5 - vec3(dot(v0, v0), dot(v1, v1), dot(v2, v2)), 0.0);
+
+    w = w*w*w*w;
+    vec3 n = w * vec3(dot(v0, g0), dot(v1, g1), dot(v2, g2));
+
+    return dot(n, vec3(32.0));
+}
+
+// 2D Simplex noise with dynamic gradient vectors. Return value [-1, 1].
+//
+// This method produces similar visuals to Simplex noise 3D, but at a lower computational cost.
+// The snapshot of the noise is the same as a regular Simplex noise. However, when animated, it
+// creates a swirling motion that is more suitable for flow-y effects.
+//
+// The difference in motion is not noticeable unless the following conditions are met:
+// 1) The rotation offset is identical for all vertex gradients.
+// 2) The noise is moving quickly.
+// 3) The noise is tiled.
+//
+// This method is recommended for use because it is significantly more performant than 3D Simplex
+// noise. It is especially useful for simulating fire, clouds, and fog, which all have advection.
+//
+// rot is an angle in radian that you want to step for each dt.
+float simplex2d_flow(vec2 p, float rot, float time) {
+    // Skew the input coordinate and find the simplex index.
+    vec2 i = floor(p + (p.x + p.y) * SKEW);
+    // First vertex of the triangle.
+    vec2 v0 = p - i + (i.x + i.y) * UNSKEW;
+
+    // Find two other vertices.
+    // Determines which triangle we should walk.
+    // If y>x, m=0 upper triangle, x>y, m=1 lower triangle.
+    float side = step(v0.y, v0.x);
+    vec2 walk = vec2(side, 1.0 - side);
+
+    vec2 v1 = v0 - walk + UNSKEW;
+    vec2 v2 = v0 - 1.0 + 2.*UNSKEW;
+
+    // Get random gradient vector.
+    vec2 g0 = ihash2d(i);
+    vec2 g1 = ihash2d(i+walk);
+    vec2 g2 = ihash2d(i+1.0);
+
+    // Make the gradient vectors dynamic by adding rotations.
+    g0 += getVectorFromAngle(rot * time * hash1d(i));
+    g1 += getVectorFromAngle(rot * time * hash1d(i+walk));
+    g2 += getVectorFromAngle(rot * time * hash1d(i+1.));
+
+    return kernel_summation(v0, v1, v2, g0, g1, g2);
+}
+
+// 2D Simplex noise
+float simplex2d(vec2 p) {
+    // Skew the input coordinate and find the simplex index.
+    vec2 i = floor(p + (p.x + p.y) * SKEW);
+    // First vertex of the triangle.
+    vec2 v0 = p - i + (i.x + i.y) * UNSKEW;
+
+    // Find two other vertices.
+    // Determines which triangle we should walk.
+    // If y>x, m=0 upper triangle, x>y, m=1 lower triangle.
+    float side = step(v0.y, v0.x);
+    vec2 walk = vec2(side, 1.0 - side);
+
+    vec2 v1 = v0 - walk + UNSKEW;
+    vec2 v2 = v0 - 1.0 + 2.*UNSKEW;
+
+    // Get random gradient vector.
+    vec2 g0 = ihash2d(i);
+    vec2 g1 = ihash2d(i+walk);
+    vec2 g2 = ihash2d(i+1.0);
+
+    return kernel_summation(v0, v1, v2, g0, g1, g2);
+}

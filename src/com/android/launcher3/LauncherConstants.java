@@ -64,8 +64,6 @@ public class LauncherConstants {
         static final String RUNTIME_STATE_PENDING_REQUEST_CODE = "launcher.request_code";
         // Type: ActivityResultInfo
         static final String RUNTIME_STATE_PENDING_ACTIVITY_RESULT = "launcher.activity_result";
-        // Type: SparseArray<Parcelable>
-        static final String RUNTIME_STATE_WIDGET_PANEL = "launcher.widget_panel";
         // Type int[]
         static final String RUNTIME_STATE_CURRENT_SCREEN_IDS = "launcher.current_screen_ids";
         // Type: boolean

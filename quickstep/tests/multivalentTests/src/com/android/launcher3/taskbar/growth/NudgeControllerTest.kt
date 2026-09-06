@@ -16,18 +16,16 @@
 
 package com.android.launcher3.taskbar.growth
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.taskbar.TaskbarActivityContext
-import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnMainSync
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.launcher3.taskbar.rules.TaskbarModeRule
 import com.android.launcher3.taskbar.rules.TaskbarModeRule.Mode.TRANSIENT
 import com.android.launcher3.taskbar.rules.TaskbarModeRule.TaskbarMode
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule
-import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule.InjectController
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
-import com.android.launcher3.util.LauncherMultivalentJUnit
-import com.android.launcher3.util.LauncherMultivalentJUnit.EmulatedDevices
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Before
@@ -35,17 +33,16 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RunWith(LauncherMultivalentJUnit::class)
-@EmulatedDevices(["pixelFoldable2023", "pixelTablet2023"])
+@RunWith(AndroidJUnit4::class)
 class NudgeControllerTest {
 
     @get:Rule(order = 0) val context = TaskbarWindowSandboxContext.create()
 
     @get:Rule(order = 1) val taskbarModeRule = TaskbarModeRule(context)
 
-    @get:Rule(order = 2) val taskbarUnitTestRule = TaskbarUnitTestRule(this, context)
+    @get:Rule(order = 2) val taskbarUnitTestRule = TaskbarUnitTestRule(context)
 
-    @InjectController lateinit var nudgeController: NudgeController
+    private val nudgeController by taskbarUnitTestRule.delegate { it.nudgeController }
 
     private val taskbarContext: TaskbarActivityContext
         get() = taskbarUnitTestRule.activityContext
@@ -67,7 +64,7 @@ class NudgeControllerTest {
     @Test
     @TaskbarMode(TRANSIENT)
     fun testShow_doesShowNudge() {
-        runOnMainSync { showNudge() } // Then show it
+        runOnTaskbarUiThreadSync { showNudge() } // Then show it
         assertThat(nudgeController.isNudgeOpen).isTrue()
     }
 
@@ -75,9 +72,9 @@ class NudgeControllerTest {
     @TaskbarMode(TRANSIENT)
     fun testHide_whenNudgeIsOpen_shouldCloseNudge() {
         assertThat(nudgeController.isNudgeOpen).isFalse()
-        runOnMainSync { showNudge() }
+        runOnTaskbarUiThreadSync { showNudge() }
         assertThat(nudgeController.isNudgeOpen).isTrue()
-        runOnMainSync { nudgeController.hide() }
+        runOnTaskbarUiThreadSync { nudgeController.hide() }
         assertThat(nudgeController.isNudgeOpen).isFalse()
     }
 
@@ -85,7 +82,7 @@ class NudgeControllerTest {
     @TaskbarMode(TRANSIENT)
     fun testShow_whenTaskbarIsTransient_shouldNotShowNudge() {
         assertThat(nudgeController.isNudgeOpen).isFalse()
-        runOnMainSync { nudgeController.init(taskbarContext.controllers) }
+        runOnTaskbarUiThreadSync { nudgeController.init(taskbarContext.controllers) }
         assertThat(nudgeController.isNudgeOpen).isFalse()
     }
 
@@ -103,6 +100,6 @@ class NudgeControllerTest {
                 secondaryButton =
                     ButtonPayload(label = "Dismiss", actions = listOf(Action.Dismiss())),
             )
-        runOnMainSync { nudgeController.maybeShow(nudgePayload) }
+        runOnTaskbarUiThreadSync { nudgeController.maybeShow(nudgePayload) }
     }
 }

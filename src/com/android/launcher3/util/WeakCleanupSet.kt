@@ -18,7 +18,6 @@ package com.android.launcher3.util
 
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -26,13 +25,13 @@ import java.util.WeakHashMap
  * Utility class which maintains a list of cleanup callbacks using weak-references. These callbacks
  * are called when the [owner] is destroyed, but can also be cleared when the caller is GCed
  */
-class WeakCleanupSet(owner: LifecycleOwner) {
+class WeakCleanupSet(owner: LifecycleOwner, uiExecutor: LooperExecutor) {
 
     private val callbacks = Collections.newSetFromMap<OnOwnerDestroyedCallback>(WeakHashMap())
     private var destroyed = false
 
     init {
-        MAIN_EXECUTOR.execute {
+        uiExecutor.execute {
             owner.lifecycle.addObserver(
                 object : DefaultLifecycleObserver {
 

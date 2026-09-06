@@ -15,7 +15,7 @@
  */
 package com.android.launcher3.uioverrides;
 
-import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
 import static com.android.launcher3.uioverrides.QuickstepAppWidgetHostProvider.getStaticQuickstepHost;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.ListenableAppWidgetHost.getWidgetHolderExecutor;

@@ -19,15 +19,11 @@ package com.android.launcher3.widget
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Rect
-import android.platform.test.annotations.DisableFlags
-import android.platform.test.annotations.EnableFlags
-import android.platform.test.flag.junit.SetFlagsRule
 import android.view.View
 import android.view.ViewGroup
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.launcher3.Flags
-import com.android.launcher3.R
+import com.android.launcher3.widget.LauncherAppWidgetHostView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -42,8 +38,6 @@ import org.mockito.kotlin.whenever
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class RoundedCornerEnforcementTest {
-
-    @get:Rule val setFlagsRule: SetFlagsRule = SetFlagsRule()
 
     @Test
     fun `Widget view has one background`() {
@@ -86,53 +80,16 @@ class RoundedCornerEnforcementTest {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_USE_SYSTEM_RADIUS_FOR_APP_WIDGETS)
-    fun `Compute system radius when smaller`() {
-        val mockContext = mock(Context::class.java)
-        val mockRes = mock(Resources::class.java)
-
-        doReturn(mockRes).whenever(mockContext).resources
-        doReturn(RADIUS)
-            .whenever(mockRes)
-            .getDimension(eq(android.R.dimen.system_app_widget_background_radius))
-        doReturn(LAUNCHER_RADIUS)
-            .whenever(mockRes)
-            .getDimension(eq(R.dimen.enforced_rounded_corner_max_radius))
-
-        assertEquals(RADIUS, RoundedCornerEnforcement.computeEnforcedRadius(mockContext))
-    }
-
-    @Test
-    @DisableFlags(Flags.FLAG_USE_SYSTEM_RADIUS_FOR_APP_WIDGETS)
-    fun `Compute launcher radius when smaller`() {
-        val mockContext = mock(Context::class.java)
-        val mockRes = mock(Resources::class.java)
-
-        doReturn(mockRes).whenever(mockContext).resources
-        doReturn(LAUNCHER_RADIUS + 8f)
-            .whenever(mockRes)
-            .getDimension(eq(android.R.dimen.system_app_widget_background_radius))
-        doReturn(LAUNCHER_RADIUS)
-            .whenever(mockRes)
-            .getDimension(eq(R.dimen.enforced_rounded_corner_max_radius))
-
-        assertEquals(LAUNCHER_RADIUS, RoundedCornerEnforcement.computeEnforcedRadius(mockContext))
-    }
-
-    @Test
-    @EnableFlags(Flags.FLAG_USE_SYSTEM_RADIUS_FOR_APP_WIDGETS)
-    fun `Compute system radius ignoring launcher radius`() {
+    fun `Compute system radius`() {
         val mockContext = mock(Context::class.java)
         val mockRes = mock(Resources::class.java)
 
         doReturn(mockRes).whenever(mockContext).resources
         val systemRadius = LAUNCHER_RADIUS + 8f
+
         doReturn(systemRadius)
             .whenever(mockRes)
             .getDimension(eq(android.R.dimen.system_app_widget_background_radius))
-        doReturn(LAUNCHER_RADIUS)
-            .whenever(mockRes)
-            .getDimension(eq(R.dimen.enforced_rounded_corner_max_radius))
 
         assertEquals(systemRadius, RoundedCornerEnforcement.computeEnforcedRadius(mockContext))
     }
@@ -143,7 +100,6 @@ class RoundedCornerEnforcementTest {
         const val LEFT = 50
         const val TOP = 75
 
-        const val RADIUS = 8f
         const val LAUNCHER_RADIUS = 16f
     }
 }

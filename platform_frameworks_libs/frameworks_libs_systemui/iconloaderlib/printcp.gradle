@@ -1,0 +1,7 @@
+
+task printCp {
+    doLast {
+        def cfg = configurations.getByName("debugCompileClasspath")
+        cfg.files.findAll { it.name.contains("SystemUI") || it.name.contains("framework-android") || it.name.contains("GraphicsUtils") }.each { println "CP: " + it.name + " " + it.length() }
+    }
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2025 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<ripple
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?android:attr/colorControlHighlight">
+
+  <item android:id="@android:id/background">
+    <layer-list
+        android:paddingMode="stack"
+        android:paddingStart="@dimen/settingslib_expressive_space_extrasmall4"
+        android:paddingEnd="@dimen/settingslib_expressive_space_extrasmall4"
+        android:paddingTop="@dimen/settingslib_expressive_space_extrasmall4"
+        android:paddingBottom="@dimen/settingslib_expressive_space_extrasmall4">
+
+      <item>
+        <shape>
+          <corners android:radius="@dimen/settingslib_expressive_radius_large3"/>
+          <solid android:color="@color/settingslib_materialColorSurfaceContainerLow"/>
+        </shape>
+      </item>
+    </layer-list>
+  </item>
+</ripple>

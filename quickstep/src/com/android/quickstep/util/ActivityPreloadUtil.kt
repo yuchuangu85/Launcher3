@@ -68,7 +68,7 @@ object ActivityPreloadUtil {
             )
                 return
 
-            //ActiveGestureProtoLogProxy.logPreloadRecentsAnimation()
+            ActiveGestureProtoLogProxy.logPreloadRecentsAnimation()
             val overviewIntent = Intent(overviewCompObserver.overviewIntentIgnoreSysUiState)
             Executors.UI_HELPER_EXECUTOR.execute {
                 ActivityManagerWrapper.getInstance().preloadRecentsActivity(overviewIntent)

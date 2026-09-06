@@ -42,8 +42,6 @@ import com.android.launcher3.icons.BitmapRenderer;
 import com.android.launcher3.util.Preconditions;
 import com.android.launcher3.views.ActivityContext;
 
-import app.lawnchair.icons.CustomAdaptiveIconDrawable;
-
 /**
  * {@link AdaptiveIconDrawable} representation of a {@link FolderIcon}
  */
@@ -85,7 +83,7 @@ public class FolderAdaptiveIcon extends AdaptiveIconDrawable {
         int requestedSize = size.x;
 
         // Only use the size actually needed for drawing the folder icon
-        int drawingSize = activity.getDeviceProfile().folderIconSizePx;
+        int drawingSize = activity.getDeviceProfile().getFolderProfile().getFolderIconSizePx();
         int foregroundSize = Math.max(requestedSize, drawingSize);
         float shift = foregroundSize - requestedSize;
 

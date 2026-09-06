@@ -24,11 +24,6 @@ import java.io.PrintWriter;
  */
 public interface LauncherOverlayManager {
 
-    default void onDeviceProvideChanged() { }
-
-    default void onAttachedToWindow() { }
-    default void onDetachedFromWindow() { }
-
     default void dump(String prefix, PrintWriter w) { }
 
     default void openOverlay() { }
@@ -39,59 +34,9 @@ public interface LauncherOverlayManager {
 
     default void hideOverlay(int duration) { }
 
-    default void onActivityStarted() { }
-
-    default void onActivityResumed() { }
-
-    default void onActivityPaused() { }
-
-    default void onActivityStopped() { }
-
     default void onActivityDestroyed() { }
 
     default void onDisallowSwipeToMinusOnePage() {}
-
-    /**
-     * @deprecated use LauncherOverlayTouchProxy directly
-     */
-    @Deprecated
-    interface LauncherOverlay extends LauncherOverlayTouchProxy {
-
-        /**
-         * Touch interaction leading to overscroll has begun
-         */
-        void onScrollInteractionBegin();
-
-        /**
-         * Touch interaction related to overscroll has ended
-         */
-        void onScrollInteractionEnd();
-
-        /**
-         * Scroll progress, between 0 and 100, when the user scrolls beyond the leftmost
-         * screen (or in the case of RTL, the rightmost screen).
-         */
-        void onScrollChange(float progress, boolean rtl);
-
-        /**
-         * Called when the launcher is ready to use the overlay
-         * @param callbacks A set of callbacks provided by Launcher in relation to the overlay
-         */
-        void setOverlayCallbacks(LauncherOverlayCallbacks callbacks);
-
-        @Override
-        default void onFlingVelocity(float velocity) { }
-
-        @Override
-        default void onOverlayMotionEvent(MotionEvent ev, float scrollProgress) {
-            switch (ev.getAction()) {
-                case MotionEvent.ACTION_DOWN ->  onScrollInteractionBegin();
-                case MotionEvent.ACTION_MOVE -> onScrollChange(scrollProgress, false);
-                case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> onScrollInteractionEnd();
-            }
-
-        }
-    }
 
     interface LauncherOverlayTouchProxy {
 
@@ -115,5 +60,33 @@ public interface LauncherOverlayManager {
     interface LauncherOverlayCallbacks {
 
         void onOverlayScrollChanged(float progress);
+    }
+
+    /**
+     * @deprecated Only kept around for build fix
+     */
+    @Deprecated
+    interface LauncherOverlay extends LauncherOverlayTouchProxy {
+        default void onDeviceProvideChanged() { }
+        default void onAttachedToWindow() { }
+        default void onDetachedFromWindow() { }
+        default void onActivityStarted() { }
+        default void onActivityResumed() { }
+        default void onActivityPaused() { }
+        default void onActivityStopped() { }
+        void onScrollInteractionBegin();
+        void onScrollInteractionEnd();
+        void onScrollChange(float progress, boolean rtl);
+        void setOverlayCallbacks(LauncherOverlayCallbacks callbacks);
+        @Override
+        default void onFlingVelocity(float velocity) { }
+        @Override
+        default void onOverlayMotionEvent(MotionEvent ev, float scrollProgress) {
+            switch (ev.getAction()) {
+                case MotionEvent.ACTION_DOWN ->  onScrollInteractionBegin();
+                case MotionEvent.ACTION_MOVE -> onScrollChange(scrollProgress, false);
+                case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> onScrollInteractionEnd();
+            }
+        }
     }
 }

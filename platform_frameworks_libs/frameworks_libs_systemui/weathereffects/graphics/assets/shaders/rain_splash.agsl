@@ -1,0 +1,95 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * Draw a single splash.
+ * @param cellUv Range of [-0.5, 0.5]: left bottom (-0.5, -0.5), right top (0.5, 0.5).
+ * @param cellTime Normalized cellTime range of [0, 1].
+ */
+float drawSplash(vec2 cellUv, float cellTime) {
+    /** 0. Adjust UV and time. */
+    cellUv *= 0.5;
+    // Moves drop a little bit down on the its grid cell.
+    cellUv.y += 0.15;
+    float t = 0.408 + cellTime * 4.;
+
+    /** 1. Start of drawing a splash */
+
+    // Draw one side of a splash (a crescent) using two circles, by overlapping them with a slight
+    // offset. Then we reflect the splash to get the full splash.
+
+    // Reflect the splash.
+    vec2 uvAbs = abs(cellUv);
+
+    // Center of the splash (of the right splash)
+    vec2 center = vec2(0.22, -0.01);
+    float splashMaskCircle1 = sdfCircle(uvAbs - center, 0.164);
+    float splashMaskCircle2 = sdfCircle(uvAbs - vec2(0.04, 0.) - center, 0.164);
+
+    splashMaskCircle1 = smoothstep(0.052, 0.12, splashMaskCircle1);
+    splashMaskCircle2 = smoothstep(0.1, 0.152, splashMaskCircle2);
+
+    // Here, we have a full splash that covers the entire cell
+    float splash = splashMaskCircle1 - splashMaskCircle2;
+
+    // Mask the splash so that it doesn't cover the entire cell.
+    float circleMask = sdfCircle(cellUv - vec2(0., 0.15), -0.004);
+    float splashColor = splash * smoothstep(0.152, 0.1, circleMask);
+
+    // Another mask for the splash to reveal it vertically.
+    float maskThickHalf = 0.052;
+    float maskFade = 0.05;
+    vec2 maskMiddle = vec2(-0.1, -0.5);
+    maskMiddle.y *= sin(mod(t, 4.4));
+
+    float mask =
+       smoothstep(maskMiddle.y - maskThickHalf - maskFade,
+                  maskMiddle.y - maskThickHalf,
+                  cellUv.y) -
+       smoothstep(maskMiddle.y + maskThickHalf,
+                  maskMiddle.y + maskThickHalf + maskFade,
+                  cellUv.y);
+    splashColor *= mask;
+    /** End of drawing a splash */
+
+    /** 2. Start of drawing a vertical line of the splash */
+
+    // Draw the vertical line.
+    float verticalLine = 0.035;
+    float lineCenter = 0.192;
+    float lineColor = 0.4 *
+       (smoothstep(-verticalLine, 0., cellUv.x) - smoothstep(0., verticalLine, cellUv.x)) *
+        smoothstep(0.008, -0.156, sdfCircle(cellUv - vec2(0., lineCenter), 0.164));
+
+    // Mask the vertical line to reveal it vertically.
+    float lineMaskThickHalf = 0.124;
+    float lineMaskFade = 0.170;
+    vec2 lineMaskMiddle = vec2(-0.01, 2.71);
+    lineMaskMiddle.y *= sin(mod(t, 4.4) - 0.168);
+    float lineMask =
+       smoothstep(lineMaskMiddle.y - lineMaskThickHalf - lineMaskFade,
+                  lineMaskMiddle.y - lineMaskThickHalf,
+                  cellUv.y) -
+       smoothstep(lineMaskMiddle.y + lineMaskThickHalf,
+                  lineMaskMiddle.y + lineMaskThickHalf + lineMaskFade,
+                  cellUv.y);
+    float line = lineColor * lineMask;
+
+    /** End of drawing the vertical line of the splash */
+
+    /** 3. Composite the splash and the line. */
+    return splashColor * (1. - line) + line;
+}

@@ -1,0 +1,156 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/** Noise */
+highp float idGenerator(vec2 point) {
+    vec2 p = fract(point * vec2(723.123, 236.209));
+    p += dot(p, p + 17.1512);
+    return fract(p.x * p.y);
+}
+
+highp float idGenerator(float value) {
+    return idGenerator(vec2(value, 1.412));
+}
+
+// Noise range of [-1.0, 1.0[ with triangle distribution.
+float triangleNoise(vec2 n) {
+    n  = fract(n * vec2(5.3987, 5.4421));
+    n += dot(n.yx, n.xy + vec2(21.5351, 14.3137));
+    float xy = n.x * n.y;
+    // compute in [0..2[ and remap to [-1.0..1.0[
+    return fract(xy * 95.4307) + fract(xy * 75.04961) - 1.0;
+}
+
+// Noise range of [0, 1].
+float valueNoise(vec2 fragCoord) {
+    float scale = 0.021;
+    float2 i = floor(fragCoord * scale);
+    vec2 f = fract(fragCoord * scale);
+
+    float a = idGenerator(i);
+    float b = idGenerator(i + vec2(1.0, 0.0));
+    float c = idGenerator(i + vec2(0.0, 1.0));
+    float d = idGenerator(i + vec2(1.0, 1.0));
+
+    vec2 u = smoothstep(0. ,1. , f);
+
+    float noise = mix(a, b, u.x) +
+                  (c - a) * u.y * (1.0 - u.x) +
+                  (d - b) * u.x * u.y;
+    // Remap the range back to [0,3].
+    return noise / 3.;
+}
+
+/** Transfrom */
+mat2 rotationMat(float angleRad) {
+  float c = cos(angleRad);
+  float s = sin(angleRad);
+  // |  c  -s  |
+  // |  s   c  |
+  return mat2(
+    c, s, // First column.
+    -s, c // second column.
+  );
+}
+
+vec2 rotateAroundPoint(vec2 point, vec2 centerPoint, float angleRad) {
+    return (point - centerPoint) * rotationMat(angleRad) + centerPoint;
+}
+
+/** SDF */
+float sdfCircle(vec2 p, float r) {
+    return length(p) - r;
+}
+
+/** Blend */
+/*
+ * This is the normal blend mode in which the foreground is painted on top of the background based
+ * on the foreground opacity.
+ *
+ * @param b the background color.
+ * @param f the foreground color.
+ * @param o the mask or the foreground alpha.
+ *
+ * Note: this blending function expects the foreground to have premultiplied alpha.
+ */
+vec3 normalBlend(vec3 b, vec3 f, float o) {
+    return b * (1. - o) + f;
+}
+
+float screenBlend(float bgd, float fgd) {
+    return mix(bgd, 1., fgd);
+}
+
+vec3 screenBlend(vec3 bgd, float fgd) {
+    return mix(bgd, vec3(1.), fgd);
+}
+
+vec3 screenBlend(vec3 bgd, vec3 fgd) {
+    return mix(bgd, vec3(1.), fgd);
+}
+
+/*
+ * This is the normal blend mode in which the foreground is painted on top of the background based
+ * on the foreground opacity.
+ *
+ * @param b the background color.
+ * @param f the foreground color.
+ * @param o the mask or the foreground alpha.
+ *
+ * Note: this blending function expects the foreground to NOT have premultiplied alpha.
+ */
+vec3 normalBlendNotPremultiplied(vec3 b, vec3 f, float o) {
+    return mix(b, f, o);
+}
+
+float relativeLuminance(vec3 color) {
+    return dot(vec3(0.2126, 0.7152, 0.0722), color);
+}
+
+/* Adjusts the image color range and black level. */
+vec3 imageRangeConversion(
+    vec3 color, float rangeCompression, float blackLevel, float noise, float intensity) {
+    color *= mix(1., rangeCompression + noise, intensity);
+    color += blackLevel * intensity;
+    return color;
+}
+
+/** Math Utils */
+// function created on Grapher (equation decided by testing in Grapher).
+float wiggle(float time, float wiggleSpeed) {
+    return sin(wiggleSpeed * time + 0.5 * sin(wiggleSpeed * 5. * time))
+           * sin(wiggleSpeed * time) - 0.5;
+}
+
+float map(float value, float inMin, float inMax, float outMin, float outMax) {
+    float v = clamp(value, inMin, inMax);
+    float p = (v - inMin) / (inMax - inMin);
+    return p * (outMax - outMin) + outMin;
+}
+
+// Adjusts the UVs to have the expected rect of the image.
+float2 transformPoint(mat3 transformMatrix, float2 point) {
+    // Convert the point to homogeneous coordinates (x, y, 1)
+    vec3 homogeneousPoint = vec3(point, 1.0);
+    // Multiply the matrix by the point
+    vec3 transformedPoint = transformMatrix * homogeneousPoint;
+    // Convert back to Cartesian coordinates (x, y)
+    return transformedPoint.xy / transformedPoint.z;
+}
+
+float normalizeValue(float x, float minVal, float maxVal) {
+    return (x - minVal) / (maxVal - minVal);
+}

@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"固定"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"自由形式"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"電腦模式"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"%1$s 電腦模式"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"移至外接螢幕"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"清除"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"電腦模式"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"今天還能使用 <xliff:g id="TIME">%1$s</xliff:g>"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"應用程式建議"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"系統預測你會使用的應用程式"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"在主畫面底部顯示應用程式建議"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"在主畫面的收藏列取得應用程式建議"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"你可以輕鬆地在主畫面上找到自己常用的應用程式。應用程式建議會依據你的日常使用習慣而有所不同。系統會將底部列出的應用程式上移到主畫面。"</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"你可以輕鬆地在主畫面上找到自己常用的應用程式。系統會根據你的日常使用習慣提供不同的應用程式建議，並在主畫面顯示收藏列中的應用程式。"</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"取得應用程式建議"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"不用了，謝謝"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"設定"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"最常使用的應用程式會顯示在這裡，顯示的項目會根據日常安排有所不同"</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"將底部列中顯示的應用程式拖曳出來，即可取得應用程式建議"</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"應用程式建議已新增到空白位置"</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"應用程式建議功能已啟用"</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"應用程式建議功能已停用"</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"預測的應用程式：<xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"手勢操作教學課程"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"旋轉裝置螢幕方向"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"如要完成手勢操作教學課程，請旋轉裝置螢幕方向"</string>
@@ -96,7 +90,10 @@
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"系統操作機制設定"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"你的 <xliff:g id="DEVICE">%1$s</xliff:g>\n已準備就緒！"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"你的裝置\n已準備就緒！"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"可以開始使用了！"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"盡情享受全新<xliff:g id="DEVICE">%1$s</xliff:g>！"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"向上滑動即可開始使用<xliff:g id="DEVICE">%1$s</xliff:g>"</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"輕觸即可開始使用<xliff:g id="DEVICE">%1$s</xliff:g>"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"選擇瀏覽方式"</annotation></string>
     <string name="allset_hint_expressive" msgid="756856423510976261">"向上滑動"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"輕觸主畫面按鈕"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"必須選擇另一個應用程式才能使用分割畫面"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"這個應用程式或貴機構不允許執行這個動作"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"目前不支援小工具，請選取其他應用程式"</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"複製"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"儲存"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"旋轉螢幕"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"這個動畫說明如何讓螢幕底部顯示工作列，並在閒置時自動隱藏"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"這個動畫說明如何使用切換鈕固定工作列，讓工作列永久顯示在螢幕底部"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"透過動畫說明如何使用拖曳手勢，從工作列建立泡泡"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"這個動畫說明如何建立分割畫面，方法是從工作列拖曳應用程式，並放在已開啟應用程式的上方"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"這個動畫說明如何在裝置上存取建議的應用程式"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"這個動畫說明如何在畫面上搜尋項目，方法是按住快捷操作鍵，並選取項目所在區域"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"工作列教學課程"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"將應用程式拖曳到一邊即可同時使用 2 個應用程式"</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"緩慢向上滑動讓工作列顯示在畫面上"</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"拖曳至底部角落即可變成浮動泡泡"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"緩緩向上滑動即可顯示工作列"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"系統會根據你的日常安排，提供建議的應用程式。"</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"長按分隔線即可固定工作列"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"充分發揮工作列的功用"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"一律顯示工作列"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"如要一律在畫面底部顯示工作列，請按住分隔線"</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"將應用程式拖曳至角落，即可變成浮動的泡泡"</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"按住快捷操作鍵即可搜尋畫面上的內容"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"這項產品會搜尋你在畫面上選取的內容 (適用 Google 的《<xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>隱私權政策<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g>》和《<xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>服務條款<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g>》)。"</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"關閉"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"完成"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"繼續"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"主畫面"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"無障礙工具"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"返回"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"最近使用"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"通知"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"快速設定"</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"更多選項"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"工作列"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"已顯示工作列"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"工作列和對話框顯示在左側"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"工作列和對話框顯示在右側"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"泡泡列"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"導覽列"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"一律顯示工作列"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"變更操作模式"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"工作列分隔線"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"最近曾使用的其他應用程式"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"最近曾使用的其他應用程式"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"其他應用程式"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"移除"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"移到上方/左側"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"移到底部/右側"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"以泡泡形式開啟應用程式"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"將項目向左移"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"將項目向右移"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"最近開啟的應用程式"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"「最近開啟的應用程式」清單"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{個其他應用程式}other{個其他應用程式}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"電腦模式"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"「<xliff:g id="APP_NAME_1">%1$s</xliff:g>」和「<xliff:g id="APP_NAME_2">%2$s</xliff:g>」"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>，第 <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> 個項目，共 <xliff:g id="TOTAL_TASKS">%3$d</xliff:g> 項"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>，第 <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> 個項目，共 <xliff:g id="TOTAL_TASKS">%3$d</xliff:g> 項，放開按鍵組合即可選取"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"向左捲動"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"向右捲動"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"泡泡"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"向左移"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"向右移"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"全部關閉"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"展開「<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>」"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"收合「<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>」"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"畫圈搜尋"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"應用程式圖示"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"應用程式標題"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"關閉按鈕"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"固定到工作列"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"從工作列中取消固定"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"關閉"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"提醒"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"關閉"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"提醒圖片"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"圖示"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"取得實用建議"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"針對你在螢幕上的操作，我們會運用 AI 主動建議相關資訊和動作"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"關閉"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"展開"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"「背景建議」圖示"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"按住即可查看建議生成方式"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"自動填入"</string>
 </resources>

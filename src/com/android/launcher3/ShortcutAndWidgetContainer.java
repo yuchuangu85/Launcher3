@@ -30,6 +30,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.os.Trace;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,17 +44,12 @@ import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.NavigableAppWidgetHostView;
-import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
-
-import app.lawnchair.preferences2.PreferenceManager2;
 
 public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.FolderIconParent {
     static final String TAG = "ShortcutAndWidgetContainer";
 
-    // These are temporary variables to prevent having to allocate a new object just
-    // to
-    // return an (x, y) value from helper functions. Do NOT use them to maintain
-    // other state.
+    // These are temporary variables to prevent having to allocate a new object just to
+    // return an (x, y) value from helper functions. Do NOT use them to maintain other state.
     private final int[] mTmpCellXY = new int[2];
 
     @ContainerType
@@ -71,7 +67,6 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
     private boolean mInvertIfRtl = false;
     public boolean mHasOnLayoutBeenCalled = false;
 
-    private final PreferenceManager2 mPreferenceManager2;
     @Nullable
     private TranslationProvider mTranslationProvider = null;
 
@@ -81,16 +76,6 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
         mWallpaperManager = WallpaperManager.getInstance(context);
         mContainerType = containerType;
         setClipChildren(false);
-        mPreferenceManager2 = PreferenceManager2.getInstance(context);
-    }
-
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        boolean mAllowWidgetOverlap = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getAllowWidgetOverlap());
-        setClipChildren(!mAllowWidgetOverlap);
-        setClipToPadding(!mAllowWidgetOverlap);
-        setClipToOutline(!mAllowWidgetOverlap);
     }
 
     public void setCellDimensions(int cellWidth, int cellHeight, int countX, int countY,
@@ -150,15 +135,15 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
             DeviceProfile profile = mActivity.getDeviceProfile();
             final PointF appWidgetScale = profile.getAppWidgetScale((ItemInfo) child.getTag());
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
-                    appWidgetScale.x, appWidgetScale.y, mBorderSpace, profile.widgetPadding);
+                    appWidgetScale.x, appWidgetScale.y, mBorderSpace,
+                    profile.getWorkspaceProfile().getWidgetPadding());
         } else {
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
                     mBorderSpace);
         }
     }
 
-    // Set whether or not to invert the layout horizontally if the layout is in RTL
-    // mode.
+    // Set whether or not to invert the layout horizontally if the layout is in RTL mode.
     public void setInvertIfRtl(boolean invert) {
         mInvertIfRtl = invert;
     }
@@ -175,31 +160,36 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
         if (child instanceof NavigableAppWidgetHostView) {
             final PointF appWidgetScale = dp.getAppWidgetScale((ItemInfo) child.getTag());
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
-                    appWidgetScale.x, appWidgetScale.y, mBorderSpace, dp.widgetPadding);
+                    appWidgetScale.x, appWidgetScale.y, mBorderSpace,
+                    dp.getWorkspaceProfile().getWidgetPadding());
         } else if (isChildQsb(child)) {
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
                     mBorderSpace);
-            // No need to add padding for Qsb, which is either Smartspace (actual or
-            // preview), or
+            // No need to add padding for Qsb, which is either Smartspace (actual or preview), or
             // QsbContainerView.
         } else {
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
                     mBorderSpace);
             // Center the icon/folder
             int cHeight = getCellContentHeight();
-            int cellPaddingY = dp.cellYPaddingPx >= 0 && mContainerType == WORKSPACE
-                    ? dp.cellYPaddingPx
-                    : (int) Math.max(0, ((lp.height - cHeight) / 2f));
+            int cellPaddingY =
+                    dp.getWorkspaceProfile().getCellYPaddingPx() >= 0 && mContainerType == WORKSPACE
+                            ? dp.getWorkspaceProfile().getCellYPaddingPx()
+                            : (int) Math.max(0, ((lp.height - cHeight) / 2f));
 
             // No need to add padding when cell layout border spacing is present.
-            boolean noPaddingX = (dp.cellLayoutBorderSpacePx.x > 0 && mContainerType == WORKSPACE)
-                    || (dp.folderCellLayoutBorderSpacePx.x > 0 && mContainerType == FOLDER)
-                    || (dp.hotseatBorderSpace > 0 && mContainerType == HOTSEAT);
+            boolean noPaddingX =
+                    (dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x > 0
+                            && mContainerType == WORKSPACE)
+                            || (dp.getFolderProfile().getCellLayoutBorderSpacePx().x > 0
+                                && mContainerType == FOLDER)
+                            || (dp.getHotseatProfile().getBorderSpace() > 0
+                            && mContainerType == HOTSEAT);
             int cellPaddingX = noPaddingX
                     ? 0
                     : mContainerType == WORKSPACE
-                            ? dp.workspaceCellPaddingXPx
-                            : (int) (dp.edgeMarginPx / 2f);
+                            ? dp.getWorkspaceProfile().getWorkspaceCellPaddingXPx()
+                            : (int) (dp.getWorkspaceProfile().getEdgeMarginPx() / 2f);
             child.setPadding(cellPaddingX, cellPaddingY, cellPaddingX, 0);
         }
         int childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(lp.width, MeasureSpec.EXACTLY);
@@ -242,6 +232,7 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
             final PointF appWidgetScale = profile.getAppWidgetScale((ItemInfo) child.getTag());
             float scaleX = appWidgetScale.x;
             float scaleY = appWidgetScale.y;
+            Log.d(TAG, "appWidgetScale - [x,y]: [" + scaleX + "," + scaleY + "]");
 
             nahv.setScaleToFit(Math.min(scaleX, scaleY));
             nahv.getTranslateDelegate().setTranslation(INDEX_WIDGET_CENTERING,
@@ -252,14 +243,10 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
         int childLeft = lp.x;
         int childTop = lp.y;
 
-        // We want to get the layout position of the widget, but layout() is a final
-        // function in
-        // ViewGroup which makes it impossible to be overridden. Overriding onLayout()
-        // will have no
-        // effect since it will not be called when the transition is enabled. The only
-        // possible
-        // solution here seems to be sending the positions when CellLayout is laying out
-        // the views
+        // We want to get the layout position of the widget, but layout() is a final function in
+        // ViewGroup which makes it impossible to be overridden. Overriding onLayout() will have no
+        // effect since it will not be called when the transition is enabled. The only possible
+        // solution here seems to be sending the positions when CellLayout is laying out the views
         if (child instanceof LauncherAppWidgetHostView widgetView
                 && widgetView.getCellChildViewPreLayoutListener() != null) {
             widgetView.getCellChildViewPreLayoutListener().notifyBoundChangeOnPreLayout(child,
@@ -288,6 +275,7 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
                     cellXY[1] + childTop + lp.height / 2, 0, null);
         }
     }
+
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {

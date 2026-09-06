@@ -31,7 +31,6 @@ import org.junit.runner.RunWith
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
-@EnableFlags(Flags.FLAG_ENABLE_LAUNCHER_BR_METRICS_FIXED)
 class LauncherRestoreEventLoggerImplTest {
 
     @get:Rule val setFlagsRule = SetFlagsRule()

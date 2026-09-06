@@ -21,6 +21,15 @@
     <item type="id" name="action_dismiss_all" />
 
     <item type="id" name="bubble_bar_flyout_view" />
-    <!-- TODO(b/409248525): Delete with enableRefactorTaskContentView -->
-    <item type="id" name="bottomright_snapshot" />
+
+    <!-- Used to identify taskbar overflow view in tests -->
+    <item type="id" name="taskbar_overflow_view" />
+
+    <!-- Whether taskbar icon has a hover listener. -->
+    <item type="id" name="taskbar_icon_has_hover_listener" />
+    <item type="id" name="more_options_button" />
+
+    <!-- Accessibility action to move app icon in the taskbar -->
+    <item type="id" name="action_move_item_left" />
+    <item type="id" name="action_move_item_right" />
 </resources>

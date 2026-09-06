@@ -16,7 +16,7 @@
 
 package com.android.launcher3.model;
 
-import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import android.content.Context;
@@ -25,19 +25,12 @@ import android.util.Log;
 
 import com.android.launcher3.LauncherModel;
 import com.android.launcher3.LauncherModel.CallbackTask;
-import com.android.launcher3.LauncherSettings;
-import com.android.launcher3.Utilities;
-import com.android.launcher3.Workspace;
-import com.android.launcher3.celllayout.CellPosMapper;
-import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.model.BgDataModel.Callbacks;
 import com.android.launcher3.model.BgDataModel.FixedContainerItems;
 import com.android.launcher3.model.data.AppsListData;
 import com.android.launcher3.model.data.WorkspaceData;
-import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.LooperExecutor;
-import com.android.launcher3.util.LooperIdleLock;
 import com.android.launcher3.widget.model.WidgetsListBaseEntriesBuilder;
 import com.android.launcher3.widget.model.WidgetsListBaseEntry;
 
@@ -46,7 +39,6 @@ import dagger.assisted.AssistedFactory;
 import dagger.assisted.AssistedInject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -102,7 +94,7 @@ public class BaseLauncherBinder {
                     mBgDataModel.lastLoadId = mModel.getLastLoadId();
                 }
                 mMyBindingId = mBgDataModel.lastBindId;
-                stringCache = mBgDataModel.stringCache.clone();
+                stringCache = mBgDataModel.getStringCache();
             }
 
             for (Callbacks cb : mCallbacksList) {
@@ -116,20 +108,6 @@ public class BaseLauncherBinder {
         } finally {
             Trace.endSection();
         }
-    }
-
-    /**
-     * BindDeepShortcuts is abstract because it is a no-op for the go launcher.
-     */
-    public void bindDeepShortcuts() {
-        if (!WIDGETS_ENABLED) {
-            return;
-        }
-        final HashMap<ComponentKey, Integer> shortcutMapCopy;
-        synchronized (mBgDataModel) {
-            shortcutMapCopy = new HashMap<>(mBgDataModel.deepShortcutMap);
-        }
-        executeCallbacksTask(c -> c.bindDeepShortcutMap(shortcutMapCopy), mUiExecutor);
     }
 
     /**
@@ -152,6 +130,7 @@ public class BaseLauncherBinder {
         }
         List<WidgetsListBaseEntry> widgets = new WidgetsListBaseEntriesBuilder(mContext)
                 .build(mBgDataModel.widgetsModel.getWidgetsByPackageItemForPicker());
+        mBgDataModel.notifyWidgetsUpdate(widgets);
         executeCallbacksTask(c -> c.bindAllWidgets(widgets), mUiExecutor);
     }
 
@@ -167,17 +146,6 @@ public class BaseLauncherBinder {
         });
     }
 
-    /**
-     * Only used in LoaderTask.
-     */
-    public LooperIdleLock newIdleLock(Object lock) {
-        LooperIdleLock idleLock = new LooperIdleLock(lock, mUiExecutor.getLooper());
-        // If we are not binding or if the main looper is already idle, there is no reason to wait
-        if (mUiExecutor.getLooper().getQueue().isIdle()) {
-            idleLock.queueIdle();
-        }
-        return idleLock;
-    }
     @AssistedFactory
     public interface BaseLauncherBinderFactory {
         BaseLauncherBinder createBinder(Callbacks[] callbacks);

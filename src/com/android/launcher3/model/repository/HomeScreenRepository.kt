@@ -18,9 +18,13 @@ package com.android.launcher3.model.repository
 
 import android.util.SparseArray
 import com.android.launcher3.dagger.LauncherAppSingleton
+import com.android.launcher3.model.data.WorkspaceChangeEvent
 import com.android.launcher3.model.data.WorkspaceData
 import com.android.launcher3.model.data.WorkspaceData.ImmutableWorkspaceData
+import com.android.launcher3.util.MutableDiffAwareRef
 import com.android.launcher3.util.MutableListenableRef
+import com.android.launcher3.widget.model.WidgetsListBaseEntry
+import com.android.launcher3.widget.picker.model.data.WidgetPickerData
 import javax.inject.Inject
 
 /**
@@ -32,14 +36,23 @@ import javax.inject.Inject
 @LauncherAppSingleton
 class HomeScreenRepository @Inject constructor() {
 
-    private val mutableStateRef: MutableListenableRef<WorkspaceData> =
-        MutableListenableRef(ImmutableWorkspaceData(0, 0, emptyList(), SparseArray()))
+    private val _workspaceState: MutableDiffAwareRef<WorkspaceData, WorkspaceChangeEvent> =
+        MutableDiffAwareRef(ImmutableWorkspaceData(0, 0, SparseArray()))
 
     /** Represents the current home screen data model */
-    val workspaceStateRef = mutableStateRef.asListenable()
+    val workspaceState = _workspaceState.asListenable()
 
-    /** sets a new value to [workspaceStateRef] */
-    fun dispatchChange(workspaceData: WorkspaceData) {
-        mutableStateRef.dispatchValue(workspaceData)
+    /** TODO Change this to a map of counts once widget picker migration is complete */
+    private val _allWidgets = MutableListenableRef(WidgetPickerData())
+    /** List of all widgets on device */
+    val allWidgets = _allWidgets.asListenable()
+
+    /** sets a new value to [workspaceState] */
+    fun dispatchWorkspaceDataChange(workspaceData: WorkspaceData, change: WorkspaceChangeEvent) {
+        _workspaceState.dispatchValue(workspaceData, change)
+    }
+
+    fun dispatchWidgetsChange(widgets: List<WidgetsListBaseEntry>) {
+        _allWidgets.dispatchValue(WidgetPickerData(widgets))
     }
 }

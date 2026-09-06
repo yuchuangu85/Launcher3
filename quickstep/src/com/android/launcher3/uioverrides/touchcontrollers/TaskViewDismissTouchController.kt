@@ -17,6 +17,7 @@ package com.android.launcher3.uioverrides.touchcontrollers
 
 import android.content.Context
 import android.graphics.Rect
+import android.util.Log
 import android.view.MotionEvent
 import androidx.dynamicanimation.animation.SpringAnimation
 import com.android.app.animation.Interpolators.DECELERATE
@@ -57,12 +58,9 @@ import kotlin.math.ceil
 
 /** Touch controller for handling task view card dismiss swipes */
 class TaskViewDismissTouchController<CONTAINER, T : BaseState<T>>(
-    private val container: CONTAINER,
-    private val taskViewRecentsTouchContext: TaskViewRecentsTouchContext,
-) : TouchController, SingleAxisSwipeDetector.Listener where
-CONTAINER : Context,
-CONTAINER : RecentsViewContainer,
-CONTAINER : StatefulContainer<T> {
+    private val container: CONTAINER
+) : TouchController, SingleAxisSwipeDetector.Listener
+    where CONTAINER : Context, CONTAINER : RecentsViewContainer, CONTAINER : StatefulContainer<T> {
     private val recentsView: RecentsView<*, *> = container.getOverviewPanel()
     private val detector: SingleAxisSwipeDetector =
         SingleAxisSwipeDetector(
@@ -74,6 +72,8 @@ CONTAINER : StatefulContainer<T> {
     private val upDirection: Int = recentsView.pagedOrientationHandler.getUpDirection(isRtl)
     private val maxUndershoot =
         container.resources.getDimension(R.dimen.task_dismiss_max_undershoot)
+    private val maxAttachOvershoot =
+        container.resources.getDimension(R.dimen.task_dismiss_max_attach_overshoot)
     private val detachThreshold =
         container.resources.getDimension(R.dimen.task_dismiss_detach_threshold)
     private val stateListener =
@@ -95,6 +95,7 @@ CONTAINER : StatefulContainer<T> {
     private var recentsScaleAnimation: SpringAnimation? = null
     private var canInterceptTouch = false
     private var isDismissing = false
+    private var allowDetach = true
 
     init {
         container.getStateManager().addStateListener(stateListener)
@@ -122,24 +123,18 @@ CONTAINER : StatefulContainer<T> {
                 false
             }
 
-            // Disable swiping if the task overlay is modal.
-            taskViewRecentsTouchContext.isRecentsModal -> {
-                debugLog(TAG, "Not intercepting touch in modal overlay.")
-                false
-            }
-
             // Do not allow dismiss while recents is scrolling.
             !recentsView.scroller.isFinished -> {
                 debugLog(TAG, "Not intercepting touch, recents scrolling.")
                 false
             }
 
-            else ->
-                taskViewRecentsTouchContext.isRecentsInteractive.also { isRecentsInteractive ->
-                    if (!isRecentsInteractive) {
-                        debugLog(TAG, "Not intercepting touch, recents not interactive.")
-                    }
-                }
+            !recentsView.stateManager.state.isTaskViewInteractive -> {
+                debugLog(TAG, "Not intercepting touch, recents not interactive.")
+                false
+            }
+
+            else -> true
         }
 
     override fun onControllerInterceptTouchEvent(ev: MotionEvent): Boolean {
@@ -173,7 +168,7 @@ CONTAINER : StatefulContainer<T> {
         if (!canInterceptTouch(ev)) {
             return false
         }
-        taskBeingDragged =
+        val taskBeingDragged =
             recentsView.taskViews.firstOrNull {
                 recentsView.isTaskViewVisible(it) && container.dragLayer.isEventOverView(it, ev)
             }
@@ -202,7 +197,7 @@ CONTAINER : StatefulContainer<T> {
                     }
                     tempTaskThumbnailBounds.contains(ev.x.toInt(), ev.y.toInt())
                 }
-
+        this.taskBeingDragged = taskBeingDragged
         if (taskBeingDragged == null) {
             debugLog(TAG, "Not intercepting touch, null dragged task.")
             return false
@@ -211,7 +206,7 @@ CONTAINER : StatefulContainer<T> {
             recentsView.pagedOrientationHandler.getSecondaryDimension(container.dragLayer)
         // Dismiss length as bottom of task so it is fully off screen when dismissed.
         // Take into account the recents scale when fully zoomed out on dismiss.
-        taskBeingDragged?.getThumbnailBounds(tempTaskThumbnailBounds, relativeToDragLayer = true)
+        taskBeingDragged.getThumbnailBounds(tempTaskThumbnailBounds, relativeToDragLayer = true)
         dismissLength =
             ceil(
                     recentsView.pagedOrientationHandler.getTaskDismissLength(
@@ -221,8 +216,8 @@ CONTAINER : StatefulContainer<T> {
                 )
                 .toInt()
         verticalFactor = recentsView.pagedOrientationHandler.getTaskDismissVerticalDirection()
-        taskBeingDragged?.isBeingDraggedForDismissal = true
-
+        taskBeingDragged.isBeingDraggedForDismissal = true
+        allowDetach = recentsView.canRemoveTaskView(taskBeingDragged)
         detector.setDetectableScrollConditions(upDirection, /* ignoreSlop= */ false)
         return true
     }
@@ -258,6 +253,16 @@ CONTAINER : StatefulContainer<T> {
         taskBeingDragged.translationZ = 0.1f
     }
 
+    private fun getBoundedDisplacement(boundedDisplacement: Float, maxDisplacement: Float): Float =
+        mapToRange(
+            boundedDisplacement,
+            0f,
+            dismissLength.toFloat(),
+            0f,
+            maxDisplacement,
+            DECELERATE,
+        )
+
     override fun onDrag(displacement: Float): Boolean {
         taskBeingDragged ?: return false
         val currentDisplacement = displacement + initialDisplacement
@@ -267,16 +272,13 @@ CONTAINER : StatefulContainer<T> {
         val isAboveOrigin =
             recentsView.pagedOrientationHandler.isGoingUp(currentDisplacement, isRtl)
         val totalDisplacement =
-            if (isAboveOrigin) boundedDisplacement * verticalFactor
-            else
-                mapToRange(
-                    boundedDisplacement,
-                    0f,
-                    dismissLength.toFloat(),
-                    0f,
-                    maxUndershoot,
-                    DECELERATE,
-                ) * -verticalFactor
+            when {
+                !isAboveOrigin -> getBoundedDisplacement(boundedDisplacement, maxUndershoot) * -1
+
+                !allowDetach -> getBoundedDisplacement(boundedDisplacement, maxAttachOvershoot)
+
+                else -> boundedDisplacement
+            } * verticalFactor
         val dismissFraction = displacement / (dismissLength * verticalFactor).toFloat()
         taskDragDisplacementValue?.input = totalDisplacement
         RECENTS_SCALE_PROPERTY.setValue(recentsView, getRecentsScale(dismissFraction))
@@ -306,6 +308,8 @@ CONTAINER : StatefulContainer<T> {
 
     override fun onDragEnd(velocity: Float) {
         val taskBeingDragged = taskBeingDragged ?: return
+
+        Log.d(TAG, "onDragEnd: committing task drag end for dismissal")
         taskDragDisplacementValue?.dispose()
         taskBeingDragged.isBeingDraggedForDismissal = false
 
@@ -317,7 +321,8 @@ CONTAINER : StatefulContainer<T> {
         val isFlingingTowardsDismiss = detector.isFling(velocity) && velocityIsGoingUp
         val isFlingingTowardsRestState = detector.isFling(velocity) && !velocityIsGoingUp
         isDismissing =
-            isFlingingTowardsDismiss || (isBeyondDismissThreshold && !isFlingingTowardsRestState)
+            allowDetach && isFlingingTowardsDismiss ||
+                (isBeyondDismissThreshold && !isFlingingTowardsRestState)
         val dismissThreshold = (DISMISS_THRESHOLD_FRACTION * dismissLength * verticalFactor).toInt()
         val finalPosition = if (isDismissing) (dismissLength * verticalFactor).toFloat() else 0f
         springAnimation =
@@ -347,6 +352,7 @@ CONTAINER : StatefulContainer<T> {
         springAnimation = null
         taskDragDisplacementValue = null
         isDismissing = false
+        allowDetach = true
     }
 
     private fun getRecentsScale(dismissFraction: Float): Float {
@@ -356,7 +362,7 @@ CONTAINER : StatefulContainer<T> {
                 RECENTS_SCALE_DEFAULT
             }
             // Initially scale recents as the drag begins, up to the first threshold.
-            dismissFraction < RECENTS_SCALE_FIRST_THRESHOLD_FRACTION -> {
+            !allowDetach || dismissFraction < RECENTS_SCALE_FIRST_THRESHOLD_FRACTION -> {
                 mapToRange(
                     dismissFraction,
                     0f,
@@ -417,8 +423,10 @@ CONTAINER : StatefulContainer<T> {
         val mappings = mutableListOf<Mapping>()
 
         breakpoints.add(minLimit)
-        mappings.add(Mapping.Identity)
-        breakpoints.add(Breakpoint(detachKey, detachThreshold, spring, Guarantee.None))
+        if (allowDetach) {
+            mappings.add(Mapping.Identity)
+            breakpoints.add(Breakpoint(detachKey, detachThreshold, spring, Guarantee.None))
+        }
         mappings.add(Mapping.Linear(MAGNETIC_DETACH_INTERPOLATION_FRACTION))
         breakpoints.add(maxLimit)
 

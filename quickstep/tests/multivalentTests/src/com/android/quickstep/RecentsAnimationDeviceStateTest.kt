@@ -1,13 +1,15 @@
 package com.android.quickstep
 
+import android.hardware.display.DisplayManager
 import android.view.Display.DEFAULT_DISPLAY
 import androidx.test.annotation.UiThreadTest
 import androidx.test.filters.SmallTest
 import com.android.launcher3.dagger.LauncherComponentProvider
-import com.android.launcher3.util.DisplayController.CHANGE_DENSITY
-import com.android.launcher3.util.DisplayController.CHANGE_NAVIGATION_MODE
-import com.android.launcher3.util.DisplayController.CHANGE_ROTATION
-import com.android.launcher3.util.DisplayController.Info
+import com.android.launcher3.dagger.PerDisplayComponent
+import com.android.launcher3.display.LauncherDisplayInfo
+import com.android.launcher3.display.LauncherDisplayInfo.Companion.CHANGE_DENSITY
+import com.android.launcher3.display.LauncherDisplayInfo.Companion.CHANGE_NAVIGATION_MODE
+import com.android.launcher3.display.LauncherDisplayInfo.Companion.CHANGE_ROTATION
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
 import com.android.launcher3.util.LauncherMultivalentJUnit
@@ -35,7 +37,8 @@ import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations
+import org.mockito.junit.MockitoJUnit
+import org.mockito.junit.MockitoRule
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
@@ -48,17 +51,22 @@ class RecentsAnimationDeviceStateTest {
 
     @get:Rule val context = SandboxApplication()
 
+    @get:Rule var mockitoRule: MockitoRule = MockitoJUnit.rule()
+
     @Mock private lateinit var exclusionManager: GestureExclusionManager
-    @Mock private lateinit var info: Info
+    @Mock private lateinit var info: LauncherDisplayInfo
     @Mock private lateinit var rotationTouchHelper: RotationTouchHelper
 
+    private lateinit var perDisplayComponent: PerDisplayComponent
     private lateinit var underTest: RecentsAnimationDeviceState
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
-
         val component = LauncherComponentProvider.get(context)
+        perDisplayComponent =
+            component.perDisplayComponentFactory.build(
+                context.getSystemService(DisplayManager::class.java)!!.getDisplay(DEFAULT_DISPLAY)
+            )
         underTest =
             RecentsAnimationDeviceState(
                 context,
@@ -68,12 +76,13 @@ class RecentsAnimationDeviceStateTest {
                 component.displayController,
                 component.contextualSearchStateManager,
                 component.settingsCache,
-                component.daggerSingletonTracker,
+                perDisplayComponent.cleanupTasks,
             )
     }
 
     @After
     fun tearDown() {
+        perDisplayComponent.cleanupTasks.close()
         UI_HELPER_EXECUTOR.submit {}.get()
         MAIN_EXECUTOR.submit {}.get()
     }
@@ -118,9 +127,9 @@ class RecentsAnimationDeviceStateTest {
 
     @Test
     fun onDisplayInfoChanged_noButton_registerExclusionListener() {
-        doReturn(NavigationMode.NO_BUTTON).whenever(info).getNavigationMode()
+        doReturn(NavigationMode.NO_BUTTON).whenever(info).navigationMode
 
-        underTest.onDisplayInfoChanged(context, info, CHANGE_ROTATION or CHANGE_NAVIGATION_MODE)
+        underTest.onDisplayInfoChanged(info, CHANGE_ROTATION or CHANGE_NAVIGATION_MODE)
 
         verify(exclusionManager).addListener(underTest)
     }
@@ -128,10 +137,10 @@ class RecentsAnimationDeviceStateTest {
     @Test
     fun onDisplayInfoChanged_twoButton_unregisterExclusionListener() {
         underTest.registerExclusionListener()
-        whenever(info.getNavigationMode()).thenReturn(NavigationMode.TWO_BUTTONS)
+        whenever(info.navigationMode).thenReturn(NavigationMode.TWO_BUTTONS)
         reset(exclusionManager)
 
-        underTest.onDisplayInfoChanged(context, info, CHANGE_ROTATION or CHANGE_NAVIGATION_MODE)
+        underTest.onDisplayInfoChanged(info, CHANGE_ROTATION or CHANGE_NAVIGATION_MODE)
 
         verify(exclusionManager).removeListener(underTest)
     }
@@ -139,10 +148,10 @@ class RecentsAnimationDeviceStateTest {
     @Test
     fun onDisplayInfoChanged_changeDensity_noOp() {
         underTest.registerExclusionListener()
-        whenever(info.getNavigationMode()).thenReturn(NavigationMode.NO_BUTTON)
+        whenever(info.navigationMode).thenReturn(NavigationMode.NO_BUTTON)
         reset(exclusionManager)
 
-        underTest.onDisplayInfoChanged(context, info, CHANGE_DENSITY)
+        underTest.onDisplayInfoChanged(info, CHANGE_DENSITY)
 
         verifyNoMoreInteractions(exclusionManager)
     }

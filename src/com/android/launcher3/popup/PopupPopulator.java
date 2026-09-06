@@ -27,9 +27,9 @@ import android.os.UserHandle;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.LauncherAppState;
-import com.android.launcher3.icons.CacheableShortcutInfo;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.shortcuts.DeepShortcutView;
 import com.android.launcher3.shortcuts.ShortcutRequest;
@@ -39,6 +39,7 @@ import com.android.launcher3.views.ActivityContext;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Contains logic relevant to populating a {@link PopupContainerWithArrow}. In particular,
@@ -107,13 +108,14 @@ public class PopupPopulator {
     /**
      * Returns a runnable to update the provided shortcuts
      */
-    public static <T extends Context & ActivityContext> Runnable createUpdateRunnable(
-            final T context,
+    public static Runnable createUpdateRunnable(
+            final ActivityContext activityContext,
             final ItemInfo originalInfo,
             final Handler uiHandler,
             final PopupContainerWithArrow container,
             final List<DeepShortcutView> shortcutViews
     ) {
+        final Context context = activityContext.asContext();
         final ComponentName activity = originalInfo.getTargetComponent();
         final UserHandle user = originalInfo.user;
         final String targetPackage = originalInfo.getTargetPackage();
@@ -128,13 +130,48 @@ public class PopupPopulator {
             for (int i = 0; i < shortcuts.size() && i < shortcutViews.size(); i++) {
                 final ShortcutInfo shortcut = shortcuts.get(i);
                 final WorkspaceItemInfo si = new WorkspaceItemInfo(shortcut, context);
-                cache.getShortcutIcon(si, new CacheableShortcutInfo(shortcut, infoWrapper));
+                cache.getShortcutIcon(si, shortcut, infoWrapper);
                 si.rank = i;
                 si.container = CONTAINER_SHORTCUTS;
 
                 final DeepShortcutView view = shortcutViews.get(i);
-                uiHandler.post(() -> view.applyShortcutInfo(si, shortcut, container));
+                uiHandler.post(
+                        () -> view.applyShortcutInfo(si, shortcut, container, activityContext));
             }
+        };
+    }
+
+
+    /**
+     * Returns a runnable to update the provided shortcuts
+     */
+    public static Runnable createUpdateRunnable(
+            final Context context,
+            final ItemInfo originalInfo,
+            final Handler uiHandler,
+            final Consumer<List<ItemInfoWithIcon>> deepShortcutsConsumer
+    ) {
+        final ComponentName activity = originalInfo.getTargetComponent();
+        final UserHandle user = originalInfo.user;
+        final String targetPackage = originalInfo.getTargetPackage();
+        return () -> {
+            ApplicationInfoWrapper infoWrapper =
+                    new ApplicationInfoWrapper(context, targetPackage, user);
+            List<ShortcutInfo> shortcuts = new ShortcutRequest(context, user)
+                    .withContainer(activity)
+                    .query(ShortcutRequest.PUBLISHED);
+            shortcuts = PopupPopulator.sortAndFilterShortcuts(shortcuts);
+            IconCache cache = LauncherAppState.getInstance(context).getIconCache();
+            List<ItemInfoWithIcon> deepShortcuts = new ArrayList<>();
+            for (int i = 0; i < shortcuts.size(); i++) {
+                final ShortcutInfo shortcut = shortcuts.get(i);
+                final WorkspaceItemInfo si = new WorkspaceItemInfo(shortcut, context);
+                cache.getShortcutIcon(si, shortcut, infoWrapper);
+                si.rank = i;
+                si.container = CONTAINER_SHORTCUTS;
+                deepShortcuts.add(si);
+            }
+            uiHandler.post(() -> deepShortcutsConsumer.accept(deepShortcuts));
         };
     }
 }

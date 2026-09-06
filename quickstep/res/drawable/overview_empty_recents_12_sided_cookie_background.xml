@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright (C) 2025 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="@dimen/recents_empty_message_background_size"
+    android:height="@dimen/recents_empty_message_background_size"
+    android:viewportWidth="320"
+    android:viewportHeight="320">
+    <path
+        android:pathData="M136.7 9.85c.54-.53.8-.8 1.04-1.02a32.47 32.47 0 0 1 44.52 0l1.04 1.02.64.62a32.47 32.47 0 0 0 30.96 7.84l1.41-.36a32.47 32.47 0 0 1 38.95 23.66l.24.87a32.47 32.47 0 0 0 22.02 22.02l.87.24a32.47 32.47 0 0 1 23.3 40.36l-.22.87a32.46 32.46 0 0 0 8.06 30.09l.62.64c.53.54.8.8 1.02 1.04a32.47 32.47 0 0 1 0 44.52l-1.02 1.04-.62.64a32.46 32.46 0 0 0-8.06 30.09l.22.87.36 1.41a32.47 32.47 0 0 1-23.66 38.95l-.87.24a32.47 32.47 0 0 0-22.02 22.02l-.24.87a32.47 32.47 0 0 1-40.36 23.3l-.87-.22a32.46 32.46 0 0 0-30.09 8.06l-.64.62c-.54.53-.8.8-1.04 1.02a32.47 32.47 0 0 1-44.52 0l-1.04-1.02-.64-.62a32.46 32.46 0 0 0-30.09-8.06l-.87.22-1.41.36a32.47 32.47 0 0 1-38.55-22.26c-.1-.31-.2-.68-.4-1.4l-.24-.87a32.47 32.47 0 0 0-22.89-22.26 32.47 32.47 0 0 1-23.66-38.95l.36-1.41.22-.87a32.47 32.47 0 0 0-8.06-30.09l-.62-.64c-.53-.54-.8-.8-1.02-1.04a32.47 32.47 0 0 1 0-44.52l1.02-1.04.62-.64a32.47 32.47 0 0 0 7.84-30.96 32.47 32.47 0 0 1 21.9-39.96c.31-.1.67-.2 1.4-.4l.87-.24A32.47 32.47 0 0 0 64.5 42.48l.24-.87a32.47 32.47 0 0 1 40.36-23.3l.87.22a32.47 32.47 0 0 0 30.09-8.06l.64-.62Z"
+        android:fillColor="?attr/overviewScrimForegroundSecondary"/>
+</vector>

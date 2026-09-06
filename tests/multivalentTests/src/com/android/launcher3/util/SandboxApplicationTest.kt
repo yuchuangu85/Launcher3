@@ -16,18 +16,26 @@
 
 package com.android.launcher3.util
 
+import android.content.Context
 import android.hardware.display.DisplayManager
 import android.view.Display
 import android.view.Display.DEFAULT_DISPLAY
 import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+import com.android.launcher3.LauncherFiles.SHARED_PREFERENCES_KEY
+import com.android.launcher3.LauncherPrefs.Companion.BOOT_AWARE_PREFS_KEY
+import com.android.launcher3.util.rule.MockUsersRule
+import com.android.launcher3.util.rule.MockUsersRule.MockUser
+import com.android.users.UserType
 import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(LauncherMultivalentJUnit::class)
 class SandboxApplicationTest {
-    @get:Rule val app = SandboxApplication()
+    @get:Rule(order = 1) val app = SandboxApplication()
+    @get:Rule(order = 2) val mockUser = MockUsersRule(app)
 
     private val display: Display
         get() {
@@ -48,10 +56,13 @@ class SandboxApplicationTest {
         assertThat(nestedContext.applicationContext).isEqualTo(app)
     }
 
-    @Test(expected = IllegalStateException::class)
+    @Test
     fun testGetApplicationContext_beforeManualInit_throwsException() {
         val manualApp = SandboxApplication()
-        assertThat(manualApp.applicationContext).isEqualTo(manualApp)
+
+        assertThrows(IllegalStateException::class.java) {
+            assertThat(manualApp.applicationContext).isEqualTo(manualApp)
+        }
     }
 
     @Test
@@ -61,5 +72,48 @@ class SandboxApplicationTest {
             assertThat(applicationContext).isEqualTo(this)
             onDestroy()
         }
+    }
+
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
+    @Test
+    fun testGetSharedPreferences_userLocked_throwsException() {
+        assertThrows(IllegalStateException::class.java) {
+            app.createCredentialProtectedStorageContext()
+                .getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+        }
+    }
+
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
+    @Test
+    fun testGetSharedPreferences_windowContextAndUserLocked_throwsException() {
+        val windowContext =
+            app.createCredentialProtectedStorageContext()
+                .createDisplayContext(display)
+                .createWindowContext(TYPE_APPLICATION_OVERLAY, null)
+
+        assertThrows(IllegalStateException::class.java) {
+            windowContext.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+        }
+    }
+
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
+    @Test
+    fun testGetSharedPreferences_deviceProtectedStorageContextAndUserLocked_returnsPreferences() {
+        val deviceProtectedStorageContext = app.createDeviceProtectedStorageContext()
+        val sharedPreferences =
+            deviceProtectedStorageContext.getSharedPreferences(
+                BOOT_AWARE_PREFS_KEY,
+                Context.MODE_PRIVATE,
+            )
+        assertThat(sharedPreferences).isNotNull()
+    }
+
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = true)
+    @Test
+    fun testGetSharedPreferences_userUnlocked_returnsPreferences() {
+        val sharedPreferences =
+            app.createCredentialProtectedStorageContext()
+                .getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+        assertThat(sharedPreferences).isNotNull()
     }
 }

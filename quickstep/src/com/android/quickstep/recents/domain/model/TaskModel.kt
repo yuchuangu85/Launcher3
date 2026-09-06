@@ -36,9 +36,10 @@ import java.time.Duration
  *   null if no thumbnail is needed.
  * @property backgroundColor The background color of the task, represented as an integer color
  *   value.
- * @property isLocked Indicates whether the [Task] is locked.
+ * @property isLocked Indicates whether the [Task] is locked by a system-wide lock.
  * @property isMinimized Indicates whether the [Task] is minimized.
  * @property remainingAppDuration time remaining on the app timer for the application.
+ * @property isAppLocked Indicates whether the [Task]'s app is locked by the App Lock feature.
  */
 data class TaskModel(
     val id: TaskId,
@@ -51,6 +52,7 @@ data class TaskModel(
     val isLocked: Boolean,
     val isMinimized: Boolean,
     val remainingAppDuration: Duration?,
+    val isAppLocked: Boolean,
 )
 
 typealias TaskId = Int

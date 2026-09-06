@@ -15,7 +15,6 @@
  */
 package com.android.launcher3.views;
 
-import static com.android.launcher3.Utilities.ATLEAST_Q;
 import static com.android.launcher3.views.FloatingIconView.getLocationBoundsForView;
 import static com.android.launcher3.views.FloatingIconViewCompanion.setPropertiesVisible;
 
@@ -25,8 +24,6 @@ import android.graphics.Picture;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -162,8 +159,10 @@ public class FloatingSurfaceView extends AbstractFloatingView implements
         if (mContract == null) {
             return;
         }
-        View icon = mLauncher.getFirstHomeElementForAppClose(null /* StableViewInfo */,
-                mContract.componentName.getPackageName(), mContract.user);
+        View icon = mLauncher.getFirstHomeElementForAppClose(
+                mContract.stableViewInfo,
+                mContract.componentName.getPackageName(),
+                mContract.user);
 
         boolean iconChanged = mIcon != icon;
         if (iconChanged) {
@@ -184,6 +183,8 @@ public class FloatingSurfaceView extends AbstractFloatingView implements
                 lp.leftMargin = Math.round(mIconPosition.left);
                 lp.topMargin = Math.round(mIconPosition.top);
             }
+        } else if (icon == null) {
+            mIconPosition.set(0f, 0f, 0f, 0f);
         }
 
         sendIconInfo();
@@ -202,11 +203,7 @@ public class FloatingSurfaceView extends AbstractFloatingView implements
 
     private void sendIconInfo() {
         if (mContract != null) {
-            if (ATLEAST_Q) {
-                mContract.sendEndPosition(mIconPosition, mLauncher, mSurfaceView.getSurfaceControl());
-            } else {
-                mContract.sendEndPosition(mIconPosition, mLauncher, null);
-            }
+            mContract.sendEndPosition(mIconPosition, mLauncher, mSurfaceView.getSurfaceControl());
         }
     }
 

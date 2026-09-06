@@ -5,7 +5,7 @@ DeviceProfile:
 	transposeLayoutWithOrientation:false
 	isGestureMode:true
 	isLandscape:false
-	isMultiWindowMode:false
+	isExternalDisplay:false
 	isTwoPanels:false
 	isLeftRightSplit:false
 	windowX: 0.0px (0.0dp)
@@ -70,7 +70,7 @@ DeviceProfile:
 	allAppsPadding.left: 32.0px (16.0dp)
 	allAppsPadding.right: 32.0px (16.0dp)
 	allAppsLeftRightMargin: 152.0px (76.0dp)
-	hotseatBarSizePx: 272.0px (136.0dp)
+	hotseatBarSizePx: 374.0px (187.0dp)
 	mHotseatColumnSpan: 6
 	mHotseatWidthPx: 1300.0px (650.0dp)
 	hotseatCellHeightPx: 135.0px (67.5dp)
@@ -81,10 +81,10 @@ DeviceProfile:
 	navButtonsLayoutWidthPx: 0.0px (0.0dp)
 	hotseatBarEndOffset: 0.0px (0.0dp)
 	hotseatQsbSpace: 0.0px (0.0dp)
-	hotseatQsbHeight: 0.0px (0.0dp)
+	hotseatQsbHeight: 126.0px (63.0dp)
 	springLoadedHotseatBarTopMarginPx: 216.0px (108.0dp)
 	getHotseatLayoutPadding(context).top: 0.0px (0.0dp)
-	getHotseatLayoutPadding(context).bottom: 137.0px (68.5dp)
+	getHotseatLayoutPadding(context).bottom: 239.0px (119.5dp)
 	getHotseatLayoutPadding(context).left: 150.0px (75.0dp)
 	getHotseatLayoutPadding(context).right: 150.0px (75.0dp)
 	numShownHotseatIcons: 6
@@ -99,21 +99,20 @@ DeviceProfile:
 	taskbarIconSize: 0.0px (0.0dp)
 	desiredWorkspaceHorizontalMarginPx: 108.0px (54.0dp)
 	workspacePadding.left: 36.0px (18.0dp)
-	workspacePadding.top: 132.0px (66.0dp)
+	workspacePadding.top: 83.0px (41.5dp)
 	workspacePadding.right: 36.0px (18.0dp)
-	workspacePadding.bottom: 468.0px (234.0dp)
+	workspacePadding.bottom: 517.0px (258.5dp)
 	iconScale: 1.0px (0.5dp)
 	cellScaleToFit : 1.0px (0.5dp)
-	extraSpace: 424.0px (212.0dp)
-	unscaled extraSpace: 424.0px (212.0dp)
+	extraSpace: 322.0px (161.0dp)
+	unscaled extraSpace: 322.0px (161.0dp)
 	maxEmptySpace: 19998.0px (9999.0dp)
-	workspaceTopPadding: 204.0px (102.0dp)
-	workspaceBottomPadding: 220.0px (110.0dp)
+	workspaceTopPadding: 155.0px (77.5dp)
+	workspaceBottomPadding: 167.0px (83.5dp)
 	overviewTaskMarginPx: 0.0px (0.0dp)
 	overviewTaskIconSizePx: 0.0px (0.0dp)
 	overviewTaskIconDrawableSizePx: 0.0px (0.0dp)
 	overviewTaskIconDrawableSizeGridPx: 0.0px (0.0dp)
-	overviewTaskThumbnailTopMarginPx: 0.0px (0.0dp)
 	overviewActionsTopMarginPx: 0.0px (0.0dp)
 	overviewActionsHeight: 0.0px (0.0dp)
 	overviewActionsClaimedSpaceBelow: 0.0px (0.0dp)
@@ -124,8 +123,8 @@ DeviceProfile:
 	dropTargetBarSizePx: 144.0px (72.0dp)
 	dropTargetBarBottomMarginPx: 96.0px (48.0dp)
 	getCellLayoutSpringLoadShrunkTop(): 564.0px (282.0dp)
-	getCellLayoutSpringLoadShrunkBottom(): 2072.0px (1036.0dp)
+	getCellLayoutSpringLoadShrunkBottom(): 1970.0px (985.0dp)
 	workspaceSpringLoadedMinNextPageVisiblePx: 96.0px (48.0dp)
-	getWorkspaceSpringLoadScale(): 0.8125px (0.40625dp)
+	getWorkspaceSpringLoadScale(): 0.7575431px (0.37877154dp)
 	getCellLayoutHeight(): 1856.0px (928.0dp)
 	getCellLayoutWidth(): 1528.0px (764.0dp)

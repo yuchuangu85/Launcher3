@@ -1,120 +1,41 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
-        gradlePluginPortal()
+        // Aliyun mirrors (dl.google.com / services.gradle.org unreachable on this network)
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
 }
-
-// https://docs.gradle.com/enterprise/gradle-plugin/
-plugins {
-    id "com.gradle.develocity" version "4.3.2"
-}
-
-def isCI = providers.environmentVariable('CI').present
-
-develocity {
-    buildScan {
-        termsOfUseUrl = "https://gradle.com/terms-of-service"
-        termsOfUseAgree = "yes"
-        publishing {
-            onlyIf { isCI }
-        }
-    }
-}
-
-rootProject.name = "lawnchair"
-
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
 }
+rootProject.name = "Launcher3-QuickStep-Android17"
 
-enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
-include ':iconloaderlib'
-project(':iconloaderlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/iconloaderlib')
-
-include ':searchuilib'
-project(':searchuilib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/searchuilib')
-
-include ':animationlib'
-project(':animationlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/animationlib')
-
-include ':msdllib'
-project(':msdllib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/msdllib')
-
-include ':contextualeducationlib'
-project(':contextualeducationlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/contextualeducationlib')
-
-include ':viewcapturelib'
-project(':viewcapturelib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/viewcapturelib')
-
-include ':displaylib'
-project(':displaylib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/displaylib')
-
-include ':mechanics'
-project(':mechanics').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/mechanics')
-
-include ':hidden-api'
-
-include ':shared'
-project(':shared').projectDir = new File(rootDir, 'systemUI/shared')
-
-include ':plugin'
-project(':plugin').projectDir = new File(rootDir, 'systemUI/plugin')
-
-include ':plugincore'
-project(':plugincore').projectDir = new File(rootDir, 'systemUI/plugin_core')
-
-include ':common'
-project(':common').projectDir = new File(rootDir, 'systemUI/common')
-
-include ':log'
-project(':log').projectDir = new File(rootDir, 'systemUI/log')
-
-include ':animation'
-project(':animation').projectDir = new File(rootDir, 'systemUI/animation')
-
-include ':unfold'
-project(':unfold').projectDir = new File(rootDir, 'systemUI/unfold')
-
-include ':utils'
-project(':utils').projectDir = new File(rootDir, 'systemUI/utils')
-
-
-include ':compatLib'
-include ':compatLib:compatLibVQ'
-include ':compatLib:compatLibVR'
-include ':compatLib:compatLibVS'
-include ':compatLib:compatLibVT'
-include ':compatLib:compatLibVU'
-include ':compatLib:compatLibVV'
-include ':compatLib:compatLibVBaklava'
-
-include ':baseline-profile'
-
-include ':androidx-lib'
-include ':flags'
-include ':wmshell'
-include ':dagger'
-include ':concurrent'
-//include ':compose'
-include ':modules:widgetpicker'
+def sysui = { name, path ->
+    include ":$name"
+    project(":$name").projectDir = new File(rootDir, "platform_frameworks_libs/frameworks_libs_systemui/$path")
+}
+sysui("iconloaderlib", "iconloaderlib")
+sysui("animationlib", "animationlib")
+sysui("contextualeducationlib", "contextualeducationlib")
+sysui("usertypelib", "usertypelib")
+sysui("dynamiccolors", "dynamiccolors")
+sysui("cuebarlib", "cuebarlib")
+sysui("displaylib", "displaylib")
+sysui("tracinglib", "tracinglib")
+include ':pccore'
+include ':sysui_anim_stub'
+include ':ext_stub'
+include ':wmshell_compat'
+project(':pccore').projectDir = new File(rootDir, 'platform_frameworks_libs/personalcontext_core')
+project(':wmshell_compat').projectDir = new File(rootDir, 'platform_frameworks_libs/wmshell_compat')
+project(':sysui_anim_stub').projectDir = new File(rootDir, 'platform_frameworks_libs/sysui_anim_stub')
+project(':ext_stub').projectDir = new File(rootDir, 'platform_frameworks_libs/ext_stub')
+sysui("acecommon", "ace/common")
+sysui("aceclient", "ace/client")
 

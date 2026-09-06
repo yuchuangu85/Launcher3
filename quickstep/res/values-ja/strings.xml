@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"固定"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"フリーフォーム"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"デスクトップ"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"%1$s のデスクトップ"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"外部ディスプレイに移動する"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"消去"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"デスクトップ"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"今日はあと <xliff:g id="TIME">%1$s</xliff:g>です"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"アプリの候補"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"予測されたアプリ"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"ホーム画面の一番下にアプリの候補を表示できます"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"ホーム画面のお気に入りの行でアプリの候補を利用できます"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"ホーム画面で、使用頻度の高いアプリに簡単にアクセスできるようになります。アプリの候補はルーティンに応じて変わります。ホーム画面で今一番下の行にあるアプリは、一行上に移動します。"</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"ホーム画面で、使用頻度の高いアプリに簡単にアクセスできるようになります。アプリの候補はルーティンに応じて変わります。お気に入りの行にあるアプリがホーム画面に移動します。"</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"アプリの候補を利用"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"使用しない"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"設定"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"使用頻度の高いアプリがここに表示されます（ルーティンに応じて変わります）"</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"一番下の行からアプリをドラッグするとアプリの候補が表示されます"</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"空いたスペースにアプリの候補が追加されます"</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"アプリの候補表示が有効です"</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"アプリの候補は無効です"</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"予測されたアプリ: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"ジェスチャー ナビゲーションのチュートリアル"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"デバイスを回転してください"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"ジェスチャー ナビゲーションのチュートリアルを終了するには、デバイスを回転してください"</string>
@@ -96,7 +90,10 @@
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"システム ナビゲーションの設定"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"<xliff:g id="DEVICE">%1$s</xliff:g> の準備が\n完了しました"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"デバイスの準備が\n完了しました"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"準備ができました"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"新しい <xliff:g id="DEVICE">%1$s</xliff:g> をご利用いただけます"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"上にスワイプして<xliff:g id="DEVICE">%1$s</xliff:g>を使ってみましょう"</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"<xliff:g id="DEVICE">%1$s</xliff:g> を利用するにはタップしてください"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"ナビゲーション方法を選択"</annotation></string>
     <string name="allset_hint_expressive" msgid="756856423510976261">"上にスワイプ"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"ホームボタンをタップ"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"分割画面にするには、別のアプリを選択してください"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"この操作はアプリまたは組織で許可されていません"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"ウィジェットは現在サポートされていません。他のアプリを選択してください。"</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"コピー"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"保存"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"画面を回転"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"タスクバーが画面下部に表示され、使用していないときは自動的に非表示になる様子を紹介するアニメーション"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"切り替えを使用してタスクバーを固定し、画面下部に表示したままにする方法を紹介するアニメーション"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"ドラッグ操作でタスクバーからふきだしを作成する方法を示すアニメーション"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"タスクバーにあるアプリをドラッグし、開いているアプリの上にドロップして分割画面を作成する方法を紹介するアニメーション"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"デバイスでおすすめのアプリにアクセスする方法を紹介するアニメーション"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"アクションキーを長押しして、アイテムがある領域を選択し、画面上のアイテムを検索する方法を紹介するアニメーション"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"タスクバーの説明"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"アプリを横にドラッグすると 2 個のアプリを同時に使用できます"</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"タスクバーを表示するには、上にゆっくりとスワイプします"</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"下隅にドラッグすると、フローティング表示になります"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"タスクバーを表示するには、上にゆっくりとスワイプします"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"毎日の使用状況に基づいてアプリの候補が表示されます"</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"分割線を長押ししてタスクバーを固定します"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"タスクバーの各種機能"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"タスクバーを常に表示"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"タスクバーを画面下部に常に表示するには分割線を長押しします"</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"アプリを隅にドラッグすると、フローティング表示になります"</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"画面上の内容を検索するには、アクションキーを長押しします"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"このサービスは、画面上で選択された箇所を使用して検索します。Google の<xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>プライバシー ポリシー<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g>と<xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>利用規約<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g>が適用されます。"</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"閉じる"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"完了"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"次へ"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"ホーム"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"ユーザー補助"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"戻る"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"最近"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"通知"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"クイック設定"</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"他のオプション"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"タスクバー"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"タスクバー表示"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"タスクバーとバブルを表示"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"タスクバーとバブルを右側に表示"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"ふきだしバー"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"ナビゲーション バー"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"常にタスクバーを表示する"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"ナビゲーション モードを変更"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"タスクバーの区切り"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"その他の最近使ったアプリ"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"その他の最近使ったアプリ"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"その他のアプリ"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"削除"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"上 / 左に移動"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"下 / 右に移動"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"アプリをバブルとして開く"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"アイテムを左に移動"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"アイテムを右に移動"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"最近使ったアプリ"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"最近使ったアプリの一覧"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{個の他のアプリ}other{個の他のアプリ}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"デスクトップ"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"<xliff:g id="APP_NAME_1">%1$s</xliff:g> と <xliff:g id="APP_NAME_2">%2$s</xliff:g>"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>、アイテム <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g>/<xliff:g id="TOTAL_TASKS">%3$d</xliff:g>"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>、アイテム <xliff:g id="TOTAL_TASKS">%3$d</xliff:g> 個のうちの <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g>、リリースキー バインディングから選択できます"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"左へスクロール"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"右へスクロール"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"ふきだし"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"左に移動"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"右に移動"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"すべて解除"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>を開きます"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>を閉じます"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"かこって検索"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"アプリのアイコン"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"アプリのタイトル"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"閉じるボタン"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"タスクバーに固定"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"タスクバーの固定解除"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"閉じる"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"ナッジ"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"閉じる"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"ナッジの画像"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>⁠"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"アイコン"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"役に立つ提案を受け取る"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"AI を使用して、画面上での操作に関連する情報やアクションを積極的に提案します"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"閉じる"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"開く"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"Ambient Suggestions のアイコン"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"長押しすると、提案がどのように生成されるかを確認できます"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"自動入力"</string>
 </resources>

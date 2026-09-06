@@ -16,14 +16,21 @@
 
 package com.android.quickstep.recents.data
 
+import android.app.WindowConfiguration.ACTIVITY_TYPE_STANDARD
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.view.Display.DEFAULT_DISPLAY
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.android.launcher3.util.TestDispatcherProvider
+import com.android.launcher3.Flags
+import com.android.launcher3.Flags.enableLowResThumbnailPreloading
+import com.android.quickstep.recents.data.FakeTaskThumbnailDataSource.GetThumbnailRequest
+import com.android.quickstep.task.thumbnail.data.TaskThumbnailDataSource.RequestResolution.ANY_RES
+import com.android.quickstep.task.thumbnail.data.TaskThumbnailDataSource.RequestResolution.HIGH_RES
 import com.android.quickstep.util.DesktopTask
 import com.android.quickstep.util.SingleTask
 import com.android.quickstep.util.SplitTask
@@ -42,6 +49,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.spy
@@ -52,6 +60,8 @@ import org.mockito.kotlin.whenever
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class TasksRepositoryTest {
+    @get:Rule val setFlagsRule = SetFlagsRule()
+
     private val tasks = (0..5).map(::createTaskWithId)
     private val secondaryTasks = (6..11).map(::createTaskWithIdForSecondaryDisplay)
     private val defaultTaskList =
@@ -91,6 +101,7 @@ class TasksRepositoryTest {
     private val taskIconDataSource = FakeTaskIconDataSource()
     private val taskVisualsChangeNotifier = FakeTaskVisualsChangeNotifier()
     private val highResLoadingStateNotifier = FakeHighResLoadingStateNotifier()
+    private val userLockedStateRepository = FakeUserLockedStateRepository()
     private val taskVisualsChangedDelegate =
         spy(TaskVisualsChangedDelegateImpl(taskVisualsChangeNotifier, highResLoadingStateNotifier))
 
@@ -101,9 +112,10 @@ class TasksRepositoryTest {
             recentsModel,
             taskThumbnailDataSource,
             taskIconDataSource,
+            userLockedStateRepository,
             taskVisualsChangedDelegate,
             testScope.backgroundScope,
-            TestDispatcherProvider(dispatcher),
+            dispatcher,
         )
 
     @Before
@@ -118,6 +130,19 @@ class TasksRepositoryTest {
             recentsModel.seedTasks(defaultTaskList)
             assertThat(systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true).first())
                 .isEqualTo(tasks)
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LATER_IS_LOCKED_CHECK)
+    fun getAllTaskDataInvalidatesUserLockedCache() =
+        testScope.runTest {
+            recentsModel.seedTasks(defaultTaskList)
+            userLockedStateRepository.setLockedStates(mapOf(1 to true))
+
+            assertThat(userLockedStateRepository.getIsUserLocked(1)).isTrue()
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+
+            assertThat(userLockedStateRepository.getIsUserLocked(1)).isFalse()
         }
 
     @Test
@@ -192,7 +217,13 @@ class TasksRepositoryTest {
             // Assert no additional loads, assert images present
             assertThat(systemUnderTest.getThumbnailById(0).first()?.thumbnail)
                 .isEqualTo(taskThumbnailDataSource.taskIdToBitmap[0])
-            assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(0)).isEqualTo(1)
+            if (enableLowResThumbnailPreloading()) {
+                assertThat(taskThumbnailDataSource.getThumbnailCallsRes(0))
+                    .containsExactly(ANY_RES, HIGH_RES)
+                    .inOrder()
+            } else {
+                assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(0)).isEqualTo(1)
+            }
         }
 
     @Test
@@ -350,7 +381,7 @@ class TasksRepositoryTest {
 
             systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(2))
             // Check for second emission
-            assertThat(task2BitmapValues).isEqualTo(listOf(null, bitmap2))
+            assertThat(task2BitmapValues).containsExactly(null, bitmap2).inOrder()
         }
 
     @Test
@@ -375,9 +406,37 @@ class TasksRepositoryTest {
         }
 
     @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun onHighResLoadingStateChanged_emptyThumbnailDoesNotReplaceValidThumbnail() =
+        testScope.runTest {
+            setHighResEnabled(false)
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+
+            val expectedBitmap = taskThumbnailDataSource.taskIdToBitmap[1]
+
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                systemUnderTest
+                    .getTaskDataById(1)
+                    .map { it?.thumbnail }
+                    .toList(task1ThumbnailValues)
+            }
+
+            taskThumbnailDataSource.taskIdToBitmap[1] = null
+            setHighResEnabled(true)
+
+            val lastThumbnailValue = task1ThumbnailValues.last()!!
+            assertThat(lastThumbnailValue.thumbnail).isEqualTo(expectedBitmap)
+            assertThat(lastThumbnailValue.reducedResolution).isTrue()
+        }
+
+    @Test
     fun onHighResLoadingStateChanged_highResReplacesLowResThumbnail() =
         testScope.runTest {
-            taskThumbnailDataSource.highResEnabled = false
+            setHighResEnabled(false)
             recentsModel.seedTasks(defaultTaskList)
             systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
 
@@ -392,13 +451,12 @@ class TasksRepositoryTest {
                 taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
             }
 
-            taskThumbnailDataSource.taskIdToBitmap[1] = expectedBitmap
-            taskThumbnailDataSource.highResEnabled = true
-            taskVisualsChangedDelegate.onHighResLoadingStateChanged(true)
-
             val firstThumbnailValue = task1ThumbnailValues.first()!!
             assertThat(firstThumbnailValue.thumbnail).isEqualTo(expectedPreviousBitmap)
             assertThat(firstThumbnailValue.reducedResolution).isTrue()
+
+            taskThumbnailDataSource.taskIdToBitmap[1] = expectedBitmap
+            setHighResEnabled(true)
 
             val lastThumbnailValue = task1ThumbnailValues.last()!!
             assertThat(lastThumbnailValue.thumbnail).isEqualTo(expectedBitmap)
@@ -408,7 +466,7 @@ class TasksRepositoryTest {
     @Test
     fun onHighResLoadingStateChanged_invisibleTaskIgnored() =
         testScope.runTest {
-            taskThumbnailDataSource.highResEnabled = false
+            setHighResEnabled(false)
             recentsModel.seedTasks(defaultTaskList)
             systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
 
@@ -422,8 +480,7 @@ class TasksRepositoryTest {
                 taskDataFlow.map { it?.thumbnail }.toList(task2ThumbnailValues)
             }
 
-            taskThumbnailDataSource.highResEnabled = true
-            taskVisualsChangedDelegate.onHighResLoadingStateChanged(true)
+            setHighResEnabled(true)
 
             assertThat(task2ThumbnailValues.filterNotNull()).isEmpty()
             assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(2)).isEqualTo(0)
@@ -432,7 +489,7 @@ class TasksRepositoryTest {
     @Test
     fun onHighResLoadingStateChanged_lowResDoesNotReplaceHighResThumbnail() =
         testScope.runTest {
-            taskThumbnailDataSource.highResEnabled = true
+            setHighResEnabled(true)
             recentsModel.seedTasks(defaultTaskList)
             systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
 
@@ -448,8 +505,7 @@ class TasksRepositoryTest {
             }
 
             taskThumbnailDataSource.taskIdToBitmap[1] = expectedBitmap
-            taskThumbnailDataSource.highResEnabled = false
-            taskVisualsChangedDelegate.onHighResLoadingStateChanged(false)
+            setHighResEnabled(false)
 
             val firstThumbnailValue = task1ThumbnailValues.first()!!
             assertThat(firstThumbnailValue.thumbnail).isEqualTo(expectedPreviousBitmap)
@@ -458,6 +514,33 @@ class TasksRepositoryTest {
             val lastThumbnailValue = task1ThumbnailValues.last()!!
             assertThat(lastThumbnailValue.thumbnail).isEqualTo(expectedPreviousBitmap)
             assertThat(lastThumbnailValue.reducedResolution).isFalse()
+        }
+
+    @Test
+    fun highResToLowResToHighRes_doesNotMakeNewRequests() =
+        testScope.runTest {
+            setHighResEnabled(true)
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+
+            val taskDataFlow = systemUnderTest.getTaskDataById(1)
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
+            }
+
+            setHighResEnabled(false)
+            setHighResEnabled(true)
+
+            assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1)).apply {
+                if (enableLowResThumbnailPreloading()) {
+                    containsExactly(ANY_RES, HIGH_RES).inOrder()
+                } else {
+                    containsExactly(HIGH_RES).inOrder()
+                }
+            }
         }
 
     @Test
@@ -484,6 +567,115 @@ class TasksRepositoryTest {
         }
 
     @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun setVisibleTasks_getsAnyThumbnailWithoutRequestingThenHighRes() =
+        testScope.runTest {
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+
+            val taskDataFlow = systemUnderTest.getTaskDataById(1)
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
+            }
+
+            assertThat(taskThumbnailDataSource.getThumbnailCalls(1))
+                .containsExactly(
+                    GetThumbnailRequest(ANY_RES, shouldMakeRequestIfNeeded = false),
+                    GetThumbnailRequest(HIGH_RES, shouldMakeRequestIfNeeded = true),
+                )
+                .inOrder()
+            assertThat(task1ThumbnailValues.map { it?.reducedResolution }.last()).isEqualTo(false)
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun setHighResThumbnailsRequired_makesHighResCallLater_whenNotNeededImmediately() =
+        testScope.runTest {
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+            setHighResEnabled(false)
+
+            val taskDataFlow = systemUnderTest.getTaskDataById(1)
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
+            }
+
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+            assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1).single()).isEqualTo(ANY_RES)
+
+            setHighResEnabled(true)
+            assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1))
+                .containsExactly(ANY_RES, HIGH_RES)
+                .inOrder()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun setHighResThumbnailsRequiredRepeatedly_doesNotMakeAdditionalHighResCalls() =
+        testScope.runTest {
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+            setHighResEnabled(false)
+
+            val taskDataFlow = systemUnderTest.getTaskDataById(1)
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
+            }
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+            taskThumbnailDataSource.preventThumbnailLoad(1)
+
+            setHighResEnabled(true)
+            setHighResEnabled(true)
+            setHighResEnabled(true)
+            assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1))
+                .containsExactly(ANY_RES, HIGH_RES)
+                .inOrder()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun setHighResThumbnailsRequired_doesNotMakeHighResCallForInvisibleTask() =
+        testScope.runTest {
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+            setHighResEnabled(false)
+
+            val taskDataFlow = systemUnderTest.getTaskDataById(1)
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
+            }
+
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1, 2))
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+            setHighResEnabled(true)
+            assertThat(taskThumbnailDataSource.getThumbnailCallsRes(2)).containsExactly(ANY_RES)
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_LOW_RES_THUMBNAIL_PRELOADING)
+    fun setHighResThumbnailsRequired_doesNotMakeAdditionalLowResCall_whenFalse() =
+        testScope.runTest {
+            recentsModel.seedTasks(defaultTaskList)
+            systemUnderTest.getAllTaskData(DEFAULT_DISPLAY, forceRefresh = true)
+
+            val taskDataFlow = systemUnderTest.getTaskDataById(1)
+            val task1ThumbnailValues = mutableListOf<ThumbnailData?>()
+            testScope.backgroundScope.launch {
+                taskDataFlow.map { it?.thumbnail }.toList(task1ThumbnailValues)
+            }
+
+            systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
+            val task1Calls = taskThumbnailDataSource.getThumbnailCallsRes(1).size
+            setHighResEnabled(false)
+            assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1).size).isEqualTo(task1Calls)
+        }
+
+    @Test
     fun setVisibleTasks_multipleTimesWithDifferentTasks_reusesThumbnailRequests() =
         testScope.runTest {
             recentsModel.seedTasks(defaultTaskList)
@@ -496,10 +688,22 @@ class TasksRepositoryTest {
             }
 
             systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1))
-            assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(1)).isEqualTo(1)
+            if (enableLowResThumbnailPreloading()) {
+                assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1))
+                    .containsExactly(ANY_RES, HIGH_RES)
+                    .inOrder()
+            } else {
+                assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(1)).isEqualTo(1)
+            }
 
             systemUnderTest.setVisibleTasks(DEFAULT_DISPLAY, setOf(1, 2))
-            assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(1)).isEqualTo(1)
+            if (enableLowResThumbnailPreloading()) {
+                assertThat(taskThumbnailDataSource.getThumbnailCallsRes(1))
+                    .containsExactly(ANY_RES, HIGH_RES)
+                    .inOrder()
+            } else {
+                assertThat(taskThumbnailDataSource.getNumberOfGetThumbnailCalls(1)).isEqualTo(1)
+            }
         }
 
     @Test
@@ -556,14 +760,14 @@ class TasksRepositoryTest {
 
             launch { systemUnderTest.setVisibleTasks(SECONDARY_DISPLAY, setOf(6)) }
             // Check we prevented the resources from loading
-            assertThat(task6Values.distinct()).isEqualTo(listOf(Pair(null, null)))
+            assertThat(task6Values.distinct()).containsExactly(Pair(null, null))
             // Display disconnects
             launch { systemUnderTest.setVisibleTasks(SECONDARY_DISPLAY, emptySet()) }
             taskThumbnailDataSource.completeLoadingForTask(6)
             taskIconDataSource.completeLoadingForTask(6)
             testScope.advanceUntilIdle()
             // Still should not be loaded
-            assertThat(task6Values.distinct()).isEqualTo(listOf(Pair(null, null)))
+            assertThat(task6Values.distinct()).containsExactly(Pair(null, null))
         }
 
     @Test
@@ -584,6 +788,15 @@ class TasksRepositoryTest {
             }
         }
 
+    private fun setHighResEnabled(highResEnabled: Boolean) {
+        taskThumbnailDataSource.highResEnabled = highResEnabled
+        if (enableLowResThumbnailPreloading()) {
+            systemUnderTest.setHighResThumbnailsRequired(highResEnabled)
+        } else {
+            taskVisualsChangedDelegate.onHighResLoadingStateChanged(highResEnabled)
+        }
+    }
+
     private fun createTaskWithId(taskId: Int) =
         Task(Task.TaskKey(taskId, 0, Intent(), ComponentName("", ""), 0, 2000))
 
@@ -600,6 +813,8 @@ class TasksRepositoryTest {
                 null,
                 0,
                 false,
+                false,
+                ACTIVITY_TYPE_STANDARD,
                 false,
             )
         )

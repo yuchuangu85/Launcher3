@@ -15,6 +15,8 @@
  */
 package com.android.launcher3.allapps;
 
+import static android.view.View.GONE;
+
 import static com.android.launcher3.LauncherPrefs.WORK_EDU_STEP;
 import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.MAIN;
 import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.SEARCH;
@@ -28,7 +30,6 @@ import static com.android.launcher3.model.data.AppsListData.FLAG_QUIET_MODE_ENAB
 import static com.android.launcher3.model.data.AppsListData.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
 
 import android.os.UserHandle;
-import android.os.UserManager;
 import android.util.Log;
 import android.view.View;
 
@@ -61,10 +62,9 @@ public class WorkProfileManager extends UserProfileManager
     private WorkUtilityView mWorkUtilityView;
     private final Predicate<UserHandle> mWorkProfileMatcher;
 
-    public WorkProfileManager(
-            UserManager userManager, ActivityAllAppsContainerView allApps,
+    public WorkProfileManager(ActivityAllAppsContainerView allApps,
             StatsLogManager statsLogManager, UserCache userCache) {
-        super(userManager, statsLogManager, userCache);
+        super(statsLogManager, userCache);
         mAllApps = allApps;
         mWorkProfileMatcher = (user) -> userCache.getUserInfo(user).isWork();
     }
@@ -130,13 +130,11 @@ public class WorkProfileManager extends UserProfileManager
      * Creates and attaches for profile toggle button to {@link ActivityAllAppsContainerView}
      */
     public boolean attachWorkUtilityViews() {
-           // LC: Skip permission checks - being the default launcher is sufficient for work profile control
-           // FLAG_HAS_SHORTCUT_PERMISSION and FLAG_QUIET_MODE_CHANGE_PERMISSION are not required
-//         if (!mAllApps.getAppsStore().hasModelFlag(
-//                 FLAG_HAS_SHORTCUT_PERMISSION | FLAG_QUIET_MODE_CHANGE_PERMISSION)) {
-//             Log.e(TAG, "unable to attach work mode switch; Missing required permissions");
-//             return false;
-//         }
+        if (!mAllApps.getAppsStore().hasModelFlag(
+                FLAG_HAS_SHORTCUT_PERMISSION | FLAG_QUIET_MODE_CHANGE_PERMISSION)) {
+            Log.e(TAG, "unable to attach work mode switch; Missing required permissions");
+            return false;
+        }
         if (mWorkUtilityView == null) {
             mWorkUtilityView = (WorkUtilityView) mAllApps.getLayoutInflater().inflate(
                     R.layout.work_mode_utility_view, mAllApps, false);
@@ -144,11 +142,8 @@ public class WorkProfileManager extends UserProfileManager
         if (mWorkUtilityView.getParent() == null) {
             mAllApps.addView(mWorkUtilityView);
         }
-        int currentPage = mAllApps.getCurrentPage();
-        if (currentPage != WORK) {
-            mWorkUtilityView.animateVisibility(false);
-        } else {
-            mWorkUtilityView.animateVisibility(true);
+        if (mAllApps.getCurrentPage() != WORK) {
+            mWorkUtilityView.setVisibility(GONE);
         }
         if (getAH() != null) {
             getAH().applyPadding();

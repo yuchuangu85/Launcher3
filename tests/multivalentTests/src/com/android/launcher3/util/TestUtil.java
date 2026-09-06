@@ -15,12 +15,17 @@
  */
 package com.android.launcher3.util;
 
+import static android.view.KeyEvent.ACTION_DOWN;
+import static android.view.MotionEvent.ACTION_UP;
+
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
 import static com.android.launcher3.LauncherSettings.Settings.LAYOUT_DIGEST_LABEL;
 import static com.android.launcher3.LauncherSettings.Settings.LAYOUT_DIGEST_TAG;
 import static com.android.launcher3.LauncherSettings.Settings.LAYOUT_PROVIDER_KEY;
 import static com.android.launcher3.LauncherSettings.Settings.createBlobProviderKey;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
+import static com.android.launcher3.util.Executors.getTaskbarUiThread;
 
 import static org.junit.Assert.assertTrue;
 
@@ -29,10 +34,7 @@ import android.app.Instrumentation;
 import android.app.blob.BlobHandle;
 import android.app.blob.BlobStoreManager;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.pm.LauncherApps;
-import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.os.AsyncTask;
@@ -40,10 +42,14 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor.AutoCloseOutputStream;
 import android.os.Process;
+import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.system.OsConstants;
 import android.util.Log;
+import android.view.InputDevice;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
 
 import androidx.test.uiautomator.UiDevice;
 
@@ -72,7 +78,7 @@ public class TestUtil {
     public static final long DEFAULT_UI_TIMEOUT = 10000;
 
     public static void installDummyApp() throws IOException {
-        final int defaultUserId = getMainUserId();
+        final int defaultUserId = getCurrentUserId();
         installDummyAppForUser(defaultUserId);
     }
 
@@ -111,15 +117,14 @@ public class TestUtil {
     }
 
     /**
-     * Returns the main user ID. NOTE: For headless system it is NOT 0. Returns 0 by default, if
-     * there is no main user.
+     * Returns the current user ID. Returns 0 by default, if there is no current user.
      *
-     * @return a main user ID
+     * @return a current user ID
      */
-    public static int getMainUserId() throws IOException {
+    public static int getCurrentUserId() throws IOException {
         Instrumentation instrumentation = getInstrumentation();
         final String result = UiDevice.getInstance(instrumentation)
-                .executeShellCommand("cmd user get-main-user");
+                .executeShellCommand("am get-current-user");
         try {
             return Integer.parseInt(result.trim());
         } catch (NumberFormatException e) {
@@ -181,29 +186,51 @@ public class TestUtil {
      * Utility method to run a task synchronously which converts any exceptions to RuntimeException
      */
     public static void runOnExecutorSync(ExecutorService executor, UncheckedRunnable task) {
+        var error = new Exception[1];
         try {
             executor.submit(() -> {
                 try {
                     task.run();
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    error[0] = e;
                 }
             }).get();
         } catch (Exception e) {
+            convertAndThrowRuntimeException(e);
+        }
+        if (error[0] != null) {
+            convertAndThrowRuntimeException(error[0]);
+        }
+    }
+
+    private static void convertAndThrowRuntimeException(Exception e) {
+        if (e.getCause() instanceof RuntimeException re) {
+            throw re;
+        } else if (e instanceof RuntimeException re) {
+            throw re;
+        } else {
             throw new RuntimeException(e);
         }
     }
 
-    /**
-     * Runs the callback on the UI thread and returns the result.
-     */
-    public static <T> T getOnUiThread(final Callable<T> callback) {
+    /** Runs the callback on the MAIN thread and returns the result. */
+    public static <T> T getOnMainThread(final Callable<T> callback) {
+        return getOnUiThread(MAIN_EXECUTOR, callback);
+    }
+
+    /** Runs the callback on the taskbar's ui thread and returns the result. */
+    public static <T> T getOnTaskbarUiThread(final Callable<T> callback) {
+        return getOnUiThread(getTaskbarUiThread(), callback);
+    }
+
+    private static <T> T getOnUiThread(
+            LooperExecutor uiExecutor, final Callable<T> callback) {
         try {
             FutureTask<T> task = new FutureTask<>(callback);
-            if (Looper.myLooper() == Looper.getMainLooper()) {
+            if (Looper.myLooper() == uiExecutor.getLooper()) {
                 task.run();
             } else {
-                new Handler(Looper.getMainLooper()).post(task);
+                new Handler(uiExecutor.getLooper()).post(task);
             }
             return task.get(DEFAULT_UI_TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
@@ -215,13 +242,50 @@ public class TestUtil {
         }
     }
 
-    // Please don't add negative test cases for methods that fail only after a long wait.
-    public static void expectFail(String message, Runnable action) {
+    /**
+     * Consistent way to generate simple KeyEvents to interact with the Launcher activity.
+     */
+    public static KeyEvent createKeyEvent(int keyCode, int metaState, boolean actionDown) {
+        long eventTime = SystemClock.uptimeMillis();
+        return KeyEvent.obtain(
+                eventTime,
+                eventTime,
+                actionDown ? ACTION_DOWN : ACTION_UP,
+                keyCode,
+                /* repeat= */ 0,
+                metaState,
+                KeyCharacterMap.VIRTUAL_KEYBOARD,
+                /* scancode= */ 0,
+                /* flags= */ 0,
+                InputDevice.SOURCE_KEYBOARD,
+                /* characters =*/ null);
+    }
+
+    /**
+     * Executes the provided {@code action} and asserts that it throws an {@link AssertionError}.
+     * <p>
+     * This method is useful for testing scenarios where an action is expected to fail.
+     * It temporarily disables the default failure handling of the {@link LauncherInstrumentation}
+     * (like saving error artifacts) during the execution of the action.
+     *
+     * Please don't add negative test cases for methods that fail only after a long wait.
+     *
+     * @param launcher The {@link LauncherInstrumentation} instance to use.
+     * @param message  The message to display if the action does not fail as expected.
+     * @param action   The {@link Runnable} containing the code that is expected to throw an
+     *                 {@link AssertionError}.
+     */
+    public static void expectFail(LauncherInstrumentation launcher,
+            String message, Runnable action) {
         boolean failed = false;
+        final Runnable savedOnFailure = launcher.getOnFailure();
+        launcher.setOnFailure(null); // Disable failure handling, such as saving error artifacts.
         try {
             action.run();
         } catch (AssertionError e) {
             failed = true;
+        } finally {
+            launcher.setOnFailure(savedOnFailure);
         }
         assertTrue(message, failed);
     }
@@ -232,15 +296,6 @@ public class TestUtil {
     public static void grantWriteSecurePermission() {
         getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.WRITE_SECURE_SETTINGS);
-    }
-
-    /**
-     * Returns the activity info corresponding to the system app for the provided category
-     */
-    public static ActivityInfo resolveSystemAppInfo(String category) {
-        return getInstrumentation().getTargetContext().getPackageManager().resolveActivity(
-                new Intent(Intent.ACTION_MAIN).addCategory(category),
-                PackageManager.MATCH_SYSTEM_ONLY).activityInfo;
     }
 
     /** Interface to indicate a runnable which can throw any exception. */

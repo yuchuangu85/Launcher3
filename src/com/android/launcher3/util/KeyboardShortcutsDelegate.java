@@ -32,6 +32,7 @@ import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.accessibility.BaseAccessibilityDelegate;
+import com.android.launcher3.popup.WorkspaceLongPressOptions;
 import com.android.launcher3.testing.shared.TestProtocol;
 
 import java.util.ArrayList;
@@ -88,7 +89,7 @@ public class KeyboardShortcutsDelegate {
                     break;
                 case KeyEvent.KEYCODE_W:
                     if (mLauncher.isInState(NORMAL)) {
-                        mLauncher.openWidgetPicker();
+                        WorkspaceLongPressOptions.openWidgetPicker(mLauncher.asContext());
                         return true;
                     }
                     break;

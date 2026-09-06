@@ -3,7 +3,7 @@ package com.android.launcher3.model;
 
 import static android.appwidget.AppWidgetProviderInfo.WIDGET_FEATURE_HIDE_FROM_PICKER;
 
-import static com.android.launcher3.BuildConfigs.WIDGETS_ENABLED;
+import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
 import static com.android.launcher3.icons.cache.CacheLookupFlag.DEFAULT_LOOKUP_FLAG;
 import static com.android.launcher3.pm.ShortcutConfigActivityInfo.queryList;
 import static com.android.launcher3.widget.WidgetSections.NO_CATEGORY;
@@ -15,20 +15,22 @@ import static java.util.stream.Collectors.toList;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.LauncherApps;
 import android.os.UserHandle;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.ArrayMap;
 
 import com.android.launcher3.AppFilter;
-import com.android.launcher3.BuildConfig;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dagger.ApplicationContext;
+import com.android.launcher3.dragndrop.PinShortcutRequestActivityInfo;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.icons.cache.CachedObject;
 import com.android.launcher3.model.data.PackageItemInfo;
@@ -40,7 +42,6 @@ import com.android.launcher3.util.Preconditions;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.launcher3.widget.WidgetManagerHelper;
 import com.android.launcher3.widget.WidgetSections;
-import com.android.wm.shell.Flags;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,11 +56,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.inject.Inject;
-
-import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Widgets data model that is used by the adapters of the widget views and controllers.
@@ -75,7 +73,7 @@ public class WidgetsModel {
     private final Map<PackageItemInfo, List<WidgetItem>> mWidgetsByPackageItem = new HashMap<>();
     @Nullable private WidgetValidityCheckForPicker mWidgetValidityCheckForPicker = null;
 
-    private static Context mContext = null;
+    private final Context mContext;
     private final InvariantDeviceProfile mIdp;
     private final IconCache mIconCache;
     private final AppFilter mAppFilter;
@@ -142,16 +140,28 @@ public class WidgetsModel {
         return mWidgetsByPackageItem.entrySet().stream()
                 .collect(
                         Collectors.toMap(
-                                Entry::getKey,
+                                Map.Entry::getKey,
                                 entry -> entry.getValue().stream()
                                         .filter(widgetItem ->
                                                 mWidgetValidityCheckForPicker.test(widgetItem))
-                                        .collect(toList())
+                                        .collect(Collectors.toList())
                         )
                 )
                 .entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /** Returns widgets grouped by the package item that they should belong to. */
+    public synchronized Map<PackageItemInfo, List<WidgetItem>> getWidgetsByPackageItem() {
+        if (!WIDGETS_ENABLED) {
+            return Collections.emptyMap();
+        }
+
+        return mWidgetsByPackageItem
+                .entrySet().stream()
+                .filter(entry -> !entry.getValue().isEmpty())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**
@@ -199,6 +209,33 @@ public class WidgetsModel {
         return updatedItems;
     }
 
+    /** Updates the model with info about the requested widget / shortcut for pinning. */
+    public void updateForPinRequest(@NonNull LauncherApps.PinItemRequest pinItemRequest) {
+        if (!WIDGETS_ENABLED) {
+            return;
+        }
+        Preconditions.assertWorkerThread();
+
+        final ArrayList<WidgetItem> widgetsAndShortcuts = new ArrayList<>();
+        switch (pinItemRequest.getRequestType()) {
+            case LauncherApps.PinItemRequest.REQUEST_TYPE_APPWIDGET -> {
+                LauncherAppWidgetProviderInfo launcherWidgetInfo =
+                        LauncherAppWidgetProviderInfo.fromProviderInfo(mContext,
+                                pinItemRequest.getAppWidgetProviderInfo(mContext));
+                widgetsAndShortcuts.add(new WidgetItem(
+                        launcherWidgetInfo, mIdp, mIconCache, mContext));
+            }
+            case LauncherApps.PinItemRequest.REQUEST_TYPE_SHORTCUT -> {
+                PinShortcutRequestActivityInfo launcherShortcutInfo =
+                        new PinShortcutRequestActivityInfo(pinItemRequest, mContext);
+                widgetsAndShortcuts.add(new WidgetItem(launcherShortcutInfo, mIconCache));
+            }
+            default -> Log.w(TAG, "Unknown request type " + pinItemRequest.getRequestType());
+        }
+
+        setWidgetsAndShortcuts(widgetsAndShortcuts, /*packageUser=*/ null);
+    }
+
     private synchronized void setWidgetsAndShortcuts(
             ArrayList<WidgetItem> rawWidgetsShortcuts, @Nullable PackageUserKey packageUser) {
         if (DEBUG) {
@@ -222,7 +259,6 @@ public class WidgetsModel {
 
         // add and update.
         mWidgetsByPackageItem.putAll(rawWidgetsShortcuts.stream()
-                .filter(new WidgetFlagCheck())
                 .flatMap(widgetItem -> getPackageUserKeys(mContext, widgetItem).stream()
                         .map(key -> new Pair<>(packageItemInfoCache.getOrCreate(key), widgetItem)))
                 .collect(groupingBy(pair -> pair.first, mapping(pair -> pair.second, toList()))));
@@ -300,23 +336,18 @@ public class WidgetsModel {
 
         private final InvariantDeviceProfile mIdp;
         private final AppFilter mAppFilter;
-        private PreferenceManager2 prefs;
 
         WidgetValidityCheckForPicker(InvariantDeviceProfile idp, AppFilter appFilter) {
             mIdp = idp;
             mAppFilter = appFilter;
-            prefs = PreferenceManager2.getInstance(mContext);
         }
 
         @Override
         public boolean test(WidgetItem item) {
             if (item.widgetInfo != null) {
                 if ((item.widgetInfo.getWidgetFeatures() & WIDGET_FEATURE_HIDE_FROM_PICKER) != 0) {
-                    boolean isSelf = item.componentName.getPackageName().equals(BuildConfig.APPLICATION_ID);
-                    if (!isSelf) {
-                        // Widget is hidden from picker
-                        return false;
-                    }
+                    // Widget is hidden from picker
+                    return false;
                 }
 
                 // Ensure that all widgets we show can be added on a workspace of this size
@@ -337,25 +368,6 @@ public class WidgetsModel {
                 return false;
             }
 
-            return true;
-        }
-    }
-
-    /**
-     * Checks if certain widgets that are available behind flag can be used across all surfaces in
-     * launcher.
-     */
-    private static class WidgetFlagCheck implements Predicate<WidgetItem> {
-
-        private static final String BUBBLES_SHORTCUT_WIDGET =
-                "com.android.systemui/com.android.wm.shell.bubbles.shortcut"
-                        + ".CreateBubbleShortcutActivity";
-
-        @Override
-        public boolean test(WidgetItem widgetItem) {
-            if (BUBBLES_SHORTCUT_WIDGET.equals(widgetItem.componentName.flattenToString())) {
-                return Flags.enableRetrievableBubbles();
-            }
             return true;
         }
     }

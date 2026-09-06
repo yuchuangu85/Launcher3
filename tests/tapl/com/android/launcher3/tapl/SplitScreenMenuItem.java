@@ -44,7 +44,7 @@ public final class SplitScreenMenuItem {
             LauncherInstrumentation.log("clicking on split screen menu item "
                     + mObject.getVisibleCenter() + " in " + mLauncher.getVisibleBounds(mObject));
 
-            mLauncher.clickLauncherObject(mObject);
+            mObject.click();
 
             try (LauncherInstrumentation.Closable c2 = mLauncher.addContextLayer("clicked")) {
                 mLauncher.expectEvent(TestProtocol.SEQUENCE_MAIN, OverviewTask.SPLIT_SELECT_EVENT);

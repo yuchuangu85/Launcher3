@@ -23,24 +23,24 @@ import android.hardware.display.DisplayManager
 import android.util.ArrayMap
 import android.util.DisplayMetrics
 import android.view.Display
+import android.view.Display.DEFAULT_DISPLAY
 import android.view.Surface
 import androidx.test.annotation.UiThreadTest
 import androidx.test.filters.SmallTest
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING
 import com.android.launcher3.dagger.LauncherAppComponent
-import com.android.launcher3.dagger.LauncherAppSingleton
-import com.android.launcher3.util.DisplayController.CHANGE_DENSITY
-import com.android.launcher3.util.DisplayController.CHANGE_ROTATION
-import com.android.launcher3.util.DisplayController.CHANGE_SHOW_LOCKED_TASKBAR
-import com.android.launcher3.util.DisplayController.CHANGE_TASKBAR_PINNING
-import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener
+import com.android.launcher3.display.DisplayController
+import com.android.launcher3.display.LauncherDisplayInfo
+import com.android.launcher3.display.LauncherDisplayInfo.Companion.CHANGE_DENSITY
+import com.android.launcher3.display.LauncherDisplayInfo.Companion.CHANGE_ROTATION
+import com.android.launcher3.testutil.rule.LazyInitRule.Companion.lazyRule
+import com.android.launcher3.util.Executors.IMMEDIATE_EXECUTOR
 import com.android.launcher3.util.window.CachedDisplayInfo
 import com.android.launcher3.util.window.WindowManagerProxy
-import dagger.BindsInstance
-import dagger.Component
-import junit.framework.Assert.assertFalse
-import junit.framework.Assert.assertTrue
+import com.android.tools.dagger.mutation.annotations.BindValue
+import com.android.tools.dagger.mutation.annotations.MutatedComponent
+import com.google.common.truth.Truth.assertThat
 import kotlin.math.min
 import org.junit.After
 import org.junit.Before
@@ -61,15 +61,20 @@ import org.mockito.stubbing.Answer
 /** Unit tests for {@link DisplayController} */
 @SmallTest
 @RunWith(LauncherMultivalentJUnit::class)
+@MutatedComponent(target = LauncherAppComponent::class)
 class DisplayControllerTest {
 
-    @get:Rule val context = spy(SandboxApplication())
-    private val windowManagerProxy: MyWmProxy = mock()
-    private val launcherPrefs: LauncherPrefs = mock()
+    @get:Rule val contextSpy = lazyRule { spy(SandboxApplication()) }
+
+    private val context: SandboxApplication by contextSpy
+
+    @BindValue val windowManagerProxy: WindowManagerProxy = mock()
+    @BindValue val launcherPrefs: LauncherPrefs = mock()
+
     private lateinit var displayManager: DisplayManager
     private val display: Display = mock()
     private val resources: Resources = mock()
-    private val displayInfoChangeListener: DisplayInfoChangeListener = mock()
+    private val displayInfoChangeListener: (Int) -> Unit = mock()
 
     private lateinit var displayController: DisplayController
 
@@ -85,21 +90,18 @@ class DisplayControllerTest {
             WindowBounds(Rect(0, 0, width, height), Rect(0, inset, 0, 0), Surface.ROTATION_180),
             WindowBounds(Rect(0, 0, height, width), Rect(0, inset, 0, 0), Surface.ROTATION_270),
         )
-    private val configuration =
-        Configuration(context.resources.configuration).apply {
-            densityDpi = this@DisplayControllerTest.densityDpi
-            screenWidthDp = (bounds[0].bounds.width() / density).toInt()
-            screenHeightDp = (bounds[0].bounds.height() / density).toInt()
-            smallestScreenWidthDp = min(screenWidthDp, screenHeightDp)
-        }
+    private lateinit var configuration: Configuration
 
     @Before
     fun setUp() {
-        context.initDaggerComponent(
-            DaggerDisplayControllerTestComponent.builder()
-                .bindWMProxy(windowManagerProxy)
-                .bindLauncherPrefs(launcherPrefs)
-        )
+        configuration =
+            Configuration(context.resources.configuration).apply {
+                densityDpi = this@DisplayControllerTest.densityDpi
+                screenWidthDp = (bounds[0].bounds.width() / density).toInt()
+                screenHeightDp = (bounds[0].bounds.height() / density).toInt()
+                smallestScreenWidthDp = min(screenWidthDp, screenHeightDp)
+            }
+        context.initDaggerComponent(mutatedComponentBuilder())
         displayManager = context.spyService(DisplayManager::class.java)
 
         whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
@@ -119,7 +121,6 @@ class DisplayControllerTest {
         whenever(windowManagerProxy.getRealBounds(any(), any())).thenAnswer { i ->
             bounds[i.getArgument<CachedDisplayInfo>(1).rotation]
         }
-        whenever(windowManagerProxy.showLockedTaskbarOnHome(any())).thenReturn(false)
 
         whenever(windowManagerProxy.getNavigationMode(any())).thenReturn(NavigationMode.NO_BUTTON)
         // Mock context
@@ -138,14 +139,14 @@ class DisplayControllerTest {
 
         // Initialize DisplayController
         displayController = DisplayController.INSTANCE.get(context)
-        displayController.addChangeListener(displayInfoChangeListener)
+        displayController.listenable
+            ?.changes
+            ?.forEach(IMMEDIATE_EXECUTOR, displayInfoChangeListener)
     }
 
     @After
     fun tearDown() {
-        // We need to reset the taskbar mode preference override even if a test throws an exception.
-        // Otherwise, it may break the following tests' assumptions.
-        DisplayController.enableTaskbarModePreferenceForTests(false)
+        context.onDestroy()
     }
 
     @Test
@@ -161,9 +162,9 @@ class DisplayControllerTest {
             }
         whenever(resources.configuration).thenReturn(configuration)
 
-        displayController.onConfigurationChanged(configuration)
+        displayController.notifyConfigChange(DEFAULT_DISPLAY)
 
-        verify(displayInfoChangeListener).onDisplayInfoChanged(any(), any(), eq(CHANGE_ROTATION))
+        verify(displayInfoChangeListener).invoke(eq(CHANGE_ROTATION))
     }
 
     @Test
@@ -172,75 +173,124 @@ class DisplayControllerTest {
         val configuration = Configuration(configuration).apply { fontScale = 1.2f }
         whenever(resources.configuration).thenReturn(configuration)
 
-        displayController.onConfigurationChanged(configuration)
+        displayController.notifyConfigChange(DEFAULT_DISPLAY)
 
-        verify(displayInfoChangeListener).onDisplayInfoChanged(any(), any(), eq(CHANGE_DENSITY))
+        verify(displayInfoChangeListener).invoke(eq(CHANGE_DENSITY))
     }
 
     @Test
-    @UiThreadTest
-    fun testTaskbarPinning() {
-        whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(true)
-        displayController.notifyConfigChange()
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(any(), any(), eq(CHANGE_TASKBAR_PINNING))
-    }
-
-    @Test
-    @UiThreadTest
-    fun testTaskbarPinningChangeInLockedTaskbarChange() {
-        whenever(windowManagerProxy.showLockedTaskbarOnHome(any())).thenReturn(true)
-        whenever(windowManagerProxy.isHomeVisible()).thenReturn(true)
-        whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(false)
-        whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
-        DisplayController.enableTaskbarModePreferenceForTests(true)
-
-        assertTrue(displayController.getInfo().isTransientTaskbar())
-        displayController.notifyConfigChange()
-
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(
-                any(),
-                any(),
-                eq(CHANGE_TASKBAR_PINNING or CHANGE_SHOW_LOCKED_TASKBAR),
+    fun isLargeScreen_defaultDisplayLargeScreenSize_returnsTrue() {
+        val bounds =
+            WindowBounds(
+                Rect(0, 0, WindowManagerProxy.MIN_TABLET_WIDTH, 800),
+                Rect(),
+                Surface.ROTATION_0,
             )
-        assertFalse(displayController.getInfo().isTransientTaskbar())
+        val info = setupInfoForLargeScreenTest(bounds, DEFAULT_DISPLAY, 160, false)
+
+        assertThat(info.isLargeScreen(bounds)).isTrue()
     }
 
     @Test
-    @UiThreadTest
-    fun testLockedTaskbarChangeOnConfigurationChanged() {
-        whenever(windowManagerProxy.showLockedTaskbarOnHome(any())).thenReturn(true)
-        whenever(windowManagerProxy.isHomeVisible()).thenReturn(true)
-        whenever(windowManagerProxy.isInDesktopMode(any())).thenReturn(false)
-        whenever(launcherPrefs.get(TASKBAR_PINNING)).thenReturn(false)
-        DisplayController.enableTaskbarModePreferenceForTests(true)
-        assertTrue(displayController.getInfo().isTransientTaskbar())
-
-        displayController.onConfigurationChanged(configuration)
-
-        verify(displayInfoChangeListener)
-            .onDisplayInfoChanged(
-                any(),
-                any(),
-                eq(CHANGE_TASKBAR_PINNING or CHANGE_SHOW_LOCKED_TASKBAR),
+    fun isLargeScreen_desktopFormFactorLargeScreenSize_returnsTrue() {
+        val bounds =
+            WindowBounds(
+                Rect(0, 0, WindowManagerProxy.MIN_TABLET_WIDTH, 800),
+                Rect(),
+                Surface.ROTATION_0,
             )
-        assertFalse(displayController.getInfo().isTransientTaskbar())
+        val info = setupInfoForLargeScreenTest(bounds, DEFAULT_DISPLAY, 160, true)
+
+        assertThat(info.isLargeScreen(bounds)).isTrue()
     }
-}
 
-class MyWmProxy : WindowManagerProxy()
+    @Test
+    fun isLargeScreen_defaultDisplayPhoneSize_returnsFalse() {
+        val bounds = WindowBounds(Rect(0, 0, 400, 800), Rect(), Surface.ROTATION_0)
+        val info = setupInfoForLargeScreenTest(bounds, DEFAULT_DISPLAY, 160, false)
 
-@LauncherAppSingleton
-@Component(modules = [AllModulesMinusWMProxy::class])
-interface DisplayControllerTestComponent : LauncherAppComponent {
+        assertThat(info.isLargeScreen(bounds)).isFalse()
+    }
 
-    @Component.Builder
-    interface Builder : LauncherAppComponent.Builder {
-        @BindsInstance fun bindWMProxy(proxy: WindowManagerProxy): Builder
+    @Test
+    fun isLargeScreen_desktopFormFactorPhoneSize_returnsTrue() {
+        val bounds = WindowBounds(Rect(0, 0, 400, 800), Rect(), Surface.ROTATION_0)
+        val info = setupInfoForLargeScreenTest(bounds, DEFAULT_DISPLAY, 160, true)
 
-        @BindsInstance fun bindLauncherPrefs(prefs: LauncherPrefs): Builder
+        assertThat(info.isLargeScreen(bounds)).isTrue()
+    }
 
-        override fun build(): DisplayControllerTestComponent
+    @Test
+    fun isLargeScreen_externalDisplayLargeScreenSize_returnsTrue() {
+        val externalDisplayId = DEFAULT_DISPLAY + 1
+        val bounds =
+            WindowBounds(
+                Rect(0, 0, WindowManagerProxy.MIN_TABLET_WIDTH, 800),
+                Rect(),
+                Surface.ROTATION_0,
+            )
+        val info = setupInfoForLargeScreenTest(bounds, externalDisplayId, 160, false)
+
+        assertThat(info.isLargeScreen(bounds)).isTrue()
+    }
+
+    @Test
+    fun isLargeScreen_externalDisplayPhoneSize_returnsTrue() {
+        val externalDisplayId = DEFAULT_DISPLAY + 1
+        val bounds = WindowBounds(Rect(0, 0, 400, 800), Rect(), Surface.ROTATION_0)
+        val info = setupInfoForLargeScreenTest(bounds, externalDisplayId, 160, false)
+
+        assertThat(info.isLargeScreen(bounds)).isTrue()
+    }
+
+    @Test
+    fun isLargeScreen_desktopFormFactor_externalDisplayPhoneSize_returnsTrue() {
+        val externalDisplayId = DEFAULT_DISPLAY + 1
+        val bounds = WindowBounds(Rect(0, 0, 400, 800), Rect(), Surface.ROTATION_0)
+        val info = setupInfoForLargeScreenTest(bounds, externalDisplayId, 160, true)
+
+        assertThat(info.isLargeScreen(bounds)).isTrue()
+    }
+
+    /** Helper function to create a DisplayController.Info object. */
+    private fun setupInfoForLargeScreenTest(
+        bounds: WindowBounds,
+        displayId: Int,
+        densityDpi: Int,
+        isDesktopFormFactor: Boolean,
+    ): LauncherDisplayInfo {
+        val width = bounds.bounds.width()
+        val height = bounds.bounds.height()
+
+        // Mock display ID
+        whenever(display.displayId).thenReturn(displayId)
+
+        // Mock resources to reflect the desired size and density
+        val density = densityDpi / DisplayMetrics.DENSITY_DEFAULT.toFloat()
+        val testConfiguration =
+            Configuration(configuration).apply {
+                this.densityDpi = densityDpi
+                screenWidthDp = (width / density).toInt()
+                screenHeightDp = (height / density).toInt()
+            }
+        whenever(resources.configuration).thenReturn(testConfiguration)
+
+        // Mock WindowManagerProxy to return the specified bounds
+        val displayInfo = CachedDisplayInfo(Point(width, height), Surface.ROTATION_0)
+        whenever(windowManagerProxy.getDisplayInfo(any())).thenReturn(displayInfo)
+        val perDisplayBounds = ArrayMap<CachedDisplayInfo, List<WindowBounds>>()
+        perDisplayBounds[displayInfo] = listOf(bounds)
+        whenever(windowManagerProxy.estimateInternalDisplayBounds(any()))
+            .thenReturn(perDisplayBounds)
+        whenever(windowManagerProxy.getRealBounds(any(), any())).thenReturn(bounds)
+
+        // Create a new Info object with the mocked dependencies
+        return LauncherDisplayInfo(
+            context,
+            windowManagerProxy,
+            isDesktopFormFactor,
+            windowManagerProxy.estimateInternalDisplayBounds(context),
+            DisplayMetrics.DENSITY_DEVICE_STABLE,
+        )
     }
 }

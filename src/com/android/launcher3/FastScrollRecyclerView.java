@@ -31,8 +31,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
 import com.android.launcher3.views.RecyclerViewFastScroller;
 
-import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
-import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * A base {@link RecyclerView}, which does the following:
@@ -45,10 +43,6 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
 
     protected RecyclerViewFastScroller mScrollbar;
 
-    private int savedScrollPosition = RecyclerView.NO_POSITION;
-
-    private final PreferenceManager2 pref2;
-
     public FastScrollRecyclerView(Context context) {
         this(context, null);
     }
@@ -59,7 +53,6 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
 
     public FastScrollRecyclerView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        pref2 = PreferenceManager2.getInstance(context);
     }
 
     public void bindFastScrollbar(RecyclerViewFastScroller scrollbar,
@@ -89,28 +82,6 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
      */
     public int getScrollbarTrackHeight() {
         return mScrollbar.getHeight() - getScrollBarTop() - getScrollBarMarginBottom();
-    }
-
-    public int getSavedScrollPosition() {
-        return savedScrollPosition;
-    }
-
-    /**
-     * Saved the scroll position
-     */
-    public void saveScrollPosition() {
-        savedScrollPosition = PreferenceExtensionsKt.firstBlocking(pref2.getRememberPosition())
-                ? computeVerticalScrollOffset()
-                : 0;
-    }
-
-    /**
-     * Restore the scroll position to the previously saved position.
-     */
-    public void restoreScrollPosition() {
-        if (savedScrollPosition != RecyclerView.NO_POSITION) {
-            scrollToPosition(savedScrollPosition);
-        }
     }
 
     /**
@@ -214,7 +185,6 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
         if (state == SCROLL_STATE_IDLE) {
             AccessibilityManagerCompat.sendTestProtocolEventToTest(getContext(),
                     SCROLL_FINISHED_MESSAGE);
-            saveScrollPosition();
         }
     }
 
@@ -231,7 +201,6 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
         if (mScrollbar != null) {
             mScrollbar.reattachThumbToScroll();
         }
-        saveScrollPosition();
-        scrollToPosition(savedScrollPosition);
+        scrollToPosition(0);
     }
 }

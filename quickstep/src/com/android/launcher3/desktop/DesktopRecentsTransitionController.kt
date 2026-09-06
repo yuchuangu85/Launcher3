@@ -30,11 +30,10 @@ import com.android.launcher3.statemanager.StateManager
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.quickstep.SystemUiProxy
 import com.android.quickstep.TaskViewUtils
-import com.android.quickstep.util.DesksUtils.Companion.areMultiDesksFlagsEnabled
 import com.android.quickstep.views.DesktopTaskView
 import com.android.quickstep.views.TaskContainer
 import com.android.quickstep.views.TaskView
-import com.android.window.flags2.Flags
+import com.android.window.flags.Flags
 import com.android.wm.shell.shared.desktopmode.DesktopModeTransitionSource
 import java.util.function.Consumer
 
@@ -43,8 +42,11 @@ class DesktopRecentsTransitionController(
     private val stateManager: StateManager<*, *>,
     private val systemUiProxy: SystemUiProxy,
     private val appThread: IApplicationThread,
-    private val depthController: DepthController?,
+    private val depthController: DepthController<*, *>?,
 ) {
+    private var desktopLaunchRunner: RemoteDesktopLaunchTransitionRunner? = null
+
+    fun isDesktopLaunchOngoing() = desktopLaunchRunner != null
 
     /**
      * Launch desktop tasks from recents view and activate the new freeform task with id
@@ -56,24 +58,29 @@ class DesktopRecentsTransitionController(
         taskIdToReorderToFront: Int? = null,
         callback: Consumer<Boolean>? = null,
     ) {
+        if (desktopLaunchRunner != null) {
+            Log.d(TAG, "launchDesktopFromRecents - runner already exists: $desktopLaunchRunner")
+            callback?.accept(false)
+            return
+        }
         val animRunner =
             RemoteDesktopLaunchTransitionRunner(
-                desktopTaskView,
-                animated,
-                stateManager,
-                depthController,
-                callback,
-            )
+                    desktopTaskView,
+                    animated,
+                    stateManager,
+                    depthController,
+                ) { result ->
+                    this.desktopLaunchRunner = null
+                    callback?.accept(result)
+                }
+                .also { this.desktopLaunchRunner = it }
         val transition = RemoteTransition(animRunner, appThread, "RecentsToDesktop")
-        if (areMultiDesksFlagsEnabled()) {
-            systemUiProxy.activateDesk(desktopTaskView.deskId, transition, taskIdToReorderToFront)
-        } else {
-            systemUiProxy.showDesktopApps(
-                desktopTaskView.displayId,
-                transition,
-                taskIdToReorderToFront,
-            )
-        }
+        systemUiProxy.activateDesk(
+            desktopTaskView.deskId,
+            transition,
+            taskIdToReorderToFront,
+            DesktopModeTransitionSource.RECENTS,
+        )
     }
 
     /** Launch desktop tasks from recents view */
@@ -91,17 +98,32 @@ class DesktopRecentsTransitionController(
     }
 
     /** Move task to external display from recents view */
-    fun moveToExternalDisplay(taskId: Int) {
-        systemUiProxy.moveToExternalDisplay(taskId)
+    fun moveToExternalDisplay(taskId: Int, transitionSource: DesktopModeTransitionSource) {
+        systemUiProxy.moveToExternalDisplay(taskId, transitionSource)
     }
 
     private class RemoteDesktopLaunchTransitionRunner(
         private val taskView: TaskView,
         private val animated: Boolean,
         private val stateManager: StateManager<*, *>,
-        private val depthController: DepthController?,
+        private val depthController: DepthController<*, *>?,
         private val successCallback: Consumer<Boolean>?,
     ) : RemoteTransitionStub() {
+
+        override fun onTransitionConsumed(transition: IBinder?, aborted: Boolean) {
+            Log.d(TAG, "onTransitionConsumed - aborted: $aborted - $this")
+            if (aborted) {
+                // This transition can be consumed in the empty desk case when there are no windows
+                // to animate, which means the launcher won't animate to a NORMAL state. However in
+                // this case we still want to animate launcher back from OVERVIEW to NORMAL state.
+                MAIN_EXECUTOR.execute {
+                    stateManager.moveToRestState()
+                    successCallback?.accept(true)
+                }
+            } else {
+                successCallback?.accept(true)
+            }
+        }
 
         override fun startAnimation(
             token: IBinder,
@@ -109,6 +131,7 @@ class DesktopRecentsTransitionController(
             t: SurfaceControl.Transaction,
             finishCallback: IRemoteTransitionFinishedCallback,
         ) {
+            Log.d(TAG, "startAnimation - $this")
             val errorHandlingFinishCallback = Runnable {
                 try {
                     finishCallback.onTransitionFinished(null /* wct */, null /* sct */)
@@ -129,6 +152,7 @@ class DesktopRecentsTransitionController(
                         info,
                         t,
                     ) {
+                        Log.d(TAG, "finishedAnimation - $this")
                         errorHandlingFinishCallback.run()
                         successCallback?.accept(true)
                     }

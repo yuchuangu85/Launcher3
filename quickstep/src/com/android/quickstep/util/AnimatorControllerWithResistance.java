@@ -49,7 +49,8 @@ public class AnimatorControllerWithResistance {
     private enum RecentsResistanceParams {
         FROM_APP(0.75f, 0.5f, 1f, false),
         FROM_APP_TABLET(1f, 0.7f, 1f, true),
-        FROM_OVERVIEW(1f, 0.75f, 0.5f, false);
+        FROM_OVERVIEW(1f, 0.75f, 0.5f, false),
+        FROM_HOME(1f, 0.85f, 0.5f, false);
 
         RecentsResistanceParams(float scaleStartResist, float scaleMaxResist,
                 float translationFactor, boolean stopScalingAtTop) {
@@ -127,6 +128,7 @@ public class AnimatorControllerWithResistance {
 
     /**
      * Applies resistance to recents when swiping up past its target position.
+     *
      * @param normalController The controller to run from 0 to 1 before this resistance applies.
      * @param context Used to compute start and end values.
      * @param recentsOrientedState Used to compute start and end values.
@@ -137,13 +139,59 @@ public class AnimatorControllerWithResistance {
      * @param translationProperty Animate the value to change the translation of the recents view.
      */
     public static <SCALE, TRANSLATION> AnimatorControllerWithResistance createForRecents(
-            AnimatorPlaybackController normalController, Context context,
-            RecentsOrientedState recentsOrientedState, DeviceProfile dp, SCALE scaleTarget,
-            FloatProperty<SCALE> scaleProperty, TRANSLATION translationTarget,
+            AnimatorPlaybackController normalController,
+            Context context,
+            RecentsOrientedState recentsOrientedState,
+            DeviceProfile dp,
+            SCALE scaleTarget,
+            FloatProperty<SCALE> scaleProperty,
+            TRANSLATION translationTarget,
             FloatProperty<TRANSLATION> translationProperty) {
+        return createForRecents(
+                normalController,
+                context,
+                recentsOrientedState,
+                dp,
+                scaleTarget,
+                scaleProperty,
+                translationTarget,
+                translationProperty,
+                /* runningOverHome= */ false);
+    }
 
-        RecentsParams params = new RecentsParams(context, recentsOrientedState, dp, scaleTarget,
-                scaleProperty, translationTarget, translationProperty);
+
+    /**
+     * Applies resistance to recents when swiping up past its target position.
+     *
+     * @param normalController The controller to run from 0 to 1 before this resistance applies.
+     * @param context Used to compute start and end values.
+     * @param recentsOrientedState Used to compute start and end values.
+     * @param dp Used to compute start and end values.
+     * @param scaleTarget The target for the scaleProperty.
+     * @param scaleProperty Animate the value to change the scale of the window/recents view.
+     * @param translationTarget The target for the translationProperty.
+     * @param translationProperty Animate the value to change the translation of the recents view.
+     * @param runningOverHome Whether to use {@link RecentsResistanceParams#FROM_HOME}
+     */
+    public static <SCALE, TRANSLATION> AnimatorControllerWithResistance createForRecents(
+            AnimatorPlaybackController normalController,
+            Context context,
+            RecentsOrientedState recentsOrientedState,
+            DeviceProfile dp,
+            SCALE scaleTarget,
+            FloatProperty<SCALE> scaleProperty,
+            TRANSLATION translationTarget,
+            FloatProperty<TRANSLATION> translationProperty,
+            boolean runningOverHome) {
+        RecentsParams<SCALE, TRANSLATION> params = new RecentsParams<>(
+                context,
+                recentsOrientedState,
+                dp,
+                scaleTarget,
+                scaleProperty,
+                translationTarget,
+                translationProperty,
+                runningOverHome ? RecentsResistanceParams.FROM_HOME : null);
         PendingAnimation resistAnim = createRecentsResistanceAnim(params);
         AnimatorPlaybackController resistanceController = resistAnim.createPlaybackController();
         return new AnimatorControllerWithResistance(normalController, resistanceController);
@@ -218,11 +266,16 @@ public class AnimatorControllerWithResistance {
     public static PendingAnimation createRecentsResistanceFromOverviewAnim(
             Launcher launcher, @Nullable PendingAnimation resistanceAnim) {
         RecentsView recentsView = launcher.getOverviewPanel();
-        RecentsParams params = new RecentsParams(launcher, recentsView.getPagedViewOrientedState(),
-                launcher.getDeviceProfile(), recentsView, RECENTS_SCALE_PROPERTY, recentsView,
-                TASK_SECONDARY_TRANSLATION)
+        RecentsParams params = new RecentsParams(
+                        launcher,
+                        recentsView.getPagedViewOrientedState(),
+                        launcher.getDeviceProfile(),
+                        recentsView,
+                        RECENTS_SCALE_PROPERTY,
+                        recentsView,
+                        TASK_SECONDARY_TRANSLATION,
+                        RecentsResistanceParams.FROM_OVERVIEW)
                 .setResistAnim(resistanceAnim)
-                .setResistanceParams(RecentsResistanceParams.FROM_OVERVIEW)
                 .setStartScale(recentsView.getScaleX());
         return createRecentsResistanceAnim(params);
     }
@@ -246,9 +299,15 @@ public class AnimatorControllerWithResistance {
         public float startScale = 1f;
         public float startTranslation = 0f;
 
-        private RecentsParams(Context context, RecentsOrientedState recentsOrientedState,
-                DeviceProfile dp, SCALE scaleTarget, FloatProperty<SCALE> scaleProperty,
-                TRANSLATION translationTarget, FloatProperty<TRANSLATION> translationProperty) {
+        private RecentsParams(
+                Context context,
+                RecentsOrientedState recentsOrientedState,
+                DeviceProfile dp,
+                SCALE scaleTarget,
+                FloatProperty<SCALE> scaleProperty,
+                TRANSLATION translationTarget,
+                FloatProperty<TRANSLATION> translationProperty,
+                @Nullable RecentsResistanceParams resistanceParams) {
             this.context = context;
             this.recentsOrientedState = recentsOrientedState;
             this.dp = dp;
@@ -256,10 +315,12 @@ public class AnimatorControllerWithResistance {
             this.scaleProperty = scaleProperty;
             this.translationTarget = translationTarget;
             this.translationProperty = translationProperty;
-            if (dp.getDeviceProperties().isTablet()) {
-                resistanceParams = RecentsResistanceParams.FROM_APP_TABLET;
+            if (resistanceParams != null) {
+                this.resistanceParams = resistanceParams;
+            } else if (dp.getDeviceProperties().isLargeScreen()) {
+                this.resistanceParams = RecentsResistanceParams.FROM_APP_TABLET;
             } else {
-                resistanceParams = RecentsResistanceParams.FROM_APP;
+                this.resistanceParams = RecentsResistanceParams.FROM_APP;
             }
         }
 
@@ -268,18 +329,8 @@ public class AnimatorControllerWithResistance {
             return this;
         }
 
-        private RecentsParams setResistanceParams(RecentsResistanceParams resistanceParams) {
-            this.resistanceParams = resistanceParams;
-            return this;
-        }
-
         private RecentsParams setStartScale(float startScale) {
             this.startScale = startScale;
-            return this;
-        }
-
-        private RecentsParams setStartTranslation(float startTranslation) {
-            this.startTranslation = startTranslation;
             return this;
         }
     }

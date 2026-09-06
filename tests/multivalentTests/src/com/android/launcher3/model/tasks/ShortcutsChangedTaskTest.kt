@@ -1,0 +1,239 @@
+/*
+ * Copyright (C) 2025 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.android.launcher3.model.tasks
+
+import android.content.ComponentName
+import android.content.pm.ApplicationInfo
+import android.content.pm.ApplicationInfo.FLAG_INSTALLED
+import android.content.pm.LauncherApps
+import android.content.pm.ShortcutInfo
+import android.os.Process.myUserHandle
+import android.os.UserHandle
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SmallTest
+import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import com.android.launcher3.Flags
+import com.android.launcher3.model.TestableModelState
+import com.android.launcher3.model.data.WorkspaceChangeEvent
+import com.android.launcher3.model.data.WorkspaceChangeEvent.RemoveEvent
+import com.android.launcher3.model.data.WorkspaceChangeEvent.UpdateEvent
+import com.android.launcher3.util.ComponentKey
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.Executors.MODEL_EXECUTOR
+import com.android.launcher3.util.LauncherLayoutBuilder
+import com.android.launcher3.util.LauncherModelHelper.SHORTCUT_ID
+import com.android.launcher3.util.LauncherModelHelper.TEST_ACTIVITY
+import com.android.launcher3.util.LauncherModelHelper.TEST_PACKAGE
+import com.android.launcher3.util.ModelTestExtensions.countPersistedModelItems
+import com.android.launcher3.util.ModelTestExtensions.setModelLayout
+import com.android.launcher3.util.RoboApiWrapper
+import com.android.launcher3.util.SandboxApplication
+import com.android.launcher3.util.TestUtil
+import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.mockito.Mock
+import org.mockito.junit.MockitoJUnit
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.whenever
+
+@SmallTest
+@RunWith(AndroidJUnit4::class)
+class ShortcutsChangedTaskTest {
+
+    @get:Rule val setFlagsRule: SetFlagsRule = SetFlagsRule()
+    @get:Rule val context = SandboxApplication().withModelDependency()
+    @get:Rule val mockito = MockitoJUnit.rule()
+    @get:Rule val shortcutAccessRule = RoboApiWrapper.grantShortcutsPermissionRule()
+
+    private lateinit var launcherApps: LauncherApps
+
+    private val user: UserHandle = myUserHandle()
+
+    private val modelState: TestableModelState
+        get() = context.appComponent.testableModelState
+
+    @Mock lateinit var mockShortcut: ShortcutInfo
+
+    private val workspaceUpdates = mutableListOf<WorkspaceChangeEvent>()
+
+    @Before
+    fun setup() {
+        launcherApps = context.spyService(LauncherApps::class.java)
+        whenever(mockShortcut.id).thenReturn(SHORTCUT_ID)
+        whenever(mockShortcut.`package`).thenReturn(TEST_PACKAGE)
+        whenever(mockShortcut.userHandle).thenReturn(user)
+        whenever(mockShortcut.activity).thenReturn(ComponentName(TEST_PACKAGE, TEST_ACTIVITY))
+        doReturn(listOf(mockShortcut)).whenever(launcherApps).getShortcuts(any(), eq(user))
+
+        context.setModelLayout(
+            LauncherLayoutBuilder()
+                .atHotseat(1)
+                .putShortcut(TEST_PACKAGE, SHORTCUT_ID)
+                .atHotseat(2)
+                .putApp(TEST_PACKAGE, TEST_ACTIVITY)
+        )
+
+        assertEquals(2, modelState.dataModel.itemsIdMap.countPersistedModelItems())
+    }
+
+    private fun setupMockLauncherApps(callback: (ApplicationInfo) -> Unit) {
+        val appInfo = ApplicationInfo(getInstrumentation().context.applicationInfo)
+        callback.invoke(appInfo)
+
+        doReturn(appInfo)
+            .whenever(launcherApps)
+            .getApplicationInfo(eq(TEST_PACKAGE), any(), eq(user))
+
+        // Clear any previous callback updates
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
+
+        modelState.homeRepo.workspaceState.changes.forEach(MODEL_EXECUTOR) {
+            workspaceUpdates.add(it)
+        }
+    }
+
+    private fun executeTask(
+        shortcuts: List<ShortcutInfo> = emptyList(),
+        shouldUpdateIdMap: Boolean = false,
+    ) {
+        modelState.model.enqueueModelUpdateTask(
+            ShortcutsChangedTask(TEST_PACKAGE, shortcuts, user, shouldUpdateIdMap)
+        )
+    }
+
+    private fun verifyCallbacks(itemUpdated: Boolean, itemRemoved: Boolean) {
+        // Verify repository update
+        if (!itemRemoved && !itemUpdated) {
+            assertThat(workspaceUpdates).isEmpty()
+        } else {
+            assertThat(workspaceUpdates).hasSize(1)
+
+            if (itemUpdated) {
+                val updateEvent = workspaceUpdates[0] as UpdateEvent
+                assertThat(updateEvent.items).hasSize(1)
+                updateEvent.items.forEach { assertThat(it.targetPackage).isEqualTo(TEST_PACKAGE) }
+            } else {
+                assertThat(workspaceUpdates[0]).isInstanceOf(RemoveEvent::class.java)
+            }
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_MODEL_REPOSITORY)
+    fun `When installed pinned shortcut is found then keep in workspace`() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {
+            whenever(mockShortcut.isPinned).thenReturn(true)
+            setupMockLauncherApps { ai ->
+                ai.enabled = true
+                ai.flags = ai.flags or FLAG_INSTALLED
+                ai.isArchived = false
+            }
+            executeTask()
+            verifyCallbacks(itemUpdated = true, itemRemoved = false)
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_MODEL_REPOSITORY)
+    fun `When installed unpinned shortcut is found with Flag on then keep in workspace`() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {
+            // Given
+            whenever(mockShortcut.isPinned).thenReturn(false)
+            setupMockLauncherApps { ai ->
+                ai.enabled = true
+                ai.flags = ai.flags or FLAG_INSTALLED
+                ai.isArchived = false
+            }
+            executeTask()
+            verifyCallbacks(itemUpdated = true, itemRemoved = false)
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_MODEL_REPOSITORY)
+    fun `When shortcut app is uninstalled then skip handling`() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {
+            whenever(mockShortcut.isPinned).thenReturn(true)
+            setupMockLauncherApps { ai ->
+                ai.enabled = true
+                ai.flags = ai.flags and FLAG_INSTALLED.inv()
+                ai.isArchived = false
+            }
+            executeTask()
+            verifyCallbacks(itemUpdated = false, itemRemoved = false)
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_MODEL_REPOSITORY)
+    fun `When updateIdMap true then trigger deep shortcut binding`() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {
+            val expectedKey = ComponentKey(ComponentName(TEST_PACKAGE, "expectedClass"), user)
+            whenever(mockShortcut.isEnabled).thenReturn(true)
+            whenever(mockShortcut.isDeclaredInManifest).thenReturn(true)
+            whenever(mockShortcut.activity).thenReturn(expectedKey.componentName)
+
+            setupMockLauncherApps {}
+
+            executeTask(listOf(mockShortcut), true)
+
+            // Verify that repository was updated
+            assertThat(modelState.dataModel.deepShortcutMap).containsEntry(expectedKey, 1)
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_MODEL_REPOSITORY)
+    fun `When updateIdMap false then do not trigger deep shortcut binding`() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {
+            val expectedKey = ComponentKey(ComponentName(TEST_PACKAGE, "expectedClass"), user)
+
+            whenever(mockShortcut.isEnabled).thenReturn(true)
+            whenever(mockShortcut.isDeclaredInManifest).thenReturn(true)
+            whenever(mockShortcut.activity).thenReturn(expectedKey.componentName)
+
+            setupMockLauncherApps {}
+            executeTask(listOf(mockShortcut), false)
+
+            // Verify that repository was not updated
+            assertThat(modelState.dataModel.deepShortcutMap).doesNotContainKey(expectedKey)
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_MODEL_REPOSITORY)
+    fun `When restoring archived shortcut with flag on then skip handling`() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {
+            whenever(mockShortcut.isPinned).thenReturn(true)
+            setupMockLauncherApps { ai ->
+                ai.enabled = true
+                ai.flags = ai.flags or FLAG_INSTALLED
+                ai.isArchived = true
+            }
+            executeTask()
+            verifyCallbacks(itemUpdated = false, itemRemoved = false)
+        }
+    }
+}

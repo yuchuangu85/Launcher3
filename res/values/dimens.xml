@@ -14,7 +14,7 @@
      limitations under the License.
 -->
 
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
     <dimen name="click_shadow_elevation">4dp</dimen>
 
@@ -63,6 +63,8 @@
     <!-- App Widget resize frame -->
     <dimen name="widget_handle_margin">13dp</dimen>
     <dimen name="resize_frame_background_padding">24dp</dimen>
+    <!-- Padding outside resize frame that its clickable content (e.g. buttons) extend to. -->
+    <dimen name="resize_frame_touch_target_size">48dp</dimen>
     <dimen name="resize_frame_margin">23dp</dimen>
     <dimen name="resize_frame_invalid_drag_across_two_panel_opacity_margin">24dp</dimen>
 
@@ -109,7 +111,6 @@
     <dimen name="min_page_snap_velocity">1500dp</dimen>
 
     <!-- All Apps -->
-    <dimen name="all_apps_starting_vertical_translate">300dp</dimen>
     <dimen name="all_apps_search_bar_field_height">48dp</dimen>
     <!-- all_apps_search_bar_field_height / 2 -->
     <dimen name="all_apps_search_bar_content_overlap">24dp</dimen>
@@ -122,8 +123,6 @@
     <dimen name="all_apps_tabs_indicator_height">2dp</dimen>
     <dimen name="all_apps_header_top_margin">33dp</dimen>
     <dimen name="all_apps_header_top_padding">36dp</dimen>
-    <!-- Additional top padding to add when Floating Searchbar is enabled. -->
-    <dimen name="all_apps_additional_top_padding_floating_search">16dp</dimen>
     <dimen name="all_apps_header_bottom_padding">14dp</dimen>
     <dimen name="all_apps_header_top_adjustment">6dp</dimen>
     <dimen name="all_apps_header_bottom_adjustment">4dp</dimen>
@@ -195,8 +194,6 @@
     <dimen name="rounded_button_radius">200dp</dimen>
 
     <!-- Widget tray -->
-    <dimen name="widget_cell_vertical_padding">8dp</dimen>
-    <dimen name="widget_cell_horizontal_padding">4dp</dimen>
     <dimen name="widget_cell_title_font_size">14sp</dimen>
     <integer name="widget_cell_title_font_weight">500</integer>
     <dimen name="widget_cell_title_line_height">20sp</dimen>
@@ -206,24 +203,23 @@
     <dimen name="widget_cell_description_font_size">12sp</dimen>
     <integer name="widget_cell_description_font_weight">400</integer>
     <dimen name="widget_cell_description_line_height">16sp</dimen>
-    <dimen name="widget_cell_app_icon_size">24dp</dimen>
-    <dimen name="widget_cell_app_icon_padding">8dp</dimen>
-    <dimen name="widget_cell_add_button_height">48dp</dimen>
-    <dimen name="widget_cell_add_button_start_padding">8dp</dimen>
-    <dimen name="widget_cell_add_icon_button_start_padding">16dp</dimen>
-    <dimen name="widget_cell_add_button_end_padding">16dp</dimen>
-    <dimen name="widget_cell_add_button_scroll_padding">24dp</dimen>
     <dimen name="widget_cell_add_button_font_size">14sp</dimen>
     <integer name="widget_cell_add_button_font_weight">500</integer>
     <dimen name="widget_cell_add_button_line_height">20sp</dimen>
-    <dimen name="widget_cell_add_button_drawable_padding">8dp</dimen>
     <dimen name="widget_cell_add_button_drawable_width">19dp</dimen>
+    <dimen name="widget_picker_toolbar_tab_label_font_size">14sp</dimen>
+    <integer name="widget_picker_toolbar_tab_label_font_weight">500</integer>
+    <dimen name="widget_picker_toolbar_tab_label_line_height">20sp</dimen>
+    <dimen name="widget_picker_search_bar_font_size">20sp</dimen>
+    <integer name="widget_picker_search_bar_label_font_weight">400</integer>
+    <dimen name="widget_picker_error_text_font_size">16sp</dimen>
+    <integer name="widget_picker_error_text_label_font_weight">400</integer>
+    <dimen name="widget_picker_error_text_label_line_height">24sp</dimen>
 
-    <dimen name="widget_tabs_button_horizontal_padding">4dp</dimen>
-    <dimen name="widget_tabs_horizontal_padding">16dp</dimen>
-    <dimen name="widget_apps_tabs_vertical_padding">6dp</dimen>
     <dimen name="widget_picker_landscape_tablet_left_right_margin">117dp</dimen>
     <dimen name="widget_picker_two_panels_left_right_margin">0dp</dimen>
+    <dimen name="widget_picker_title_font_size">24sp</dimen>
+    <dimen name="widget_picker_description_font_size">12sp</dimen>
     <dimen name="widget_picker_header_app_title_font_size">16sp</dimen>
     <integer name="widget_picker_header_app_title_font_weight">500</integer>
     <integer name="widget_picker_header_selected_app_title_font_weight">600</integer>
@@ -238,30 +234,6 @@
     <!-- Bottom margin for the search and recommended widgets container with work profile -->
     <dimen name="search_and_recommended_widgets_container_small_bottom_margin">10dp</dimen>
 
-    <dimen name="widget_header_focus_ring_width">3dp</dimen>
-    <dimen name="widget_focus_ring_corner_radius">28dp</dimen>
-    <dimen name="widget_header_background_border">5dp</dimen>
-
-    <dimen name="widget_list_top_bottom_corner_radius">28dp</dimen>
-    <dimen name="widget_list_content_corner_radius">4dp</dimen>
-    <!-- Button that expands the widget apps list in the widget picker. -->
-    <dimen name="widgets_list_expand_button_drawable_padding">8dp</dimen>
-    <dimen name="widgets_list_expand_button_start_padding">16dp</dimen>
-    <dimen name="widgets_list_expand_button_end_padding">24dp</dimen>
-    <dimen name="widgets_list_expand_button_vertical_padding">16dp</dimen>
-    <dimen name="widgets_list_expand_button_top_margin">14dp</dimen>
-
-    <dimen name="widget_list_header_view_vertical_padding">20dp</dimen>
-    <dimen name="widget_list_entry_spacing">2dp</dimen>
-    <!-- Less margin on sides to let widgets table width be close to the workspace width. -->
-    <dimen name="widget_list_horizontal_margin">11dp</dimen>
-    <!-- Margin applied to the recycler view with search bar & the list of widget apps below it. -->
-    <dimen name="widget_list_left_pane_horizontal_margin">0dp</dimen>
-    <dimen name="widget_list_horizontal_margin_two_pane">24dp</dimen>
-    <dimen name="widget_picker_vertical_margin_right_pane">24dp</dimen>
-    <!-- Margin on sides of the widgets scrollview in widgets bottom sheet -->
-    <dimen name="widget_bottom_sheet_horizontal_margin">16dp</dimen>
-
     <dimen name="widget_preview_shadow_blur">0.5dp</dimen>
     <dimen name="widget_preview_key_shadow_distance">1dp</dimen>
     <dimen name="widget_preview_corner_radius">2dp</dimen>
@@ -272,9 +244,6 @@
     <dimen name="widget_section_icon_size">40dp</dimen>
     <dimen name="widget_section_vertical_padding">8dp</dimen>
     <dimen name="widget_section_horizontal_padding">16dp</dimen>
-
-    <dimen name="widget_row_padding">8dp</dimen>
-    <dimen name="widget_row_divider">2dp</dimen>
 
     <dimen name="widget_picker_education_tip_max_width">308dp</dimen>
     <dimen name="widget_picker_education_tip_min_margin">4dp</dimen>
@@ -329,6 +298,8 @@
     <dimen name="folder_content_padding_left_right">8dp</dimen>
     <dimen name="folder_content_padding_top">16dp</dimen>
 
+    <dimen name="folder_blur_radius">20dp</dimen>
+
     <!-- Sizes for managed profile badges -->
     <dimen name="profile_badge_size">24dp</dimen>
     <dimen name="profile_badge_minimum_top">2dp</dimen>
@@ -351,12 +322,15 @@
     <dimen name="bg_popup_item_height">52dp</dimen>
     <dimen name="bg_popup_item_vertical_padding">12dp</dimen>
     <dimen name="pre_drag_view_scale">6dp</dimen>
+    <dimen name="deep_shortcut_add_button_size">48dp</dimen>
+    <dimen name="deep_shortcut_text_end_padding">48dp</dimen>
     <!-- Minimum size of the widget dragged view to keep it visible under the finger. -->
     <dimen name="widget_drag_view_min_scale_down_size">70dp</dimen>
     <!-- an icon with shortcuts must be dragged this far before the container is removed. -->
     <dimen name="deep_shortcuts_start_drag_threshold">16dp</dimen>
     <!-- Possibly related to b/235886078, icon needs to be scaled up to match expected visual size of 32 dp -->
     <dimen name="deep_shortcut_icon_size">35dp</dimen>
+    <dimen name="popup_blur_radius">20dp</dimen>
     <dimen name="popup_margin">2dp</dimen>
     <dimen name="popup_single_item_radius">100dp</dimen>
     <dimen name="popup_smaller_radius">4dp</dimen>
@@ -429,9 +403,6 @@
     <dimen name="default_dialog_corner_radius">26dp</dimen>
     <dimen name="dialogCornerRadius">@dimen/default_dialog_corner_radius</dimen>
 
-    <!-- Onboarding bottomsheet related -->
-    <dimen name="bottom_sheet_edu_padding">24dp</dimen>
-
     <!-- Taskbar related (placeholders to compile in Launcher3 without Quickstep) -->
     <dimen name="taskbar_size">0dp</dimen>
     <dimen name="taskbar_phone_size">@*android:dimen/navigation_bar_frame_height</dimen>
@@ -441,8 +412,12 @@
         @*android:dimen/rounded_corner_content_padding
     </dimen>
     <dimen name="taskbar_stashed_size">0dp</dimen>
-    <dimen name="qsb_widget_height">0dp</dimen>
-    <dimen name="qsb_shadow_height">0dp</dimen>
+    <dimen name="qsb_widget_height">63dp</dimen>
+    <dimen name="qsb_shadow_height">6dp</dimen>
+    <dimen name="qsb_default_widget_height">52dp</dimen>
+    <dimen name="qsb_search_icon_tap_size">48dp</dimen>
+    <dimen name="qsb_search_icon_padding_start">10dp</dimen>
+    <dimen name="qsb_search_icon_padding_end">8dp</dimen>
     <dimen name="min_hotseat_icon_space">18dp</dimen>
     <dimen name="max_hotseat_icon_space">50dp</dimen>
     <dimen name="min_hotseat_qsb_width">0dp</dimen>
@@ -452,6 +427,10 @@
     <dimen name="taskbar_minimized_app_indicator_width">0dp</dimen>
     <dimen name="taskbar_line_indicator_width_spring">0dp</dimen>
     <dimen name="taskbar_app_translate_y_spring">0dp</dimen>
+    <dimen name="persistent_taskbar_icon_size">0dp</dimen>
+    <dimen name="transient_taskbar_icon_size">0dp</dimen>
+    <dimen name="taskbar_unpinned_hit_rect_buffer">100dp</dimen>
+    <dimen name="taskbar_pinned_hit_rect_buffer">20dp</dimen>
 
     <!-- Transient taskbar (placeholders to compile in Launcher3 without Quickstep) -->
     <dimen name="transient_taskbar_padding">0dp</dimen>
@@ -469,15 +448,15 @@
     <dimen name="taskbar_button_space_inbetween_phone">0dp</dimen>
     <dimen name="taskbar_button_margin_split">0dp</dimen>
     <dimen name="taskbar_button_margin_6_5">0dp</dimen>
+    <dimen name="taskbar_a11y_more_options_pill_horizontal_margin">5dp</dimen>
+    <dimen name="taskbar_button_space_inbetween_a11y">10dp</dimen>
 
-    <!--- Floating Ime Inset height-->
-    <dimen name="floating_ime_inset_height">0dp</dimen>
+    <!--- The minimum insets size for the IME to be considered docked (placeholders to compile in
+    Launcher3 without Quickstep). -->
+    <dimen name="ime_docked_threshold">0dp</dimen>
 
     <!-- Bubble bar (placeholders to compile in Launcher3 without Quickstep) -->
     <dimen name="bubblebar_hotseat_adjustment_threshold">0dp</dimen>
-
-    <!-- Size of the maximum radius for the enforced rounded rectangles. -->
-    <dimen name="enforced_rounded_corner_max_radius">16dp</dimen>
 
     <!-- Size of the radius for the rounded corners of Persistent Taskbar. -->
     <dimen name="persistent_taskbar_corner_radius">16dp</dimen>
@@ -492,7 +471,6 @@
     <dimen name="task_thumbnail_icon_drawable_size_grid">0dp</dimen>
     <dimen name="task_thumbnail_icon_menu_drawable_touch_size">0dp</dimen>
     <dimen name="task_menu_edge_padding">0dp</dimen>
-    <dimen name="task_dismiss_max_undershoot">0dp</dimen>
     <dimen name="overview_task_margin">0dp</dimen>
     <dimen name="overview_actions_height">0dp</dimen>
     <dimen name="overview_actions_margin_gesture">0dp</dimen>
@@ -527,8 +505,8 @@
     <dimen name="grid_visualization_vertical_cell_spacing">6dp</dimen>
 
     <!-- Search results related parameters -->
-    <dimen name="search_row_icon_size">48dp</dimen>
-    <dimen name="search_row_small_icon_size">32dp</dimen>
+    <dimen name="search_row_icon_size">0dp</dimen>
+    <dimen name="search_row_small_icon_size">0dp</dimen>
     <dimen name="padded_rounded_button_padding">8dp</dimen>
 
     <!-- Bottom sheet related parameters -->
@@ -536,7 +514,6 @@
     <dimen name="bottom_sheet_handle_width">32dp</dimen>
     <dimen name="bottom_sheet_handle_height">4dp</dimen>
     <dimen name="bottom_sheet_handle_margin">16dp</dimen>
-    <dimen name="widgets_bottom_sheet_handle_margin">24dp</dimen>
     <dimen name="bottom_sheet_handle_corner_radius">2dp</dimen>
 
     <!-- State transition -->
@@ -546,7 +523,8 @@
     <dimen name="folder_top_padding_default">24dp</dimen>
     <dimen name="folder_footer_horiz_padding">20dp</dimen>
     <dimen name="folder_footer_horiz_padding_minus_arrow_overlap">12dp</dimen> <!-- 20 - 8 -->
-    <dimen name="folder_arrow_touchbox_length">32dp</dimen>
+    <dimen name="folder_arrow_touchbox_length">48dp</dimen>
+    <dimen name="folder_arrow_margin_compensation">-8dp</dimen>
 
     <!-- Default Ime height. Used only for logging purposes.
     Assume this is default keyboard height in EN locale in case the keyboard height is not known when queried.-->
@@ -582,4 +560,33 @@
     <!-- App Title Pill -->
     <dimen name="app_title_pill_horizontal_padding">4dp</dimen>
     <dimen name="app_title_pill_round_rect_padding">2dp</dimen>
+
+    <!-- Automated Icons -->
+    <dimen name="automated_icon_stroke_width">3dp</dimen>
+
+    <!-- Dialogs -->
+    <dimen name="dialog_button_spacing">8dp</dimen>
+    <dimen name="dialog_content_padding_bottom">24dp</dimen>
+    <dimen name="dialog_content_padding_top">16dp</dimen>
+    <dimen name="dialog_elevation">2dp</dimen>
+    <dimen name="dialog_padding">24dp</dimen>
+    <dimen name="dialog_width">400dp</dimen>
+
+    <!-- Folder Creator -->
+    <item name="folder_creator_sheet_height_ratio" format="float" type="dimen">0.65</item>
+    <dimen name="folder_creator_sheet_bottom_padding">16dp</dimen>
+    <dimen name="folder_creator_title_spacing">16dp</dimen>
+    <dimen name="folder_creator_list_horizontal_padding">24dp</dimen>
+    <dimen name="folder_creator_list_vertical_padding">16dp</dimen>
+    <dimen name="folder_creator_list_item_spacing">8dp</dimen>
+    <dimen name="folder_creator_preview_width">178dp</dimen>
+    <dimen name="folder_creator_preview_height">114dp</dimen>
+    <dimen name="folder_creator_preview_corner_radius">24dp</dimen>
+    <dimen name="folder_creator_preview_border_width">3dp</dimen>
+    <dimen name="folder_creator_preview_vertical_padding">20dp</dimen>
+    <dimen name="folder_creator_preview_icon_box_size">50dp</dimen>
+    <dimen name="folder_creator_preview_icon_size">20dp</dimen>
+    <dimen name="folder_creator_preview_icon_inner_spacing">5dp</dimen>
+    <dimen name="folder_creator_preview_icon_padding_bottom">8dp</dimen>
+    <dimen name="folder_creator_actions_padding">16dp</dimen>
 </resources>

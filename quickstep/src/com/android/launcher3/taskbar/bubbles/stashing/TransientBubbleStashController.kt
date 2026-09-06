@@ -19,10 +19,15 @@ package com.android.launcher3.taskbar.bubbles.stashing
 import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
+import android.app.PendingIntent
+import android.app.RemoteAction
 import android.content.Context
+import android.content.Intent
 import android.graphics.Rect
+import android.graphics.drawable.Icon
 import android.view.MotionEvent
 import android.view.View
+import android.view.accessibility.AccessibilityManager
 import androidx.annotation.VisibleForTesting
 import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
@@ -41,6 +46,7 @@ import com.android.launcher3.taskbar.BarsLocationAnimatorHelper.outShift
 import com.android.launcher3.taskbar.TaskbarInsetsController
 import com.android.launcher3.taskbar.TaskbarStashController.TASKBAR_STASH_ALPHA_START_DELAY
 import com.android.launcher3.taskbar.TaskbarStashController.TRANSIENT_TASKBAR_STASH_ALPHA_DURATION
+import com.android.launcher3.taskbar.TaskbarUiState
 import com.android.launcher3.taskbar.bubbles.BubbleBarViewController
 import com.android.launcher3.taskbar.bubbles.BubbleStashedHandleViewController
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.BubbleLauncherState
@@ -48,15 +54,30 @@ import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.Comp
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.Companion.BAR_TRANSLATION_DURATION
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.ControllersAfterInitAction
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController.TaskbarHotseatDimensionsProvider
+import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
+import com.android.launcher3.util.Executors.getTaskbarUiThread
 import com.android.launcher3.util.MultiPropertyFactory
+import com.android.launcher3.util.Preconditions
+import com.android.launcher3.util.SimpleBroadcastReceiver
+import com.android.launcher3.util.SimpleBroadcastReceiver.Companion.actionsFilter
+import com.android.quickstep.util.SystemActionConstants
+import com.android.quickstep.util.SystemActionConstants.SYSTEM_ACTION_ID_BUBBLE_BAR
+import com.android.wm.shell.Flags
 import com.android.wm.shell.shared.animation.PhysicsAnimator
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation
 import com.android.wm.shell.shared.bubbles.ContextUtils.isRtl
+import java.io.PrintWriter
 import kotlin.math.max
 
-class TransientBubbleStashController(
-    private val taskbarHotseatDimensionsProvider: TaskbarHotseatDimensionsProvider,
+class TransientBubbleStashController
+@JvmOverloads
+constructor(
+    taskbarHotseatDimensionsProvider: TaskbarHotseatDimensionsProvider,
     private val context: Context,
+    private val taskbarUiState: TaskbarUiState,
+    @field:VisibleForTesting
+    var accessibilityManager: AccessibilityManager =
+        context.getSystemService(AccessibilityManager::class.java)!!,
 ) : BubbleStashController {
 
     private lateinit var bubbleBarViewController: BubbleBarViewController
@@ -74,6 +95,22 @@ class TransientBubbleStashController(
         context.resources.getDimension(R.dimen.bubblebar_stashed_handle_spring_velocity_dp_per_s)
     private var stashedHeight: Int = 0
 
+    // accessibility system action properties
+    private var isBubbleBarSystemActionRegistered = false
+
+    @VisibleForTesting
+    val showBubbleBarReceiver =
+        SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR, getTaskbarUiThread()) {
+                Preconditions.assertTaskbarUiThread()
+                showBubbleBar(expandBubbles = true, bubbleBarGesture = false)
+            }
+            .apply {
+                register(
+                    actionsFilter(SystemActionConstants.ACTION_SHOW_BUBBLE_BAR),
+                    Context.RECEIVER_NOT_EXPORTED,
+                )
+            }
+
     // bubble bar properties
     private lateinit var bubbleBarAlpha: MultiPropertyFactory<View>.MultiProperty
     private lateinit var bubbleBarBubbleAlpha: AnimatedFloat
@@ -87,9 +124,29 @@ class TransientBubbleStashController(
 
     private var animator: AnimatorSet? = null
     override var bubbleBarVerticalCenterForHome: Int = 0
+        set(centerY) {
+            if (centerY == field) return
+            field = centerY
+            if (launcherState == BubbleLauncherState.HOME) {
+                animateBubbleBarYToHotseat()
+            }
+        }
 
     override var isStashed: Boolean = false
-        @VisibleForTesting set
+        @VisibleForTesting
+        set(value) {
+            // TODO(b/404636836): after launching refactorTaskbarUiState(), rely only on
+            //  taskbarUiState to track isStashed state.
+            taskbarUiState.isBubbleStashed = value
+            field = value
+        }
+
+    /** Determines whether stashing is allowed. */
+    private val allowStashing: Boolean
+        get() = launcherState == BubbleLauncherState.IN_APP
+
+    override val isStashingAllowed: Boolean
+        get() = allowStashing
 
     override var launcherState: BubbleLauncherState = BubbleLauncherState.IN_APP
         set(state) {
@@ -192,6 +249,10 @@ class TransientBubbleStashController(
             isStashed = true
             stashHandleViewAlpha?.let { animatorSet.playTogether(it.animateToValue(1f)) }
         }
+        if (Flags.fixBubblesStashingOnHome()) {
+            cancelAnimation()
+            animator = animatorSet
+        }
         animatorSet
             .updateBarVisibility(isStashed)
             .updateTouchRegionOnAnimationEnd()
@@ -206,6 +267,7 @@ class TransientBubbleStashController(
     override fun showBubbleBarImmediate(bubbleBarTranslationY: Float) {
         showBubbleBarImmediateVisually(bubbleBarTranslationY)
         onIsStashedChanged()
+        unregisterBubbleBarSystemAction()
     }
 
     private fun showBubbleBarImmediateVisually(bubbleBarTranslationY: Float) {
@@ -222,8 +284,10 @@ class TransientBubbleStashController(
     }
 
     override fun stashBubbleBarImmediate() {
+        if (!allowStashing) return
         stashBubbleBarImmediateVisually()
         onIsStashedChanged()
+        registerBubbleBarSystemAction()
     }
 
     private fun stashBubbleBarImmediateVisually() {
@@ -247,6 +311,7 @@ class TransientBubbleStashController(
             else -> 0
         }
 
+    // TODO (b/495910829) -- Fix up how bubble bar visibility is represented
     override fun isBubbleBarVisible(): Boolean = bubbleBarViewController.hasBubbles() && !isStashed
 
     override fun onNewBubbleAnimationInterrupted(isStashed: Boolean, bubbleBarTranslationY: Float) {
@@ -357,6 +422,14 @@ class TransientBubbleStashController(
 
     override fun getHandleBounds(bounds: Rect) {
         bubbleStashedHandleViewController?.getBounds(bounds)
+    }
+
+    override fun updateHandleBounds() {
+        bubbleStashedHandleViewController?.updateBounds()
+    }
+
+    override fun onDestroy() {
+        showBubbleBarReceiver.close()
     }
 
     private fun getStashTranslation(): Float {
@@ -566,9 +639,10 @@ class TransientBubbleStashController(
         if (bubbleBarViewController.isHiddenForNoBubbles) {
             // If there are no bubbles the bar and handle are invisible, nothing to do here.
             cancelAnimation()
+            unregisterBubbleBarSystemAction()
             return
         }
-        val isStashed = stash && !isBubblesShowingOnHome && !isBubblesShowingOnOverview
+        val isStashed = stash && allowStashing
         if (this.isStashed != isStashed) {
             this.isStashed = isStashed
 
@@ -584,6 +658,11 @@ class TransientBubbleStashController(
                     }
                     start()
                 }
+        }
+        if (isStashed) {
+            registerBubbleBarSystemAction()
+        } else {
+            unregisterBubbleBarSystemAction()
         }
         if (bubbleBarViewController.isExpanded != expand) {
             val maybeShowEdu = expand && bubbleBarGesture
@@ -677,8 +756,41 @@ class TransientBubbleStashController(
         return this
     }
 
+    private fun registerBubbleBarSystemAction() {
+        if (!isBubbleBarSystemActionRegistered) {
+            accessibilityManager.registerSystemAction(
+                RemoteAction(
+                    Icon.createWithResource(context, R.drawable.ic_unstash_no_shadow),
+                    context.getString(R.string.bubble_bar_a11y_title),
+                    context.getString(R.string.bubble_bar_a11y_title),
+                    PendingIntent.getBroadcast(
+                        context,
+                        SYSTEM_ACTION_ID_BUBBLE_BAR,
+                        Intent(SystemActionConstants.ACTION_SHOW_BUBBLE_BAR)
+                            .setPackage(context.packageName),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                ),
+                SYSTEM_ACTION_ID_BUBBLE_BAR,
+            )
+            isBubbleBarSystemActionRegistered = true
+        }
+    }
+
+    private fun unregisterBubbleBarSystemAction() {
+        if (isBubbleBarSystemActionRegistered) {
+            accessibilityManager.unregisterSystemAction(SYSTEM_ACTION_ID_BUBBLE_BAR)
+            isBubbleBarSystemActionRegistered = false
+        }
+    }
+
     private fun BubbleBarLocation.isSameSideWith(anotherLocation: BubbleBarLocation): Boolean {
         val isRtl = context.isRtl
         return this.isOnLeft(isRtl) == anotherLocation.isOnLeft(isRtl)
+    }
+
+    override fun dump(pw: PrintWriter) {
+        super.dump(pw)
+        pw.println("  controllerType: transient")
     }
 }

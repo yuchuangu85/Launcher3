@@ -22,5 +22,14 @@ import java.time.Duration
 /** Repository of information about the app usage timers. */
 interface AppTimersRepository {
     /** Returns the remaining time on the app usage limit timer for a given user. */
-    suspend fun getRemainingDuration(packageName: String, userHandle: UserHandle): Duration?
+    suspend fun getRemainingDuration(packageName: String, userHandle: UserHandle): AppTimerResponse
+
+    /** Clears caches, forcing new calls to re-request information */
+    fun invalidateCache()
+}
+
+sealed class AppTimerResponse {
+    data class AppTimerDuration(val duration: Duration) : AppTimerResponse()
+
+    data object NoTimer : AppTimerResponse()
 }

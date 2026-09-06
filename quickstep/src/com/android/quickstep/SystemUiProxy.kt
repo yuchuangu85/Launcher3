@@ -42,31 +42,32 @@ import android.view.MotionEvent
 import android.view.RemoteAnimationTarget
 import android.view.SurfaceControl
 import android.view.SurfaceControl.Transaction
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS
 import android.window.IOnBackInvokedCallback
 import android.window.RemoteTransition
 import android.window.TaskSnapshot
-import android.window.TransitionFilter
 import android.window.TransitionInfo
 import android.window.WindowContainerTransaction
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
-//import app.lawnchair.gestures.type.GestureType
 import com.android.internal.logging.InstanceId
 import com.android.internal.util.ScreenshotRequest
 import com.android.internal.view.AppearanceRegion
 import com.android.launcher3.Flags
-import com.android.launcher3.Utilities.ATLEAST_BAKLAVA
+import com.android.launcher3.concurrent.annotations.LightweightBackground
+import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority.UI
+import com.android.launcher3.concurrent.annotations.Ui
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
+import com.android.launcher3.taskbar.bubbles.BubbleActivityStarter
 import com.android.launcher3.util.DaggerSingletonObject
-import com.android.launcher3.util.Executors
+import com.android.launcher3.util.LooperExecutor
 import com.android.launcher3.util.Preconditions
 import com.android.launcher3.util.SplitConfigurationOptions.StagePosition
 import com.android.quickstep.util.ActiveGestureProtoLogProxy
 import com.android.quickstep.util.ContextualSearchInvoker
+import com.android.quickstep.util.binder.OneWayBinderList
 import com.android.quickstep.util.unfold.ProxyUnfoldTransitionProvider
 import com.android.systemui.contextualeducation.GestureType
 import com.android.systemui.shared.recents.ISystemUiProxy
@@ -86,19 +87,22 @@ import com.android.wm.shell.bubbles.IBubbles
 import com.android.wm.shell.bubbles.IBubblesListener
 import com.android.wm.shell.common.pip.IPip
 import com.android.wm.shell.common.pip.IPipAnimationListener
-import com.android.wm.shell.desktopmode.IDesktopMode
 import com.android.wm.shell.desktopmode.IDesktopTaskListener
 import com.android.wm.shell.desktopmode.IMoveToDesktopCallback
+import com.android.wm.shell.desktopmode.api.IDesktopMode
 import com.android.wm.shell.draganddrop.IDragAndDrop
 import com.android.wm.shell.onehanded.IOneHanded
+import com.android.wm.shell.onehanded.IOneHanded.Stub
 import com.android.wm.shell.recents.IRecentTasks
 import com.android.wm.shell.recents.IRecentTasksListener
 import com.android.wm.shell.recents.IRecentsAnimationController
 import com.android.wm.shell.recents.IRecentsAnimationRunner
 import com.android.wm.shell.shared.GroupedTaskInfo
+import com.android.wm.shell.shared.IOverviewOverlayLeashInvalidationCallback
 import com.android.wm.shell.shared.IShellTransitions
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation.UpdateSource
+import com.android.wm.shell.shared.bubbles.logging.EntryPoint
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus
 import com.android.wm.shell.shared.desktopmode.DesktopModeTransitionSource
 import com.android.wm.shell.shared.desktopmode.DesktopTaskToFrontReason
@@ -110,12 +114,18 @@ import com.android.wm.shell.splitscreen.ISplitSelectListener
 import com.android.wm.shell.startingsurface.IStartingWindow
 import com.android.wm.shell.startingsurface.IStartingWindowListener
 import java.io.PrintWriter
+import java.util.concurrent.Executor
 import javax.inject.Inject
 
 /** Holds the reference to SystemUI. */
 @LauncherAppSingleton
-class SystemUiProxy @Inject constructor(@ApplicationContext private val context: Context) :
-    NavHandle {
+class SystemUiProxy
+@Inject
+constructor(
+    @ApplicationContext private val context: Context,
+    @Ui private val uiExecutor: Executor,
+    @LightweightBackground(priority = UI) private val lightweightBackgroundExecutor: LooperExecutor,
+) : NavHandle {
 
     private var systemUiProxy: ISystemUiProxy? = null
     private var pip: IPip? = null
@@ -129,25 +139,64 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     private var backAnimation: IBackAnimation? = null
     private var desktopMode: IDesktopMode? = null
     private var unfoldAnimation: IUnfoldAnimation? = null
+    private var dragAndDrop: IDragAndDrop? = null
 
     private val systemUiProxyDeathRecipient =
-        IBinder.DeathRecipient { Executors.MAIN_EXECUTOR.execute { clearProxy() } }
+        IBinder.DeathRecipient { uiExecutor.execute { clearProxy() } }
 
-    // Save the listeners passed into the proxy since LauncherProxyService may not have been bound
-    // yet, and we'll need to set/register these listeners with SysUI when they do.  Note that it is
-    // up to the caller to clear the listeners to prevent leaks as these can be held indefinitely
-    // in case SysUI needs to rebind.
-    private var pipAnimationListener: IPipAnimationListener? = null
-    private var bubblesListener: IBubblesListener? = null
-    private var splitScreenListener: ISplitScreenListener? = null
-    private var splitSelectListener: ISplitSelectListener? = null
-    private var startingWindowListener: IStartingWindowListener? = null
-    private var launcherUnlockAnimationController: ILauncherUnlockAnimationController? = null
-    private var launcherActivityClass: String? = null
-    private var recentTasksListener: IRecentTasksListener? = null
-    private var unfoldAnimationListener: IUnfoldTransitionListener? = null
-    private var desktopTaskListener: IDesktopTaskListener? = null
-    private val remoteTransitions = LinkedHashMap<RemoteTransition, TransitionFilter>()
+    val pipAnimationListeners =
+        OneWayBinderList.forNullableSetter(
+            mapper = IPipAnimationListener.Stub::asInterface,
+            setter = { pip?.setPipAnimationListener(it) },
+        )
+
+    val bubblesListeners =
+        OneWayBinderList(
+            mapper = IBubblesListener.Stub::asInterface,
+            onFirstRegister = { bubbles?.registerBubbleListener(it) },
+            onLastUnregister = { bubbles?.unregisterBubbleListener(it) },
+        )
+
+    val splitScreenListeners =
+        OneWayBinderList(
+            mapper = ISplitScreenListener.Stub::asInterface,
+            onFirstRegister = { splitScreen?.registerSplitScreenListener(it) },
+            onLastUnregister = { splitScreen?.unregisterSplitScreenListener(it) },
+        )
+
+    val splitSelectListeners =
+        OneWayBinderList(
+            mapper = ISplitSelectListener.Stub::asInterface,
+            onFirstRegister = { splitScreen?.registerSplitSelectListener(it) },
+            onLastUnregister = { splitScreen?.unregisterSplitSelectListener(it) },
+        )
+
+    val startingWindowListeners =
+        OneWayBinderList.forNullableSetter(
+            mapper = IStartingWindowListener.Stub::asInterface,
+            setter = { startingWindow?.setStartingWindowListener(it) },
+        )
+
+    val recentTasksListeners =
+        OneWayBinderList(
+            mapper = IRecentTasksListener.Stub::asInterface,
+            onFirstRegister = { recentTasks?.registerRecentTasksListener(it) },
+            onLastUnregister = { recentTasks?.unregisterRecentTasksListener(it) },
+        )
+
+    val unfoldAnimationListeners =
+        OneWayBinderList.forNullableSetter(
+            mapper = IUnfoldTransitionListener.Stub::asInterface,
+            setter = { unfoldAnimation?.setListener(it) },
+        )
+
+    val desktopTaskListeners =
+        OneWayBinderList.forNullableSetter(
+            mapper = IDesktopTaskListener.Stub::asInterface,
+            setter = { desktopMode?.setTaskListener(it) },
+        )
+
+    private val remoteTransitions = LinkedHashSet<RemoteTransition>()
 
     // Save bubble bar state in case service is not bound yet when it is updated. SysUI relies on
     // this to suppress the floating bubbles UI.
@@ -155,10 +204,14 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
     private val stateChangeCallbacks: MutableList<Runnable> = ArrayList()
 
-    private var originalTransactionToken: IBinder? = null
+    private var launcherUnlockAnimationController: ILauncherUnlockAnimationController? = null
+    private var launcherActivityClass: String? = null
+
     private var backToLauncherCallback: IOnBackInvokedCallback? = null
     private var backToLauncherRunner: IRemoteAnimationRunner? = null
-    private var dragAndDrop: IDragAndDrop? = null
+
+    private var originalTransactionToken: IBinder? = null
+
     val homeVisibilityState = HomeVisibilityState()
     val focusState = FocusState()
 
@@ -171,10 +224,12 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     private var lastLauncherKeepClearAreaHeightVisible = false
 
     private val asyncHandler =
-        Handler(Executors.UI_HELPER_EXECUTOR.looper) { handleMessageAsync(it) }
+        Handler(lightweightBackgroundExecutor.looper) { handleMessageAsync(it) }
 
     // TODO(141886704): Find a way to remove this
     @SystemUiStateFlags var lastSystemUiStateFlags: Long = 0
+
+    private val pendingIntentCache = mutableMapOf<Int, PendingIntent>()
 
     /**
      * This returns a pending intent that is used to start recents via Shell (which is a different
@@ -182,20 +237,23 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      * via fill-in intent.
      */
     private fun getRecentsPendingIntent(displayId: Int) =
-        PendingIntent.getActivity(
-            context,
-            0,
-            Intent().setPackage(context.packageName),
-            PendingIntent.FLAG_MUTABLE or
-                PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT or
-                Intent.FILL_IN_COMPONENT,
-            ActivityOptions.makeBasic()
-                .setPendingIntentCreatorBackgroundActivityStartMode(
-                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                )
-                .setLaunchDisplayId(displayId)
-                .toBundle(),
-        )
+        pendingIntentCache.computeIfAbsent(displayId) {
+            PendingIntent.getActivity(
+                context,
+                0,
+                Intent().setPackage(context.packageName),
+                PendingIntent.FLAG_MUTABLE or
+                    PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT or
+                    Intent.FILL_IN_COMPONENT or
+                    PendingIntent.FLAG_CANCEL_CURRENT,
+                ActivityOptions.makeBasic()
+                    .setPendingIntentCreatorBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                    )
+                    .setLaunchDisplayId(displayId)
+                    .toBundle(),
+            )
+        }
 
     val unfoldTransitionProvider: ProxyUnfoldTransitionProvider? =
         if ((Flags.enableUnfoldStateAnimation() && ResourceUnfoldTransitionConfig().isEnabled))
@@ -214,9 +272,15 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         }
     }
 
-    fun onBackEvent(backEvent: KeyEvent?) =
+    fun onBackEvent(backEvent: KeyEvent?, displayId: Int) =
         executeWithErrorLog({ "Failed call onBackPressed" }) {
-            systemUiProxy?.onBackEvent(backEvent)
+            systemUiProxy?.onBackEvent(backEvent, displayId)
+        }
+
+    /** SystemUI will run ACTION_DOWN and ACTION_UP KeyEvents for the given keycode. */
+    fun onKeyEvent(keycode: Int, displayId: Int) =
+        executeWithErrorLog({ "Failed call onKeyEvent ${KeyEvent.keyCodeToString(keycode)}" }) {
+            systemUiProxy?.onKeyEvent(keycode, displayId)
         }
 
     fun onImeSwitcherPressed() =
@@ -243,58 +307,52 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      * Sets proxy state, including death linkage, various listeners, and other configuration objects
      */
     @MainThread
-    fun setProxy(
-        proxy: ISystemUiProxy?,
-        pip: IPip?,
-        bubbles: IBubbles?,
-        splitScreen: ISplitScreen?,
-        oneHanded: IOneHanded?,
-        shellTransitions: IShellTransitions?,
-        startingWindow: IStartingWindow?,
-        recentTasks: IRecentTasks?,
-        sysuiUnlockAnimationController: ISysuiUnlockAnimationController?,
-        backAnimation: IBackAnimation?,
-        desktopMode: IDesktopMode?,
-        unfoldAnimation: IUnfoldAnimation?,
-        dragAndDrop: IDragAndDrop?,
-    ) {
+    fun setInitializationParams(params: Bundle) {
         Preconditions.assertUIThread()
         unlinkToDeath()
-        systemUiProxy = proxy
-        this.pip = pip
-        this.bubbles = bubbles
-        this.splitScreen = splitScreen
-        this.oneHanded = oneHanded
-        this.shellTransitions = shellTransitions
-        this.startingWindow = startingWindow
-        this.sysuiUnlockAnimationController = sysuiUnlockAnimationController
-        this.recentTasks = recentTasks
-        this.backAnimation = backAnimation
-        this.desktopMode = desktopMode
-        this.unfoldAnimation = if (Flags.enableUnfoldStateAnimation()) null else unfoldAnimation
-        this.dragAndDrop = dragAndDrop
+        systemUiProxy = ISystemUiProxy.Stub.asInterface(params.getBinder(ISystemUiProxy.DESCRIPTOR))
+
+        pip = IPip.Stub.asInterface(params.getBinder(IPip.DESCRIPTOR))
+        bubbles = IBubbles.Stub.asInterface(params.getBinder(IBubbles.DESCRIPTOR))
+        splitScreen = ISplitScreen.Stub.asInterface(params.getBinder(ISplitScreen.DESCRIPTOR))
+        oneHanded = Stub.asInterface(params.getBinder(IOneHanded.DESCRIPTOR))
+        shellTransitions =
+            IShellTransitions.Stub.asInterface(params.getBinder(IShellTransitions.DESCRIPTOR))
+        startingWindow =
+            IStartingWindow.Stub.asInterface(params.getBinder(IStartingWindow.DESCRIPTOR))
+        sysuiUnlockAnimationController =
+            ISysuiUnlockAnimationController.Stub.asInterface(
+                params.getBinder(ISysuiUnlockAnimationController.DESCRIPTOR)
+            )
+        recentTasks = IRecentTasks.Stub.asInterface(params.getBinder(IRecentTasks.DESCRIPTOR))
+        backAnimation = IBackAnimation.Stub.asInterface(params.getBinder(IBackAnimation.DESCRIPTOR))
+        desktopMode = IDesktopMode.Stub.asInterface(params.getBinder(IDesktopMode.DESCRIPTOR))
+        unfoldAnimation =
+            if (Flags.enableUnfoldStateAnimation()) null
+            else IUnfoldAnimation.Stub.asInterface(params.getBinder(IUnfoldAnimation.DESCRIPTOR))
+        dragAndDrop = IDragAndDrop.Stub.asInterface(params.getBinder(IDragAndDrop.DESCRIPTOR))
         linkToDeath()
         setHasBubbleBar(hasBubbleBar)
+
         // re-attach the listeners once missing due to setProxy has not been initialized yet.
-        setPipAnimationListener(pipAnimationListener)
-        setBubblesListener(bubblesListener)
-        registerSplitScreenListener(splitScreenListener)
-        registerSplitSelectListener(splitSelectListener)
+        pipAnimationListeners.triggerRegisterEvent()
+        bubblesListeners.triggerRegisterEvent()
+        splitScreenListeners.triggerRegisterEvent()
+        splitSelectListeners.triggerRegisterEvent()
+        startingWindowListeners.triggerRegisterEvent()
+        recentTasksListeners.triggerRegisterEvent()
+        unfoldAnimationListeners.triggerRegisterEvent()
+        desktopTaskListeners.triggerRegisterEvent()
+
         homeVisibilityState.init(this.shellTransitions)
         focusState.init(this.shellTransitions)
-        setStartingWindowListener(startingWindowListener)
         setLauncherUnlockAnimationController(
             launcherActivityClass,
             launcherUnlockAnimationController,
         )
-        LinkedHashMap(remoteTransitions).forEach { (remoteTransition, filter) ->
-            registerRemoteTransition(remoteTransition, filter)
-        }
+        LinkedHashSet(remoteTransitions).forEach { registerRemoteTransition(it) }
         setupTransactionQueue()
-        registerRecentTasksListener(recentTasksListener)
         setBackToLauncherCallback(backToLauncherCallback, backToLauncherRunner)
-        setUnfoldAnimationListener(unfoldAnimationListener)
-        setDesktopTaskListener(desktopTaskListener)
         setAssistantOverridesRequested(
             ContextualSearchInvoker(context).getSysUiAssistOverrideInvocationTypes()
         )
@@ -303,7 +361,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         if (unfoldTransitionProvider != null) {
             if (unfoldAnimation != null) {
                 try {
-                    unfoldAnimation.setListener(unfoldTransitionProvider)
+                    unfoldAnimation?.setListener(unfoldTransitionProvider)
                     unfoldTransitionProvider.isActive = true
                 } catch (e: RemoteException) {
                     // Ignore
@@ -317,9 +375,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     /**
      * Clear the proxy to release held resources and turn the majority of its operations into no-ops
      */
-    @MainThread
-    fun clearProxy() =
-        setProxy(null, null, null, null, null, null, null, null, null, null, null, null, null)
+    @MainThread fun clearProxy() = setInitializationParams(Bundle.EMPTY)
 
     /** Adds a callback to be notified whenever the active state changes */
     fun addOnStateChangeListener(callback: Runnable) = stateChangeCallbacks.add(callback)
@@ -347,7 +403,17 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
             { "Failed call onOverviewShown from: ${(if (fromHome) "home" else "app")}" },
             tag = tag,
         ) {
-            systemUiProxy?.onOverviewShown(fromHome)
+            systemUiProxy?.onOverviewShownDeprecated(fromHome)
+        }
+
+    fun onOverviewShown(displayId: Int, tag: String = TAG) =
+        executeWithErrorLog({ "Failed call onOverviewShown in displayId=$displayId" }, tag = tag) {
+            systemUiProxy?.onOverviewShown(displayId)
+        }
+
+    fun onOverviewHidden(displayId: Int, tag: String = TAG) =
+        executeWithErrorLog({ "Failed call onOverviewHidden in displayId=$displayId" }, tag = tag) {
+            systemUiProxy?.onOverviewHidden(displayId)
         }
 
     @MainThread
@@ -424,8 +490,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      */
     fun notifyTaskbarAutohideSuspend(suspend: Boolean) =
         executeWithErrorLog({ "Failed call notifyTaskbarAutohideSuspend with arg: $suspend" }) {
-            // LC-Ignored
-            //systemUiProxy?.notifyTaskbarAutohideSuspend(suspend)
+            systemUiProxy?.notifyTaskbarAutohideSuspend(suspend)
         }
 
     fun notifyRecentsButtonPositionChanged(bounds: Rect) {
@@ -438,26 +503,22 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
     fun takeScreenshot(request: ScreenshotRequest) =
         executeWithErrorLog({ "Failed call takeScreenshot" }) {
-            // LC-Ignored
-            //systemUiProxy?.takeScreenshot(request)
+            systemUiProxy?.takeScreenshot(request)
         }
 
     fun expandNotificationPanel() =
         executeWithErrorLog({ "Failed call expandNotificationPanel" }) {
-            // LC-Ignored
-            //systemUiProxy?.expandNotificationPanel()
+            systemUiProxy?.expandNotificationPanel()
         }
 
     fun toggleNotificationPanel() =
         executeWithErrorLog({ "Failed call toggleNotificationPanel" }) {
-            // LC-Ignored
-            //systemUiProxy?.toggleNotificationPanel()
+            systemUiProxy?.toggleNotificationPanel()
         }
 
     fun toggleQuickSettingsPanel() =
         executeWithErrorLog({ "Failed call toggleQuickSettingsPanel" }) {
-            // LC-Ignored
-            //systemUiProxy?.toggleQuickSettingsPanel()
+            systemUiProxy?.toggleQuickSettingsPanel()
         }
 
     //
@@ -513,14 +574,6 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
                 pip.setLauncherKeepClearAreaHeight(visible, height)
             }
         }
-    }
-
-    /** Sets listener to get pip animation callbacks. */
-    fun setPipAnimationListener(listener: IPipAnimationListener?) {
-        executeWithErrorLog({ "Failed call setPinnedStackAnimationListener" }) {
-            pip?.setPipAnimationListener(listener)
-        }
-        pipAnimationListener = listener
     }
 
     /** @return Destination bounds of auto-pip animation, `null` if the animation is not ready. */
@@ -589,17 +642,6 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
             bubbles?.setHasBubbleBar(hasBubbleBar)
         }
         this.hasBubbleBar = hasBubbleBar
-    }
-
-    /** Sets the listener to be notified of bubble state changes. */
-    fun setBubblesListener(listener: IBubblesListener?) {
-        executeWithErrorLog({ "Failed call registerBubblesListener" }) {
-            bubbles?.apply {
-                bubblesListener?.let { unregisterBubbleListener(it) }
-                listener?.let { registerBubbleListener(it) }
-            }
-        }
-        bubblesListener = listener
     }
 
     /**
@@ -690,29 +732,42 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     /**
      * Tells SysUI to show a shortcut bubble.
      *
+     * This method should NOT be used directly. Please use
+     * [BubbleActivityStarter.showShortcutBubble] instead.
+     *
      * @param info the shortcut info used to create or identify the bubble.
+     * @param entryPoint indicates how the bubble was created.
      * @param bubbleBarLocation the optional location of the bubble bar.
      */
     @JvmOverloads
-    fun showShortcutBubble(info: ShortcutInfo?, bubbleBarLocation: BubbleBarLocation? = null) =
+    fun showShortcutBubble(
+        info: ShortcutInfo?,
+        entryPoint: EntryPoint,
+        bubbleBarLocation: BubbleBarLocation? = null,
+    ) =
         executeWithErrorLog({ "Failed call showShortcutBubble" }) {
-            bubbles?.showShortcutBubble(info, bubbleBarLocation)
+            bubbles?.showShortcutBubble(info, entryPoint, bubbleBarLocation)
         }
 
     /**
      * Tells SysUI to show a bubble of an app.
      *
+     * This method should NOT be used directly. Please use [BubbleActivityStarter.showAppBubble]
+     * instead.
+     *
      * @param intent the intent used to create the bubble.
+     * @param entryPoint indicates how the bubble was created.
      * @param bubbleBarLocation the optional location of the bubble bar.
      */
     @JvmOverloads
     fun showAppBubble(
         intent: Intent?,
         user: UserHandle,
+        entryPoint: EntryPoint,
         bubbleBarLocation: BubbleBarLocation? = null,
     ) =
         executeWithErrorLog({ "Failed call showAppBubble" }) {
-            bubbles?.showAppBubble(intent, user, bubbleBarLocation)
+            bubbles?.showAppBubble(intent, user, entryPoint, bubbleBarLocation)
         }
 
     /** Tells SysUI to show the expanded view. */
@@ -724,37 +779,6 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         executeWithErrorLog({ "Failed to call moveDraggedBubbleToFullscreen" }) {
             bubbles?.moveDraggedBubbleToFullscreen(key, dropLocation)
         }
-    }
-
-    //
-    // Splitscreen
-    //
-    fun registerSplitScreenListener(listener: ISplitScreenListener?) {
-        executeWithErrorLog({ "Failed call registerSplitScreenListener" }) {
-            splitScreen?.registerSplitScreenListener(listener)
-        }
-        splitScreenListener = listener
-    }
-
-    fun unregisterSplitScreenListener(listener: ISplitScreenListener?) {
-        executeWithErrorLog({ "Failed call unregisterSplitScreenListener" }) {
-            splitScreen?.unregisterSplitScreenListener(listener)
-        }
-        splitScreenListener = null
-    }
-
-    fun registerSplitSelectListener(listener: ISplitSelectListener?) {
-        executeWithErrorLog({ "Failed call registerSplitSelectListener" }) {
-            splitScreen?.registerSplitSelectListener(listener)
-        }
-        splitSelectListener = listener
-    }
-
-    fun unregisterSplitSelectListener(listener: ISplitSelectListener?) {
-        executeWithErrorLog({ "Failed call unregisterSplitSelectListener" }) {
-            splitScreen?.unregisterSplitSelectListener(listener)
-        }
-        splitSelectListener = null
     }
 
     /** Start multiple tasks in split-screen simultaneously. */
@@ -888,9 +912,9 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      * Call the desktop mode interface to start a TRANSIT_OPEN transition when launching an intent
      * from the taskbar so that it can be handled in desktop mode.
      */
-    fun startLaunchIntentTransition(intent: Intent, options: Bundle, displayId: Int) =
+    fun startLaunchIntentTransition(pendingIntent: PendingIntent, options: Bundle, displayId: Int) =
         executeWithErrorLog({ "Failed call startLaunchIntentTransition" }) {
-            desktopMode?.startLaunchIntentTransition(intent, options, displayId)
+            desktopMode?.startLaunchIntentTransition(pendingIntent, options, displayId)
         }
 
     //
@@ -905,12 +929,12 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     //
     // Remote transitions
     //
-    fun registerRemoteTransition(remoteTransition: RemoteTransition?, filter: TransitionFilter) {
+    fun registerRemoteTransition(remoteTransition: RemoteTransition?) {
         remoteTransition ?: return
         executeWithErrorLog({ "Failed call registerRemoteTransition" }) {
-            shellTransitions?.registerRemote(filter, remoteTransition)
+            shellTransitions?.registerRemote(remoteTransition)
         }
-        remoteTransitions.putIfAbsent(remoteTransition, filter)
+        remoteTransitions.add(remoteTransition)
     }
 
     fun unregisterRemoteTransition(remoteTransition: RemoteTransition?) {
@@ -926,9 +950,34 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      */
     fun getHomeTaskOverlayContainer(): SurfaceControl? {
         executeWithErrorLog({ "Failed call getHomeTaskOverlayContainer" }) {
-            return shellTransitions?.homeTaskOverlayContainer
+            return shellTransitions?.getHomeTaskOverlayContainer()
         }
         return null
+    }
+
+    /**
+     * Returns a surface which can be used to attach overlays to home task or null if the task
+     * doesn't exist or sysui is not connected
+     */
+    fun getOverviewOverlayContainer(displayId: Int): SurfaceControl? {
+        executeWithErrorLog({ "Failed call getOverviewOverlayContainer" }) {
+            return shellTransitions?.getOverviewOverlayContainer(displayId)
+        }
+        return null
+    }
+
+    fun registerOverviewOverlayLeashInvalidationCallback(
+        displayId: Int,
+        callback: IOverviewOverlayLeashInvalidationCallback,
+    ) {
+        shellTransitions?.registerOverviewOverlayLeashInvalidationCallback(displayId, callback)
+    }
+
+    fun unregisterOverviewOverlayLeashInvalidationListener(
+        displayId: Int,
+        callback: IOverviewOverlayLeashInvalidationCallback,
+    ) {
+        shellTransitions?.unregisterOverviewOverlayLeashInvalidationCallback(displayId, callback)
     }
 
     /**
@@ -959,17 +1008,6 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         }
 
     //
-    // Starting window
-    //
-    /** Sets listener to get callbacks when launching a task. */
-    fun setStartingWindowListener(listener: IStartingWindowListener?) {
-        executeWithErrorLog({ "Failed call setStartingWindowListener" }) {
-            startingWindow?.setStartingWindowListener(listener)
-        }
-        startingWindowListener = listener
-    }
-
-    //
     // SmartSpace transitions
     //
     /**
@@ -983,11 +1021,10 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         controller: ILauncherUnlockAnimationController?,
     ) {
         executeWithErrorLog({ "Failed call setLauncherUnlockAnimationController" }) {
-            // LC-Ignored
-//            sysuiUnlockAnimationController?.apply {
-//                setLauncherUnlockController(activityClass, controller)
-//                controller?.dispatchSmartspaceStateToSysui()
-//            }
+            sysuiUnlockAnimationController?.apply {
+                setLauncherUnlockController(activityClass, controller)
+                controller?.dispatchSmartspaceStateToSysui()
+            }
         }
         launcherActivityClass = activityClass
         launcherUnlockAnimationController = controller
@@ -999,26 +1036,8 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      */
     fun notifySysuiSmartspaceStateUpdated(state: SmartspaceState?) =
         executeWithErrorLog({ "Failed call notifySysuiSmartspaceStateUpdated" }) {
-            // LC-Ignored
-            //sysuiUnlockAnimationController?.onLauncherSmartspaceStateUpdated(state)
+            sysuiUnlockAnimationController?.onLauncherSmartspaceStateUpdated(state)
         }
-
-    //
-    // Recents
-    //
-    fun registerRecentTasksListener(listener: IRecentTasksListener?) {
-        executeWithErrorLog({ "Failed call registerRecentTasksListener" }) {
-            recentTasks?.registerRecentTasksListener(listener)
-        }
-        recentTasksListener = listener
-    }
-
-    fun unregisterRecentTasksListener(listener: IRecentTasksListener?) {
-        executeWithErrorLog({ "Failed call unregisterRecentTasksListener" }) {
-            recentTasks?.unregisterRecentTasksListener(listener)
-        }
-        recentTasksListener = null
-    }
 
     //
     // Back navigation transitions
@@ -1107,12 +1126,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     }
 
     private fun shouldEnableRunningTasksForDesktopMode(): Boolean =
-        DesktopModeStatus.canEnterDesktopMode(context) &&
-            if (ATLEAST_BAKLAVA) {
-                ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS.isTrue
-            } else {
-                false
-            }
+        DesktopModeStatus.canEnterDesktopMode(context)
 
     private fun handleMessageAsync(msg: Message): Boolean {
         return when (msg.what) {
@@ -1148,18 +1162,28 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         deskId: Int,
         transition: RemoteTransition?,
         taskIdToReorderToFront: Int? = null,
+        transitionSource: DesktopModeTransitionSource,
     ) =
         executeWithErrorLog({ "Failed call activateDesk" }) {
-            desktopMode?.activateDesk(deskId, transition, taskIdToReorderToFront ?: INVALID_TASK_ID)
+            desktopMode?.activateDesk(
+                deskId,
+                transition,
+                taskIdToReorderToFront ?: INVALID_TASK_ID,
+                transitionSource,
+            )
         }
 
     /** Calls shell to remove the desk whose ID is `deskId`. */
-    fun removeDesk(deskId: Int) =
-        executeWithErrorLog({ "Failed call removeDesk" }) { desktopMode?.removeDesk(deskId) }
+    fun removeDesk(deskId: Int, transitionSource: DesktopModeTransitionSource) =
+        executeWithErrorLog({ "Failed call removeDesk" }) {
+            desktopMode?.removeDesk(deskId, transitionSource)
+        }
 
     /** Calls shell to remove all the available desks on all displays. */
-    fun removeAllDesks() =
-        executeWithErrorLog({ "Failed call removeAllDesks" }) { desktopMode?.removeAllDesks() }
+    fun removeAllDesks(transitionSource: DesktopModeTransitionSource) =
+        executeWithErrorLog({ "Failed call removeAllDesks" }) {
+            desktopMode?.removeAllDesks(transitionSource)
+        }
 
     /**
      * Call shell to show all apps active on the desktop and bring [taskIdToReorderToFront] to front
@@ -1171,12 +1195,14 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         displayId: Int,
         transition: RemoteTransition? = null,
         taskIdToReorderToFront: Int? = null,
+        transitionSource: DesktopModeTransitionSource,
     ) =
         executeWithErrorLog({ "Failed call showDesktopApps" }) {
             desktopMode?.showDesktopApps(
                 displayId,
                 transition,
                 taskIdToReorderToFront ?: INVALID_TASK_ID,
+                transitionSource,
             )
         }
 
@@ -1201,18 +1227,22 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
             desktopMode?.moveToFullscreen(taskId, desktopModeTransitionSource, remoteTransition)
         }
 
-    /** Set a listener on shell to get updates about desktop task state */
-    fun setDesktopTaskListener(listener: IDesktopTaskListener?) {
-        desktopTaskListener = listener
-        executeWithErrorLog({ "Failed call setDesktopTaskListener" }) {
-            desktopMode?.setTaskListener(listener)
+    /**
+     * Perform cleanup transactions after choosing either the second app or the floating task view's
+     * app icon in a desktop split-select transition.
+     */
+    fun onDesktopSplitSelectChoice(taskInfo: RunningTaskInfo?) =
+        executeWithErrorLog({ "Failed call onDesktopSplitSelectChoice" }) {
+            desktopMode?.onDesktopSplitSelectChoice(taskInfo)
         }
-    }
 
-    /** Perform cleanup transactions after animation to split select is complete */
-    fun onDesktopSplitSelectAnimComplete(taskInfo: RunningTaskInfo?) =
-        executeWithErrorLog({ "Failed call onDesktopSplitSelectAnimComplete" }) {
-            desktopMode?.onDesktopSplitSelectAnimComplete(taskInfo)
+    /**
+     * Perform any necessary cleanup transactions after split select animation is started in desktop
+     * windowing by dragging task to split.
+     */
+    fun onSplitSelectAnimationStarted(taskId: Int) =
+        executeWithErrorLog({ "Failed call onSplitSelectAnimationStarted" }) {
+            desktopMode?.onSplitSelectAnimationStarted(taskId)
         }
 
     /** Call shell to move a task with given `taskId` to desktop */
@@ -1236,33 +1266,24 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         }
 
     /** Call shell to remove the desktop that is on given `displayId` */
-    fun removeDefaultDeskInDisplay(displayId: Int) =
+    fun removeDefaultDeskInDisplay(displayId: Int, transitionSource: DesktopModeTransitionSource) =
         executeWithErrorLog({ "Failed call removeDefaultDeskInDisplay" }) {
-            desktopMode?.removeDefaultDeskInDisplay(displayId)
+            desktopMode?.removeDefaultDeskInDisplay(displayId, transitionSource)
         }
 
     /** Call shell to move a task with given `taskId` to external display. */
-    fun moveToExternalDisplay(taskId: Int) =
+    fun moveToExternalDisplay(taskId: Int, transitionSource: DesktopModeTransitionSource) =
         executeWithErrorLog({ "Failed call moveToExternalDisplay" }) {
-            desktopMode?.moveToExternalDisplay(taskId)
+            desktopMode?.moveToExternalDisplay(taskId, transitionSource)
         }
-
-    //
-    // Unfold transition
-    //
-    /** Sets the unfold animation lister to sysui. */
-    fun setUnfoldAnimationListener(callback: IUnfoldTransitionListener?) {
-        unfoldAnimationListener = callback
-        executeWithErrorLog({ "Failed call setUnfoldAnimationListener" }) {
-            unfoldAnimation?.setListener(callback)
-        }
-    }
 
     //
     // Recents
     //
-    /** Starts the recents activity. The caller should manage the thread on which this is called. */
-    fun startRecentsActivity(
+    /**
+     * Starts the recents animation. The caller should manage the thread on which this is called.
+     */
+    fun startRecentsTransition(
         intent: Intent?,
         options: ActivityOptions,
         listener: RecentsAnimationListener,
@@ -1284,8 +1305,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
                 RecentsAnimationListenerStub(listener),
             )
                 ?: run {
-                    // LC-Ignored
-                    //ActiveGestureProtoLogProxy.logRecentTasksMissing()
+                    ActiveGestureProtoLogProxy.logRecentTasksMissing()
                     return false
                 }
             return true
@@ -1300,7 +1320,6 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
             apps: Array<RemoteAnimationTarget>?,
             wallpapers: Array<RemoteAnimationTarget>?,
             homeContentInsets: Rect?,
-            minimizedHomeBounds: Rect?,
             extras: Bundle?,
             transitionInfo: TransitionInfo?,
         ) =
@@ -1309,7 +1328,6 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
                 apps,
                 wallpapers,
                 homeContentInsets,
-                minimizedHomeBounds,
                 extras?.apply {
                     // Aidl bundles need to explicitly set class loader
                     // https://developer.android.com/guide/components/aidl#Bundles
@@ -1349,30 +1367,30 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
         pw.println("\tmSystemUiProxy=$systemUiProxy")
         pw.println("\tmPip=$pip")
-        pw.println("\tmPipAnimationListener=$pipAnimationListener")
+        pw.println("\tmPipAnimationListener=$pipAnimationListeners")
         pw.println("\tmBubbles=$bubbles")
-        pw.println("\tmBubblesListener=$bubblesListener")
+        pw.println("\tmBubblesListener=$bubblesListeners")
         pw.println("\tmSplitScreen=$splitScreen")
-        pw.println("\tmSplitScreenListener=$splitScreenListener")
-        pw.println("\tmSplitSelectListener=$splitSelectListener")
+        pw.println("\tmSplitScreenListener=$splitScreenListeners")
+        pw.println("\tmSplitSelectListener=$splitSelectListeners")
         pw.println("\tmOneHanded=$oneHanded")
         pw.println("\tmShellTransitions=$shellTransitions")
         pw.println("\tmHomeVisibilityState=" + homeVisibilityState)
         pw.println("\tmFocusState=" + focusState)
         pw.println("\tmStartingWindow=$startingWindow")
-        pw.println("\tmStartingWindowListener=$startingWindowListener")
+        pw.println("\tmStartingWindowListener=$startingWindowListeners")
         pw.println("\tmSysuiUnlockAnimationController=$sysuiUnlockAnimationController")
         pw.println("\tmLauncherActivityClass=$launcherActivityClass")
         pw.println("\tmLauncherUnlockAnimationController=$launcherUnlockAnimationController")
         pw.println("\tmRecentTasks=$recentTasks")
-        pw.println("\tmRecentTasksListener=$recentTasksListener")
+        pw.println("\tmRecentTasksListener=$recentTasksListeners")
         pw.println("\tmBackAnimation=$backAnimation")
         pw.println("\tmBackToLauncherCallback=$backToLauncherCallback")
         pw.println("\tmBackToLauncherRunner=$backToLauncherRunner")
         pw.println("\tmDesktopMode=$desktopMode")
-        pw.println("\tmDesktopTaskListener=$desktopTaskListener")
+        pw.println("\tmDesktopTaskListener=$desktopTaskListeners")
         pw.println("\tmUnfoldAnimation=$unfoldAnimation")
-        pw.println("\tmUnfoldAnimationListener=$unfoldAnimationListener")
+        pw.println("\tmUnfoldAnimationListener=$unfoldAnimationListeners")
         pw.println("\tmDragAndDrop=$dragAndDrop")
     }
 

@@ -48,9 +48,4 @@ public class FolderAccessibilityHelper extends DragAndDropAccessibilityDelegate 
     protected String getLocationDescriptionForIconDrop(int id) {
         return mContext.getString(R.string.move_to_position, id + mStartPosition + 1);
     }
-
-    @Override
-    protected String getConfirmationForIconDrop(int id) {
-        return mContext.getString(R.string.item_moved);
-    }
 }

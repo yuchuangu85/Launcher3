@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"ປັກໝຸດ"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"ຮູບແບບອິດສະຫລະ"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"ເດັສທັອບ"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"ເດັສທັອບສຳລັບ %1$s"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"ຍ້າຍໄປຫາຈໍສະແດງຜົນພາຍນອກ"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"ລຶບລ້າງ"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"ເດັສທັອບ"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"ເຫຼືອ <xliff:g id="TIME">%1$s</xliff:g> ມື້ນີ້"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"ການແນະນຳແອັບ"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"ແອັບທີ່ຄາດເດົາໄວ້ແລ້ວຂອງທ່ານ"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"ຮັບການແນະນຳແອັບຢູ່ແຖວລຸ່ມສຸດຂອງໜ້າຈໍຫຼັກທ່ານ"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"ຮັບການແນະນຳແອັບຢູ່ແຖວລາຍການທີ່ມັກຂອງໜ້າຈໍຫຼັກຂອງທ່ານ"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"ເຂົ້າເຖິງແອັບທີ່ທ່ານໃຊ້ຫຼາຍທີ່ສຸດໄດ້ຢ່າງງ່າຍດາຍທັນທີຈາກໜ້າຈໍຫຼັກ. ການແນະນຳຈະປ່ຽນແປງຕາມການນຳໃຊ້ປະຈຳຂອງທ່ານ. ແອັບຢູ່ແຖວລຸ່ມສຸດຈະຍ້າຍຂຶ້ນໄປໃສ່ໜ້າຈໍຫຼັກຂອງທ່ານ."</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"ເຂົ້າເຖິງແອັບທີ່ທ່ານໃຊ້ຫຼາຍທີ່ສຸດໄດ້ຢ່າງງ່າຍດາຍທັນທີຈາກໜ້າຈໍຫຼັກ. ການແນະນຳຈະປ່ຽນແປງຕາມການນຳໃຊ້ປະຈຳຂອງທ່ານ. ຕອນນີ້ແອັບໃນລາຍການທີ່ມັກຈະຍ້າຍໄປໃສ່ໜ້າຈໍຫຼັກຂອງທ່ານ."</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"ຮັບການແນະນຳແອັບ"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"ບໍ່, ຂອບໃຈ"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"ການຕັ້ງຄ່າ"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"ແອັບທີ່ໃຊ້ຫຼາຍທີ່ສຸດຈະປາກົດຢູ່ບ່ອນນີ້ ແລະ ປ່ຽນໄປຕາມການນຳໃຊ້ປະຈຳ"</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"ລາກແອັບຈາກແຖບລຸ່ມສຸດເພື່ອຮັບການແນະນຳແອັບ"</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"ເພີ່ມການແນະນຳແອັບໃສ່ພື້ນທີ່ຫວ່າງແລ້ວ"</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"ເປີດການນຳໃຊ້ການແນະນຳແອັບແລ້ວ"</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"ປິດການນຳໃຊ້ການແນະນຳແອັບແລ້ວ"</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"ແອັບທີ່ຄາດເດົາໄວ້: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"ສອນການນຳໃຊ້ການນຳທາງແບບທ່າທາງ"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"ໝຸນອຸປະກອນຂອງທ່ານ"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"ກະລຸນາໝຸນອຸປະກອນຂອງທ່ານເພື່ອເຮັດຕາມການສອນການນຳໃຊ້ກ່ຽວກັບການນຳທາງແບບທ່າທາງໃຫ້ສຳເລັດ"</string>
@@ -96,7 +90,10 @@
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"ການຕັ້ງຄ່າການນຳທາງລະບົບ"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"<xliff:g id="DEVICE">%1$s</xliff:g> ຂອງທ່ານ\nພ້ອມແລ້ວ!"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"ອຸປະກອນຂອງທ່ານ\nພ້ອມແລ້ວ!"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"ທ່ານພ້ອມເລີ່ມຕົ້ນແລ້ວ!"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"ເພີດເພີນໄປກັບ <xliff:g id="DEVICE">%1$s</xliff:g> ເຄື່ອງໃໝ່ຂອງທ່ານ!"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"ປັດຂຶ້ນເພື່ອເລີ່ມຕົ້ນດ້ວຍ <xliff:g id="DEVICE">%1$s</xliff:g> ຂອງທ່ານ"</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"ແຕະເພື່ອເລີ່ມຕົ້ນນຳໃຊ້ <xliff:g id="DEVICE">%1$s</xliff:g> ຂອງທ່ານ"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"ເລືອກວິທີນຳທາງໄປຫາພາກສ່ວນຕ່າງໆ"</annotation></string>
     <string name="allset_hint_expressive" msgid="756856423510976261">"ປັດຂຶ້ນ"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"ແຕະປຸ່ມໜ້າທຳອິດ"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"ເລືອກແອັບອື່ນເພື່ອໃຊ້ການແບ່ງໜ້າຈໍ"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"ແອັບ ຫຼື ອົງການຂອງທ່ານບໍ່ອະນຸຍາດໃຫ້ໃຊ້ຄຳສັ່ງນີ້"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"ຍັງບໍ່ຮອງຮັບວິດເຈັດໃນຕອນນີ້, ກະລຸນາເລືອກແອັບອື່ນ"</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"ສຳເນົາ"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"ບັນທຶກ"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"ໝຸນໜ້າຈໍ"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"ພາບເຄື່ອນໄຫວສະແດງວິທີເຮັດໃຫ້ແຖບໜ້າວຽກປາກົດຂຶ້ນຈາກລຸ່ມສຸດຂອງໜ້າຈໍ ແລະ ເຊື່ອງໂດຍອັດຕະໂນມັດເມື່ອບໍ່ໄດ້ນຳໃຊ້"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"ພາບເຄື່ອນໄຫວສະແດງວິທີປັກໝຸດແຖບໜ້າວຽກຂອງທ່ານໂດຍໃຊ້ປຸ່ມເປີດ/ປິດ, ເພື່ອໃຫ້ແຖບໜ້າວຽກຍັງຄົງປາກົດຢູ່ລຸ່ມສຸດຂອງໜ້າຈໍຕະຫຼອດເວລາ"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"ອະນິເມຊັນສະແດງວິທີສ້າງຟອງຈາກແຖບໜ້າວຽກໂດຍໃຊ້ທ່າທາງລາກ"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"ພາບເຄື່ອນໄຫວສະແດງວິທີສ້າງໂໝດແບ່ງໜ້າຈໍ, ໂດຍການລາກ ແລະ ວາງແອັບຈາກແຖບໜ້າວຽກໄວ້ເທິງແອັບທີ່ເປີດຢູ່"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"ພາບເຄື່ອນໄຫວສະແດງວິທີເຂົ້າເຖິງແອັບທີ່ແນະນຳໃນອຸປະກອນຂອງທ່ານ"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"ພາບເຄື່ອນໄຫວສະແດງວິທີຊອກຫາລາຍການຢູ່ໜ້າຈໍ, ໂດຍການແຕະປຸ່ມຄຳສັ່ງຄ້າງໄວ້ແລ້ວເລືອກພື້ນທີ່ທີ່ລາຍການນັ້ນຢູ່"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"ແຖບໜ້າວຽກ Education"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"ລາກແອັບໄປດ້ານຂ້າງເພື່ອໃຊ້ 2 ແອັບໃນເວລາດຽວກັນ"</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"ປັດຂຶ້ນຊ້າໆເພື່ອສະແດງແຖບໜ້າວຽກ"</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"ລາກລົງຫາມຸມລຸ່ມສຸດເພື່ອໃຫ້ມັນລອຍ"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"ປັດຂຶ້ນຊ້າໆເພື່ອສະແດງແຖບໜ້າວຽກ"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"ຮັບການແນະນຳແອັບໂດຍອີງໃສ່ສິ່ງທີ່ເຮັດປະຈຳຂອງທ່ານ"</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"ກົດຕົວຂັ້ນຄ້າງໄວ້ເພື່ອປັກໝຸດແຖບໜ້າວຽກ"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"ເຮັດສິ່ງຕ່າງໆໄດ້ຫຼາຍຂຶ້ນດ້ວຍແຖບໜ້າວຽກ"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"ສະແດງແຖບໜ້າວຽກສະເໝີ"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"ເພື່ອໃຫ້ແຖບໜ້າວຽກສະແດງຢູ່ລຸ່ມໜ້າຈໍຂອງທ່ານຢູ່ສະເໝີ, ໃຫ້ແຕະຕົວແບ່ງຄ້າງໄວ້"</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"ລາກແອັບໄປໃສ່ມຸມເພື່ອເຮັດໃຫ້ມັນລອຍ"</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"ແຕະປຸ່ມຄຳສັ່ງຄ້າງໄວ້ເພື່ອຊອກຫາສິ່ງທີ່ຢູ່ເທິງໜ້າຈໍຂອງທ່ານ"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"ສິນຄ້ານີ້ໃຊ້ສ່ວນທີ່ເລືອກຂອງໜ້າຈໍຂອງທ່ານເພື່ອຊອກຫາ. ເປັນໄປຕາມ <xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g> ແລະ <xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>ຂໍ້ກຳນົດບໍລິການ<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g> ຂອງ Google."</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"ປິດ"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"ແລ້ວໆ"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"ຕໍ່ໄປ"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"ໜ້າຫຼັກ"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"ການຊ່ວຍເຂົ້າເຖິງ"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"ກັບຄືນ"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"ຫຼ້າສຸດ"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"ການແຈ້ງເຕືອນ"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"ການຕັ້ງຄ່າດ່ວນ"</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"ຕົວເລືອກເພີ່ມເຕີມ"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"ແຖບໜ້າວຽກ"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"ແຖບໜ້າວຽກທີ່ສະແດງຢູ່"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"ແຖບໜ້າວຽກ ແລະ ຟອງສະແດງຢູ່ເບື້ອງຊ້າຍ"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"ແຖບໜ້າວຽກ ແລະ ຟອງສະແດງຢູ່ເບື້ອງຂວາ"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"ແຖບຟອງ"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"ແຖບການນຳທາງ"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"ສະແດງແຖບໜ້າວຽກສະເໝີ"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"ປ່ຽນໂໝດການນຳທາງ"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"ເສັ້ນແບ່ງແຖບໜ້າວຽກ"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"ແອັບຫຼ້າສຸດອື່ນໆ"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"ແອັບຫຼ້າສຸດອື່ນໆ"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"ແອັບອື່ນໆ"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"ລຶບອອກ"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"ຍ້າຍໄປຊ້າຍ/ເທິງ"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"ຍ້າຍໄປຂວາ/ລຸ່ມ"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"ເປີດແອັບເປັນຟອງ"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"ຍ້າຍລາຍການໄປທາງຊ້າຍ"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"ຍ້າຍລາຍການໄປທາງຂວາ"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"ແອັບຫຼ້າສຸດ"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"ລາຍຊື່ແອັບຫຼ້າສຸດ"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{ແອັບເພີ່ມເຕີມ}other{ແອັບເພີ່ມເຕີມ}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"ເດັສທັອບ"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"<xliff:g id="APP_NAME_1">%1$s</xliff:g> ແລະ <xliff:g id="APP_NAME_2">%2$s</xliff:g>"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, ລາຍການທີ <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> ຈາກທັງໝົດ <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, ລາຍການທີ <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> ຈາກທັງໝົດ <xliff:g id="TOTAL_TASKS">%3$d</xliff:g> ລາຍການ, ປ່ອຍຄີລັດເພື່ອເລືອກ"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"ເລື່ອນໄປທາງຊ້າຍ"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"ເລື່ອນໄປທາງຂວາ"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"ຟອງ"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"ຍ້າຍໄປຊ້າຍ"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"ຍ້າຍໄປຂວາ"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"ປິດທັງໝົດ"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"ຂະຫຍາຍ <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"ຫຍໍ້ <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g> ລົງ"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"ແຕ້ມວົງມົນເພື່ອຊອກຫາ"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"ໄອຄອນແອັບ"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"ຊື່ແອັບ"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"ປຸ່ມປິດ"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"ປັກໝຸດໄປໃສ່ແຖບໜ້າວຽກ"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"ຖອດປັກໝຸດຈາກແຖບໜ້າວຽກ"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"ປິດ"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"ສະກິດ"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"ປິດ"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"ຮູບສະກິດ"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"ໄອຄອນ"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"ຮັບຄຳແນະນຳທີ່ເປັນປະໂຫຍດ"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"ພວກເຮົາໃຊ້ AI ເພື່ອແນະນຳຂໍ້ມູນ ແລະ ການດຳເນີນການທີ່ກ່ຽວຂ້ອງກັບສິ່ງທີ່ທ່ານກຳລັງເຮັດຢູ່ໜ້າຈໍໂດຍບໍ່ຕ້ອງຂໍ"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"ປິດ"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"ຂະຫຍາຍ"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"ໄອຄອນການແນະນຳສະພາບແວດລ້ອມ"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"ແຕະຄ້າງໄວ້ເພື່ອເບິ່ງວິທີສ້າງຄຳແນະນຳ"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"ຕື່ມຂໍ້ມູນອັດຕະໂນມັດ"</string>
 </resources>

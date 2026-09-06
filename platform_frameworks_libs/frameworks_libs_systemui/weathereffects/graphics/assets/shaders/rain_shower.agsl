@@ -1,0 +1,101 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+struct Rain {
+    highp float dropMask;
+    highp vec2 cellUv;
+};
+
+/**
+ * Pouring rain.
+ *
+ * @param uv the UV of the fragment where we will display the rain effect.
+ * @param screenAspectRatio the aspect ratio of the fragment where we will display the effect.
+ * @param time the elapsed time.
+ * @param rainGridSize the size of the grid, where each cell contains a main drop and some
+ * dropplets.
+ * @param rainIntensity how many of the cells will contain drops. Value from 0 (no rain) to 1
+ * (each cell contains a drop).
+ *
+ * @returns float with the rain info.
+ */
+Rain generateRain(
+    // UVs of the target fragment (normalized).
+    in vec2 uv,
+    in float screenAspectRatio,
+    in float time,
+    in vec2 rainGridSize,
+    in float rainIntensity
+) {
+    /* Grid. */
+    // Aspect ratio impacts visible cells.
+    uv.y /= screenAspectRatio;
+    // scale the UV to allocate number of rows and columns.
+    vec2 gridUv = uv * rainGridSize;
+    // Invert y (otherwise it goes from 0=top to 1=bottom).
+    gridUv.y = 1. - gridUv.y;
+    float verticalGridPos = 0.4 * time;
+    // Move grid vertically down.
+    gridUv.y += verticalGridPos;
+    // Generate column id, to offset columns vertically (so rain is not aligned).
+    float columnId = idGenerator(floor(gridUv.x));
+    gridUv.y += columnId * 2.6;
+
+    /* Cell. */
+    // Get the cell ID based on the grid position. Value from 0 to 1.
+    float cellId = idGenerator(floor(gridUv));
+    // For each cell, we set the internal UV from -0.5 (left, bottom) to 0.5 (right, top).
+    vec2 cellUv = fract(gridUv) - 0.5;
+
+    float intensity = idGenerator(floor(vec2(cellId * 8.16, 27.2)));
+    if (rainIntensity < intensity) {
+        return Rain(0.0, cellUv);
+    }
+
+    /* Cell-id-based variations. */
+    // This factor is used to make the particle visibile right after it is visible
+    // (based on cellIntensity). 0 = snow flake invisible, 1 = snow flake visible.
+    float visivilityFactor = smoothstep(
+        intensity,
+        min(intensity + 0.18, 1.0),
+        rainIntensity);
+
+    /* Cell-id-based variations. */
+    // Adjust time based on columnId.
+    time += columnId * 7.1203;
+    // Adjusts scale of each drop (higher is smaller).
+    float scaleVariation = 1.0 - 0.3 * cellId;
+
+    /* Cell drop. */
+    // Define the start based on the cell id.
+    float horizontalStart = 0.8 * (intensity - 0.5);
+
+    // Calculate drop.
+    vec2 dropPos = cellUv;
+        dropPos.y += -0.052;
+        dropPos.x += horizontalStart;
+        dropPos *= scaleVariation * vec2(14.2, 2.728);
+    // Create the drop.
+    float dropMask = smoothstep(
+        0.,
+        // Adjust the opacity.
+        .80 + 3. * cellId,
+        // Adjust the shape.
+        1. - length(vec2(dropPos.x, (dropPos.y - dropPos.x * dropPos.x)))
+    ) * visivilityFactor;
+
+    return Rain(dropMask, cellUv);
+}

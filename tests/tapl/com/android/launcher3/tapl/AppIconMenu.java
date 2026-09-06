@@ -18,7 +18,14 @@ package com.android.launcher3.tapl;
 
 import static org.junit.Assert.assertTrue;
 
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiObject2;
+
+import com.android.launcher3.Flags;
 
 import java.util.List;
 
@@ -26,6 +33,10 @@ import java.util.List;
  * Context menu of an app icon.
  */
 public abstract class AppIconMenu {
+
+    private static final String BUBBLE = "Bubble";
+    private static final String SPLIT_SCREEN = "Split screen";
+
     protected final LauncherInstrumentation mLauncher;
     protected final UiObject2 mDeepShortcutsContainer;
 
@@ -39,9 +50,17 @@ public abstract class AppIconMenu {
      * Returns a menu item with a given number. Fails if it doesn't exist.
      */
     public AppIconMenuItem getMenuItem(int itemNumber) {
-        final List<UiObject2> menuItems = mLauncher.getObjectsInContainer(mDeepShortcutsContainer,
-                "bubble_text");
-        assertTrue(menuItems.size() > itemNumber);
+        final List<UiObject2> menuItems;
+        if (Flags.expandableLongPressMenu()) {
+            menuItems = mDeepShortcutsContainer.getChildren();
+            assertTrue("Menu item number " + itemNumber + " is out of bounds. There are "
+                            + menuItems.size() + " menu items.",
+                    menuItems.size() > itemNumber);
+        } else {
+            menuItems = mLauncher.getObjectsInContainer(mDeepShortcutsContainer,
+                    "bubble_text");
+            assertTrue(menuItems.size() > itemNumber);
+        }
         return createMenuItem(menuItems.get(itemNumber));
     }
 
@@ -58,16 +77,31 @@ public abstract class AppIconMenu {
      * Returns a menu item that matches the text "Split screen". Fails if it doesn't exist.
      */
     public SplitScreenMenuItem getSplitScreenMenuItem() {
-        final UiObject2 menuItem = mLauncher.waitForObjectInContainer(mDeepShortcutsContainer,
-                AppIcon.getMenuItemSelector("Split screen", mLauncher));
+        final UiObject2 menuItem = getMenuItemOrShortcut(SPLIT_SCREEN);
         return new SplitScreenMenuItem(mLauncher, menuItem);
     }
 
     /** Returns the Bubble menu item. */
     public BubbleMenuItem getBubbleMenuItem() {
-        final UiObject2 menuItem = mLauncher.waitForObjectInContainer(mDeepShortcutsContainer,
-                AppIcon.getMenuItemSelector("Bubble", mLauncher));
+        final UiObject2 menuItem = getMenuItemOrShortcut(BUBBLE);
         return new BubbleMenuItem(mLauncher, menuItem);
+    }
+
+    /**
+     * Waits and gets a menu item {@link UiObject2} with the given {@code name}.
+     * <p>
+     * For some cases, the menu item would be represented as a shortcut instead of a menu item
+     * text view. This method fallbacks to obtain a shortcut icon if the menu item can't be found.
+     *
+     * @param name the menu item name, could be either a {@link TextView#getText} or a
+     * {@link ImageView#getContentDescription}.
+     * @return the {@link UiObject2} represents the menu item.
+     */
+    private UiObject2 getMenuItemOrShortcut(@NonNull String name) {
+        return mLauncher.waitForAnyObjectsInContainer(mDeepShortcutsContainer, List.of(
+                AppIcon.getMenuItemSelector(name, mLauncher),
+                AppIcon.getMenuShortcutSelector(name, mLauncher)
+        )).getFirst();
     }
 
     protected abstract AppIconMenuItem createMenuItem(UiObject2 menuItem);

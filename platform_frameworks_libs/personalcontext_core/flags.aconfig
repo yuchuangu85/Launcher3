@@ -1,0 +1,82 @@
+package: "android.service.personalcontext"
+container: "system"
+
+flag {
+     namespace: "communal"
+     name: "enable_personal_context_service"
+     is_exported: true
+     description: "Personal Context Service"
+     bug: "445425545"
+}
+
+flag {
+     namespace: "communal"
+     name: "enable_text_classifier"
+     description: "Enable TextClassifier hint and insight for Personal Context Service"
+     bug: "445425545"
+}
+
+flag {
+    namespace: "communal"
+    name: "enable_personal_context_security_checks"
+    description: "Enables security checks for Personal Context components and services"
+    bug: "450547433"
+}
+
+flag {
+    namespace: "communal"
+    name: "enable_personal_context_service_feature"
+    description: "Enables the personal context service hint processing after extensive non-backwards-compatible API changes"
+    bug: "484019457"
+}
+
+flag {
+    namespace: "communal"
+    name: "enforce_personal_context_permissions"
+    description: "Checks for correct permissions on component interaction"
+    bug: "484627375"
+    metadata {
+      purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    namespace: "communal"
+    name: "enforce_personal_context_allowlist_access_control"
+    description: "Checks allowlist to see if component can participate in personal context"
+    bug: "487759077"
+    metadata {
+      purpose: PURPOSE_BUGFIX
+    }
+}
+
+
+flag {
+    namespace: "communal"
+    name: "enforce_personal_context_pcc_access_control"
+    description: "Checks PCC to see if component can participate in personal context"
+    bug: "493595947"
+    metadata {
+      purpose: PURPOSE_BUGFIX
+    }
+}
+
+
+flag {
+    namespace: "communal"
+    name: "enforce_personal_context_role_access_control"
+    description: "Checks android roles to see if component can participate in personal context"
+    bug: "493595947"
+    metadata {
+      purpose: PURPOSE_BUGFIX
+    }
+}
+
+
+flag {
+    namespace: "communal"
+    name: "enable_personal_context_attribution_support"
+    description: "Enables attribution flow to work in personal context CUJs"
+    bug: "493270152"
+}
+

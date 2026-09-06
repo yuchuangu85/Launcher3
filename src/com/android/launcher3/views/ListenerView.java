@@ -28,11 +28,21 @@ import com.android.launcher3.AbstractFloatingView;
  */
 public class ListenerView extends AbstractFloatingView {
 
+    private final @FloatingViewType int mType;
     private Runnable mCloseListener;
 
+    public ListenerView(Context context, @FloatingViewType int type) {
+        this(context, /* attrs= */ null, type);
+    }
+
     public ListenerView(Context context, AttributeSet attrs) {
+        this(context, attrs, TYPE_LISTENER);
+    }
+
+    public ListenerView(Context context, AttributeSet attrs, @FloatingViewType int type) {
         super(context, attrs);
         setVisibility(View.GONE);
+        mType = type;
     }
 
     public void setListener(Runnable listener) {
@@ -67,7 +77,7 @@ public class ListenerView extends AbstractFloatingView {
 
     @Override
     protected boolean isOfType(int type) {
-        return (type & TYPE_LISTENER) != 0;
+        return (type & mType) != 0;
     }
 
     @Override

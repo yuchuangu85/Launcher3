@@ -21,6 +21,7 @@ import static com.android.launcher3.LauncherState.HINT_STATE_TWO_BUTTON;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
 import static com.android.launcher3.Utilities.EDGE_NAV_BAR;
+import static com.android.window.flags.Flags.betterDeskDeactivationInRecentsTransition;
 
 import android.animation.ValueAnimator;
 import android.os.SystemClock;
@@ -160,7 +161,9 @@ public class TwoButtonNavbarTouchController extends AbstractStateChangeTouchCont
             mContinuousTouchCount++;
         }
         if (mStartState == NORMAL && targetState == HINT_STATE_TWO_BUTTON) {
-            SystemUiProxy.INSTANCE.get(mLauncher).onOverviewShown(true, TAG);
+            if (!betterDeskDeactivationInRecentsTransition()) {
+                SystemUiProxy.INSTANCE.get(mLauncher).onOverviewShown(true, TAG);
+            }
         } else if (targetState == NORMAL
                 && mContinuousTouchCount >= MAX_NUM_SWIPES_TO_TRIGGER_EDU) {
             mContinuousTouchCount = 0;

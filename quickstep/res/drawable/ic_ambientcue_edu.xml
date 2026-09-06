@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright (C) 2025 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:pathData="M33.952,7.438C43.195,3.424 52.576,12.805 48.562,22.048L47.898,23.576C46.673,26.398 46.673,29.602 47.898,32.424L48.562,33.952C52.576,43.195 43.195,52.576 33.952,48.562L32.424,47.898C29.602,46.673 26.398,46.673 23.576,47.898L22.048,48.562C12.805,52.576 3.424,43.195 7.438,33.952L8.102,32.424C9.328,29.602 9.328,26.398 8.102,23.576L7.438,22.048C3.424,12.805 12.805,3.424 22.048,7.438L23.576,8.102C26.398,9.328 29.602,9.328 32.424,8.102L33.952,7.438Z"
+        android:fillColor="@color/materialColorPrimaryContainer"/>
+    <group>
+        <clip-path
+            android:pathData="M17,16h24v24h-24z"/>
+        <group>
+            <clip-path
+                android:pathData="M17,16h24v24h-24z"/>
+            <group>
+                <clip-path
+                    android:pathData="M41,16H17V40H41V16Z"/>
+                <path
+                    android:pathData="M31.3,26.5C31.8,26.1 31.2,25.2 30.7,25.6C28.2,27.4 26.2,28.6 24,29.7V19H32V17H24C22.9,17 22,17.9 22,19V24.2C20.7,25.4 19.7,26.8 18.8,28.4C18,29.7 17.3,32.3 19.3,32.9C20.2,33.1 21.1,32.9 21.9,32.6C22,32.6 24.5,31.9 31.3,26.5ZM20,31C20.3,29.8 21.1,28.7 22,27.6V30.6C21.3,30.8 20.7,31 20,31Z"
+                    android:fillColor="@color/materialColorOnPrimaryContainer"/>
+                <path
+                    android:pathData="M33,37H24V33.8C22.8,34.4 22.5,34.5 22,34.6V37C22,38.1 22.9,39 24,39H33C34.1,39 35,38.1 35,37V28H33V37Z"
+                    android:fillColor="@color/materialColorOnPrimaryContainer"/>
+                <path
+                    android:pathData="M36.5,20.5C35.5,19.5 35,18.3 35,17C35,18.4 34.5,19.6 33.5,20.5C32.5,21.5 31.3,22 30,22C31.4,22 32.6,22.5 33.5,23.5C34.4,24.5 35,25.7 35,27C35,25.6 35.5,24.4 36.5,23.5C37.5,22.6 38.7,22 40,22C38.6,22 37.4,21.5 36.5,20.5Z"
+                    android:fillColor="@color/materialColorOnPrimaryContainer"/>
+            </group>
+        </group>
+    </group>
+</vector>

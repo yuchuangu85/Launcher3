@@ -1,0 +1,1367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_background_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorBackground"&gt;@android:color/system_background_dark&lt;/color&gt;'
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="21"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_background_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorBackground"&gt;@android:color/system_background_light&lt;/color&gt;'
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="21"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_control_activated_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorControlActivated"&gt;@android:color/system_control_activated_dark&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="22"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_control_activated_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorControlActivated"&gt;@android:color/system_control_activated_light&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="22"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_control_highlight_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorControlHighlight"&gt;@android:color/system_control_highlight_dark&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="23"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_control_highlight_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorControlHighlight"&gt;@android:color/system_control_highlight_light&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="23"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_control_normal_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorControlNormal"&gt;@android:color/system_control_normal_dark&lt;/color&gt;'
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="24"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_control_normal_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorControlNormal"&gt;@android:color/system_control_normal_light&lt;/color&gt;'
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="24"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_error_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorError"&gt;@android:color/system_error_dark&lt;/color&gt;'
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="25"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_error_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorError"&gt;@android:color/system_error_light&lt;/color&gt;'
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="25"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_error_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorErrorContainer"&gt;@android:color/system_error_container_dark&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="26"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_error_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorErrorContainer"&gt;@android:color/system_error_container_light&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="26"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_background_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnBackground"&gt;@android:color/system_on_background_dark&lt;/color&gt;'
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="31"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_background_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnBackground"&gt;@android:color/system_on_background_light&lt;/color&gt;'
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="31"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_error_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnError"&gt;@android:color/system_on_error_dark&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="32"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_error_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnError"&gt;@android:color/system_on_error_light&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="32"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_error_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnErrorContainer"&gt;@android:color/system_on_error_container_dark&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="33"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_error_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnErrorContainer"&gt;@android:color/system_on_error_container_light&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="33"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimary"&gt;@android:color/system_on_primary_dark&lt;/color&gt;'
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="34"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimary"&gt;@android:color/system_on_primary_light&lt;/color&gt;'
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="34"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimaryContainer"&gt;@android:color/system_on_primary_container_dark&lt;/color&gt;'
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="35"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimaryContainer"&gt;@android:color/system_on_primary_container_light&lt;/color&gt;'
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="35"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondary"&gt;@android:color/system_on_secondary_dark&lt;/color&gt;'
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="36"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondary"&gt;@android:color/system_on_secondary_light&lt;/color&gt;'
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="36"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondaryContainer"&gt;@android:color/system_on_secondary_container_dark&lt;/color&gt;'
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="37"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondaryContainer"&gt;@android:color/system_on_secondary_container_light&lt;/color&gt;'
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="37"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_surface_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSurface"&gt;@android:color/system_on_surface_dark&lt;/color&gt;'
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="38"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_surface_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSurface"&gt;@android:color/system_on_surface_light&lt;/color&gt;'
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="38"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_surface_variant_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSurfaceVariant"&gt;@android:color/system_on_surface_variant_dark&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="39"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_surface_variant_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSurfaceVariant"&gt;@android:color/system_on_surface_variant_light&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="39"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiary"&gt;@android:color/system_on_tertiary_dark&lt;/color&gt;'
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="40"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiary"&gt;@android:color/system_on_tertiary_light&lt;/color&gt;'
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="40"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiaryContainer"&gt;@android:color/system_on_tertiary_container_dark&lt;/color&gt;'
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="41"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiaryContainer"&gt;@android:color/system_on_tertiary_container_light&lt;/color&gt;'
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="41"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_outline_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOutline"&gt;@android:color/system_outline_dark&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="42"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_outline_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOutline"&gt;@android:color/system_outline_light&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="42"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_outline_variant_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOutlineVariant"&gt;@android:color/system_outline_variant_dark&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="43"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_outline_variant_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOutlineVariant"&gt;@android:color/system_outline_variant_light&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="43"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_neutral_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorNeutral"&gt;@android:color/system_palette_key_color_neutral_dark&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="45"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_neutral_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorNeutral"&gt;@android:color/system_palette_key_color_neutral_light&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="45"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_neutral_variant_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorNeutralVariant"&gt;@android:color/system_palette_key_color_neutral_variant_dark&lt;/color&gt;'
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="46"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_neutral_variant_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorNeutralVariant"&gt;@android:color/system_palette_key_color_neutral_variant_light&lt;/color&gt;'
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="46"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_primary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorPrimary"&gt;@android:color/system_palette_key_color_primary_dark&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="47"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_primary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorPrimary"&gt;@android:color/system_palette_key_color_primary_light&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="47"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_secondary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorSecondary"&gt;@android:color/system_palette_key_color_secondary_dark&lt;/color&gt;'
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="48"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_secondary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorSecondary"&gt;@android:color/system_palette_key_color_secondary_light&lt;/color&gt;'
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="48"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_tertiary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorTertiary"&gt;@android:color/system_palette_key_color_tertiary_dark&lt;/color&gt;'
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="49"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_palette_key_color_tertiary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPaletteKeyColorTertiary"&gt;@android:color/system_palette_key_color_tertiary_light&lt;/color&gt;'
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="49"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimary"&gt;@android:color/system_primary_dark&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="50"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimary"&gt;@android:color/system_primary_light&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="50"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimaryContainer"&gt;@android:color/system_primary_container_dark&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="51"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimaryContainer"&gt;@android:color/system_primary_container_light&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="51"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondary"&gt;@android:color/system_secondary_dark&lt;/color&gt;'
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="54"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondary"&gt;@android:color/system_secondary_light&lt;/color&gt;'
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="54"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondaryContainer"&gt;@android:color/system_secondary_container_dark&lt;/color&gt;'
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="55"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondaryContainer"&gt;@android:color/system_secondary_container_light&lt;/color&gt;'
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="55"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurface"&gt;@android:color/system_surface_dark&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="58"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurface"&gt;@android:color/system_surface_light&lt;/color&gt;'
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="58"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_bright_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceBright"&gt;@android:color/system_surface_bright_dark&lt;/color&gt;'
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="59"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_bright_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceBright"&gt;@android:color/system_surface_bright_light&lt;/color&gt;'
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="59"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainer"&gt;@android:color/system_surface_container_dark&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="60"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainer"&gt;@android:color/system_surface_container_light&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="60"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_high_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerHigh"&gt;@android:color/system_surface_container_high_dark&lt;/color&gt;'
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="61"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_high_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerHigh"&gt;@android:color/system_surface_container_high_light&lt;/color&gt;'
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="61"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_highest_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerHighest"&gt;@android:color/system_surface_container_highest_dark&lt;/color&gt;'
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="62"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_highest_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerHighest"&gt;@android:color/system_surface_container_highest_light&lt;/color&gt;'
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="62"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_low_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerLow"&gt;@android:color/system_surface_container_low_dark&lt;/color&gt;'
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="63"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_low_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerLow"&gt;@android:color/system_surface_container_low_light&lt;/color&gt;'
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="63"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_lowest_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerLowest"&gt;@android:color/system_surface_container_lowest_dark&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="64"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_lowest_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceContainerLowest"&gt;@android:color/system_surface_container_lowest_light&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="64"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_dim_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceDim"&gt;@android:color/system_surface_dim_dark&lt;/color&gt;'
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="65"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_dim_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceDim"&gt;@android:color/system_surface_dim_light&lt;/color&gt;'
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="65"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_variant_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceVariant"&gt;@android:color/system_surface_variant_dark&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="67"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_variant_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSurfaceVariant"&gt;@android:color/system_surface_variant_light&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="67"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiary"&gt;@android:color/system_tertiary_dark&lt;/color&gt;'
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="68"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiary"&gt;@android:color/system_tertiary_light&lt;/color&gt;'
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="68"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_container_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiaryContainer"&gt;@android:color/system_tertiary_container_dark&lt;/color&gt;'
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="69"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_container_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiaryContainer"&gt;@android:color/system_tertiary_container_light&lt;/color&gt;'
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="69"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_hint_inverse_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextHintInverse"&gt;@android:color/system_text_hint_inverse_dark&lt;/color&gt;'
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="71"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_hint_inverse_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextHintInverse"&gt;@android:color/system_text_hint_inverse_light&lt;/color&gt;'
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="71"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_primary_inverse_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextPrimaryInverse"&gt;@android:color/system_text_primary_inverse_dark&lt;/color&gt;'
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="72"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_primary_inverse_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextPrimaryInverse"&gt;@android:color/system_text_primary_inverse_light&lt;/color&gt;'
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="72"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_primary_inverse_disable_only_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextPrimaryInverseDisableOnly"&gt;@android:color/system_text_primary_inverse_disable_only_dark&lt;/color&gt;'
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="73"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_primary_inverse_disable_only_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextPrimaryInverseDisableOnly"&gt;@android:color/system_text_primary_inverse_disable_only_light&lt;/color&gt;'
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="73"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_secondary_and_tertiary_inverse_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextSecondaryAndTertiaryInverse"&gt;@android:color/system_text_secondary_and_tertiary_inverse_dark&lt;/color&gt;'
+        errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="74"
+            column="64"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_secondary_and_tertiary_inverse_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextSecondaryAndTertiaryInverse"&gt;@android:color/system_text_secondary_and_tertiary_inverse_light&lt;/color&gt;'
+        errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="74"
+            column="64"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_secondary_and_tertiary_inverse_disabled_dark` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextSecondaryAndTertiaryInverseDisabled"&gt;@android:color/system_text_secondary_and_tertiary_inverse_disabled_dark&lt;/color&gt;'
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="75"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_text_secondary_and_tertiary_inverse_disabled_light` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTextSecondaryAndTertiaryInverseDisabled"&gt;@android:color/system_text_secondary_and_tertiary_inverse_disabled_light&lt;/color&gt;'
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="75"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimaryFixed"&gt;@android:color/system_on_primary_fixed&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="76"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimaryFixed"&gt;@android:color/system_on_primary_fixed&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="76"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_fixed_variant` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimaryFixedVariant"&gt;@android:color/system_on_primary_fixed_variant&lt;/color&gt;'
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="77"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_fixed_variant` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnPrimaryFixedVariant"&gt;@android:color/system_on_primary_fixed_variant&lt;/color&gt;'
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="77"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondaryFixed"&gt;@android:color/system_on_secondary_fixed&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="78"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondaryFixed"&gt;@android:color/system_on_secondary_fixed&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="78"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_fixed_variant` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondaryFixedVariant"&gt;@android:color/system_on_secondary_fixed_variant&lt;/color&gt;'
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="79"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_secondary_fixed_variant` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnSecondaryFixedVariant"&gt;@android:color/system_on_secondary_fixed_variant&lt;/color&gt;'
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="79"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiaryFixed"&gt;@android:color/system_on_tertiary_fixed&lt;/color&gt;'
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="80"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiaryFixed"&gt;@android:color/system_on_tertiary_fixed&lt;/color&gt;'
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="80"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_fixed_variant` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiaryFixedVariant"&gt;@android:color/system_on_tertiary_fixed_variant&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="81"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_tertiary_fixed_variant` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorOnTertiaryFixedVariant"&gt;@android:color/system_on_tertiary_fixed_variant&lt;/color&gt;'
+        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="81"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimaryFixed"&gt;@android:color/system_primary_fixed&lt;/color&gt;'
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="82"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimaryFixed"&gt;@android:color/system_primary_fixed&lt;/color&gt;'
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="82"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_fixed_dim` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimaryFixedDim"&gt;@android:color/system_primary_fixed_dim&lt;/color&gt;'
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="83"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_fixed_dim` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorPrimaryFixedDim"&gt;@android:color/system_primary_fixed_dim&lt;/color&gt;'
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="83"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondaryFixed"&gt;@android:color/system_secondary_fixed&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="84"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondaryFixed"&gt;@android:color/system_secondary_fixed&lt;/color&gt;'
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="84"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_fixed_dim` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondaryFixedDim"&gt;@android:color/system_secondary_fixed_dim&lt;/color&gt;'
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="85"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_secondary_fixed_dim` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorSecondaryFixedDim"&gt;@android:color/system_secondary_fixed_dim&lt;/color&gt;'
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="85"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiaryFixed"&gt;@android:color/system_tertiary_fixed&lt;/color&gt;'
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="86"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_fixed` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiaryFixed"&gt;@android:color/system_tertiary_fixed&lt;/color&gt;'
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="86"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_fixed_dim` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiaryFixedDim"&gt;@android:color/system_tertiary_fixed_dim&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="87"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_tertiary_fixed_dim` requires API level 34 (current min is 30)"
+        errorLine1='    &lt;color name="materialColorTertiaryFixedDim"&gt;@android:color/system_tertiary_fixed_dim&lt;/color&gt;'
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="87"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_on_surface_dark` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorInverseOnSurface&quot;>@android:color/system_inverse_on_surface_dark&lt;/color>"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="28"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_on_surface_light` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorInverseOnSurface&quot;>@android:color/system_inverse_on_surface_light&lt;/color>"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="28"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_primary_dark` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorInversePrimary&quot;>@android:color/system_inverse_primary_dark&lt;/color>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="29"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_primary_light` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorInversePrimary&quot;>@android:color/system_inverse_primary_light&lt;/color>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="29"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_surface_dark` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorInverseSurface&quot;>@android:color/system_inverse_surface_dark&lt;/color>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="30"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_surface_light` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorInverseSurface&quot;>@android:color/system_inverse_surface_light&lt;/color>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="30"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_scrim_dark` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorScrim&quot;>@android:color/system_scrim_dark&lt;/color>"
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="53"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_scrim_light` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorScrim&quot;>@android:color/system_scrim_light&lt;/color>"
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="53"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_shadow_dark` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorShadow&quot;>@android:color/system_shadow_dark&lt;/color>"
+        errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="57"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_shadow_light` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorShadow&quot;>@android:color/system_shadow_light&lt;/color>"
+        errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="57"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_tint_dark` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorSurfaceTint&quot;>@android:color/system_surface_tint_dark&lt;/color>"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values-night/colors.xml"
+            line="66"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_tint_light` requires API level 10000 (current min is 30)"
+        errorLine1="    &lt;color name=&quot;materialColorSurfaceTint&quot;>@android:color/system_surface_tint_light&lt;/color>"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/dynamiccolors/res/values/colors.xml"
+            line="66"
+            column="44"/>
+    </issue>
+</issues>

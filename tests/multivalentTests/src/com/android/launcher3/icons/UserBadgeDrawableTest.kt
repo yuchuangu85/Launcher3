@@ -35,11 +35,10 @@ class UserBadgeDrawableTest {
     private val canvas = mock<Canvas>()
     private val systemUnderTest =
         UserBadgeDrawable(
-            context,
-            R.drawable.ic_work_app_badge,
-            R.color.badge_tint_work,
-            false /* isThemed */,
-            null, /* shape */
+            context.getDrawable(R.drawable.ic_work_app_badge),
+            Color.WHITE,
+            context.getColor(R.color.badge_tint_work),
+            /* shouldDrawBackground */
         )
 
     @Test

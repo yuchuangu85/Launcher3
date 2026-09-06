@@ -38,16 +38,19 @@ import javax.inject.Inject
 class WallpaperColorHints
 @Inject
 constructor(@ApplicationContext private val context: Context, tracker: DaggerSingletonTracker) {
-    var hints: Int = 0
-        private set
 
     private val wallpaperManager
         get() = context.getSystemService(WallpaperManager::class.java)!!
 
+    var colors: WallpaperColors? = wallpaperManager.getWallpaperColors(FLAG_SYSTEM)
+        private set
+
+    val hints: Int
+        get() = colors?.colorHints ?: 0
+
     private val onColorHintsChangedListeners = mutableListOf<OnColorHintListener>()
 
     init {
-        hints = wallpaperManager.getWallpaperColors(FLAG_SYSTEM)?.colorHints ?: 0
         val onColorsChangedListener = OnColorsChangedListener { colors, which ->
             onColorsChanged(colors, which)
         }
@@ -67,9 +70,10 @@ constructor(@ApplicationContext private val context: Context, tracker: DaggerSin
     @MainThread
     private fun onColorsChanged(colors: WallpaperColors?, which: Int) {
         if ((which and FLAG_SYSTEM) != 0) {
-            val newHints = colors?.colorHints ?: 0
-            if (newHints != hints) {
-                hints = newHints
+            val oldHints = hints
+            this.colors = colors
+            val newHints = hints
+            if (oldHints != newHints) {
                 onColorHintsChangedListeners.forEach { it.onColorHintsChanged(newHints) }
             }
         }

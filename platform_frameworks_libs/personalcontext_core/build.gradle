@@ -1,0 +1,28 @@
+// Compile-only stub module: framework android.service.personalcontext.* core classes + aidl
+// Sources copied unmodified from frameworks/base/core/java/android/service/personalcontext.
+// android.service.personalcontext.Flags is a generated stub (see flags.aconfig).
+plugins {
+    id 'com.android.library'
+}
+android {
+    namespace 'pc.core.stub'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig { minSdk 31 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    buildFeatures { aidl true }
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+        }
+    }
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    rootProject.addPlatformJarsFor(project, ['SystemUI.jar'])
+    compileOnly libs.androidx.annotation
+}

@@ -26,7 +26,7 @@ import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.popup.SystemShortcut
 import com.android.quickstep.views.RecentsViewContainer
 import com.android.quickstep.views.TaskContainer
-import com.android.window.flags2.Flags.universalResizableByDefault
+import javax.inject.Inject
 
 /**
  * System shortcut to change the application's aspect ratio compatibility mode.
@@ -34,7 +34,8 @@ import com.android.window.flags2.Flags.universalResizableByDefault
  * This shows up only on screens that are not compact, ie. shortest-width greater than {@link
  * com.android.launcher3.util.window.WindowManagerProxy#MIN_TABLET_WIDTH}.
  */
-class AspectRatioSystemShortcut(
+class AspectRatioSystemShortcut
+private constructor(
     viewContainer: RecentsViewContainer,
     taskContainer: TaskContainer,
     abstractFloatingViewHelper: AbstractFloatingViewHelper,
@@ -64,36 +65,26 @@ class AspectRatioSystemShortcut(
             .log(LauncherEvent.LAUNCHER_ASPECT_RATIO_SETTINGS_SYSTEM_SHORTCUT_TAP)
     }
 
-    companion object {
-        /** Optionally create a factory for the aspect ratio system shortcut. */
-        @JvmOverloads
-        fun createFactory(
-            abstractFloatingViewHelper: AbstractFloatingViewHelper = AbstractFloatingViewHelper()
-        ): TaskShortcutFactory {
-            return object : TaskShortcutFactory {
-                override fun getShortcuts(
-                    viewContainer: RecentsViewContainer,
-                    taskContainer: TaskContainer,
-                ): List<AspectRatioSystemShortcut>? {
-                    return when {
-                        // Only available when the feature flag is on.
-                        !universalResizableByDefault() -> null
-
-                        // The option is only shown on sw600dp+ screens (checked by isTablet)
-                        !viewContainer.deviceProfile.deviceProperties.isTablet -> null
-
-                        else -> {
-                            listOf(
-                                AspectRatioSystemShortcut(
-                                    viewContainer,
-                                    taskContainer,
-                                    abstractFloatingViewHelper,
-                                )
-                            )
-                        }
-                    }
+    class Factory
+    @Inject
+    constructor(private val abstractFloatingViewHelper: AbstractFloatingViewHelper) :
+        TaskShortcutFactory {
+        override fun getShortcuts(
+            viewContainer: RecentsViewContainer,
+            taskContainer: TaskContainer,
+        ): List<AspectRatioSystemShortcut>? =
+            when {
+                // The option is only shown on sw600dp+ screens (checked by isTablet)
+                !viewContainer.deviceProfile.deviceProperties.isLargeScreen -> null
+                else -> {
+                    listOf(
+                        AspectRatioSystemShortcut(
+                            viewContainer,
+                            taskContainer,
+                            abstractFloatingViewHelper,
+                        )
+                    )
                 }
             }
-        }
     }
 }

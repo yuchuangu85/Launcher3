@@ -42,10 +42,10 @@ import com.android.internal.jank.Cuj;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatorPlaybackController;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.states.StateAnimationConfig;
-import com.android.launcher3.taskbar.LauncherTaskbarUIController;
+import com.android.launcher3.taskbar.TaskbarInteractor;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
-import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.VibratorWrapper;
 import com.android.launcher3.views.ScrimColorsEvaluator;
 import com.android.quickstep.SystemUiProxy;
@@ -126,7 +126,7 @@ public class NoButtonNavbarToOverviewTouchController extends PortraitStatesTouch
 
     @Override
     protected LauncherState getTargetState(LauncherState fromState, boolean isDragTowardPositive) {
-        if (fromState == NORMAL && mDidTouchStartInNavBar) {
+        if (fromState == NORMAL && mDidTouchStartInNavBar && isDragTowardPositive) {
             return HINT_STATE;
         }
         return super.getTargetState(fromState, isDragTowardPositive);
@@ -145,10 +145,9 @@ public class NoButtonNavbarToOverviewTouchController extends PortraitStatesTouch
     @Override
     public void onDragStart(boolean start, float startDisplacement) {
         if (mLauncher.isInState(ALL_APPS)) {
-            LauncherTaskbarUIController controller =
-                    ((QuickstepLauncher) mLauncher).getTaskbarUIController();
-            if (controller != null) {
-                controller.setShouldDelayLauncherStateAnim(true);
+            TaskbarInteractor taskbarInteractor = mLauncher.getTaskbarInteractor();
+            if (taskbarInteractor != null) {
+                taskbarInteractor.setShouldDelayLauncherStateAnim(true);
             }
         }
 
@@ -191,10 +190,9 @@ public class NoButtonNavbarToOverviewTouchController extends PortraitStatesTouch
 
     @Override
     public void onDragEnd(float velocity) {
-        LauncherTaskbarUIController controller =
-                ((QuickstepLauncher) mLauncher).getTaskbarUIController();
-        if (controller != null) {
-            controller.setShouldDelayLauncherStateAnim(false);
+        TaskbarInteractor taskbarInteractor = mLauncher.getTaskbarInteractor();
+        if (taskbarInteractor != null) {
+            taskbarInteractor.setShouldDelayLauncherStateAnim(false);
         }
 
         if (mStartedOverview) {

@@ -16,18 +16,55 @@
 
 package com.android.launcher3.dagger
 
+import android.content.Context
+import com.android.launcher3.AbstractFloatingViewHelper
+import com.android.launcher3.automation.AutomationNoOpRepository
+import com.android.launcher3.automation.AutomationRepository
+import com.android.launcher3.display.DisplayController
+import com.android.launcher3.display.DisplayControllerImpl
+import com.android.launcher3.dragndrop.SystemDragController
+import com.android.launcher3.dragndrop.SystemDragControllerStub
+import com.android.launcher3.homescreenfiles.HomeScreenFilesNoOpProvider
+import com.android.launcher3.homescreenfiles.HomeScreenFilesProvider
+import com.android.launcher3.qsb.QsbAppWidgetHost
+import com.android.launcher3.qsb.QsbAppWidgetHostImpl
+import com.android.launcher3.util.BaseDefaultsValueProvider
+import com.android.launcher3.util.DefaultsValueProvider
+import com.android.launcher3.util.MutableListenableRef
+import com.android.launcher3.util.WindowBlurState.WINDOW_BLUR_STATE
 import com.android.launcher3.util.window.RefreshRateTracker
 import com.android.launcher3.util.window.RefreshRateTracker.RefreshRateTrackerImpl
+import com.android.launcher3.views.ActivityContext
 import com.android.launcher3.widget.LauncherWidgetHolder.WidgetHolderFactory
 import com.android.launcher3.widget.LauncherWidgetHolder.WidgetHolderFactoryImpl
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
+import javax.inject.Named
 
-private object Modules {}
+private object Modules
 
-@Module abstract class WindowManagerProxyModule {}
+@Module abstract class WindowManagerProxyModule
 
-@Module abstract class ApiWrapperModule {}
+@Module(includes = [SystemDragModule::class])
+abstract class ActivityContextModule {
+    companion object {
+        @JvmStatic
+        @Provides
+        @ActivityContextSingleton
+        @DisplayId
+        fun provideDisplayId(activityContext: ActivityContext): Int =
+            (activityContext as Context).display.displayId
+    }
+}
+
+@Module(includes = [NoOpLoggerModule::class]) abstract class StatsLoggerModule {}
+
+@Module
+abstract class ApiWrapperModule {
+
+    @Binds abstract fun bindDisplayController(impl: DisplayControllerImpl): DisplayController
+}
 
 @Module
 abstract class WidgetModule {
@@ -35,16 +72,69 @@ abstract class WidgetModule {
     abstract fun bindWidgetHolderFactory(factor: WidgetHolderFactoryImpl): WidgetHolderFactory
 }
 
-@Module abstract class PluginManagerWrapperModule {}
+@Module abstract class PluginManagerWrapperModule
 
 @Module
-abstract class StaticObjectModule {
-    @Binds abstract fun bindRefreshRateTracker(tracker: RefreshRateTrackerImpl): RefreshRateTracker
+object StaticObjectModule {
+    @Provides
+    fun provideRefreshRateTracker(tracker: RefreshRateTrackerImpl): RefreshRateTracker = tracker
+
+    @Provides fun provideAbstractFloatingViewHelper() = AbstractFloatingViewHelper
+
+    @Provides
+    fun provideQsbAppWidgetHost(@ApplicationContext context: Context): QsbAppWidgetHost =
+        QsbAppWidgetHostImpl.getStaticInstance(context)
+}
+
+@Module
+object SystemDragModule {
+    @Provides
+    @ActivityContextSingleton
+    fun provideSystemDragController(): SystemDragController = SystemDragControllerStub()
 }
 
 // Module containing bindings for the final derivative app
-@Module abstract class AppModule {}
+@Module
+object AppModule {
 
-@Module abstract class PerDisplayModule {}
+    @Provides
+    @JvmStatic
+    @LauncherAppSingleton
+    @Named(WINDOW_BLUR_STATE)
+    fun provideWindowBlurState() = MutableListenableRef<Boolean>(false).asListenable()
+
+    @Provides
+    @JvmStatic
+    @LauncherAppSingleton
+    fun provideDefaultsValueProvider(impl: BaseDefaultsValueProvider): DefaultsValueProvider = impl
+}
+
+@Module abstract class ProductionAppModule
+
+// Module containing bindings of [ActivityContext] for the final derivative app
+@Module abstract class AppActivityContextModule
+
+@Module abstract class PerDisplayModule
 
 @Module abstract class LauncherConcurrencyModule {}
+
+/** A dagger module responsible for managing files on the home screen. */
+@Module
+object HomeScreenFilesModule {
+    @Provides
+    @LauncherAppSingleton
+    fun provideHomeScreenFilesProvider(): HomeScreenFilesProvider = HomeScreenFilesNoOpProvider()
+}
+
+// This module is empty in the no_quickstep variant as desktop mode is not supported.
+@Module object DesktopModule
+
+// This module is empty in the no_quickstep variant as task overlay is not supported.
+@Module object TaskOverlayModule
+
+// Bind no-op version in no_quickstep as automation not supported.
+@Module
+abstract class AutomationModule {
+    @Binds
+    abstract fun bindAutomationRepository(impl: AutomationNoOpRepository): AutomationRepository
+}

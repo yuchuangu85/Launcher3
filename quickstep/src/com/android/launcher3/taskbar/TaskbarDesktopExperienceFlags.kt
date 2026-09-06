@@ -21,18 +21,26 @@ import com.android.launcher3.Flags
 
 object TaskbarDesktopExperienceFlags {
     @JvmField
-    val enableAltTabKqsOnConnectedDisplays: DesktopExperienceFlag =
-        DesktopExperienceFlag(
-            Flags::enableAltTabKqsOnConnectedDisplays,
-            /* shouldOverrideByDevOption= */ true,
-            Flags.FLAG_ENABLE_ALT_TAB_KQS_ON_CONNECTED_DISPLAYS,
-        )
-
-    @JvmField
     val enableAltTabKqsFlatenning: DesktopExperienceFlag =
         DesktopExperienceFlag(
             Flags::enableAltTabKqsFlatenning,
             /* shouldOverrideByDevOption= */ true,
             Flags.FLAG_ENABLE_ALT_TAB_KQS_FLATENNING,
+        )
+
+    @JvmField
+    val enableCustomHeightForAllAppsOnCd: DesktopExperienceFlag =
+        DesktopExperienceFlag(
+            Flags::enableCustomHeightForAllAppsOnCd,
+            /* shouldOverrideByDevOption= */ true,
+            Flags.FLAG_ENABLE_CUSTOM_HEIGHT_FOR_ALL_APPS_ON_CD,
+        )
+
+    @JvmField
+    val enableTaskbarA11yMoreOptionsButton: DesktopExperienceFlag =
+        DesktopExperienceFlag(
+            Flags::enableTaskbarA11yMoreOptionsButton,
+            /* shouldOverrideByDevOption= */ true,
+            Flags.FLAG_ENABLE_TASKBAR_A11Y_MORE_OPTIONS_BUTTON,
         )
 }

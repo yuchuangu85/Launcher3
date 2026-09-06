@@ -31,7 +31,6 @@ import static com.android.launcher3.util.RotationUtils.deltaRotation;
 import static com.android.launcher3.util.RotationUtils.rotateRect;
 import static com.android.launcher3.util.RotationUtils.rotateSize;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -39,7 +38,6 @@ import android.graphics.Insets;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
-import android.os.Build;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.view.Display;
@@ -52,14 +50,13 @@ import android.view.WindowMetrics;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.launcher3.Flags;
 import com.android.launcher3.R;
-import com.android.launcher3.Utilities;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.util.DaggerSingletonObject;
-import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.WindowBounds;
 
@@ -112,23 +109,9 @@ public class WindowManagerProxy {
     }
 
     /**
-     * Returns if we are in desktop mode or not.
-     */
-    public boolean isInDesktopMode(int displayId) {
-        return false;
-    }
-
-    /**
      * Returns if the display is in desktop-first mode.
      */
     public boolean isDisplayDesktopFirst(Context displayInfoContext) {
-        return false;
-    }
-
-    /**
-     * Returns if the pinned taskbar should be shown when home is visible.
-     */
-    public boolean showLockedTaskbarOnHome(Context displayInfoContext) {
         return false;
     }
 
@@ -137,13 +120,6 @@ public class WindowManagerProxy {
      * and showing desktop tasks.
      */
     public boolean showDesktopTaskbarForFreeformDisplay(Context displayInfoContext) {
-        return false;
-    }
-
-    /**
-     * Returns if the home is visible.
-     */
-    public boolean isHomeVisible() {
         return false;
     }
 
@@ -158,8 +134,8 @@ public class WindowManagerProxy {
         // uses DisplayController instance to determine whether taskbar is shown on home, and this
         // method gets called while initializing DisaplayController.
         normalizeWindowInsets(displayInfoContext,
-                showLockedTaskbarOnHome(displayInfoContext) || showDesktopTaskbarForFreeformDisplay(
-                        displayInfoContext), windowMetrics.getWindowInsets(), insets);
+                showDesktopTaskbarForFreeformDisplay(displayInfoContext),
+                windowMetrics.getWindowInsets(), insets);
         return new WindowBounds(windowMetrics.getBounds(), insets, info.rotation);
     }
 
@@ -169,15 +145,14 @@ public class WindowManagerProxy {
     public WindowInsets normalizeWindowInsets(Context context,
             WindowInsets oldInsets,
             Rect outInsets) {
-        return normalizeWindowInsets(context,
-                DisplayController.showLockedTaskbarOnHome(context)
-                        || DisplayController.showDesktopTaskbarForFreeformDisplay(context),
+        LauncherDisplayInfo info = DisplayController.getInfo(context);
+        return normalizeWindowInsets(context, info.getShowDesktopTaskbarForFreeformDisplay(),
                 oldInsets, outInsets);
     }
 
     WindowInsets normalizeWindowInsets(Context context, boolean taskbarShownOnHome,
             WindowInsets oldInsets, Rect outInsets) {
-        if (!Utilities.ATLEAST_R || !mTaskbarDrawnInProcess) {
+        if (!mTaskbarDrawnInProcess) {
             outInsets.set(oldInsets.getSystemWindowInsetLeft(), oldInsets.getSystemWindowInsetTop(),
                     oldInsets.getSystemWindowInsetRight(), oldInsets.getSystemWindowInsetBottom());
             return oldInsets;
@@ -250,7 +225,7 @@ public class WindowManagerProxy {
      * For large screen, when display cutout is at bottom left/right corner of screen, override
      * display cutout's bottom inset to 0, because launcher allows drawing content over that area.
      */
-    public void applyDisplayCutoutBottomInsetOverrideOnLargeScreen(
+    private static void applyDisplayCutoutBottomInsetOverrideOnLargeScreen(
             @NonNull Context context,
             boolean isLargeScreen,
             int screenWidthPx,
@@ -387,7 +362,7 @@ public class WindowManagerProxy {
             DisplayCutout rotatedCutout = rotateCutout(
                     displayInfo.cutout, displayInfo.size.x, displayInfo.size.y, rotation, i);
             Rect insets = getSafeInsets(rotatedCutout);
-            if (rotatedCutout != null && areBottomDisplayCutoutsSmallAndAtCorners(
+            if (areBottomDisplayCutoutsSmallAndAtCorners(
                     rotatedCutout.getBoundingRectBottom(),
                     bounds.width(),
                     context.getResources())) {
@@ -433,16 +408,9 @@ public class WindowManagerProxy {
      */
     public CachedDisplayInfo getDisplayInfo(Context displayInfoContext) {
         int rotation = getRotation(displayInfoContext);
-        if (Utilities.ATLEAST_S) {
-            WindowMetrics windowMetrics = displayInfoContext.getSystemService(WindowManager.class)
-                    .getMaximumWindowMetrics();
-            return getDisplayInfo(windowMetrics, rotation);
-        } else {
-            Point size = new Point();
-            Display display = getDisplay(displayInfoContext);
-            display.getRealSize(size);
-            return new CachedDisplayInfo(size, rotation);
-        }
+        WindowMetrics windowMetrics = displayInfoContext.getSystemService(WindowManager.class)
+                .getMaximumWindowMetrics();
+        return getDisplayInfo(windowMetrics, rotation);
     }
 
     /**
@@ -531,78 +499,14 @@ public class WindowManagerProxy {
                 }
             }
         }
-        return Utilities.ATLEAST_S ? NavigationMode.NO_BUTTON : NavigationMode.THREE_BUTTONS;
-    }
-
-    /** Returns whether overview on connected displays is enabled */
-    public boolean enableOverviewOnConnectedDisplays() {
-        return Flags.enableOverviewOnConnectedDisplays();
+        return NavigationMode.NO_BUTTON;
     }
 
     /**
      * @see DisplayCutout#getSafeInsets
      */
     public static Rect getSafeInsets(DisplayCutout cutout) {
-        if (Utilities.ATLEAST_Q) {
-            return new Rect(cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
-                    cutout.getSafeInsetRight(), cutout.getSafeInsetBottom());
-        }
-        return new Rect();
+        return new Rect(cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
+                cutout.getSafeInsetRight(), cutout.getSafeInsetBottom());
     }
-
-    /** Registers a listener for Taskbar changes in Desktop Mode.  */
-    public void registerDesktopVisibilityListener(DesktopVisibilityListener listener) { }
-
-    /** Removes a previously registered listener for Taskbar changes in Desktop Mode.  */
-    public void unregisterDesktopVisibilityListener(DesktopVisibilityListener listener) { }
-
-    /** A listener for when the user enters/exits Desktop Mode.  */
-    public interface DesktopVisibilityListener {
-        /**
-         * Called when the desktop mode state on the display whose ID is `displayId` changes.
-         *
-         * @param displayId The ID of the display for which this notification is triggering.
-         * @param isInDesktopModeAndNotInOverview True if a desktop is currently active on the given
-         *                                        display, and Overview is currently inactive.
-         */
-        default void onIsInDesktopModeChanged(int displayId,
-                boolean isInDesktopModeAndNotInOverview) {
-        }
-
-        /**
-         * Called whenever the conditions that allow the creation of desks change.
-         *
-         * @param canCreateDesks whether it is possible to create new desks.
-         */
-        default void onCanCreateDesksChanged(boolean canCreateDesks) {
-        }
-
-        /**
-         * Called when a new desk is added.
-         *
-         * @param displayId The ID of the display on which the desk was added.
-         * @param deskId The ID of the newly added desk.
-         */
-        default void onDeskAdded(int displayId, int deskId) {}
-
-        /**
-         * Called when an existing desk is removed.
-         *
-         * @param displayId The ID of the display on which the desk was removed.
-         * @param deskId The ID of the desk that was removed.
-         */
-        default void onDeskRemoved(int displayId, int deskId) {}
-
-        /**
-         * Called when the active desk changes.
-         *
-         * @param displayId The ID of the display on which the desk activation change is happening.
-         * @param newActiveDesk The ID of the new active desk or -1 if no desk is active anymore
-         *                      (i.e. exit desktop mode).
-         * @param oldActiveDesk The ID of the desk that was previously active, or -1 if no desk was
-         *                      active before.
-         */
-        default void onActiveDeskChanged(int displayId, int newActiveDesk, int oldActiveDesk) {}
-    }
-
 }

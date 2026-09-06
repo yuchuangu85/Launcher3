@@ -17,9 +17,11 @@
 package com.android.launcher3.widgetpicker.shared.model
 
 import android.appwidget.AppWidgetProviderInfo
+import android.content.ComponentName
 import android.content.pm.LauncherActivityInfo
+import android.os.UserHandle
 import com.android.launcher3.widgetpicker.shared.model.WidgetInfo.AppWidgetInfo
-import com.android.launcher3.widgetpicker.shared.model.WidgetInfo.ShortcutInfo
+import com.android.launcher3.widgetpicker.shared.model.WidgetInfo.StaticShortcutInfo
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -88,15 +90,25 @@ sealed class WidgetInfo {
     data class AppWidgetInfo(val appWidgetProviderInfo: AppWidgetProviderInfo) : WidgetInfo()
 
     /**
-     * @param launcherActivityInfo metadata of an installed deep shortcut as received from the
+     * @param launcherActivityInfo metadata of an installed static shortcut as received from the
      *   package manager.
      */
-    data class ShortcutInfo(val launcherActivityInfo: LauncherActivityInfo) : WidgetInfo()
+    data class StaticShortcutInfo(val launcherActivityInfo: LauncherActivityInfo) : WidgetInfo()
+
+    /**
+     * @param componentName component of a pinned shortcut published via requestPinShortcut api.
+     * @param user user handle for the app that this shortcut belongs to
+     */
+    data class PinnedShortcutInfo(val componentName: ComponentName, val user: UserHandle) :
+        WidgetInfo()
 
     override fun toString(): String {
         when (this) {
             is AppWidgetInfo -> "WidgetInfo(provider=${this.appWidgetProviderInfo.provider})"
-            is ShortcutInfo -> "WidgetInfo(activityInfo=${this.launcherActivityInfo.componentName})"
+            is StaticShortcutInfo ->
+                "WidgetInfo(activityInfo=${this.launcherActivityInfo.componentName})"
+            is PinnedShortcutInfo ->
+                "WidgetInfo(shortcutInfo=${this.componentName},user=${this.user})"
         }
         return super.toString()
     }
@@ -109,9 +121,19 @@ fun WidgetInfo.isAppWidget(): Boolean {
     return this is AppWidgetInfo
 }
 
-/** Returns true if the info is about a deep shortcut. */
+/** Indicates that the given widget info is for some type of shortcut. */
+fun WidgetInfo.isShortcut(): Boolean = this.isStaticShortcut() || this.isPinnedShortcut()
+
+/** Returns true if the info is about a static shortcut. */
 @OptIn(ExperimentalContracts::class)
-fun WidgetInfo.isShortcut(): Boolean {
-    contract { returns(true) implies (this@isShortcut is ShortcutInfo) }
-    return this is ShortcutInfo
+fun WidgetInfo.isStaticShortcut(): Boolean {
+    contract { returns(true) implies (this@isStaticShortcut is StaticShortcutInfo) }
+    return this is StaticShortcutInfo
+}
+
+/** Returns true if the info is about a dynamic shortcut (pinned via requestPinShortcut api. */
+@OptIn(ExperimentalContracts::class)
+fun WidgetInfo.isPinnedShortcut(): Boolean {
+    contract { returns(true) implies (this@isPinnedShortcut is WidgetInfo.PinnedShortcutInfo) }
+    return this is WidgetInfo.PinnedShortcutInfo
 }

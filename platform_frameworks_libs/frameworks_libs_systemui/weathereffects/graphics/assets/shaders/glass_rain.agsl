@@ -1,0 +1,192 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+struct GlassRain {
+    highp vec2 drop;
+    highp float dropMask;
+    highp vec2 dropplets;
+    highp float droppletsMask;
+    highp float trailMask;
+    highp vec2 cellUv;
+};
+
+/**
+ * Generates a single layer of rain running down on a foggy glass surface.
+ *
+ * @param uv the UV of the fragment where we will display the rain effect.
+ * @param screenAspectRatio the aspect ratio of the fragment where we will display the effect.
+ * @param time the elapsed time.
+ * @param rainGridSize the size of the grid, where each cell contains a main drop and some
+ * dropplets.
+ * @param rainIntensity how many of the cells will contain drops. Value from 0 (no rain) to 1
+ * (each cell contains a drop).
+ *
+ * @returns GlassRain an object containing all the info to draw the rain.
+ */
+GlassRain generateGlassRain(
+    // UVs of the target fragment (normalized).
+    in vec2 uv,
+    in float screenAspectRatio,
+    in float time,
+    in vec2 rainGridSize,
+    in float rainIntensity
+) {
+    vec2 dropPos = vec2(0.);
+    float cellMainDropMask = 0.0;
+    vec2 trailDropsPos = vec2(0.);
+    float cellDroppletsMask = 0.0;
+    float cellTrailMask = 0.0;
+
+    /* Grid. */
+    // Number of rows and columns (each one is a cell, a drop).
+    float cellAspectRatio = rainGridSize.x / rainGridSize.y;
+    // Aspect ratio impacts visible cells.
+    uv.y /= screenAspectRatio;
+    // scale the UV to allocate number of rows and columns.
+    vec2 gridUv = uv * rainGridSize;
+    // Invert y (otherwise it goes from 0=top to 1=bottom).
+    gridUv.y = 1. - gridUv.y;
+    float verticalGridPos = 2.4 * time / 5.0;
+    // Move grid vertically down.
+    gridUv.y += verticalGridPos;
+
+    /* Cell. */
+    // Get the cell ID based on the grid position. Value from 0 to 1.
+    float cellId = idGenerator(floor(gridUv));
+    // For each cell, we set the internal UV from -0.5 (left, bottom) to 0.5 (right, top).
+    vec2 cellUv = fract(gridUv) - 0.5;
+
+    /* Cell-id-based variations. */
+    // Adjust time based on cellId.
+    time += cellId * 7.1203;
+    // Adjusts UV.y based on cell ID. This will make that the wiggle variation is different for
+    // each cell.
+    uv.y += cellId * 3.83027;
+    // Adjusts scale of each drop (higher is smaller).
+    float scaleVariation = 1.0 + 0.7 * cellId;
+    // Make some cells to not have drops.
+    if (cellId < 1. - rainIntensity) {
+        return GlassRain(dropPos, cellMainDropMask, trailDropsPos, cellDroppletsMask,
+            cellTrailMask, cellUv);
+    }
+
+    /* Cell main drop. */
+    // vertical movement: Fourier Series-Sawtooth Wave (ascending: /|/|/|).
+    float verticalSpeed = TAU / 5.0;
+    float verticalPosVariation = 0.45 * 0.63 * (
+            -1.2 * sin(verticalSpeed * time)
+            -0.5 * sin(2. * verticalSpeed * time)
+            -0.3333 * sin(3. * verticalSpeed * time)
+    );
+
+    // Horizontal movement: Wiggle.
+    float wiggleSpeed = 6.0;
+    float wiggleAmp = 0.5;
+    // Define the start based on the cell id.
+    float horizontalStartAmp = 0.5;
+    float horizontalStart = (cellId - 0.5) * 2.0 * horizontalStartAmp / cellAspectRatio;
+    // Add the wiggle (equation decided by testing in Grapher).
+    float horizontalWiggle = wiggle(uv.y, wiggleSpeed);
+
+    // Add the start and wiggle and make that when we are closer to the edge, we don't wiggle much
+    // (so the drop doesn't go outside it's cell).
+    horizontalWiggle = horizontalStart
+        + (horizontalStartAmp - abs(horizontalStart)) * wiggleAmp * horizontalWiggle;
+
+    // Calculate main cell drop.
+    float dropPosUncorrected = (cellUv.x - horizontalWiggle);
+    dropPos.x = dropPosUncorrected / cellAspectRatio;
+    // Create tear drop shape.
+    verticalPosVariation -= dropPosUncorrected * dropPosUncorrected / cellAspectRatio;
+    dropPos.y = cellUv.y - verticalPosVariation;
+    // Adjust scale.
+    dropPos *= scaleVariation;
+    // Create a circle for the main drop in the cell, based on position.
+    cellMainDropMask = smoothstep(0.06, 0.04, length(dropPos));
+
+    /* Cell trail dropplets. */
+    trailDropsPos.x = (cellUv.x - horizontalWiggle)/ cellAspectRatio;
+    // Substract verticalGridPos to mage the dropplets stick in place.
+    trailDropsPos.y = cellUv.y -verticalGridPos;
+    trailDropsPos.y = (fract(trailDropsPos.y * 4.) - 0.5) / 4.;
+    // Adjust scale.
+    trailDropsPos *= scaleVariation;
+    cellDroppletsMask = smoothstep(0.03, 0.02, length(trailDropsPos));
+    // Fade the dropplets frop the top the farther they are from the main drop.
+    // Multiply by 1.2 so we show more of the trail.
+    float verticalFading = 1.2 * smoothstep(0.5, verticalPosVariation, cellUv.y);
+    cellDroppletsMask *= verticalFading;
+    // Mask dropplets that are under main cell drop.
+    cellDroppletsMask *= smoothstep(-0.06, 0.08, dropPos.y);
+
+    /* Cell trail mask (it will show the image unblurred). */
+    // Gradient for top of the main drop.
+    cellTrailMask = smoothstep(-0.04, 0.04, dropPos.y);
+    // Fades out the closer we get to the top of the cell.
+    cellTrailMask *= verticalFading;
+    // Only show the main section of the trail.
+    cellTrailMask *= smoothstep(0.07, 0.02, abs(dropPos.x));
+
+    cellDroppletsMask *= cellTrailMask;
+
+    return GlassRain(
+        dropPos, cellMainDropMask, trailDropsPos, cellDroppletsMask, cellTrailMask, cellUv);
+}
+
+/**
+ * Generate rain drops that stay in place on the glass surface.
+ */
+vec3 generateStaticGlassRain(vec2 uv, half time, half intensity, vec2 gridSize) {
+    // scale the UV to allocate number of rows and columns.
+    vec2 gridUv = uv * gridSize;
+    // Invert y (otherwise it goes from 0=top to 1=bottom).
+    gridUv.y = 1. - gridUv.y;
+    // Generate column id, to offset columns vertically (so rain is not aligned).
+    float columnId = idGenerator(floor(gridUv.x));
+    gridUv.y += columnId * 5.6;
+
+    // Get the cell ID based on the grid position. Value from 0 to 1.
+    float cellId = idGenerator(floor(gridUv));
+
+    // Draw rain drops with a probability based on the cell id.
+    if (cellId < 0.8) {
+        return vec3(0.);
+    }
+
+    // For each cell, we set the internal UV from -0.5 (left, bottom) to 0.5 (right, top).
+    vec2 cellUv = fract(gridUv) - 0.5;
+    vec2 pixUv = cellUv;
+    pixUv.x *= -1;
+    vec2 pixDistance = screenSize * pixUv / gridSize;
+
+    float delay = 3.5173;
+    float duration = 8.2;
+    float t = time + 100. * cellId;
+    float circletime = floor(t / (duration + delay));
+    float delayOffset = idGenerator(floor(gridUv) + vec2(circletime, 43.14 * cellId));
+    float normalizedTime = map(/* value */     mod(t, duration + delay) - delay * delayOffset,
+                               /* in range */  0, duration,
+                               /* out range */ 0, 1);
+    // Apply a curve to the time.
+    normalizedTime *= normalizedTime;
+
+     vec2 pos = cellUv * (1.5 - 0.5 * cellId + normalizedTime * 50.);
+     float mask = smoothstep(0.3, 0.2, length(pos))
+                 * smoothstep(0.2, 0.06, normalizedTime)
+                 * smoothstep(0., 0.45, intensity);
+
+    return vec3(pos * 0.19, mask);
+}

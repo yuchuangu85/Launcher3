@@ -17,49 +17,28 @@
 package com.android.launcher3.widget;
 
 import android.app.WallpaperColors;
-import android.appwidget.AppWidgetHostView;
 import android.content.Context;
-import android.graphics.Rect;
 import android.util.SparseIntArray;
-import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.launcher3.R;
-import com.android.launcher3.util.ResourceBasedOverride;
+import javax.inject.Inject;
 
 /** Extracts the colors we need from the wallpaper at given locations. */
-public class LocalColorExtractor implements ResourceBasedOverride {
+public class LocalColorExtractor {
 
-    /** Listener for color changes on a screen location. */
-    public interface Listener {
-        /**
-         * Method called when the colors on a registered location has changed.
-         *
-         * {@code extractedColors} maps the color resources {@code android.R.colors.system_*} to
-         * their value, in a format that can be passed directly to
-         * {@link AppWidgetHostView#setColorResources(SparseIntArray)}.
-         */
-        void onColorsChanged(SparseIntArray extractedColors);
-    }
-
-    /**
-     * Creates a new instance of LocalColorExtractor
-     */
-    public static LocalColorExtractor newInstance(Context context) {
-        return Overrides.getObject(LocalColorExtractor.class, context.getApplicationContext(),
-                R.string.local_colors_extraction_class);
-    }
-
-    /** Sets the object that will receive the color changes. */
-    public void setListener(@Nullable Listener listener) {
-        // no-op
+    @Inject
+    public LocalColorExtractor() {
     }
 
     /**
      * Updates the base context to contain the colors override
      */
-    public void applyColorsOverride(Context base, WallpaperColors colors) { }
+    @Nullable
+    public ColorsOverride applyColorsOverride(Context base, WallpaperColors colors) {
+        return null;
+    }
 
     /**
      * Generates color resource overrides from {@link WallpaperColors}.
@@ -72,5 +51,18 @@ public class LocalColorExtractor implements ResourceBasedOverride {
     /**
      * Updates the base context to contain the colors override
      */
-    public void applyColorsOverride(Context base, SparseIntArray override) { }
+    @Nullable
+    public ColorsOverride applyColorsOverride(Context base, SparseIntArray override) {
+        return null;
+    }
+
+    /**
+     * Updates the base context with a color overlay generated using the seeds colors and style, and
+     * returns a {@link ColorsOverride} for using the override
+     */
+    @Nullable
+    public ColorsOverride applyColorOverlay(@NonNull Context base, @NonNull int[] seedColors,
+            int style) {
+        return null;
+    }
 }

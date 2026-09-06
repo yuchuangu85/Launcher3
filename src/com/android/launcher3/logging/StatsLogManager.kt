@@ -18,7 +18,6 @@ package com.android.launcher3.logging
 import android.content.Context
 import android.view.View
 import androidx.slice.SliceItem
-import com.android.launcher3.R
 import com.android.launcher3.dagger.LauncherComponentProvider.appComponent
 import com.android.launcher3.logger.LauncherAtom
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo
@@ -31,7 +30,10 @@ import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_OVERVIEW_GESTURE
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.views.ActivityContext
-import javax.inject.Inject
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import javax.inject.Provider
 
 /**
  * Handles the user event logging in R+.
@@ -41,12 +43,17 @@ import javax.inject.Inject
  * Actual call happens only for Launcher variant that implements QuickStep.
  * </pre> *
  */
-open class StatsLogManager protected constructor(@JvmField protected val mContext: Context) {
-    @JvmField
-    protected val mActivityContext: ActivityContext? =
-        ActivityContext.lookupContextNoThrow(mContext)
+class StatsLogManager
+@AssistedInject
+constructor(
+    @Assisted context: Context,
+    private val loggerProvider: Provider<StatsLogger>,
+    private val latencyLoggerProvider: Provider<StatsLatencyLogger>,
+    private val impressionLoggerProvider: Provider<StatsImpressionLogger>,
+) {
 
-    private var mKeyboardStateManager: KeyboardStateManager? = null
+    private val activityContext: ActivityContext? = ActivityContext.lookupContextNoThrow(context)
+
     private var mInstanceId: InstanceId? = null
 
     /**
@@ -54,11 +61,10 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
      * Very similar to [dagger.assisted.AssistedFactory]. But [dagger.assisted.AssistedFactory]
      * cannot be overridden and this makes dagger binding difficult.
      */
-    open class StatsLogManagerFactory @Inject constructor() {
+    @AssistedFactory
+    interface StatsLogManagerFactory {
 
-        open fun create(context: Context): StatsLogManager {
-            return StatsLogManager(context)
-        }
+        fun create(@Assisted context: Context): StatsLogManager
     }
 
     interface EventEnum {
@@ -123,6 +129,22 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
                     "widget picker.")
         )
         LAUNCHER_WIDGETSTRAY_EXPAND_PRESS(1978),
+        @UiEvent(doc = ("Widget picker began animating to open."))
+        LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_BEGIN(1979),
+        @UiEvent(doc = ("Widget picker was fully opened"))
+        LAUNCHER_WIDGET_PICKER_OPEN_ANIMATION_END(1980),
+        @UiEvent(
+            doc =
+                ("User tapped on an app in the single pane variant of widget picker to" +
+                    " expand it.")
+        )
+        LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_BEGIN(1981),
+        @UiEvent(
+            doc =
+                ("An app section that user tapped on in the single pane variant of widget " +
+                    "picker was fully expanded.")
+        )
+        LAUNCHER_WIDGET_PICKER_APP_EXPAND_ANIMATION_END(1982),
         @UiEvent(doc = "A dragged item is dropped on 'Remove' button in the target bar")
         LAUNCHER_ITEM_DROPPED_ON_REMOVE(465),
         @UiEvent(doc = "A dragged item is dropped on 'Cancel' button in the target bar")
@@ -180,6 +202,10 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
         @UiEvent(doc = "User tapped on pin system shortcut.") LAUNCHER_SYSTEM_SHORTCUT_PIN_TAP(522),
         @UiEvent(doc = "User tapped on don't suggest app system shortcut.")
         LAUNCHER_SYSTEM_SHORTCUT_DONT_SUGGEST_APP_TAP(1603),
+        @UiEvent(doc = "User tapped on system shortcut to enable App Lock")
+        LAUNCHER_SYSTEM_SHORTCUT_ENABLE_APP_LOCK_TAP(2510),
+        @UiEvent(doc = "User tapped on system shortcut to disable App Lock")
+        LAUNCHER_SYSTEM_SHORTCUT_DISABLE_APP_LOCK_TAP(2511),
         @UiEvent(doc = "User is shown All Apps education view.") LAUNCHER_ALL_APPS_EDU_SHOWN(523),
         @UiEvent(doc = "User opened a folder.") LAUNCHER_FOLDER_OPEN(551),
         @UiEvent(doc = "Hotseat education half sheet seen") LAUNCHER_HOTSEAT_EDU_SEEN(479),
@@ -256,10 +282,6 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
         LAUNCHER_ADD_NEW_APPS_TO_HOME_SCREEN_ENABLED(613),
         @UiEvent(doc = "For new apps, add app icons to home screen disabled.")
         LAUNCHER_ADD_NEW_APPS_TO_HOME_SCREEN_DISABLED(614),
-        @UiEvent(doc = "Home screen rotation is enabled when phone is rotated.")
-        LAUNCHER_HOME_SCREEN_ROTATION_ENABLED(615),
-        @UiEvent(doc = "Home screen rotation is disabled when phone is rotated.")
-        LAUNCHER_HOME_SCREEN_ROTATION_DISABLED(616),
         @UiEvent(doc = "Suggestions in all apps list enabled.")
         LAUNCHER_ALL_APPS_SUGGESTIONS_ENABLED(619),
         @UiEvent(doc = "Suggestions in all apps list disabled.")
@@ -306,9 +328,6 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
         @UiEvent(doc = "Current grid size is changed to 4x4") LAUNCHER_GRID_SIZE_4_BY_4(2183),
         @UiEvent(doc = "Current grid size is changed to 4x5") LAUNCHER_GRID_SIZE_4_BY_5(2184),
         @UiEvent(doc = "Current grid size is changed to 4x6") LAUNCHER_GRID_SIZE_4_BY_6(2185),
-        @UiEvent(doc = "Current grid size is changed to 4x7")
-        LAUNCHER_GRID_SIZE_4_BY_7(2189),
-
         @UiEvent(doc = "Current grid size is changed to 5x5") LAUNCHER_GRID_SIZE_5_BY_5(2186),
         @UiEvent(doc = "Current grid size is changed to 5x6") LAUNCHER_GRID_SIZE_5_BY_6(2187),
         @UiEvent(doc = "Current grid size is changed to 6x5") LAUNCHER_GRID_SIZE_6_BY_5(2188),
@@ -602,6 +621,15 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
         LAUNCHER_OMNI_GET_LONG_PRESS_RUNNABLE(1545),
         @UiEvent(doc = "User tapped on \"change aspect ratio\" system shortcut.")
         LAUNCHER_ASPECT_RATIO_SETTINGS_SYSTEM_SHORTCUT_TAP(2219),
+        @UiEvent(
+            doc = "User tapped or long pressed on create new folder icon inside launcher settings."
+        )
+        LAUNCHER_CREATE_NEW_FOLDER_BUTTON_TAP_OR_LONGPRESS(2508),
+        @UiEvent(
+            doc =
+                "User attempts to swipe over the last page. Swipe left for LTR, swipe right for RTL."
+        )
+        LAUNCHER_SWIPE_OVER_LAST_PAGE(2518),
 
         // One Grid Flags
         @UiEvent(doc = "User sets the device in Fixed Landscape")
@@ -628,6 +656,58 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
         LAUNCHER_DESKTOP_MODE_TASKBAR_UNPINNED(2242),
         @UiEvent(doc = "Launcher window insets controller reportedly null")
         LAUNCHER_WINDOW_INSETS_CONTROLLER_NULL(2400),
+        @UiEvent(doc = "Widget settings tapped on QSB in launcher")
+        LAUNCHER_QSB_WIDGET_SETTINGS_TAP(2415),
+        @UiEvent(doc = "User tapped to add an icon to home screen from all apps")
+        LAUNCHER_TAP_TO_ADD_TO_HOME_SCREEN_FROM_ALL_APPS(2445),
+        @UiEvent(doc = "User tapped to add a deep shortcut from the long press menu")
+        LAUNCHER_TAP_TO_ADD_DEEP_SHORTCUT(2446),
+        @UiEvent(
+            doc =
+                "User opened the home screen file system item via its long-press/right-click context menu"
+        )
+        LAUNCHER_HOME_SCREEN_FILES_OPEN_VIA_CONTEXT_MENU(2542),
+        @UiEvent(
+            doc =
+                "User copied the home screen file system item via its long-press/right-click context menu"
+        )
+        LAUNCHER_HOME_SCREEN_FILES_COPY_VIA_CONTEXT_MENU(2701),
+        @UiEvent(
+            doc =
+                "User renamed the home screen file system item via its long-press/right-click context menu"
+        )
+        LAUNCHER_HOME_SCREEN_FILES_RENAME_VIA_CONTEXT_MENU(2660),
+        @UiEvent(
+            doc =
+                "User deleted the home screen file system item via its long-press/right-click context menu"
+        )
+        LAUNCHER_HOME_SCREEN_FILES_DELETE_VIA_CONTEXT_MENU(2543),
+        @UiEvent(doc = "User deleted the home screen file system item via drag-and-drop gesture")
+        LAUNCHER_HOME_SCREEN_FILES_DELETE_VIA_DRAG_AND_DROP(2544),
+        @UiEvent(doc = "User opened the long press menu from an app")
+        LAUNCHER_OPEN_APP_LONG_PRESS_MENU(2496),
+        @UiEvent(doc = "User opened the long press menu from an app shortcut")
+        LAUNCHER_OPEN_APP_SHORTCUT_LONG_PRESS_MENU(2497),
+        @UiEvent(doc = "User opened the long press menu from an app pair")
+        LAUNCHER_OPEN_APP_PAIR_LONG_PRESS_MENU(2498),
+        @UiEvent(doc = "User opened the long press menu from a folder")
+        LAUNCHER_OPEN_FOLDER_LONG_PRESS_MENU(2499),
+        @UiEvent(doc = "User opened the long press menu from a widget")
+        LAUNCHER_OPEN_WIDGET_LONG_PRESS_MENU(2500),
+        @UiEvent(doc = "User closed the long press menu from an app")
+        LAUNCHER_CLOSE_APP_LONG_PRESS_MENU(2545),
+        @UiEvent(doc = "User closed the long press menu from an app shortcut")
+        LAUNCHER_CLOSE_APP_SHORTCUT_LONG_PRESS_MENU(2546),
+        @UiEvent(doc = "User closed the long press menu from an app pair")
+        LAUNCHER_CLOSE_APP_PAIR_LONG_PRESS_MENU(2547),
+        @UiEvent(doc = "User closed the long press menu from a folder")
+        LAUNCHER_CLOSE_FOLDER_LONG_PRESS_MENU(2548),
+        @UiEvent(doc = "User closed the long press menu from a widget")
+        LAUNCHER_CLOSE_WIDGET_LONG_PRESS_MENU(2549),
+        @UiEvent(doc = "The total number of file items the user placed on their home screen")
+        LAUNCHER_HOME_SCREEN_FILES_COUNT(2554),
+        @UiEvent(doc = "User tapped more options A11y button")
+        LAUNCHER_TASKBAR_MORE_OPTIONS_A11Y_BUTTON_TAP(2584),
         // ADD MORE
     }
 
@@ -657,11 +737,7 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
                     "triggering Contextual Search")
         )
         LAUNCHER_LATENCY_CONTEXTUAL_SEARCH_LPNH_ABANDON(2171),
-    }
-
-    /** Launcher specific ranking related events. */
-    enum class LauncherRankingEvent(override val id: Int) : EventEnum {
-        UNKNOWN(0) // ADD MORE
+        @UiEvent(doc = "The duration to recreate taskbar.") LAUNCHER_LATENCY_RECREATE_TASKBAR(2683),
     }
 
     /** Helps to construct and log launcher event. */
@@ -671,6 +747,9 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
 
         /** Sets [InstanceId] of log message. */
         fun withInstanceId(instanceId: InstanceId?) = this
+
+        /** Sets the [activityContext] on which the event occurred */
+        fun withActivityContext(activityContext: ActivityContext?) = this
 
         /** Sets rank field of log message. */
         fun withRank(rank: Int) = this
@@ -723,7 +802,7 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
          * Builds the final message and logs it to two different atoms, one for event tracking and
          * the other for jank tracking.
          */
-        fun sendToInteractionJankMonitor(event: EventEnum?, v: View?) {}
+        fun sendToInteractionJankMonitor(event: EventEnum?, view: View?) {}
     }
 
     /** Helps to construct and log latency event. */
@@ -758,6 +837,9 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
 
         /** Sets latency of the event. */
         fun withLatency(latencyInMillis: Long) = this
+
+        /** Sets timestamp of the end event. */
+        fun withEndTimestamp(timestampInMillis: Long) = this
 
         /** Sets [LatencyType] of log message. */
         fun withType(type: LatencyType?) = this
@@ -824,59 +906,27 @@ open class StatsLogManager protected constructor(@JvmField protected val mContex
     }
 
     /** Returns new logger object. */
-    fun logger(): StatsLogger {
-        val logger = createLogger()
-        if (mInstanceId != null) {
-            logger.withInstanceId(mInstanceId)
+    fun logger(): StatsLogger =
+        loggerProvider.get().withActivityContext(activityContext).forInstanceId {
+            withInstanceId(it)
         }
-        return logger
-    }
 
     /** Returns new latency logger object. */
-    fun latencyLogger(): StatsLatencyLogger {
-        val logger = createLatencyLogger()
-        if (mInstanceId != null) {
-            logger.withInstanceId(mInstanceId)
-        }
-        return logger
-    }
+    fun latencyLogger(): StatsLatencyLogger =
+        latencyLoggerProvider.get().forInstanceId { withInstanceId(it) }
 
     /** Returns new impression logger object. */
-    fun impressionLogger(): StatsImpressionLogger {
-        val logger = createImpressionLogger()
-        if (mInstanceId != null) {
-            logger.withInstanceId(mInstanceId)
-        }
-        return logger
-    }
-
-    /** Returns a singleton KeyboardStateManager. */
-    fun keyboardStateManager(): KeyboardStateManager {
-        if (mKeyboardStateManager == null) {
-            mKeyboardStateManager =
-                KeyboardStateManager(
-                    mContext.resources?.getDimensionPixelSize(R.dimen.default_ime_height) ?: 0
-                )
-        }
-        return mKeyboardStateManager!!
-    }
-
-    protected open fun createLogger(): StatsLogger {
-        return object : StatsLogger {}
-    }
-
-    protected open fun createLatencyLogger(): StatsLatencyLogger {
-        return object : StatsLatencyLogger {}
-    }
-
-    protected open fun createImpressionLogger(): StatsImpressionLogger {
-        return object : StatsImpressionLogger {}
-    }
+    fun impressionLogger(): StatsImpressionLogger =
+        impressionLoggerProvider.get().forInstanceId { withInstanceId(it) }
 
     /** Sets InstanceId to every new [StatsLogger] object returned by [.logger] when not-null. */
     fun withDefaultInstanceId(instanceId: InstanceId?): StatsLogManager {
         this.mInstanceId = instanceId
         return this
+    }
+
+    private inline fun <T> T.forInstanceId(block: T.(InstanceId) -> Unit) = apply {
+        mInstanceId?.let { block.invoke(this, it) }
     }
 
     companion object {

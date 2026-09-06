@@ -16,7 +16,11 @@
 package com.android.launcher3.util;
 
 import static android.appwidget.AppWidgetProviderInfo.WIDGET_FEATURE_HIDE_FROM_PICKER;
+import static android.os.Process.myUserHandle;
 
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+
+import android.app.Instrumentation;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
@@ -24,9 +28,12 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.os.Process;
+import android.util.Log;
 
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
+import com.android.launcher3.testcomponent.AppWidgetNoConfig;
+import com.android.launcher3.testcomponent.AppWidgetWithConfig;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.launcher3.widget.LauncherWidgetHolder;
 import com.android.launcher3.widget.PendingAddWidgetInfo;
@@ -36,6 +43,8 @@ import com.android.launcher3.widget.WidgetManagerHelper;
  * Common method for widget binding
  */
 public class WidgetUtils {
+
+    private static final String TAG = "WidgetUtils";
 
     /**
      * Creates a LauncherAppWidgetInfo corresponding to {@param info}
@@ -110,5 +119,25 @@ public class WidgetUtils {
      */
     public static AppWidgetProviderInfo createAppWidgetProviderInfo(ComponentName cn) {
         return createAppWidgetProviderInfo(cn, /*hideFromPicker=*/ false);
+    }
+
+    /**
+     * Finds a widget provider which can fit on the home screen.
+     *
+     * @param hasConfigureScreen if true, a provider with a config screen is returned.
+     */
+    public static LauncherAppWidgetProviderInfo findWidgetProvider(boolean hasConfigureScreen) {
+        Instrumentation i = getInstrumentation();
+        ComponentName cn = new ComponentName(i.getContext(),
+                hasConfigureScreen ? AppWidgetWithConfig.class : AppWidgetNoConfig.class);
+        Log.d(TAG, "findWidgetProvider componentName=" + cn.flattenToString());
+        WidgetManagerHelper widgetManagerHelper = new WidgetManagerHelper(i.getTargetContext());
+        LauncherAppWidgetProviderInfo providerInfo =
+                widgetManagerHelper.findProvider(cn, myUserHandle());
+        if (providerInfo != null) {
+            return providerInfo;
+        }
+        return LauncherAppWidgetProviderInfo.fromProviderInfo(i.getTargetContext(),
+                createAppWidgetProviderInfo(cn));
     }
 }

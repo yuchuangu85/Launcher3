@@ -25,6 +25,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.R;
@@ -94,7 +95,7 @@ public class DeepShortcutTextView extends BubbleTextView {
     }
 
     @Override
-    protected boolean shouldIgnoreTouchDown(float x, float y) {
+    protected boolean shouldIgnoreTouchDown(MotionEvent event) {
         // assume the whole view as clickable
         return false;
     }

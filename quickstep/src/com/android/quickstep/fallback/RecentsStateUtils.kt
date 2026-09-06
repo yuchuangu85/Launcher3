@@ -17,18 +17,39 @@
 package com.android.quickstep.fallback
 
 import com.android.launcher3.LauncherState
+import com.android.launcher3.statemanager.BaseState
+import com.android.launcher3.testing.shared.TestProtocol
 
 fun RecentsState.toLauncherState(): LauncherState {
     return when (ordinal) {
         RecentsState.DEFAULT_STATE_ORDINAL -> LauncherState.OVERVIEW
         RecentsState.MODAL_TASK_ORDINAL -> LauncherState.OVERVIEW_MODAL_TASK
         RecentsState.BACKGROUND_APP_ORDINAL -> LauncherState.BACKGROUND_APP
-        RecentsState.HOME_STATE_ORDINAL -> LauncherState.NORMAL
-        RecentsState.BG_LAUNCHER_ORDINAL -> LauncherState.NORMAL
         RecentsState.OVERVIEW_SPLIT_SELECT_ORDINAL -> LauncherState.OVERVIEW_SPLIT_SELECT
+        RecentsState.HOME_STATE_ORDINAL,
+        RecentsState.BG_LAUNCHER_ORDINAL,
+        RecentsState.HIDDEN_ORDINAL -> LauncherState.NORMAL
         else -> LauncherState.NORMAL
     }
 }
+
+fun LauncherState.toRecentsState(): RecentsState {
+    return when (ordinal) {
+        TestProtocol.OVERVIEW_STATE_ORDINAL -> RecentsState.DEFAULT
+        TestProtocol.OVERVIEW_MODAL_TASK_STATE_ORDINAL -> RecentsState.MODAL_TASK
+        TestProtocol.BACKGROUND_APP_STATE_ORDINAL -> RecentsState.BACKGROUND_APP
+        TestProtocol.NORMAL_STATE_ORDINAL -> RecentsState.HOME
+        TestProtocol.OVERVIEW_SPLIT_SELECT_ORDINAL -> RecentsState.OVERVIEW_SPLIT_SELECT
+        else -> RecentsState.BG_LAUNCHER
+    }
+}
+
+fun <T> BaseState<T>.toRecentsState(): RecentsState? =
+    when (this) {
+        is RecentsState -> this
+        is LauncherState -> this.toRecentsState()
+        else -> null
+    }
 
 fun LauncherState.hasEquivalentRecentsState(): Boolean {
     return when (this) {

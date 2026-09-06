@@ -16,22 +16,30 @@
 
 package com.android.quickstep.util
 
+import android.app.WindowConfiguration.ACTIVITY_TYPE_STANDARD
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Rect
+import android.os.UserHandle
 import android.view.Display.DEFAULT_DISPLAY
 import android.view.Display.INVALID_DISPLAY
+import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.util.LauncherMultivalentJUnit
-import com.android.launcher3.util.SplitConfigurationOptions
+import com.android.launcher3.util.ModelTestExtensions.preloadAppStore
+import com.android.launcher3.util.SandboxApplication
+import com.android.launcher3.util.TestActivityContext
 import com.android.systemui.shared.recents.model.Task
 import com.android.wm.shell.shared.split.SplitBounds
 import com.android.wm.shell.shared.split.SplitScreenConstants
 import com.google.common.truth.Truth.assertThat
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(LauncherMultivalentJUnit::class)
 class GroupTaskTest {
+    @get:Rule val app = SandboxApplication()
+    @get:Rule val context = TestActivityContext(app)
 
     @Test
     fun testGroupTask_sameInstance_isEqual() {
@@ -62,14 +70,7 @@ class GroupTaskTest {
 
     @Test
     fun testGroupTask_equalSplitTasks_isEqual() {
-        val splitBounds =
-            SplitBounds(
-                Rect(),
-                Rect(),
-                1,
-                2,
-                SplitScreenConstants.SNAP_TO_2_50_50,
-            )
+        val splitBounds = SplitBounds(Rect(), Rect(), 1, 2, SplitScreenConstants.SNAP_TO_2_50_50)
         val task1 = SplitTask(createTask(1), createTask(2), splitBounds)
         val task2 = SplitTask(createTask(1), createTask(2), splitBounds)
         assertThat(task1).isEqualTo(task2)
@@ -77,22 +78,8 @@ class GroupTaskTest {
 
     @Test
     fun testGroupTask_differentSplitTasks_isNotEqual() {
-        val splitBounds1 =
-            SplitBounds(
-                Rect(),
-                Rect(),
-                1,
-                2,
-                SplitScreenConstants.SNAP_TO_2_50_50,
-            )
-        val splitBounds2 =
-            SplitBounds(
-                Rect(),
-                Rect(),
-                1,
-                2,
-                SplitScreenConstants.SNAP_TO_2_33_66,
-            )
+        val splitBounds1 = SplitBounds(Rect(), Rect(), 1, 2, SplitScreenConstants.SNAP_TO_2_50_50)
+        val splitBounds2 = SplitBounds(Rect(), Rect(), 1, 2, SplitScreenConstants.SNAP_TO_2_33_66)
         val task1 = SplitTask(createTask(1), createTask(2), splitBounds1)
         val task2 = SplitTask(createTask(1), createTask(2), splitBounds2)
         assertThat(task1).isNotEqualTo(task2)
@@ -133,14 +120,7 @@ class GroupTaskTest {
 
     @Test
     fun testSplitTask_matchesDisplayId() {
-        val splitBounds =
-            SplitBounds(
-                Rect(),
-                Rect(),
-                1,
-                2,
-                SplitScreenConstants.SNAP_TO_2_50_50,
-            )
+        val splitBounds = SplitBounds(Rect(), Rect(), 1, 2, SplitScreenConstants.SNAP_TO_2_50_50)
         val task1 =
             SplitTask(createTask(1, INVALID_DISPLAY), createTask(2, INVALID_DISPLAY), splitBounds)
         assertThat(task1.matchesDisplayId(DEFAULT_DISPLAY)).isTrue()
@@ -163,22 +143,129 @@ class GroupTaskTest {
         assertThat(task6.matchesDisplayId(DISPLAY_2)).isTrue()
     }
 
-    private fun createTask(id: Int, displayId: Int = INVALID_DISPLAY, pkg: String? = null): Task {
-        val intent = Intent()
-        pkg.let { intent.setPackage(it) }
+    @Test
+    fun testSingleTask_makeWorkspaceItem() {
+        val testComponentName = ComponentName(PACKAGE, "")
+        val matchingApp =
+            AppInfo().apply {
+                componentName = testComponentName
+                user = UserHandle.of(0)
+                title = "Test App"
+                intent = Intent().setComponent(testComponentName)
+            }
+        context.preloadAppStore(arrayOf(matchingApp))
+
+        val machingTask = SingleTask(createTask(id = 0, displayId = DISPLAY_2, pkg = PACKAGE))
+        val workspaceItemInfo = machingTask.makeWorkspaceItem(context)
+
+        assertThat(workspaceItemInfo).isNotNull()
+        assertThat(workspaceItemInfo!!.title).isEqualTo(matchingApp.title)
+
+        val anotherTask =
+            SingleTask(createTask(id = 0, displayId = DISPLAY_2, pkg = "OTHER_PACKAGE"))
+        val mismatchingItemInfo = anotherTask.makeWorkspaceItem(context)
+        assertThat(mismatchingItemInfo).isNull()
+    }
+
+    @Test
+    fun makeWorkspaceItem_findsAppByExactComponent() {
+        // Sets up an app in the store and verifies that makeWorkspaceItem can find it
+        // using an exact component name and user match.
+        val component = ComponentName(PACKAGE, "$PACKAGE.Activity1")
+        val appInfo = createAppInfo(component, "App 1", 0)
+        context.preloadAppStore(arrayOf(appInfo))
+
+        val task = createTask(id = 1, componentName = component, userId = 0)
+        val workspaceItemInfo = SingleTask(task).makeWorkspaceItem(context)
+
+        assertThat(workspaceItemInfo).isNotNull()
+        assertThat(workspaceItemInfo?.title).isEqualTo("App 1")
+    }
+
+    @Test
+    fun makeWorkspaceItem_findsAppByPackageAsFallback() {
+        // Verifies that if an exact component match fails, makeWorkspaceItem falls back to
+        // matching by package name.
+        val storedComponent = ComponentName(PACKAGE, "$PACKAGE.Activity1")
+        val taskComponent = ComponentName(PACKAGE, "$PACKAGE.Activity2")
+        val appInfo = createAppInfo(storedComponent, "App 1", 0)
+        context.preloadAppStore(arrayOf(appInfo))
+
+        val task = createTask(id = 1, componentName = taskComponent, userId = 0)
+        val workspaceItemInfo = SingleTask(task).makeWorkspaceItem(context)
+
+        assertThat(workspaceItemInfo).isNotNull()
+        assertThat(workspaceItemInfo?.title).isEqualTo("App 1")
+    }
+
+    @Test
+    fun makeWorkspaceItem_prefersExactComponentOverPackageMatch() {
+        // Sets up two apps with the same package. Verifies that makeWorkspaceItem chooses the
+        // one with the exact component match, not just the first one with a package match.
+        val component1 = ComponentName(PACKAGE, "$PACKAGE.Activity1")
+        val component2 = ComponentName(PACKAGE, "$PACKAGE.Activity2")
+        val appInfo1 = createAppInfo(component1, "App 1", 0)
+        val appInfo2 = createAppInfo(component2, "App 2", 0)
+        context.preloadAppStore(arrayOf(appInfo1, appInfo2))
+
+        val task = createTask(id = 1, componentName = component2, userId = 0)
+        val workspaceItemInfo = SingleTask(task).makeWorkspaceItem(context)
+
+        assertThat(workspaceItemInfo).isNotNull()
+        assertThat(workspaceItemInfo?.title).isEqualTo("App 2")
+    }
+
+    @Test
+    fun makeWorkspaceItem_returnsNullForUserMismatch() {
+        // Verifies that if an app component matches but the user ID does not,
+        // makeWorkspaceItem returns null.
+        val component = ComponentName(PACKAGE, "$PACKAGE.Activity1")
+        val appInfo = createAppInfo(component, "App 1", userId = 0)
+        context.preloadAppStore(arrayOf(appInfo))
+
+        val task = createTask(id = 1, componentName = component, userId = 10)
+        val workspaceItemInfo = SingleTask(task).makeWorkspaceItem(context)
+
+        assertThat(workspaceItemInfo).isNull()
+    }
+
+    private fun createAppInfo(component: ComponentName, title: String, userId: Int): AppInfo {
+        return AppInfo().apply {
+            componentName = component
+            this.title = title
+            user = UserHandle.of(userId)
+            intent = Intent().setComponent(component)
+        }
+    }
+
+    private fun createTask(
+        id: Int,
+        displayId: Int = INVALID_DISPLAY,
+        componentName: ComponentName = ComponentName("", ""),
+        userId: Int = 0,
+        pkg: String? = null,
+    ): Task {
+        val finalComponentName =
+            componentName.takeIf { it.packageName.isNotEmpty() } ?: ComponentName(pkg ?: "", "")
+        val intent = Intent().setComponent(finalComponentName)
+        (pkg ?: finalComponentName.packageName.takeIf { it.isNotEmpty() })?.let {
+            intent.setPackage(it)
+        }
         return Task(
             Task.TaskKey(
                 id,
-                0,
+                0, /* windowingMode */
                 intent,
-                ComponentName(pkg ?: "", ""),
-                0,
-                0,
+                finalComponentName,
+                userId,
+                0, /* realActivity */
                 displayId,
-                null,
-                0,
-                false,
-                false,
+                null, /* lastActiveTime */
+                0, /* colorPrimary */
+                false, /* isDockable */
+                false, /* isLocked */
+                ACTIVITY_TYPE_STANDARD,
+                false, /* topIsHome */
             )
         )
     }

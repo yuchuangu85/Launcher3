@@ -53,6 +53,8 @@ class VoiceInteractionWindowController(val context: TaskbarActivityContext) :
     // Only initialized if isSeparateBackgroundEnabled
     private var separateWindowForTaskbarBackground: BaseDragLayer<TaskbarActivityContext>? = null
     private var separateWindowLayoutParams: WindowManager.LayoutParams? = null
+    private var overlayContext: android.content.Context? = null
+    private var overlayWindowManager: WindowManager? = null
 
     private var isVoiceInteractionWindowVisible: Boolean = false
     private var pendingAttachedToWindowListener: View.OnAttachStateChangeListener? = null
@@ -63,6 +65,10 @@ class VoiceInteractionWindowController(val context: TaskbarActivityContext) :
         if (!isSeparateBackgroundEnabled) {
             return
         }
+
+        overlayContext =
+            context.createWindowContext(context.display, TYPE_APPLICATION_OVERLAY, null)
+        overlayWindowManager = overlayContext?.getSystemService(WindowManager::class.java)
 
         separateWindowForTaskbarBackground =
             object : BaseDragLayer<TaskbarActivityContext>(context, null, 0) {
@@ -157,18 +163,30 @@ class VoiceInteractionWindowController(val context: TaskbarActivityContext) :
      */
     private fun moveTaskbarBackgroundToAppropriateLayer(skipAnim: Boolean) {
         val moveToLowerLayer = isVoiceInteractionWindowVisible
-        val onWindowsSynchronized =
+        val onWindowsSynchronized: () -> Unit =
             if (moveToLowerLayer) {
                 // First add the temporary window, then hide the overlapping taskbar background.
-                context.addWindowView(
-                    separateWindowForTaskbarBackground,
-                    separateWindowLayoutParams,
-                );
-                { controllers.taskbarDragLayerController.setIsBackgroundDrawnElsewhere(true) }
+                if (separateWindowForTaskbarBackground?.isAttachedToWindow == false) {
+                    overlayWindowManager?.addView(
+                        separateWindowForTaskbarBackground,
+                        separateWindowLayoutParams,
+                    )
+                }
+                val syncAction = {
+                    controllers.taskbarDragLayerController.setIsBackgroundDrawnElsewhere(true)
+                }
+                syncAction
             } else {
                 // First reapply the original taskbar background, then remove the temporary window.
-                controllers.taskbarDragLayerController.setIsBackgroundDrawnElsewhere(false);
-                { context.removeWindowView(separateWindowForTaskbarBackground) }
+                controllers.taskbarDragLayerController.setIsBackgroundDrawnElsewhere(false)
+                val syncAction = {
+                    if (separateWindowForTaskbarBackground?.isAttachedToWindow == true) {
+                        overlayWindowManager?.removeViewImmediate(
+                            separateWindowForTaskbarBackground
+                        )
+                    }
+                }
+                syncAction
             }
 
         if (skipAnim) {

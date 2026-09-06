@@ -16,8 +16,6 @@
 
 package com.android.launcher3.tapl
 
-import android.os.SystemClock
-import android.view.MotionEvent
 import androidx.test.uiautomator.UiObject2
 import org.junit.Assert
 
@@ -31,20 +29,10 @@ import org.junit.Assert
 class BubbleBar(private val mLauncher: LauncherInstrumentation) {
 
     private val bubbleBarViewSelector = mLauncher.getLauncherObjectSelector(RES_ID_NAME_BUBBLE_BAR)
-    private val dismissViewSelector = mLauncher.getLauncherObjectSelector(RES_ID_NAME_DISMISS_VIEW)
 
     init {
         Assert.assertFalse(bubbles.isEmpty())
     }
-
-    /**
-     * Returns the selected bubble in the bubble bar.
-     *
-     * Bubbles in the collapsed bubble bar are reversed. The selected bubble is the last bubble in
-     * the view hierarchy.
-     */
-    private val selectedBubble: UiObject2
-        get() = bubbles.last()
 
     /**
      * Returns all the bubbles in the bubble bar.
@@ -54,19 +42,6 @@ class BubbleBar(private val mLauncher: LauncherInstrumentation) {
      */
     private val bubbles: List<UiObject2>
         get() = mLauncher.waitForLauncherObject(bubbleBarViewSelector).children
-
-    /** Collapse the bubble bar if it is expanded */
-    fun collapse() {
-        mLauncher.eventsCheck().use {
-            verifyExpanded {
-                mLauncher.waitForSystemUiObject(RES_ID_EXPANDED_VIEW)
-                mLauncher.addContextLayer("Clicked to collapse bubble bar").use {
-                    selectedBubble.click()
-                    verifyCollapsed()
-                }
-            }
-        }
-    }
 
     /** Expands the bubble bar if it is collapsed */
     fun expand() {
@@ -81,7 +56,7 @@ class BubbleBar(private val mLauncher: LauncherInstrumentation) {
     }
 
     /** Verifies that the bubble bar is collapsed. */
-    fun verifyCollapsed(furtherChecks: (() -> Unit)? = null) {
+    private fun verifyCollapsed(furtherChecks: (() -> Unit)? = null) {
         mLauncher.addContextLayer("Check bubble bar expanded view is gone").use {
             mLauncher.waitUntilSystemUiObjectGone(RES_ID_EXPANDED_VIEW)
             furtherChecks?.invoke()
@@ -96,53 +71,16 @@ class BubbleBar(private val mLauncher: LauncherInstrumentation) {
         }
     }
 
-    /**
-     * Drags the bubble bar to the dismiss target. At the end of the gesture the bubble bar will be
-     * gone.
-     */
-    fun dragToDismiss() {
-        mLauncher.eventsCheck().use {
-            mLauncher.addContextLayer("Bubble bar dragToDismiss").use {
-                val downTime = SystemClock.uptimeMillis()
-                val dragStart = mLauncher.waitForLauncherObject(bubbleBarViewSelector).visibleCenter
-                mLauncher.sendPointer(
-                    downTime,
-                    downTime,
-                    MotionEvent.ACTION_DOWN,
-                    dragStart,
-                    LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER,
-                )
-                val endPoint = mLauncher.waitForLauncherObject(dismissViewSelector).visibleCenter
-
-                mLauncher.movePointer(
-                    dragStart,
-                    endPoint,
-                    LaunchedAppState.DEFAULT_DRAG_STEPS,
-                    /* isDecelerating= */ true,
-                    downTime,
-                    SystemClock.uptimeMillis(),
-                    /* slowDown= */ false,
-                    LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER,
-                )
-
-                mLauncher.sendPointer(
-                    downTime,
-                    SystemClock.uptimeMillis(),
-                    MotionEvent.ACTION_UP,
-                    endPoint,
-                    LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER,
-                )
-
-                mLauncher.addContextLayer("Wait until bubble bar is gone").use {
-                    mLauncher.waitUntilLauncherObjectGone(bubbleBarViewSelector)
-                }
-            }
+    /** Cleans up the bubble bar if test failed to remove it. */
+    fun cleanup() {
+        mLauncher.collapseBubbleBar()
+        mLauncher.addContextLayer("Verify bubble bar is removed").use {
+            mLauncher.waitUntilLauncherObjectGone(bubbleBarViewSelector)
         }
     }
 
     companion object {
         const val RES_ID_NAME_BUBBLE_BAR = "taskbar_bubbles"
-        const val RES_ID_NAME_DISMISS_VIEW = "dismiss_view"
         const val RES_ID_EXPANDED_VIEW = "bubble_expanded_view"
     }
 }

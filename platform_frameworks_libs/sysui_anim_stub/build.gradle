@@ -1,0 +1,22 @@
+// Newer-API stubs of com.android.systemui.animation (SystemUI.jar prebuilt is stale).
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+android {
+    namespace 'com.android.systemui.animation'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig { minSdk 31 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions { jvmTarget = '21' }
+    lint { abortOnError false }
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    rootProject.addPlatformJarsFor(project)
+    implementation libs.dagger
+}

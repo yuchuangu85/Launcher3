@@ -16,6 +16,8 @@
 
 package com.android.quickstep.taskbar.customization
 
+import com.android.launcher3.DeviceProfile
+import com.android.launcher3.deviceprofile.DeviceProperties
 import com.android.launcher3.taskbar.TaskbarActivityContext
 import com.android.launcher3.taskbar.customization.TaskbarFeatureEvaluator
 import com.android.launcher3.taskbar.customization.TaskbarIconSpecs
@@ -32,44 +34,51 @@ import org.mockito.kotlin.whenever
 @RunWith(LauncherMultivalentJUnit::class)
 class TaskbarSpecsEvaluatorTest {
 
-    private val taskbarFeatureEvaluator = mock<TaskbarFeatureEvaluator>()
-    private val taskbarActivityContext = mock<TaskbarActivityContext>()
-    private var taskbarSpecsEvaluator =
+    private val taskbarFeatureEvaluator: TaskbarFeatureEvaluator = mock()
+    private val deviceProperties: DeviceProperties = mock()
+    private val deviceProfile: DeviceProfile = mock {
+        on { deviceProperties } doReturn deviceProperties
+    }
+    private val taskbarActivityContext: TaskbarActivityContext = mock {
+        on { deviceProfile } doReturn deviceProfile
+    }
+    private val taskbarSpecsEvaluator =
         spy(TaskbarSpecsEvaluator(taskbarActivityContext, taskbarFeatureEvaluator, 0, 0))
 
     @Test
     fun testGetIconSizeByGrid_whenTaskbarIsTransient_withValidRowAndColumnInLandscape() {
-        doReturn(true).whenever(taskbarFeatureEvaluator).isTransient
-        doReturn(true).whenever(taskbarFeatureEvaluator).isLandscape
+        doReturn(true).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+        doReturn(true).whenever(deviceProperties).isLandscape
         assertThat(taskbarSpecsEvaluator.getIconSizeByGrid(4, 4))
             .isEqualTo(TaskbarIconSpecs.iconSize52dp)
     }
 
     @Test
     fun testGetIconSizeByGrid_whenTaskbarIsTransient_withValidRowAndColumnInPortrait() {
-        doReturn(true).whenever(taskbarFeatureEvaluator).isTransient
-        doReturn(false).whenever(taskbarFeatureEvaluator).isLandscape
+        doReturn(true).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+        doReturn(false).whenever(deviceProperties).isLandscape
         assertThat(taskbarSpecsEvaluator.getIconSizeByGrid(4, 4))
             .isEqualTo(TaskbarIconSpecs.iconSize48dp)
     }
 
     @Test
     fun testGetIconSizeByGrid_whenTaskbarIsTransient_withInvalidRowAndColumn() {
-        doReturn(true).whenever(taskbarFeatureEvaluator).isTransient
+        doReturn(true).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+        doReturn(true).whenever(deviceProperties).isLandscape
         assertThat(taskbarSpecsEvaluator.getIconSizeByGrid(1, 2))
             .isEqualTo(TaskbarIconSpecs.defaultTransientIconSize)
     }
 
     @Test
     fun testGetIconSizeByGrid_whenTaskbarIsPersistent() {
-        doReturn(false).whenever(taskbarFeatureEvaluator).isTransient
+        doReturn(false).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
         assertThat(taskbarSpecsEvaluator.getIconSizeByGrid(6, 5))
             .isEqualTo(TaskbarIconSpecs.defaultPersistentIconSize)
     }
 
     @Test
     fun testGetIconSizeStepDown_whenTaskbarIsPersistent() {
-        doReturn(false).whenever(taskbarFeatureEvaluator).isTransient
+        doReturn(false).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
         assertThat(taskbarSpecsEvaluator.getIconSizeStepDown(TaskbarIconSpecs.iconSize44dp))
             .isEqualTo(TaskbarIconSpecs.defaultPersistentIconSize)
     }
@@ -90,7 +99,7 @@ class TaskbarSpecsEvaluatorTest {
 
     @Test
     fun testGetIconSizeStepUp_whenTaskbarIsPersistent() {
-        doReturn(false).whenever(taskbarFeatureEvaluator).isTransient
+        doReturn(false).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
         assertThat(taskbarSpecsEvaluator.getIconSizeStepUp(TaskbarIconSpecs.iconSize40dp))
             .isEqualTo(TaskbarIconSpecs.iconSize40dp)
     }
@@ -107,5 +116,69 @@ class TaskbarSpecsEvaluatorTest {
         doReturn(true).whenever(taskbarFeatureEvaluator).isTransient
         assertThat(taskbarSpecsEvaluator.getIconSizeStepUp(TaskbarIconSpecs.iconSize52dp))
             .isEqualTo(TaskbarIconSpecs.iconSize52dp)
+    }
+
+    @Test
+    fun taskbarIconPadding_whenPinnedTaskbar_usesPersistentIconSize() {
+        // GIVEN the taskbar is pinned but not in three-button navigation
+        doReturn(true).whenever(taskbarActivityContext).isPinnedTaskbar
+        doReturn(false).whenever(taskbarActivityContext).isThreeButtonNav
+        // AND the taskbar does not support transition to transient, so taskbarIconSize will be
+        // persistent size
+        doReturn(false).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+
+        // WHEN TaskbarSpecsEvaluator is created
+        val evaluator = TaskbarSpecsEvaluator(taskbarActivityContext, taskbarFeatureEvaluator, 0, 0)
+
+        // THEN the taskbar icon size is the default persistent size
+        assertThat(evaluator.taskbarIconSize).isEqualTo(TaskbarIconSpecs.defaultPersistentIconSize)
+    }
+
+    @Test
+    fun taskbarIconPadding_whenThreeButtonNav_usesPersistentIconSize() {
+        // GIVEN the device is in three-button navigation but the taskbar is not pinned
+        doReturn(false).whenever(taskbarActivityContext).isPinnedTaskbar
+        doReturn(true).whenever(taskbarActivityContext).isThreeButtonNav
+        // AND the taskbar does not support transition to transient, so taskbarIconSize will be
+        // persistent size
+        doReturn(false).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+
+        // WHEN TaskbarSpecsEvaluator is created
+        val evaluator = TaskbarSpecsEvaluator(taskbarActivityContext, taskbarFeatureEvaluator, 0, 0)
+
+        // THEN the taskbar icon size is the default persistent size
+        assertThat(evaluator.taskbarIconSize).isEqualTo(TaskbarIconSpecs.defaultPersistentIconSize)
+    }
+
+    @Test
+    fun taskbarIconPadding_whenPinnedAndThreeButtonNav_usesPersistentIconSize() {
+        // GIVEN the taskbar is pinned and the device is in three-button navigation
+        doReturn(true).whenever(taskbarActivityContext).isPinnedTaskbar
+        doReturn(true).whenever(taskbarActivityContext).isThreeButtonNav
+        // AND the taskbar does not support transition to transient, so taskbarIconSize will be
+        // persistent size
+        doReturn(false).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+
+        // WHEN TaskbarSpecsEvaluator is created
+        val evaluator = TaskbarSpecsEvaluator(taskbarActivityContext, taskbarFeatureEvaluator, 0, 0)
+
+        // THEN the taskbar icon size is the default persistent size
+        assertThat(evaluator.taskbarIconSize).isEqualTo(TaskbarIconSpecs.defaultPersistentIconSize)
+    }
+
+    @Test
+    fun taskbarIconPadding_whenNotPinnedOrThreeButtonNav_usesTransientIconSize() {
+        // GIVEN the taskbar is not pinned and not in three-button navigation
+        doReturn(false).whenever(taskbarActivityContext).isPinnedTaskbar
+        doReturn(false).whenever(taskbarActivityContext).isThreeButtonNav
+        // AND the taskbar supports transition to transient, so taskbarIconSize will be transient
+        // size
+        doReturn(true).whenever(taskbarFeatureEvaluator).supportsTransitionToTransientTaskbar
+
+        // WHEN TaskbarSpecsEvaluator is created
+        val evaluator = TaskbarSpecsEvaluator(taskbarActivityContext, taskbarFeatureEvaluator, 0, 0)
+
+        // THEN the taskbar icon size is the default transient size
+        assertThat(evaluator.taskbarIconSize).isEqualTo(TaskbarIconSpecs.defaultTransientIconSize)
     }
 }

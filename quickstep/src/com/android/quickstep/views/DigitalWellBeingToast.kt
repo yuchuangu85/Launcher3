@@ -178,11 +178,11 @@ constructor(
         val splitBounds = splitBounds
         return when {
             splitBounds == null ||
-                !recentsViewContainer.deviceProfile.deviceProperties.isTablet ||
+                !recentsViewContainer.deviceProfile.deviceProperties.isLargeScreen ||
                 taskView.isLargeTile -> SplitBannerConfig.SPLIT_BANNER_FULLSCREEN
             // For portrait grid only height of task changes, not width. So we keep the text the
             // same
-            !recentsViewContainer.deviceProfile.isLeftRightSplit ->
+            !recentsViewContainer.deviceProfile.sysuiProfile.isLeftRightSplit ->
                 SplitBannerConfig.SPLIT_GRID_BANNER_LARGE
             // For landscape grid, for 30% width we only show icon, otherwise show icon and time
             task.key.id == splitBounds.leftTopTaskId ->
@@ -268,9 +268,7 @@ constructor(
         val splitBounds = splitBounds
         if (splitBounds == null) {
             snapshotWidth = taskView.layoutParams.width
-            snapshotHeight =
-                taskView.layoutParams.height -
-                    recentsViewContainer.deviceProfile.overviewProfile.taskThumbnailTopMarginPx
+            snapshotHeight = taskView.layoutParams.height
         } else {
             val groupedTaskSize =
                 taskView.pagedOrientationHandler.getGroupedTaskViewSizes(
@@ -305,7 +303,6 @@ constructor(
                 taskView.layoutParams.height,
                 splitBounds,
                 recentsViewContainer.deviceProfile,
-                taskView.taskContentViews,
                 task.key.id,
                 this,
             )

@@ -56,4 +56,14 @@
         android:scaleType="fitCenter"
         android:alpha="0"
         android:importantForAccessibility="no" />
+
+    <com.android.quickstep.views.FixedSizeImageView
+        android:id="@+id/app_lock_icon"
+        android:src="@drawable/ic_lock_fill_40px"
+        android:layout_width="@dimen/task_thumbnail_app_lock_icon_size"
+        android:layout_height="@dimen/task_thumbnail_app_lock_icon_size"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:visibility="invisible"
+        android:importantForAccessibility="no" />
 </com.android.quickstep.task.thumbnail.TaskThumbnailView>

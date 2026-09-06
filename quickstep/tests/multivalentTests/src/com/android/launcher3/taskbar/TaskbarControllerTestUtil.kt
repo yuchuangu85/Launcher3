@@ -20,13 +20,27 @@ import android.content.Context
 import com.android.launcher3.ConstantItem
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.Executors.getTaskbarUiThread
+import com.android.launcher3.util.LooperExecutor
 import com.android.launcher3.util.TestUtil
+import java.util.concurrent.TimeUnit
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 object TaskbarControllerTestUtil {
+
+    private const val TIME_OUT_SECONDS = 10L
+
+    inline fun runOnTaskbarUiThreadSync(crossinline runTest: () -> Unit) {
+        TestUtil.runOnExecutorSync(getTaskbarUiThread()) { runTest() }
+    }
+
     inline fun runOnMainSync(crossinline runTest: () -> Unit) {
         TestUtil.runOnExecutorSync(MAIN_EXECUTOR) { runTest() }
+    }
+
+    fun LooperExecutor.waitForIdleSync() {
+        this.submit<Any?> { null }.get(TIME_OUT_SECONDS, TimeUnit.SECONDS)
     }
 
     /** Returns a property to read/write the value of a [ConstantItem]. */
@@ -44,7 +58,7 @@ object TaskbarControllerTestUtil {
         }
 
         override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-            runOnMainSync { LauncherPrefs.get(context).put(item, value) }
+            runOnTaskbarUiThreadSync { LauncherPrefs.get(context).put(item, value) }
         }
     }
 }

@@ -16,6 +16,7 @@
 package com.android.launcher3.uioverrides.touchcontrollers;
 
 import static com.android.app.animation.Interpolators.DECELERATE_3;
+import static com.android.internal.jank.Cuj.CUJ_LAUNCHER_RECENTS_TO_HOME;
 import static com.android.launcher3.AbstractFloatingView.TYPE_ALL;
 import static com.android.launcher3.AbstractFloatingView.TYPE_ALL_APPS_EDU;
 import static com.android.launcher3.LauncherAnimUtils.SUCCESS_TRANSITION_PROGRESS;
@@ -23,16 +24,16 @@ import static com.android.launcher3.LauncherAnimUtils.newSingleUseCancelListener
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.MotionEventsUtils.isTrackpadMotionEvent;
-import static com.android.launcher3.allapps.AllAppsTransitionController.ALL_APPS_PULL_BACK_ALPHA;
-import static com.android.launcher3.allapps.AllAppsTransitionController.ALL_APPS_PULL_BACK_TRANSLATION;
 import static com.android.launcher3.anim.AnimatorListeners.forSuccessCallback;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME_GESTURE;
 import static com.android.launcher3.util.NavigationMode.THREE_BUTTONS;
 import static com.android.launcher3.util.ScrollableLayoutManager.PREDICTIVE_BACK_MIN_SCALE;
 import static com.android.systemui.shared.system.ActivityManagerWrapper.CLOSE_SYSTEM_WINDOWS_REASON_RECENTS;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.animation.Interpolator;
 
@@ -42,12 +43,13 @@ import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.AllAppsTransitionController;
+import com.android.launcher3.anim.AnimationSuccessListener;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.touch.SingleAxisSwipeDetector;
-import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.TouchController;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.TaskUtils;
@@ -55,6 +57,7 @@ import com.android.quickstep.util.AnimatorControllerWithResistance;
 import com.android.quickstep.util.OverviewToHomeAnim;
 import com.android.quickstep.views.RecentsView;
 import com.android.systemui.contextualeducation.GestureType;
+import com.android.systemui.shared.system.InteractionJankMonitorWrapper;
 
 import java.util.function.BiConsumer;
 
@@ -64,9 +67,8 @@ import java.util.function.BiConsumer;
 public class NavBarToHomeTouchController implements TouchController,
         SingleAxisSwipeDetector.Listener {
 
+    private static final String TAG = "NavBarToHomeTouchController";
     private static final Interpolator PULLBACK_INTERPOLATOR = DECELERATE_3;
-    // The min amount of overview scrim we keep during the transition.
-    private static final float OVERVIEW_TO_HOME_SCRIM_MULTIPLIER = 0.5f;
 
     private final Launcher mLauncher;
     private final BiConsumer<AnimatorSet, Long> mCancelSplitRunnable;
@@ -98,6 +100,10 @@ public class NavBarToHomeTouchController implements TouchController,
             mNoIntercept = !canInterceptTouch(ev);
             if (mNoIntercept) {
                 return false;
+            }
+            if (mCurrentAnimation != null) {
+                Log.w(TAG, "Previous animation was not cleaned up");
+                mCurrentAnimation.dispatchOnCancel();
             }
             mSwipeDetector.setDetectableScrollConditions(SingleAxisSwipeDetector.DIRECTION_POSITIVE,
                     false /* ignoreSlop */);
@@ -157,16 +163,9 @@ public class NavBarToHomeTouchController implements TouchController,
             AbstractFloatingView.closeOpenContainer(mLauncher, AbstractFloatingView.TYPE_TASK_MENU);
         } else if (mStartState == ALL_APPS) {
             AllAppsTransitionController allAppsController = mLauncher.getAllAppsController();
-            if (mLauncher.getDeviceProfile().shouldShowAllAppsOnSheet()) {
-                allAppsController.setShouldScaleHeader(true);
-                builder.addAnimatedFloat(allAppsController.getAllAppScale(), 1f,
-                        PREDICTIVE_BACK_MIN_SCALE, PULLBACK_INTERPOLATOR);
-            } else {
-                builder.setFloat(allAppsController, ALL_APPS_PULL_BACK_TRANSLATION,
-                        -mPullbackDistance, PULLBACK_INTERPOLATOR);
-                builder.setFloat(allAppsController, ALL_APPS_PULL_BACK_ALPHA,
-                        0.5f, PULLBACK_INTERPOLATOR);
-            }
+            allAppsController.setShouldScaleHeader(true);
+            builder.addAnimatedFloat(allAppsController.getAllAppScale(), 1f,
+                    PREDICTIVE_BACK_MIN_SCALE, PULLBACK_INTERPOLATOR);
         }
         AbstractFloatingView topView = AbstractFloatingView.getTopOpenView(mLauncher);
         if (topView != null) {
@@ -201,7 +200,7 @@ public class NavBarToHomeTouchController implements TouchController,
         if (success) {
             RecentsView recentsView = mLauncher.getOverviewPanel();
             recentsView.switchToScreenshot(null,
-                    () -> recentsView.finishRecentsAnimation(true /* toRecents */, null));
+                    () -> recentsView.finishRecentsAnimation(true /* toHome */, null));
             if (mStartState.isRecentsViewVisible) {
                 Runnable onReachedHome = () -> {
                     StateManager.StateListener<LauncherState> listener =
@@ -214,13 +213,26 @@ public class NavBarToHomeTouchController implements TouchController,
                                 }
                             };
                     mLauncher.getStateManager().addStateListener(listener);
+                    InteractionJankMonitorWrapper.end(CUJ_LAUNCHER_RECENTS_TO_HOME);
                     onSwipeInteractionCompleted(mEndState);
                 };
+                InteractionJankMonitorWrapper.begin(recentsView, CUJ_LAUNCHER_RECENTS_TO_HOME);
                 new OverviewToHomeAnim(mLauncher, onReachedHome, mCancelSplitRunnable)
                         .animateWithVelocity(velocity);
             } else {
                 mLauncher.getStateManager().goToState(mEndState, true,
-                        forSuccessCallback(() -> onSwipeInteractionCompleted(mEndState)));
+                        new AnimationSuccessListener() {
+                            @Override
+                            public void onAnimationCancel(Animator animation) {
+                                super.onAnimationCancel(animation);
+                                clearState();
+                            }
+
+                            @Override
+                            public void onAnimationSuccess(Animator animator) {
+                                onSwipeInteractionCompleted(mEndState);
+                            }
+                        });
             }
             if (mStartState != mEndState) {
                 logHomeGesture();
@@ -253,5 +265,10 @@ public class NavBarToHomeTouchController implements TouchController,
                 .withSrcState(mStartState.statsLogOrdinal)
                 .withDstState(mEndState.statsLogOrdinal)
                 .log(LAUNCHER_HOME_GESTURE);
+    }
+
+    @Override
+    public String dump() {
+        return TAG + mSwipeDetector.dump();
     }
 }

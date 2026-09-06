@@ -28,7 +28,7 @@ object TaskbarIconSpecs {
     val transientTaskbarIconSizes = arrayOf(iconSize44dp, iconSize48dp, iconSize52dp)
 
     val defaultPersistentIconSize = iconSize40dp
-    val defaultTransientIconSize = iconSize44dp
+    val defaultTransientIconSize = iconSize52dp
 
     val minimumIconSize = iconSize40dp
 

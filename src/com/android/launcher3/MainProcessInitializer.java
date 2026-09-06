@@ -12,8 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Modifications copyright 2025, Lawnchair
  */
 
 package com.android.launcher3;
@@ -35,34 +33,19 @@ import android.util.Log;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.graphics.BitmapCreationCheck;
 import com.android.launcher3.logging.FileLog;
-import com.android.launcher3.util.ResourceBasedOverride;
 
-import org.chickenhook.restrictionbypass.Unseal;
-
-import app.lawnchair.preferences.PreferenceManager;
+import javax.inject.Inject;
 
 /**
  * Utility class to handle one time initializations of the main process
  */
-public class MainProcessInitializer implements ResourceBasedOverride {
+public class MainProcessInitializer {
 
-    private static final String TAG = "MainProcessInitializer";
+    @Inject
+    public MainProcessInitializer() {
+    }
 
     private static final boolean DEBUG_STRICT_MODE = false;
-
-    public static void initialize(Context context) {
-        try {
-            Unseal.unseal();
-            Log.i(TAG, "Unseal success!");
-        } catch (Exception e) {
-            Log.e(TAG, "Unseal fail!");
-            e.printStackTrace();
-        }
-        PreferenceManager.getInstance(context);
-        Overrides.getObject(
-                MainProcessInitializer.class, context, R.string.main_process_initializer_class)
-                .init(context);
-    }
 
     protected void init(Context context) {
         FileLog.setDir(context.getApplicationContext().getFilesDir());
@@ -71,7 +54,7 @@ public class MainProcessInitializer implements ResourceBasedOverride {
             BitmapCreationCheck.startTracking(context);
         }
 
-        if (DEBUG_STRICT_MODE || (BuildConfigs.IS_STUDIO_BUILD && enableStrictMode())) {
+        if (DEBUG_STRICT_MODE || (BuildConfig.IS_STUDIO_BUILD && enableStrictMode())) {
             StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
                     .detectDiskReads()
                     .detectDiskWrites()
@@ -87,7 +70,7 @@ public class MainProcessInitializer implements ResourceBasedOverride {
                     .build());
         }
 
-        if (BuildConfigs.IS_DEBUG_DEVICE && FeatureFlags.NOTIFY_CRASHES.get()) {
+        if (BuildConfig.IS_DEBUG_DEVICE && FeatureFlags.NOTIFY_CRASHES.get()) {
             final String notificationChannelId = "com.android.launcher3.Debug";
             final String notificationChannelName = "Debug";
             final String notificationTag = "Debug";

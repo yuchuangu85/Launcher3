@@ -15,10 +15,11 @@
  */
 package com.android.launcher3.allapps;
 
+import static com.android.launcher3.LauncherModel.useModelRepositoryBinding;
 import static com.android.launcher3.model.data.AppInfo.COMPONENT_KEY_COMPARATOR;
 import static com.android.launcher3.model.data.AppInfo.EMPTY_ARRAY;
 
-import android.content.Context;
+import android.content.ComponentName;
 import android.os.UserHandle;
 import android.util.Log;
 import android.view.View;
@@ -28,12 +29,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.BubbleTextView;
+import com.android.launcher3.dagger.ActivityContextSingleton;
+import com.android.launcher3.icons.FastBitmapDrawable;
 import com.android.launcher3.model.data.AppInfo;
+import com.android.launcher3.model.data.AppsListData;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.recyclerview.AllAppsRecyclerViewPool;
+import com.android.launcher3.model.data.ItemInfoWithIcon;
+import com.android.launcher3.model.repository.AppsListRepository;
+import com.android.launcher3.popup.PopupContainer;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.views.ActivityContext;
+
+import kotlin.Unit;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -47,12 +55,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import javax.inject.Inject;
+
 /**
  * A utility class to maintain the collection of all apps.
- *
- * @param <T> The type of the context.
  */
-public class AllAppsStore<T extends Context & ActivityContext> {
+@ActivityContextSingleton
+public class AllAppsStore {
 
     private static final String TAG = "AllAppsStore";
     // Defer updates flag used to defer all apps updates to the next draw.
@@ -67,58 +76,48 @@ public class AllAppsStore<T extends Context & ActivityContext> {
 
     private final List<OnUpdateListener> mUpdateListeners = new CopyOnWriteArrayList<>();
     private final ArrayList<ViewGroup> mIconContainers = new ArrayList<>();
+    private final ActivityContext mActivityContext;
+
     private Map<PackageUserKey, Integer> mPackageUserKeytoUidMap = Collections.emptyMap();
     private int mModelFlags;
     private int mDeferUpdatesFlags = 0;
     private boolean mUpdatePending = false;
-    private final AllAppsRecyclerViewPool mAllAppsRecyclerViewPool = new AllAppsRecyclerViewPool();
-
-    private final T mContext;
 
     public AppInfo[] getApps() {
         return mApps;
     }
 
-    public AllAppsStore(@NonNull T context) {
-        mContext = context;
+    @Inject
+    AllAppsStore(AppsListRepository repo, ActivityContext context) {
+        mActivityContext = context;
+        if (useModelRepositoryBinding()) {
+            context.closeOnDestroy(repo.getAppsListStateRef()
+                    .forEach(context.getUiExecutor(), this::setAppsListData));
+            context.closeOnDestroy(repo.getIncrementalUpdates()
+                    .forEach(context.getUiExecutor(), this::updateProgressBar));
+        }
     }
 
-    /**
-     * Calling {@link #setApps(AppInfo[], int, Map, boolean)} with shouldPreinflate set to
-     * {@code true}. This method should be called in launcher (not for taskbar).
-     */
-    public void setApps(@Nullable AppInfo[] apps, int flags, Map<PackageUserKey, Integer> map) {
-        setApps(apps, flags, map, /* shouldPreinflate= */ true);
+    private Unit setAppsListData(AppsListData data) {
+        setApps(data.getApps(), data.getFlags(), data.getPackageUserKeyToUidMap());
+        PopupContainer.dismissInvalidPopup(mActivityContext);
+        return Unit.INSTANCE;
     }
 
     /**
      * Sets the current set of apps and sets mapping for {@link PackageUserKey} to Uid for
      * the current set of apps.
      *
-     * <p> Note that shouldPreinflate param should be set to {@code false} for taskbar, because
-     * this method is too late to preinflate all apps, as user will open all apps in the frame
-     *
      * <p>Param: apps are required to be sorted using the comparator COMPONENT_KEY_COMPARATOR
      * in order to enable binary search on the mApps store
      */
-    public void setApps(@Nullable AppInfo[] apps, int flags, Map<PackageUserKey, Integer> map,
-            boolean shouldPreinflate) {
+    public void setApps(@Nullable AppInfo[] apps, int flags, Map<PackageUserKey, Integer> map) {
         mApps = apps == null ? EMPTY_ARRAY : apps;
         Log.d(TAG, "setApps: apps.length=" + mApps.length);
         mModelFlags = flags;
         notifyUpdate();
         mPackageUserKeytoUidMap = map;
-        // Preinflate all apps RV when apps has changed, which can happen after unlocking screen,
-        // rotating screen, or downloading/upgrading apps.
-        if (shouldPreinflate) {
-            mAllAppsRecyclerViewPool.preInflateAllAppsViewHolders(mContext);
-        }
     }
-
-    AllAppsRecyclerViewPool getRecyclerViewPool() {
-        return mAllAppsRecyclerViewPool;
-    }
-
     /**
      * Look up for Uid using package name and user handle for the current set of apps.
      */
@@ -234,12 +233,13 @@ public class AllAppsStore<T extends Context & ActivityContext> {
      *
      * If this app is fully downloaded, the app icon will be reapplied.
      */
-    public void updateProgressBar(AppInfo app) {
+    public Unit updateProgressBar(AppInfo app) {
         updateAllIcons((child) -> {
             if (child.getTag() == app) {
                 child.applyFromApplicationInfo(app);
             }
         });
+        return Unit.INSTANCE;
     }
 
     private void updateAllIcons(Consumer<BubbleTextView> action) {
@@ -263,16 +263,20 @@ public class AllAppsStore<T extends Context & ActivityContext> {
     /** Generate a dumpsys for each app package name and position in the apps list */
     public void dump(String prefix, PrintWriter writer) {
         writer.println(prefix + "\tAllAppsStore Apps[] size: " + mApps.length);
-        for (int i = 0; i < mApps.length; i++) {
-            writer.println(String.format(Locale.getDefault(),
-                    "%s\tPackage index, name, class, description, bitmap flag: %d/%s:%s, %s, %s+%s",
-                    prefix,
-                    i,
-                    mApps[i].componentName.getPackageName(),
-                    mApps[i].componentName.getClassName(),
-                    mApps[i].contentDescription,
-                    Integer.toBinaryString(mApps[i].bitmap.flags),
-                    Integer.toBinaryString(mApps[i].bitmap.creationFlags)));
-        }
+        writer.println(prefix + "\tAll registered icons");
+        updateAllIcons(btv -> {
+            FastBitmapDrawable icon = btv.getIcon();
+            ItemInfoWithIcon info = btv.getTag() instanceof ItemInfoWithIcon iiwi ? iiwi : null;
+            ComponentName cn = info != null ? info.getTargetComponent() : null;
+            if (icon != null && cn != null) {
+                writer.println(String.format(Locale.getDefault(),
+                        "%s\tTarget: %s, description: %s, bitmap flag: %s, icon-flags: %s",
+                        prefix,
+                        cn.toShortString(),
+                        info.contentDescription,
+                        Integer.toBinaryString(info.bitmap.getFlags()),
+                        Integer.toBinaryString(icon.creationFlags)));
+            }
+        });
     }
 }

@@ -18,6 +18,9 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
+    <!-- Application name -->
+    <string name="derived_app_name" translatable="false">Quickstep</string>
+
     <!-- Options for recent tasks -->
     <!-- Title for an option to keep an app pinned to the screen until it is unpinned -->
     <string name="recent_task_option_pin">Pin</string>
@@ -25,6 +28,7 @@
     <string name="recent_task_option_freeform">Freeform</string>
     <!-- Title and content description for an option to enter desktop windowing mode for a given app -->
     <string name="recent_task_option_desktop">Desktop</string>
+    <string name="recent_split_task_option_desktop">Desktop for %1$s</string>
     <!-- Title and content description for an option to move app to external display. -->
     <string name="recent_task_option_external_display">Move to external display</string>
     <!-- Title and content description for an option to remove the task [CHAR LIMIT=30] -->
@@ -71,18 +75,6 @@
     <!-- Content description for a close button. [CHAR LIMIT=NONE] -->
     <string name="gesture_tutorial_close_button_content_description" translatable="false">Close</string>
 
-    <!-- Hotseat educational strings for users who don't qualify for migration -->
-    <string name="hotseat_edu_title_migrate">Get app suggestions on the bottom row of your Home screen</string>
-    <string name="hotseat_edu_title_migrate_landscape">Get app suggestions on favorites row of your Home screen</string>
-
-    <string name="hotseat_edu_message_migrate">Easily access your most-used apps right on the Home screen. Suggestions will change based on your routines. Apps on the bottom row will move up to your Home screen. </string>
-    <string name="hotseat_edu_message_migrate_landscape">Easily access your most-used apps right on the Home screen. Suggestions will change based on your routines. Apps in favorites row will move to your Home screen. </string>
-
-    <!-- Button text to opt in for fully predicted hotseat -->
-    <string name="hotseat_edu_accept">Get app suggestions</string>
-    <!-- Button text to dismiss opt in for fully predicted hotseat -->
-    <string name="hotseat_edu_dismiss">No thanks</string>
-
     <!-- action shown to toggle predictions after onboarding -->
     <string name="hotseat_prediction_settings">Settings</string>
 
@@ -96,9 +88,6 @@
     <string name="hotsaet_tip_prediction_enabled">App suggestions enabled</string>
     <!-- tip shown when hotseat edu is requested while predictions are disabled -->
     <string name="hotsaet_tip_prediction_disabled">App suggestions are disabled</string>
-
-    <!-- content description for hotseat items -->
-    <string name="hotseat_prediction_content_description">Predicted app: <xliff:g id="title" example="Chrome">%1$s</xliff:g></string>
 
     <!-- Title of the Gesture Navigation Tutorial page [CHAR LIMIT=NONE] -->
     <string name="gesture_tutorial_title">Gesture Navigation Tutorial</string>
@@ -229,8 +218,14 @@
     <string name="allset_title_expressive">Your <xliff:g id="device" example="Pixel 9">%1$s</xliff:g> is \nready!</string>
     <!-- Description of "All Set" page on the user's device when no device name is provided [CHAR LIMIT=NONE] -->
     <string name="allset_title_expressive_fallback">Your device is \nready!</string>
+    <!-- Fixed Title of "All Set" page [CHAR LIMIT=NONE] -->
+    <string name="allset_title_expressive_fixed">You\'re ready to roll!</string>
     <!-- New subtitle of "All Set" page [CHAR LIMIT=NONE] -->
     <string name="allset_subtitle_expressive">Enjoy your new <xliff:g id="device" example="phone">%1$s</xliff:g>!</string>
+    <!-- Subtitle of "All Set" page for Gesture Navigation [CHAR LIMIT=NONE] -->
+    <string name="allset_subtitle_expressive_gesture_navigation">Swipe up to get started with your <xliff:g id="device" example="phone">%1$s</xliff:g></string>
+    <!-- Subtitle of "All Set" page for 3 Button Navigation [CHAR LIMIT=NONE] -->
+    <string name="allset_subtitle_expressive_button_navigation">Tap to get started with your <xliff:g id="device" example="phone">%1$s</xliff:g></string>
     <!-- String linking to navigation settings on "All Set" page [CHAR LIMIT=NONE] -->
     <string name="allset_navigation_settings_expressive"><annotation id="link">Choose how to navigate</annotation></string>
     <!-- Hint string at the bottom of "All Set" page [CHAR LIMIT=NONE] -->
@@ -261,6 +256,10 @@
     <!-- Message shown when an action is blocked by a policy enforced by the app or the organization managing the device. [CHAR_LIMIT=NONE] -->
     <string name="blocked_by_policy">This action isn\'t allowed by the app or your organization</string>
     <string name="split_widgets_not_supported">Widgets not currently supported, please select another app</string>
+    <!-- Label for the sharesheet Image copy action [CHAR LIMIT=32] -->
+    <string name="action_image_copy">Copy</string>
+    <!-- Label for the sharesheet Image save action [CHAR LIMIT=32] -->
+    <string name="action_image_save">Save</string>
 
 
     <!-- Accessibility label for the rotation suggestion button -->
@@ -271,6 +270,8 @@
     <string name="taskbar_edu_swipe_animation_description">Animation showing how the taskbar comes into view from the bottom of the screen, and automatically hides when not in use</string>
     <!-- Text description to describe Taskbar education animation for Taskbar pinning functionality. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_edu_pinning_animation_description">Animation showing how to pin your taskbar using a toggle, so the taskbar remains permanently visible at the bottom of the screen</string>
+    <!-- Text description to describe Taskbar education animation for Taskbar bubbles functionality. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_edu_bubbles_animation_description">Animation showing how to create a bubble from the taskbar using a drag gesture</string>
     <!-- Text description to describe Taskbar education animation for split screen functionality. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_edu_split_screen_animation_description">Animation showing how to create a split screen, by dragging and dropping an app from the taskbar above an open app</string>
     <!-- Text description to describe Taskbar education animation for app suggestion functionality. [CHAR_LIMIT=NONE] -->
@@ -281,8 +282,10 @@
     <string name="taskbar_edu_a11y_title">Taskbar education</string>
     <!-- Text in dialog that lets a user know how they can use the Taskbar to use multiple apps at once on their device. [CHAR_LIMIT=60] -->
     <string name="taskbar_edu_splitscreen">Drag an app to the side to use 2 apps at once</string>
+    <!-- Text in dialog that lets a user know how they can use the Taskbar to create application bubble. [CHAR_LIMIT=60] -->
+    <string name="taskbar_edu_bubbles">Drag to the bottom corners to make it float</string>
     <!-- Text in dialog that lets a user know how they can show the Taskbar on their device. [CHAR_LIMIT=60] -->
-    <string name="taskbar_edu_stashing">Slow-swipe up to show the Taskbar</string>
+    <string name="taskbar_edu_stashing">Swipe up slowly to show the Taskbar</string>
     <!-- Text in dialog that lets a user know how the Taskbar suggests apps based on their usage. [CHAR_LIMIT=60] -->
     <string name="taskbar_edu_suggestions">Get app suggestions based on your routine</string>
     <!-- Title in dialog that shows a user how to pin the Taskbar. [CHAR_LIMIT 60] -->
@@ -293,6 +296,8 @@
     <string name="taskbar_edu_pinning_title">Always show the Taskbar</string>
     <!-- Text in dialog that shows a user how to pin the Taskbar. [CHAR_LIMIT 150] -->
     <string name="taskbar_edu_pinning_standalone">To always show the Taskbar on the bottom of your screen, touch &amp; hold the divider</string>
+    <!-- Text in dialog that shows a user how to create a bubble from the Taskbar icon. [CHAR_LIMIT 150] -->
+    <string name="taskbar_edu_bubbles_standalone">Drag an app to the corner to make it float</string>
     <!-- Title in dialog that shows a user how to invoke the Search feature. [CHAR_LIMIT 150] -->
     <string name="taskbar_search_edu_title">Touch &amp; hold the action key to search what\'s on your screen</string>
     <!-- Message showed to user to disclose privacy information they need to accept in order to access the app. [CHAR LIMIT=200]-->
@@ -301,6 +306,8 @@
     <string name="taskbar_edu_close">Close</string>
     <!-- Text on button to finish a tutorial [CHAR_LIMIT=16] -->
     <string name="taskbar_edu_done">Done</string>
+    <!-- Text on button to show the tutorial next page [CHAR_LIMIT=16] -->
+    <string name="taskbar_edu_next">Next</string>
         <!-- Content description for home button [CHAR_LIMIT=16] -->
     <string name="taskbar_button_home">Home</string>
     <!-- Content description for accessibility button [CHAR_LIMIT=16] -->
@@ -315,14 +322,12 @@
     <string name="taskbar_button_notifications">Notifications</string>
     <!-- Content description for quick settings button [CHAR_LIMIT=16] -->
     <string name="taskbar_button_quick_settings">Quick Settings</string>
+    <!-- Content description for more options button [CHAR_LIMIT=16] -->
+    <string name="taskbar_button_more_options">More options</string>
     <!-- Accessibility title for the Taskbar window. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_a11y_title">Taskbar</string>
-    <!-- Accessibility title for the Taskbar window appeared. [CHAR_LIMIT=30] -->
-    <string name="taskbar_a11y_shown_title">Taskbar shown</string>
-    <!-- Accessibility title for the Taskbar window appearing together with bubble bar on left. [CHAR_LIMIT=30] -->
-    <string name="taskbar_a11y_shown_with_bubbles_left_title">Taskbar &#38; bubbles left shown</string>
-    <!-- Accessibility title for the Taskbar window appearing together with bubble bar on right. [CHAR_LIMIT=30] -->
-    <string name="taskbar_a11y_shown_with_bubbles_right_title">Taskbar &#38; bubbles right shown</string>
+    <!-- Accessibility title for the Bubble Bar. [CHAR_LIMIT=NONE] -->
+    <string name="bubble_bar_a11y_title">Bubble bar</string>
     <!-- Accessibility title for the Taskbar window on phones. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_phone_a11y_title">Navigation bar</string>
     <!-- Text in popup dialog for user to switch between always showing Taskbar or not. [CHAR LIMIT=30] -->
@@ -332,8 +337,11 @@
     <!-- Accessibility title for the Taskbar vertical divider icon. [CHAR_LIMIT=NONE] -->
     <string name="taskbar_divider_a11y_title">Taskbar Divider</string>
     <!-- Accessibility title for the Taskbar Overflow icon. [CHAR_LIMIT=NONE] -->
-    <string name="taskbar_overflow_a11y_title">Other recent apps</string>
-
+    <string name="taskbar_recents_overflow_a11y_title">Other recent apps</string>
+    <!-- Accessibility title for the Taskbar Overflow icon. [CHAR_LIMIT=NONE] -->
+    <string name="taskbar_pinned_overflow_a11y_title">Other apps</string>
+    <!-- Title of the tooltip that appears when the user drags an item to the unpin area of the taskbar. [CHAR LIMIT=NONE]-->
+    <string name="taskbar_drag_to_unpin_title">Remove</string>
 
     <!-- Label for moving drop target to the top or left side of the screen, depending on orientation (from the Taskbar only). -->
     <string name="move_drop_target_top_or_left">Move to top&#47;left</string>
@@ -341,6 +349,11 @@
     <string name="move_drop_target_bottom_or_right">Move to bottom&#47;right</string>
     <!-- Label for creating an application bubble (from the Taskbar only). -->
     <string name="open_app_as_a_bubble">Open app as a bubble</string>
+
+    <!-- Accessibility action to move an item to the left [CHAR LIMIT=NONE] -->
+    <string name="action_move_item_left">Move item to the left</string>
+    <!-- Accessibility action to move an item to the right [CHAR LIMIT=NONE] -->
+    <string name="action_move_item_right">Move item to the right</string>
 
     <!-- Accessibility pane title for quick switch view, which lists apps opened by the user, ordered by how recently the app was opened. -->
     <string name="quick_switch_pane_title">Recent apps</string>
@@ -360,7 +373,7 @@
     <!-- Accessibility label for quick switch tiles showing split tasks [CHAR LIMIT=NONE] -->
     <string name="quick_switch_split_task"><xliff:g id="app_name_1" example="Chrome">%1$s</xliff:g> and <xliff:g id="app_name_2" example="Gmail">%2$s</xliff:g></string>
     <!-- Accessibility label for quick switch tiles that include information about the tile's position in the parent list [CHAR LIMIT=NONE] -->
-    <string name="quick_switch_task_with_position_in_parent"><xliff:g id="task_description" example="Chrome">%1$s</xliff:g>, item <xliff:g id="index_in_parent" example="1">%2$d</xliff:g> of <xliff:g id="total_tasks" example="5">%3$d</xliff:g></string>
+    <string name="quick_switch_task_with_position_in_parent"><xliff:g id="task_description" example="Chrome">%1$s</xliff:g>, item <xliff:g id="index_in_parent" example="1">%2$d</xliff:g> of <xliff:g id="total_tasks" example="5">%3$d</xliff:g>, release key bindings to select</string>
 
     <!-- Accessibility label for an arrow button within quick switch UI that scrolls the quick switch content left -->
     <string name="quick_switch_scroll_arrow_left">Scroll left</string>
@@ -372,8 +385,8 @@
     <string name="bubble_bar_bubble_fallback_description">Bubble</string>
     <!-- content description for the overflow bubble [CHAR_LIMIT=none] -->
     <string name="bubble_bar_overflow_description">Overflow</string>
-    <!-- Content description for a bubble bar bubble. [CHAR_LIMIT=none] -->
-    <string name="bubble_bar_bubble_description"><xliff:g id="notification_title" example="some title">%1$s</xliff:g> from <xliff:g id="app_name" example="YouTube">%2$s</xliff:g></string>
+    <!-- Content description for a bubble bar chat bubble. [CHAR_LIMIT=none] -->
+    <string name="bubble_bar_bubble_description"><xliff:g id="notification_title" example="some title">%1$s</xliff:g> from <xliff:g id="app_name" example="Messenger">%2$s</xliff:g></string>
     <!-- Content description for bubble bar when it has multiple bubbles. [CHAR_LIMIT=NONE] -->
     <string name="bubble_bar_description_multiple_bubbles"><xliff:g id="bubble_bar_bubble_description" example="some title from YouTube">%1$s</xliff:g> and <xliff:g id="bubble_count" example="4">%2$d</xliff:g> more</string>
     <!-- Action in accessibility menu to move the bubble bar to the left side of the screen. [CHAR_LIMIT=30] -->
@@ -382,10 +395,6 @@
     <string name="bubble_bar_action_move_right">Move right</string>
     <!-- Action in accessibility menu to dismiss all bubbles. [CHAR_LIMIT=30] -->
     <string name="bubble_bar_action_dismiss_all">Dismiss all</string>
-    <!-- Accessibility announcement when the bubble bar expands. [CHAR LIMIT=NONE]-->
-    <string name="bubble_bar_accessibility_announce_expand">expand <xliff:g id="bubble_description" example="some title from Messages">%1$s</xliff:g></string>
-    <!-- Accessibility announcement when the bubble bar collapses. [CHAR LIMIT=NONE]-->
-    <string name="bubble_bar_accessibility_announce_collapse">collapse <xliff:g id="bubble_description" example="some title from Messages">%1$s</xliff:g></string>
 
     <!-- Name of Google's new feature to circle to search anything on your phone screen, without
      switching apps. [CHAR_LIMIT=60] -->
@@ -397,12 +406,7 @@
     <!-- Default app title for a task view in Overview. [CHAR LIMIT=NONE] -->
     <string name="header_default_app_title">App title</string>
     <!-- Content description for the header close button. [CHAR LIMIT=NONE] -->
-    <string name="header_close_icon_description">Close button</string>
-
-    <!-- Label for pinning an item to the taskbar. [CHAR_LIMIT=20] -->
-    <string name="pin_to_taskbar">Pin to taskbar</string>
-    <!-- Label for unpinning an item from the taskbar. [CHAR_LIMIT=20] -->
-    <string name="unpin_from_taskbar">Unpin from taskbar</string>
+    <string name="header_close_icon_description">Close</string>
 
     <!-- ******* Growth Framework Nudge ******* -->
     <!-- Accessibility title for the nudge window. [CHAR_LIMIT=NONE] -->
@@ -410,4 +414,31 @@
     <!-- Accessibility announcement for closing the nudge window. [CHAR_LIMIT=16] -->
     <string name="nudge_a11y_close">Close</string>
     <string name="nudge_a11y_image">Nudge image</string>
+
+    <!-- Content description for running app in desktop mode if it is active or minimized. [CHAR_LIMIT=NONE] -->
+    <string name="running_app_description"><xliff:g id="app_title" example="Gmail">%1$s</xliff:g> <xliff:g id="running_state" example="Active or Minimized">%2$s</xliff:g></string>
+    <!-- Description of the icon on the educational tooltip. [CHAR LIMIT=NONE] -->
+    <string name="ambientcue_first_time_edu_icon_description">
+        Icon
+    </string>
+    <!-- Title of the first time usage tooltip of the "ambientcue" area. [CHAR LIMIT=NONE] -->
+    <string name="ambientcue_first_time_edu_title">
+        Get helpful suggestions
+    </string>
+    <!-- Text of the first time usage tooltip of the "ambientcue" area. [CHAR LIMIT=NONE] -->
+    <string name="ambientcue_first_time_edu_text">
+        We use AI to proactively suggest info and actions relevant to what you’re doing on screen
+    </string>
+    <!-- Description for the Underlay close button. The Underlay view appears on the bottom of the screen and shows some AI hints. The button will dismiss the underlay view. [CHAR LIMIT=NONE] -->
+    <string name="underlay_close_button_content_description">Close</string>
+    <!-- Description for the Ambient Cue accessibility action label for expanding. [CHAR LIMIT=NONE] -->
+    <string name="ambient_cue_expand_action">expand</string>
+    <!-- Description for the Ambient Cue Icon. The icon appears on the bottom of the screen with some AI hints. [CHAR LIMIT=NONE] -->
+    <string name="ambient_cue_icon_content_description">Ambient Suggestions Icon</string>
+    <!-- Tooltip suggesting that user can long press on a suggestion to see data sources. [CHAR LIMIT=NONE] -->
+    <string name="ambientcue_long_press_edu_text">
+        Touch &amp; hold to see how suggestions are generated
+    </string>
+    <!-- Description for the Ambient Cue accessibility action label for autofilling. [CHAR LIMIT=NONE] -->
+    <string name="ambient_cue_autofill_action">autofill</string>
 </resources>

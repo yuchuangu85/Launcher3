@@ -19,6 +19,7 @@ package com.android.launcher3
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
+import com.android.launcher3.EncryptionType.DEVICE_PROTECTED
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.DaggerSingletonTracker
@@ -34,11 +35,18 @@ constructor(@ApplicationContext context: Context, lifeCycle: DaggerSingletonTrac
 
     private val prefName = "fake-pref-" + UUID.randomUUID().toString()
 
-    private val backingPrefs = context.getSharedPreferences(prefName, MODE_PRIVATE)
-
-    init {
-        lifeCycle.addCloseable { context.deleteSharedPreferences(prefName) }
+    private val deviceProtectedSharedPrefs: SharedPreferences by lazy {
+        val prefName = "fake-boot-pref-" + UUID.randomUUID().toString()
+        val ctx = context.createDeviceProtectedStorageContext()
+        lifeCycle.addCloseable { ctx.deleteSharedPreferences(prefName) }
+        ctx.getSharedPreferences(prefName, MODE_PRIVATE)
     }
 
-    override fun getSharedPrefs(item: Item): SharedPreferences = backingPrefs
+    private val backingPrefs: SharedPreferences by lazy {
+        lifeCycle.addCloseable { context.deleteSharedPreferences(prefName) }
+        context.getSharedPreferences(prefName, MODE_PRIVATE)
+    }
+
+    override fun getSharedPrefs(item: Item): SharedPreferences =
+        if (item.encryptionType == DEVICE_PROTECTED) deviceProtectedSharedPrefs else backingPrefs
 }

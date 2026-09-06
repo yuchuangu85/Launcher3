@@ -10,7 +10,6 @@ public class ClippedFolderIconLayoutRule {
     public static final float MIN_SCALE = 0.44f;
     public static final float MAX_SCALE = 0.51f;
 
-    // TODO: figure out exact radius for different icons
     private static final float MAX_RADIUS_DILATION = 0.25f;
     // The max amount of overlap the preview items can go outside of the background bounds.
     public static final float ICON_OVERLAP_FACTOR = 1 + (MAX_RADIUS_DILATION / 2f);
@@ -93,15 +92,15 @@ public class ClippedFolderIconLayoutRule {
      * @param params         params to update for icon
      */
     public PreviewItemDrawingParams computeSpringAnimationItemParams(int index, int numItemsInPage,
-            int page, PreviewItemDrawingParams params) {
+            int page, int numFolderColumns, PreviewItemDrawingParams params) {
         float totalScale = scaleForItem(numItemsInPage, page);
         float transX;
         float transY;
 
-        if (numItemsInPage <= MAX_NUM_ITEMS_IN_PREVIEW) {
+        if (numItemsInPage <= MAX_NUM_ITEMS_IN_PREVIEW && page == 0) {
             getPosition(index, numItemsInPage, mTmpPoint);
         } else {
-            getGridPosition(index / mNumFolderColumns, index % mNumFolderColumns, mTmpPoint);
+            getGridPosition(index / numFolderColumns, index % numFolderColumns, mTmpPoint);
         }
 
         transX = mTmpPoint[0];

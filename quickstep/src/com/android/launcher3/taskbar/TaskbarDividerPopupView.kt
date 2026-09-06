@@ -94,7 +94,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         resources.getDimensionPixelSize(R.dimen.taskbar_pinning_popup_menu_vertical_margin)
 
     /** Callback invoked when the pinning popup view is closing. */
-    var onCloseCallback: (preferenceChanged: Boolean) -> Unit = {}
+    var onCloseStartedCallback: (preferenceChanged: Boolean) -> Unit = {}
 
     init {
         // This synchronizes the arrow and menu to open at the same time
@@ -151,35 +151,27 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     /** Orient object as usual and then center object horizontally. */
     override fun orientAboutObject() {
         super.orientAboutObject()
+        val xForCenterAlignment = horizontalPosition - measuredWidth / 2f
+        val maxX = popupContainer.width - measuredWidth - minPaddingFromScreenEdge
         x =
-            if (Flags.showTaskbarPinningPopupFromAnywhere()) {
-                val xForCenterAlignment = horizontalPosition - measuredWidth / 2f
-                val maxX = popupContainer.getWidth() - measuredWidth - minPaddingFromScreenEdge
-                when {
-                    // Left-aligned popup and its arrow pointing to the event position if there is
-                    // not enough space to center it.
-                    xForCenterAlignment < minPaddingFromScreenEdge ->
-                        max(
-                            minPaddingFromScreenEdge,
-                            horizontalPosition - mArrowOffsetHorizontal - mArrowWidth / 2,
-                        )
-
-                    // Right-aligned popup and its arrow pointing to the event position if there
-                    // is not enough space to center it.
-                    xForCenterAlignment > maxX ->
-                        min(
-                            horizontalPosition - measuredWidth +
-                                mArrowOffsetHorizontal +
-                                mArrowWidth / 2,
-                            popupContainer.getWidth() - measuredWidth - minPaddingFromScreenEdge,
-                        )
-
-                    // Default alignment where the popup and its arrow are centered relative to the
-                    // event position.
-                    else -> xForCenterAlignment
-                }
-            } else {
-                mTempRect.centerX() - measuredWidth / 2f
+            when {
+                // Left-aligned popup and its arrow pointing to the event position if there is not
+                // enough space to center it.
+                xForCenterAlignment < minPaddingFromScreenEdge ->
+                    max(
+                        minPaddingFromScreenEdge,
+                        horizontalPosition - mArrowOffsetHorizontal - mArrowWidth / 2,
+                    )
+                // Right-aligned popup and its arrow pointing to the event position if there is not
+                // enough space to center it.
+                xForCenterAlignment > maxX ->
+                    min(
+                        horizontalPosition - measuredWidth + mArrowOffsetHorizontal + mArrowWidth / 2,
+                        popupContainer.width - measuredWidth - minPaddingFromScreenEdge,
+                    )
+                // Default alignment where the popup and its arrow are centered relative to the event
+                // position.
+                else -> xForCenterAlignment
             }
     }
 
@@ -222,48 +214,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     override fun addArrow() {
         super.addArrow()
-        if (Flags.showTaskbarPinningPopupFromAnywhere()) {
-            mArrow.x =
-                min(
-                    max(
-                        minPaddingFromScreenEdge + mArrowOffsetHorizontal,
-                        horizontalPosition - mArrowWidth / 2,
-                    ),
-                    popupContainer.getWidth() -
-                        minPaddingFromScreenEdge -
-                        mArrowOffsetHorizontal -
-                        mArrowWidth,
-                )
-        } else {
-            val location = IntArray(2)
-            popupContainer.getLocationInDragLayer(dividerView, location)
-            val dividerViewX = location[0].toFloat()
-            // Change arrow location to the middle of popup.
-            mArrow.x = (dividerViewX + dividerView.width / 2) - (mArrowWidth / 2)
-        }
-    }
-
-    override fun updateArrowColor() {
-        if (Flags.showTaskbarPinningPopupFromAnywhere()) {
-            super.updateArrowColor()
-        } else if (!Gravity.isVertical(mGravity)) {
-            mArrow.background =
-                RoundedArrowDrawable(
-                    arrowWidth,
-                    arrowHeight,
-                    arrowPointRadius,
-                    popupCornerRadius,
-                    measuredWidth.toFloat(),
-                    measuredHeight.toFloat(),
-                    (measuredWidth - arrowWidth) / 2, // arrowOffsetX
-                    -mArrowOffsetVertical.toFloat(), // arrowOffsetY
-                    false, // isPointingUp
-                    true, // leftAligned
-                    context.getColor(R.color.popup_shade_first),
-                )
-            elevation = mElevation
-            mArrow.elevation = mElevation
-        }
+        mArrow.x =
+            min(
+                max(
+                    minPaddingFromScreenEdge + mArrowOffsetHorizontal,
+                    horizontalPosition - mArrowWidth / 2,
+                ),
+                popupContainer.width -
+                    minPaddingFromScreenEdge - mArrowOffsetHorizontal - mArrowWidth,
+            )
     }
 
     override fun getExtraVerticalOffset(): Int {
@@ -276,8 +235,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         if (didPreferenceChange) {
             mOpenCloseAnimator = getCloseAnimator()
         }
-        onCloseCallback(didPreferenceChange)
-        onCloseCallback = {}
+        onCloseStartedCallback(didPreferenceChange)
+        onCloseStartedCallback = {}
     }
 
     /** Aligning the view pivot to center for animation. */

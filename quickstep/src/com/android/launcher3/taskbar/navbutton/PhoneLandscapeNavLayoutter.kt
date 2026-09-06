@@ -30,22 +30,32 @@ import com.android.launcher3.taskbar.TaskbarActivityContext
 
 open class PhoneLandscapeNavLayoutter(
     resources: Resources,
-    navBarContainer: LinearLayout,
+    navButtonContainer: LinearLayout,
     endContextualContainer: ViewGroup,
     startContextualContainer: ViewGroup,
     imeSwitcher: ImageView?,
     a11yButton: ImageView?,
+    moreOptionsButton: ImageView?,
     space: Space?,
+    backButton: ImageView?,
+    homeButton: ImageView?,
+    recentsButton: ImageView?,
 ) :
     AbstractNavButtonLayoutter(
         resources,
-        navBarContainer,
+        navButtonContainer,
         endContextualContainer,
         startContextualContainer,
         imeSwitcher,
         a11yButton,
+        moreOptionsButton,
         space,
+        backButton,
+        homeButton,
+        recentsButton,
     ) {
+
+    override val orientation = LinearLayout.VERTICAL
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
         val totalHeight = context.deviceProfile.deviceProperties.heightPx
@@ -73,9 +83,6 @@ open class PhoneLandscapeNavLayoutter(
         }
 
         // Ensure order of buttons is correct
-        navButtonContainer.removeAllViews()
-        navButtonContainer.orientation = LinearLayout.VERTICAL
-
         addThreeButtons()
 
         navButtonContainer.layoutParams = navContainerParams
@@ -111,17 +118,12 @@ open class PhoneLandscapeNavLayoutter(
         repositionContextualButtons(contextualButtonHeight.toInt())
     }
 
-    open fun addThreeButtons() {
-        // Swap recents and back button
-        if (Utilities.isRtl(resources)) {
-            navButtonContainer.addView(backButton)
-            navButtonContainer.addView(homeButton)
-            navButtonContainer.addView(recentsButton)
-        } else {
-            navButtonContainer.addView(recentsButton)
-            navButtonContainer.addView(homeButton)
-            navButtonContainer.addView(backButton)
-        }
+    override fun shouldFlipButtonOrder(): Boolean {
+        // setting & config both flip the order, so xor operator makes them cancel each other out.
+        val settingOrConfiguration = isFlipEnabledBySetting() xor Utilities.isRtl(resources)
+
+        // Landscape default button order is reversed.
+        return !settingOrConfiguration
     }
 
     open fun repositionContextualButtons(buttonSize: Int) {

@@ -18,27 +18,23 @@ package com.android.quickstep;
 import static android.app.ActivityTaskManager.INVALID_TASK_ID;
 import static android.app.WindowConfiguration.ACTIVITY_TYPE_HOME;
 import static android.app.WindowConfiguration.ACTIVITY_TYPE_RECENTS;
+import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
 import static android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
 import static android.content.Intent.ACTION_CHOOSER;
 import static android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
 import static android.view.Display.DEFAULT_DISPLAY;
 import static android.view.Display.INVALID_DISPLAY;
 
-import static com.android.launcher3.BuildConfig.DEBUG;
-import static com.android.quickstep.fallback.window.RecentsWindowFlags.enableOverviewOnConnectedDisplays;
+import static com.android.launcher3.statehandlers.DesktopVisibilityController.INACTIVE_DESK_ID;
 import static com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT;
 import static com.android.launcher3.util.SplitConfigurationOptions.STAGE_TYPE_A;
-import static com.android.wm.shell.Flags.enableShellTopTaskTracking;
 import static com.android.wm.shell.Flags.enableFlexibleSplit;
+import static com.android.wm.shell.Flags.enableShellTopTaskTracking;
 import static com.android.wm.shell.shared.GroupedTaskInfo.TYPE_DESK;
 import static com.android.wm.shell.shared.GroupedTaskInfo.TYPE_SPLIT;
-import static com.android.launcher3.statehandlers.DesktopVisibilityController.INACTIVE_DESK_ID;
-import static com.android.wm.shell.shared.desktopmode.DesktopModeStatus.canEnterDesktopMode;
-import static com.android.wm.shell.shared.desktopmode.DesktopModeStatus.enableMultipleDesktops;
 
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.TaskInfo;
-import android.app.WindowConfiguration;
 import android.content.Context;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -46,10 +42,12 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.statehandlers.DesktopVisibilityController;
+import com.android.launcher3.taskbar.bubbles.BubbleHelper;
 import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DaggerSingletonTracker;
 import com.android.launcher3.util.SplitConfigurationOptions;
@@ -66,6 +64,8 @@ import com.android.systemui.shared.system.TaskStackChangeListeners;
 import com.android.wm.shell.shared.GroupedTaskInfo;
 import com.android.wm.shell.splitscreen.ISplitScreenListener;
 
+import kotlin.collections.CollectionsKt;
+
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,11 +73,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
-
-import app.lawnchair.compat.LawnchairQuickstepCompat;
 
 /**
  * This class tracked the top-most task and  some 'approximate' task history to allow faster
@@ -89,7 +86,8 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
     public static DaggerSingletonObject<TopTaskTracker> INSTANCE =
             new DaggerSingletonObject<>(QuickstepBaseAppComponent::getTopTaskTracker);
 
-    private static final int HISTORY_SIZE = 5;
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    static final int HISTORY_SIZE = 5;
 
     // Only used when Flags.enableShellTopTaskTracking() is disabled
     // Ordered list with first item being the most recent task.
@@ -114,17 +112,11 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
             mSideStagePosition.stageType = SplitConfigurationOptions.STAGE_TYPE_SIDE;
 
             TaskStackChangeListeners.getInstance().registerTaskStackListener(this);
-            systemUiProxy.registerSplitScreenListener(this);
+            tracker.addCloseable(() ->
+                    TaskStackChangeListeners.getInstance().unregisterTaskStackListener(this));
+
+            tracker.addCloseable(systemUiProxy.getSplitScreenListeners().register(this));
         }
-
-        tracker.addCloseable(() -> {
-            if (enableShellTopTaskTracking()) {
-                return;
-            }
-
-            TaskStackChangeListeners.getInstance().unregisterTaskStackListener(this);
-            systemUiProxy.unregisterSplitScreenListener(this);
-        });
 
         mContext = context;
         mDesktopVisibilityController = desktopVisibilityController;
@@ -170,26 +162,17 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
             }
         }
 
-        // Keep the home display's top running task in the first while adding a non-home
-        // display's task to the list, to avoid showing non-home display's task upon going to
-        // Recents animation.
-        if (taskInfo.displayId != DEFAULT_DISPLAY) {
-            final TaskInfo topTaskOnHomeDisplay = mOrderedTaskList.stream()
-                    .filter(rto -> rto.displayId == DEFAULT_DISPLAY).findFirst().orElse(null);
-            if (topTaskOnHomeDisplay != null) {
-                mOrderedTaskList.removeIf(rto -> rto.taskId == topTaskOnHomeDisplay.taskId);
-                mOrderedTaskList.addFirst(topTaskOnHomeDisplay);
-            }
-        }
-
-        if (mOrderedTaskList.size() >= HISTORY_SIZE) {
+        if (CollectionsKt.count(mOrderedTaskList,
+                task -> task.getWindowingMode() != WINDOWING_MODE_FREEFORM)
+                > HISTORY_SIZE) {
             // If we grow in size, remove the last taskInfo which is not part of the split task.
             Iterator<TaskInfo> itr = mOrderedTaskList.descendingIterator();
             while (itr.hasNext()) {
                 TaskInfo info = itr.next();
                 if (info.taskId != taskInfo.taskId
                         && info.taskId != mMainStagePosition.taskId
-                        && info.taskId != mSideStagePosition.taskId) {
+                        && info.taskId != mSideStagePosition.taskId
+                        && info.getWindowingMode() != WINDOWING_MODE_FREEFORM) {
                     itr.remove();
                     return;
                 }
@@ -214,7 +197,7 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
             Log.d(TAG, "\t" + groupedTask);
             GroupedTaskInfo baseGroupedTask = groupedTask.getBaseGroupedTask();
             int displayId;
-            if (enableMultipleDesktops(mContext) && baseGroupedTask.isBaseType(TYPE_DESK)) {
+            if (baseGroupedTask.isBaseType(TYPE_DESK)) {
                 displayId = baseGroupedTask.getDeskDisplayId();
             } else {
                 displayId = baseGroupedTask.getTaskInfo1().getDisplayId();
@@ -359,14 +342,17 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
                 // same.
                 TaskInfo[] tasks = TraceHelper.allowIpcs("getCachedTopTask.true", () ->
                         ActivityManagerWrapper.getInstance().getRunningTasks(true));
-                if (enableOverviewOnConnectedDisplays()) {
-                    return new CachedTaskInfo(Arrays.stream(tasks).filter(
-                            info -> ExternalDisplaysKt.getSafeDisplayId(info)
-                                    == displayId).toList(), mContext, displayId, activeDeskId);
-                } else {
-                    return new CachedTaskInfo(Arrays.asList(tasks), mContext,
-                            displayId, activeDeskId);
+
+                // `tasks` ends up as null in launcher robo tests, so fixing the symptom here for
+                //  now instead of introducing a mock / stub.
+                // TODO: b/441128304 - Fix this through changes in non-prod code.
+                if (tasks == null) {
+                    tasks = new TaskInfo[0];
                 }
+
+                return new CachedTaskInfo(Arrays.stream(tasks).filter(
+                        info -> ExternalDisplaysKt.getSafeDisplayId(info)
+                                == displayId).toList(), mContext, displayId, activeDeskId);
             }
 
             if (mOrderedTaskList.isEmpty()) {
@@ -379,17 +365,11 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
             Stream<TaskInfo> taskStream = mOrderedTaskList.stream()
                     // Strip the pinned task and recents task.
                     .filter(t -> t.taskId != mPinnedTaskId && !isRecentsTask(t));
-            if (enableOverviewOnConnectedDisplays()) {
-                taskStream = taskStream.filter(
-                        info -> ExternalDisplaysKt.getSafeDisplayId(info) == displayId);
-            }
-            if (enableMultipleDesktops(mContext)) {
-                taskStream = taskStream.takeWhile(
-                        taskInfo -> !DesksUtils.isDesktopWallpaperTask(taskInfo));
-            } else {
-                taskStream = taskStream.filter(
-                        taskInfo -> !DesksUtils.isDesktopWallpaperTask(taskInfo));
-            }
+            taskStream = taskStream.filter(
+                    info -> ExternalDisplaysKt.getSafeDisplayId(info) == displayId);
+            taskStream = taskStream.takeWhile(
+                    taskInfo -> !DesksUtils.isDesktopWallpaperTask(taskInfo));
+            taskStream = taskStream.filter(taskInfo -> !BubbleHelper.isBubbleTask(taskInfo));
 
             return new CachedTaskInfo(taskStream.toList(), mContext, displayId, activeDeskId);
         }
@@ -453,7 +433,7 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
          * TODO(346588978): Try to remove all usage of this if possible
          */
         @Nullable
-        private TaskInfo getLegacyBaseTask() {
+        public TaskInfo getLegacyBaseTask() {
             if (enableShellTopTaskTracking()) {
                 return mVisibleTasks != null
                         ? mVisibleTasks.getBaseGroupedTask().getTaskInfo1()
@@ -544,8 +524,13 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
                 // Not an excluded task.
                 return null;
             }
+            if (mActiveDeskId != INACTIVE_DESK_ID) {
+                // Excluded overlays are handled by DesktopTaskView to be hidden in exploded view,
+                // so no need to return the underlying tasks here.
+                return null;
+            }
             List<TaskInfo> visibleNonExcludedTasks = mAllCachedTasks.stream()
-                    .filter(t -> LawnchairQuickstepCompat.ATLEAST_S && t.isVisible
+                    .filter(t -> t.isVisible
                             && (t.baseIntent.getFlags() & FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS) == 0
                             && t.getActivityType() != ACTIVITY_TYPE_HOME
                             && t.getActivityType() != ACTIVITY_TYPE_RECENTS)
@@ -561,10 +546,10 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
          * enableShellTopTaskTracking() is disabled.
          */
         private TaskInfo[] getSplitPlaceholderTasksInfo(int[] splitTaskIds) {
-            if (mTopTask == null) {
-                return new TaskInfo[0];
-            }
             TaskInfo[] result = new TaskInfo[splitTaskIds.length];
+            if (mTopTask == null) {
+                return result;
+            }
             for (int i = 0; i < splitTaskIds.length; i++) {
                 final int index = i;
                 int taskId = splitTaskIds[i];
@@ -575,12 +560,6 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
                 });
             }
             return result;
-        }
-
-        private boolean isDesktopTask(@Nullable TaskInfo taskInfo) {
-            return taskInfo != null && canEnterDesktopMode(mContext)
-                    && taskInfo.configuration.windowConfiguration.getWindowingMode()
-                    == WindowConfiguration.WINDOWING_MODE_FREEFORM;
         }
 
         // TODO(346588978): Update this to return more than a single task once the callers
@@ -609,21 +588,15 @@ public class TopTaskTracker extends ISplitScreenListener.Stub implements TaskSta
                             splitTasksInfo[1], /* splitBounds = */ null);
                 } else {
                     final TaskInfo baseTaskInfo = getLegacyBaseTask();
-                    if (enableMultipleDesktops(mContext)) {
-                        if (mActiveDeskId != INACTIVE_DESK_ID) {
-                            return GroupedTaskInfo.forDeskTasks(
-                                    mActiveDeskId, mDisplayId, mAllCachedTasks,
-                                    /* minimizedFreeformTaskIds = */ Collections.emptySet());
-                        }
-                    } else if (isDesktopTask(baseTaskInfo)) {
-                        return GroupedTaskInfo.forDeskTasks(INACTIVE_DESK_ID, mDisplayId,
-                                Collections.singletonList(
-                                        baseTaskInfo), /* minimizedFreeformTaskIds = */
-                                Collections.emptySet());
+                    if (mActiveDeskId != INACTIVE_DESK_ID) {
+                        return GroupedTaskInfo.forDeskTasks(
+                                mActiveDeskId, mDisplayId, mAllCachedTasks,
+                                /* minimizedFreeformTaskIds = */ Collections.emptySet());
+                    } else if (baseTaskInfo != null) {
+                        return GroupedTaskInfo.forFullscreenTasks(baseTaskInfo);
+                    } else {
+                        return null;
                     }
-                    return baseTaskInfo == null
-                            ? null
-                            : GroupedTaskInfo.forFullscreenTasks(baseTaskInfo);
                 }
             }
         }

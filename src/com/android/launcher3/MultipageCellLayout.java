@@ -81,7 +81,7 @@ public class MultipageCellLayout extends CellLayout {
     }
 
     @Override
-    boolean createAreaForResize(int cellX, int cellY, int spanX, int spanY, View dragView,
+    public boolean createAreaForResize(int cellX, int cellY, int spanX, int spanY, View dragView,
             int[] direction, boolean commit) {
         // Add seam to x position
         if (cellX >= mCountX / 2) {

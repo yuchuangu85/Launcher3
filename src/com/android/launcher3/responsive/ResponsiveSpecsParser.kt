@@ -22,9 +22,9 @@ import android.util.Xml
 import com.android.launcher3.R
 import com.android.launcher3.responsive.ResponsiveSpec.Companion.ResponsiveSpecType
 import com.android.launcher3.util.ResourceHelper
+import java.io.IOException
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
-import java.io.IOException
 
 class ResponsiveSpecsParser(private val resourceHelper: ResourceHelper) {
 

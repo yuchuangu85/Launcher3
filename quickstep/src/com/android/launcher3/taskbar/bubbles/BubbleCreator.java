@@ -21,10 +21,12 @@ import static android.content.pm.LauncherApps.ShortcutQuery.FLAG_MATCH_CACHED;
 import static android.content.pm.LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC;
 import static android.content.pm.LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED_BY_ANY_LAUNCHER;
 
+import static com.android.launcher3.icons.BaseIconFactory.MODE_WITH_SHADOW;
 import static com.android.launcher3.icons.FastBitmapDrawable.WHITE_SCRIM_ALPHA;
 import static com.android.wm.shell.shared.bubbles.FlyoutDrawableLoader.loadFlyoutDrawable;
 
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.LauncherApps;
@@ -32,24 +34,25 @@ import android.content.pm.PackageManager;
 import android.content.pm.ShortcutInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Matrix;
-import android.graphics.Path;
-import android.graphics.drawable.AdaptiveIconDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.Icon;
 import android.os.UserHandle;
 import android.util.Log;
-import android.util.PathParser;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
+import androidx.annotation.VisibleForTesting;
+
 import com.android.internal.graphics.ColorUtils;
 import com.android.launcher3.R;
+import com.android.launcher3.icons.BaseIconFactory.IconOptions;
 import com.android.launcher3.icons.BitmapInfo;
 import com.android.launcher3.icons.BubbleIconFactory;
 import com.android.launcher3.shortcuts.ShortcutRequest;
 import com.android.launcher3.taskbar.bubbles.flyout.BubbleBarFlyoutMessage;
+import com.android.launcher3.taskbar.bubbles.model.BubbleIcon;
+import com.android.launcher3.util.UserIconInfo;
+import com.android.wm.shell.Flags;
 import com.android.wm.shell.shared.bubbles.BubbleInfo;
 import com.android.wm.shell.shared.bubbles.ParcelableFlyoutMessage;
 
@@ -89,28 +92,6 @@ public class BubbleCreator {
     @Nullable
     public BubbleBarBubble populateBubble(Context context, BubbleInfo info, ViewGroup barView,
             @Nullable BubbleBarBubble existingBubble) {
-        String appName;
-        Bitmap badgeBitmap;
-        Bitmap bubbleBitmap;
-        Path dotPath;
-        int dotColor;
-
-        boolean isImportantConvo = info.isImportantConversation();
-
-        ShortcutRequest.QueryResult result = new ShortcutRequest(context,
-                new UserHandle(info.getUserId()))
-                .forPackage(info.getPackageName(), info.getShortcutId())
-                .query(FLAG_MATCH_DYNAMIC
-                        | FLAG_MATCH_PINNED_BY_ANY_LAUNCHER
-                        | FLAG_MATCH_CACHED
-                        | FLAG_GET_PERSONS_DATA);
-
-        ShortcutInfo shortcutInfo = result.size() > 0 ? result.get(0) : null;
-        if (shortcutInfo == null) {
-            Log.w(TAG, "No shortcutInfo found for bubble: " + info.getKey()
-                    + " with shortcutId: " + info.getShortcutId());
-        }
-
         ApplicationInfo appInfo;
         try {
             appInfo = mLauncherApps.getApplicationInfo(
@@ -127,36 +108,55 @@ public class BubbleCreator {
             return null;
         }
         PackageManager pm = context.getPackageManager();
-        appName = String.valueOf(appInfo.loadLabel(pm));
-        Drawable appIcon = appInfo.loadUnbadgedIcon(pm);
-        Drawable badgedIcon = pm.getUserBadgedIcon(appIcon, new UserHandle(info.getUserId()));
+        String appName = info.getAppName();
+        Drawable appIcon = null;
+        // Prioritize the icon provided in BubbleInfo. This icon is resolved by WMShell
+        // (BubbleData) to be the activity-specific icon.
+        if (Flags.useBubbleIconFromActivityInfo() && info.isApp()) {
+            Icon iconFromBubbleInfo = info.getIcon();
+            if (iconFromBubbleInfo != null) {
+                appIcon = iconFromBubbleInfo.loadDrawable(context);
+            }
+        }
+        // Fallback to loading the application's unbadged icon
+        if (appIcon == null) {
+            appIcon = appInfo.loadUnbadgedIcon(pm);
+        }
+        return populateBubble(context, info, appIcon, appName, barView, existingBubble);
+    }
 
-        // Badged bubble image
-        Drawable bubbleDrawable = mIconFactory.getBubbleDrawable(context, shortcutInfo,
-                info.getIcon());
-        if (bubbleDrawable == null) {
-            // Default to app icon
-            bubbleDrawable = appIcon;
+    /**
+     * @see #populateBubble(Context, BubbleInfo, ViewGroup, BubbleBarBubble)
+     */
+    @Nullable
+    @VisibleForTesting
+    public BubbleBarBubble populateBubble(Context context, BubbleInfo info,
+            Drawable appIcon, String appName, ViewGroup barView,
+            @Nullable BubbleBarBubble existingBubble) {
+        boolean isImportantConvo = info.isImportantConversation();
+        ShortcutRequest.QueryResult result = new ShortcutRequest(context,
+                new UserHandle(info.getUserId()))
+                .forPackage(info.getPackageName(), info.getShortcutId())
+                .query(FLAG_MATCH_DYNAMIC
+                        | FLAG_MATCH_PINNED_BY_ANY_LAUNCHER
+                        | FLAG_MATCH_CACHED
+                        | FLAG_GET_PERSONS_DATA);
+        ShortcutInfo shortcutInfo = result.size() > 0 ? result.get(0) : null;
+        if (shortcutInfo == null) {
+            Log.w(TAG, "No shortcutInfo found for bubble: " + info.getKey()
+                    + " with shortcutId: " + info.getShortcutId());
         }
 
-        BitmapInfo badgeBitmapInfo = mIconFactory.getBadgeBitmap(badgedIcon, isImportantConvo);
-        badgeBitmap = badgeBitmapInfo.icon;
+        UserIconInfo userIconInfo = new UserIconInfo(
+                UserHandle.of(info.getUserId()), info.getUserType());
 
-        float[] bubbleBitmapScale = new float[1];
-        bubbleBitmap = mIconFactory.getBubbleBitmap(bubbleDrawable, bubbleBitmapScale);
+        // Badged bubble image
+        BubbleIcon bubbleIcon =
+                getBubbleIcon(context, info, appIcon, shortcutInfo, mIconFactory, userIconInfo);
+        BitmapInfo badgeBitmapInfo = mIconFactory.getBadgeBitmap(
+                appIcon, userIconInfo, isImportantConvo);
 
-        // Dot color & placement
-        Path iconPath = PathParser.createPathFromPathData(
-                context.getResources().getString(
-                        com.android.internal.R.string.config_icon_mask));
-        Matrix matrix = new Matrix();
-        float scale = bubbleBitmapScale[0];
-        float radius = BubbleView.DEFAULT_PATH_SIZE / 2f;
-        matrix.setScale(scale /* x scale */, scale /* y scale */, radius /* pivot x */,
-                radius /* pivot y */);
-        iconPath.transform(matrix);
-        dotPath = iconPath;
-        dotColor = ColorUtils.blendARGB(badgeBitmapInfo.color,
+        int dotColor = ColorUtils.blendARGB(badgeBitmapInfo.color,
                 Color.WHITE, WHITE_SCRIM_ALPHA / 255f);
 
         final BubbleBarFlyoutMessage flyoutMessage =
@@ -168,20 +168,35 @@ public class BubbleCreator {
                     R.layout.bubblebar_item_view, barView, false /* attachToRoot */);
 
             BubbleBarBubble bubble = new BubbleBarBubble(info, bubbleView,
-                    badgeBitmap, bubbleBitmap, dotColor, dotPath, appName, flyoutMessage);
+                    badgeBitmapInfo, bubbleIcon, dotColor, appName, flyoutMessage);
             bubbleView.setBubble(bubble);
             return bubble;
         } else {
             // If we already have a bubble (so it already has an inflated view), update it.
             existingBubble.setInfo(info);
-            existingBubble.setBadge(badgeBitmap);
-            existingBubble.setIcon(bubbleBitmap);
+            existingBubble.setBadge(badgeBitmapInfo);
+            existingBubble.setIcon(bubbleIcon);
             existingBubble.setDotColor(dotColor);
-            existingBubble.setDotPath(dotPath);
             existingBubble.setAppName(appName);
             existingBubble.setFlyoutMessage(flyoutMessage);
             return existingBubble;
         }
+    }
+
+    private static BubbleIcon getBubbleIcon(Context context, BubbleInfo info, Drawable appIcon,
+            ShortcutInfo shortcutInfo, BubbleIconFactory iconFactory, UserIconInfo userIconInfo) {
+        if (info.isApp()) {
+            return new BubbleIcon.AppIcon(
+                    iconFactory.getAppBubbleBitmapInfo(appIcon, userIconInfo));
+        }
+
+        Drawable bubbleDrawable =
+                iconFactory.getBubbleDrawable(context, shortcutInfo, info.getIcon());
+        if (bubbleDrawable == null) {
+            // Default to app icon
+            bubbleDrawable = appIcon;
+        }
+        return new BubbleIcon.Custom(iconFactory.getBubbleBitmap(bubbleDrawable));
     }
 
     @Nullable
@@ -213,20 +228,12 @@ public class BubbleCreator {
         return overflow;
     }
 
+    @SuppressLint("UseCompatLoadingForDrawables")
     private Bitmap createOverflowBitmap() {
         Drawable iconDrawable = mContext.getDrawable(R.drawable.bubble_ic_overflow_button);
-
-        int overflowIconColor = mContext.getColor(R.color.materialColorOnPrimaryFixed);
-        int overflowBackgroundColor = mContext.getColor(R.color.materialColorPrimaryFixed);
-
-        iconDrawable.setTint(overflowIconColor);
-
-        int inset = mContext.getResources().getDimensionPixelSize(R.dimen.bubblebar_overflow_inset);
-        Drawable foreground = new InsetDrawable(iconDrawable, inset);
-        Drawable drawable = new AdaptiveIconDrawable(new ColorDrawable(overflowBackgroundColor),
-                foreground);
-
-        return mIconFactory.createBadgedIconBitmap(drawable).icon;
+        return mIconFactory.createBadgedIconBitmap(iconDrawable,
+                new IconOptions()
+                        .setBitmapGenerationMode(MODE_WITH_SHADOW)
+                        .setExtractedColor(Color.TRANSPARENT)).icon;
     }
-
 }

@@ -27,7 +27,7 @@ import androidx.lifecycle.Lifecycle.State.CREATED
 import androidx.lifecycle.Lifecycle.State.DESTROYED
 import androidx.lifecycle.Lifecycle.State.RESUMED
 import androidx.lifecycle.Lifecycle.State.STARTED
-import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
@@ -36,6 +36,7 @@ import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener
 import com.android.launcher3.Utilities
 import com.android.launcher3.dagger.ActivityContextComponent
 import com.android.launcher3.dagger.LauncherComponentProvider.appComponent
+import com.android.launcher3.testing.TestInformationHandler
 import com.android.launcher3.views.ActivityContext
 
 /**
@@ -44,34 +45,43 @@ import com.android.launcher3.views.ActivityContext
  */
 abstract class BaseContext
 @JvmOverloads
-constructor(base: Context, themeResId: Int, private val destroyOnDetach: Boolean = true) :
-    ContextThemeWrapper(base, themeResId), ActivityContext {
+constructor(
+    base: Context,
+    themeResId: Int,
+    private val destroyOnDetach: Boolean = true,
+    lifecycleRegistryProvider: (LifecycleOwner, LooperExecutor) -> LifecycleRegistryWrapper =
+        { owner, uiExecutor ->
+            LifecycleRegistryWrapper(owner, uiExecutor)
+        },
+) : ContextThemeWrapper(base, themeResId), ActivityContext {
 
-    private val listeners = mutableListOf<OnDeviceProfileChangeListener>()
-
-    private val savedStateRegistryController = SavedStateRegistryController.create(this)
-    private val lifecycleRegistry = LifecycleRegistry(this)
-    private val cleanupSet = WeakCleanupSet(this)
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistryWrapper
 
     override val savedStateRegistry: SavedStateRegistry
         get() = savedStateRegistryController.savedStateRegistry
 
-    override val lifecycle: Lifecycle
-        get() = lifecycleRegistry
+    private val lifecycleRegistryWrapper = lifecycleRegistryProvider(this, uiExecutor)
+    private val listeners = mutableListOf<OnDeviceProfileChangeListener>()
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val cleanupSet = WeakCleanupSet(this, uiExecutor)
 
     private val viewCache = ViewCache()
 
     private val activityComponentLazy: ActivityContextComponent by lazy {
-        appComponent.activityContextComponentBuilder.activityContext(this).build()
-            as ActivityContextComponent
+        appComponent.activityContextComponentBuilder
+            .activityContext(this)
+            .setAllAppsPreloaded(false)
+            .build() as ActivityContextComponent
     }
 
     override fun getActivityComponent(): ActivityContextComponent = activityComponentLazy
 
     init {
-        Executors.MAIN_EXECUTOR.execute {
+        uiExecutor.execute {
             savedStateRegistryController.performAttach()
             savedStateRegistryController.performRestore(null)
+            TestInformationHandler.trackUiSurface(this)
         }
     }
 
@@ -88,7 +98,8 @@ constructor(base: Context, themeResId: Int, private val destroyOnDetach: Boolean
                 override fun onViewAttachedToWindow(view: View) {
                     view.rootView.setViewTreeLifecycleOwner(this@BaseContext)
                     view.rootView.setViewTreeSavedStateRegistryOwner(this@BaseContext)
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+                    lifecycleRegistryWrapper.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+                    updateState()
 
                     val treeObserver = view.viewTreeObserver
 
@@ -123,8 +134,8 @@ constructor(base: Context, themeResId: Int, private val destroyOnDetach: Boolean
     override fun getOwnerCleanupSet() = cleanupSet
 
     private fun updateState() {
-        if (lifecycleRegistry.currentState.isAtLeast(CREATED)) {
-            lifecycleRegistry.currentState =
+        if (lifecycleRegistryWrapper.currentState.isAtLeast(CREATED)) {
+            lifecycleRegistryWrapper.currentState =
                 if (rootView.windowVisibility != View.VISIBLE) CREATED
                 else (if (!rootView.hasWindowFocus()) STARTED else RESUMED)
         }
@@ -132,12 +143,12 @@ constructor(base: Context, themeResId: Int, private val destroyOnDetach: Boolean
 
     fun onViewDestroyed() {
         if (
-            !lifecycleRegistry.currentState.isAtLeast(CREATED) &&
-                lifecycleRegistry.currentState != DESTROYED
+            !lifecycleRegistryWrapper.currentState.isAtLeast(CREATED) &&
+                lifecycleRegistryWrapper.currentState != DESTROYED
         ) {
-            lifecycleRegistry.currentState = CREATED
+            lifecycleRegistryWrapper.currentState = CREATED
         }
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        lifecycleRegistryWrapper.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         finishActions.executeAllAndDestroy()
     }
 }

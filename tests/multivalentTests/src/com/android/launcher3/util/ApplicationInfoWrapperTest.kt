@@ -24,6 +24,7 @@ import android.content.pm.ApplicationInfo.FLAG_SUSPENDED
 import android.content.pm.ApplicationInfo.FLAG_SYSTEM
 import android.content.pm.LauncherApps
 import android.os.UserHandle
+import android.platform.test.annotations.DisableFlags
 import android.platform.test.annotations.EnableFlags
 import android.platform.test.flag.junit.SetFlagsRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -122,6 +123,82 @@ class ApplicationInfoWrapperTest {
     fun appInfo_notOnSDCard() {
         val wrapper = ApplicationInfoWrapper(ApplicationInfo())
         assertFalse(wrapper.isOnSdCard())
+    }
+
+    @Test
+    @DisableFlags(android.security.Flags.FLAG_APP_LOCK_APIS)
+    fun appInfo_appLockSupported_flagOff() {
+        val applicationInfo = ApplicationInfo()
+        // Not supported
+        applicationInfo.isAppLockSupported = false
+        val wrapper1 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper1.getInfo())
+        assertFalse(wrapper1.isAppLockSupported())
+
+        // Supported
+        applicationInfo.isAppLockSupported = true
+        val wrapper2 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper2.getInfo())
+        assertFalse(wrapper2.isAppLockSupported())
+    }
+
+    @Test
+    @DisableFlags(android.security.Flags.FLAG_APP_LOCK_APIS)
+    fun appInfo_appLockEnabled_flagOff() {
+        val applicationInfo = ApplicationInfo()
+        // Not enabled
+        applicationInfo.isAppLockEnabled = false
+        val wrapper1 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper1.getInfo())
+        assertFalse(wrapper1.isAppLockEnabled())
+
+        // Enabled
+        applicationInfo.isAppLockEnabled = true
+        val wrapper2 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper2.getInfo())
+        assertFalse(wrapper2.isAppLockEnabled())
+    }
+
+    @Test
+    @EnableFlags(android.security.Flags.FLAG_APP_LOCK_APIS)
+    fun appInfo_appLockSupported() {
+        val applicationInfo = ApplicationInfo()
+        // Not supported
+        applicationInfo.isAppLockSupported = false
+        val wrapper1 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper1.getInfo())
+        assertFalse(wrapper1.isAppLockSupported())
+
+        // Supported
+        applicationInfo.isAppLockSupported = true
+        val wrapper2 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper2.getInfo())
+        assertTrue(wrapper2.isAppLockSupported())
+    }
+
+    @Test
+    @EnableFlags(android.security.Flags.FLAG_APP_LOCK_APIS)
+    fun appInfo_appLockEnabled() {
+        val applicationInfo = ApplicationInfo()
+        // Not enabled
+        applicationInfo.isAppLockEnabled = false
+        val wrapper1 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper1.getInfo())
+        assertFalse(wrapper1.isAppLockEnabled())
+
+        // Enabled
+        applicationInfo.isAppLockEnabled = true
+        val wrapper2 = ApplicationInfoWrapper(applicationInfo)
+
+        assertNotNull(wrapper2.getInfo())
+        assertTrue(wrapper2.isAppLockEnabled())
     }
 
     companion object {

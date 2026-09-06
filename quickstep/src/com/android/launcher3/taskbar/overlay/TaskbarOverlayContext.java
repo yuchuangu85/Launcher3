@@ -15,32 +15,43 @@
  */
 package com.android.launcher3.taskbar.overlay;
 
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+
+import static com.android.launcher3.Utilities.shouldReduceWorkspaceBlurUsage;
+
 import android.content.Context;
 import android.graphics.Point;
 import android.view.View;
+import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.Flags;
+import com.android.launcher3.InsettableFrameLayout.LayoutParams;
 import com.android.launcher3.R;
 import com.android.launcher3.popup.PopupDataProvider;
 import com.android.launcher3.taskbar.BaseTaskbarContext;
 import com.android.launcher3.taskbar.TaskbarActivityContext;
 import com.android.launcher3.taskbar.TaskbarControllers;
+import com.android.launcher3.taskbar.TaskbarCustomActionsListener;
 import com.android.launcher3.taskbar.TaskbarDragController;
+import com.android.launcher3.taskbar.TaskbarPopupController;
 import com.android.launcher3.taskbar.TaskbarUIController;
 import com.android.launcher3.taskbar.allapps.TaskbarAllAppsContainerView;
 import com.android.launcher3.taskbar.allapps.TaskbarSearchSessionController;
+import com.android.launcher3.taskbar.bubbles.DragToBubbleController;
+import com.android.launcher3.touch.CustomActionsListener;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.SplitConfigurationOptions.SplitSelectSource;
+import com.android.launcher3.util.WindowBlurState;
+import com.android.systemui.shared.system.BlurUtils;
+
+import java.util.Optional;
 
 /**
  * Window context for the taskbar overlays such as All Apps and EDU.
  * <p>
- * Overlays have their own window and need a window context. Some properties are
- * delegated to the
+ * Overlays have their own window and need a window context. Some properties are delegated to the
  * {@link TaskbarActivityContext} such as {@link PopupDataProvider}.
  */
 public class TaskbarOverlayContext extends BaseTaskbarContext {
@@ -49,6 +60,9 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     private final TaskbarOverlayController mOverlayController;
     private final TaskbarDragController mDragController;
     private final TaskbarOverlayDragLayer mDragLayer;
+    private FrameLayout mBubbleBarDropViewContainer;
+    private final Optional<DragToBubbleController> mDragToBubbleController;
+    private final TaskbarPopupController mPopupController;
 
     private final int mStashedTaskbarHeight;
     private final TaskbarUIController mUiController;
@@ -62,18 +76,27 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
         super(windowContext, taskbarContext.getDisplayId(), taskbarContext.isPrimaryDisplay());
         mTaskbarContext = taskbarContext;
         mOverlayController = controllers.taskbarOverlayController;
+        mDragToBubbleController = controllers.bubbleControllers.map(c -> c.dragToBubbleController);
+        mPopupController = controllers.taskbarPopupController;
         mDragController = new TaskbarDragController(this);
-        mDragController.init(controllers);
+        // We don't query isDragging from DragController attached to TaskbarOverlayContext. Instead
+        // we only query it from DragController attached to TaskbarControllers. Thus we don't pass
+        // TaskbarUiState to DragController here.
+        mDragController.init(controllers, null);
         mDragLayer = new TaskbarOverlayDragLayer(this);
         mStashedTaskbarHeight = controllers.taskbarStashController.getStashedHeight();
-        updateBlurStyle();
+
+        // Apply the blur or blur fallback style to the current theme.
+        getTheme().applyStyle(R.style.AllAppsBlurStyle, true);
 
         mUiController = controllers.uiController;
         onViewCreated();
     }
 
     /** Called when the controller is destroyed. */
+    @Override
     public void onDestroy() {
+        super.onDestroy();
         mDragController.onDestroy();
     }
 
@@ -94,13 +117,9 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
         return mOverlayController;
     }
 
-    /**
-     * Returns {@code true} if overlay or Taskbar windows are handling a system
-     * drag.
-     */
+    /** Returns {@code true} if overlay or Taskbar windows are handling a system drag. */
     boolean isAnySystemDragInProgress() {
-        return mDragController.isSystemDragInProgress()
-                || mTaskbarContext.getDragController().isSystemDragInProgress();
+        return mOverlayController.isAnySystemDragInProgress();
     }
 
     @Override
@@ -130,16 +149,8 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
 
     @Override
     public boolean isAllAppsBackgroundBlurEnabled() {
-        return Flags.allAppsBlur() && mOverlayController != null
-                && mOverlayController.isBackgroundBlurEnabled();
-    }
-
-    /** Apply the blur or blur fallback style to the current theme. */
-    private void updateBlurStyle() {
-        if (!Flags.allAppsBlur()) {
-            return;
-        }
-        getTheme().applyStyle(getAllAppsBlurStyleResId(), true);
+        return !shouldReduceWorkspaceBlurUsage(this) && BlurUtils.supportsBlursOnWindows()
+                && WindowBlurState.getInstance(this).getValue();
     }
 
     @Override
@@ -152,10 +163,9 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
         return mDragController::startDragOnLongClick;
     }
 
-    @NonNull
     @Override
-    public PopupDataProvider getPopupDataProvider() {
-        return mTaskbarContext.getPopupDataProvider();
+    public CustomActionsListener getAllAppsItemCustomActionsListener() {
+        return new TaskbarCustomActionsListener(this);
     }
 
     @Override
@@ -189,11 +199,6 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     }
 
     @Override
-    public boolean showLockedTaskbarOnHome() {
-        return mTaskbarContext.showLockedTaskbarOnHome();
-    }
-
-    @Override
     public boolean showDesktopTaskbarForFreeformDisplay() {
         return mTaskbarContext.showDesktopTaskbarForFreeformDisplay();
     }
@@ -209,24 +214,39 @@ public class TaskbarOverlayContext extends BaseTaskbarContext {
     }
 
     @Override
-    public void notifyConfigChanged() {
-        mTaskbarContext.notifyConfigChanged();
-    }
-
-    @Override
     public void onDragStart() {
+        mDragToBubbleController.ifPresent(c -> {
+            setupBubbleBarDropViewContainer();
+            c.setOverlayContainerView(mBubbleBarDropViewContainer);
+        });
     }
 
     @Override
     public void onDragEnd() {
+        mDragToBubbleController.ifPresent(c -> c.setOverlayContainerView(null));
         mOverlayController.maybeCloseWindow();
     }
 
     @Override
-    public void onPopupVisibilityChanged(boolean isVisible) {
+    public void onPopupVisibilityChanged(boolean isVisible) {}
+
+    @Override
+    public void showPopupMenuForIcon(View icon) {
+        mPopupController.show(icon);
     }
 
     @Override
     public void onSplitScreenMenuButtonClicked() {
+    }
+
+    private void setupBubbleBarDropViewContainer() {
+        if (mDragToBubbleController.isEmpty() || mBubbleBarDropViewContainer != null) {
+            return;
+        }
+        mBubbleBarDropViewContainer = new FrameLayout(this);
+        mDragLayer.addView(mBubbleBarDropViewContainer);
+        LayoutParams lp = new LayoutParams(MATCH_PARENT, MATCH_PARENT);
+        lp.ignoreInsets = true;
+        mBubbleBarDropViewContainer.setLayoutParams(lp);
     }
 }

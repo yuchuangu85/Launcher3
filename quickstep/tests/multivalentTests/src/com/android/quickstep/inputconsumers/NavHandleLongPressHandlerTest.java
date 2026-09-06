@@ -39,16 +39,21 @@ import com.android.quickstep.util.ContextualSearchStateManager;
 import com.android.quickstep.util.TestExtensions;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class NavHandleLongPressHandlerTest {
 
     private NavHandleLongPressHandler mLongPressHandler;
+
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
     @Mock private NavHandle mNavHandle;
     @Mock VibratorWrapper mVibratorWrapper;
     @Mock ContextualSearchHapticManager mContextualSearchHapticManager;
@@ -61,7 +66,6 @@ public class NavHandleLongPressHandlerTest {
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
         Context context = InstrumentationRegistry.getInstrumentation()
                 .getTargetContext().getApplicationContext();
         when(mStatsLogManagerFactory.create(context)).thenReturn(mStatsLogManager);

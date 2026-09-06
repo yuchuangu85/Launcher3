@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources copied from frameworks/base/libs/WindowManager/Shell/shared/res
+     (WindowManager-Shell-shared). AOSP merges them into the Launcher3 package R;
+     the standalone Gradle build mirrors that here. -->
+<resources>
+    <dimen name="drag_zone_bubble_fold">140dp</dimen>
+    <dimen name="drag_zone_bubble_tablet">200dp</dimen>
+</resources>

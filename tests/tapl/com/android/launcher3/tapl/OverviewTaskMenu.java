@@ -53,8 +53,9 @@ public class OverviewTaskMenu {
             boolean[] isDismissEnded = new boolean[]{false};
             final List<Integer> actualEvents = new ArrayList<>();
             mLauncher.executeAndWaitForLauncherEvent(
-                    () -> mLauncher.clickLauncherObject(
-                            mLauncher.findObjectInContainer(mMenu, By.textStartsWith("Split"))),
+                    () ->
+                        mLauncher.waitForObjectInContainer(
+                                mMenu, By.textStartsWith("Split")).click(),
                     event -> {
                         // Wait for state changed to Split Select.
                         if (!isSplitState[0] && mLauncher.isSwitchToStateEvent(event,
@@ -104,8 +105,7 @@ public class OverviewTaskMenu {
              LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                      "before tapping the app info menu item")) {
             mLauncher.executeAndWaitForLauncherStop(
-                    () -> mLauncher.clickLauncherObject(
-                            mLauncher.findObjectInContainer(mMenu, By.text("App info"))),
+                    () -> mLauncher.findObjectInContainer(mMenu, By.text("App info")).click(),
                     "tapped app info menu item");
 
             try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
@@ -124,8 +124,7 @@ public class OverviewTaskMenu {
                      "before tapping the select menu item")) {
 
             mLauncher.runToState(
-                    () -> mLauncher.clickLauncherObject(
-                            mLauncher.findObjectInContainer(mMenu, By.text("Select"))),
+                    () -> mLauncher.findObjectInContainer(mMenu, By.text("Select")).click(),
                     OVERVIEW_MODAL_TASK_STATE_ORDINAL, "tapping select menu item");
 
             try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
@@ -145,8 +144,7 @@ public class OverviewTaskMenu {
              LauncherInstrumentation.Closable ignored1 = mLauncher.addContextLayer(
                      "before tapping the desktop menu item")) {
             mLauncher.executeAndWaitForLauncherStop(
-                    () -> mLauncher.clickLauncherObject(
-                            mLauncher.findObjectInContainer(mMenu, By.text("Desktop"))),
+                    () -> mLauncher.findObjectInContainer(mMenu, By.text("Desktop")).click(),
                     "tapped desktop menu item");
 
             try (LauncherInstrumentation.Closable ignored2 = mLauncher.addContextLayer(
@@ -169,5 +167,10 @@ public class OverviewTaskMenu {
      */
     public void touchOutsideTaskMenuToDismiss() {
         mLauncher.touchOutsideContainer(mMenu, false);
+    }
+
+    /** Taps the Clear item from the overview task menu. */
+    void tapClearMenuItem() {
+        mLauncher.waitForObjectInContainer(mMenu, By.text("Clear")).click();
     }
 }

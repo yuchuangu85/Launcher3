@@ -56,9 +56,10 @@ sealed class TaskData {
      * @property icon App icon
      * @property thumbnailData Information related to the last snapshot retrieved from the app
      * @property backgroundColor The background color of the task.
-     * @property isLocked Indicates whether the task is locked or not.
+     * @property isLocked Indicates whether the task is locked or not by a system-wide lock.
      * @property isLiveTile Indicates whether the task is shown with a live tile or not.
      * @property remainingAppTimerDuration time remaining on the app timer for the application.
+     * @property isAppLocked Indicates whether the task's app is locked by the App Lock feature.
      */
     data class Data(
         override val taskId: Int,
@@ -71,5 +72,6 @@ sealed class TaskData {
         val isLocked: Boolean,
         val isLiveTile: Boolean,
         val remainingAppTimerDuration: Duration?,
+        val isAppLocked: Boolean,
     ) : TaskData()
 }

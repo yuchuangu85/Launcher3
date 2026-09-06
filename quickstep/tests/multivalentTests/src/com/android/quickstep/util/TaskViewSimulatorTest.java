@@ -15,6 +15,8 @@
  */
 package com.android.quickstep.util;
 
+import static com.android.quickstep.util.TaskViewSimulatorTest_ModifiedComponentKt.mutatedComponentBuilder;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -36,10 +38,8 @@ import androidx.test.filters.SmallTest;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.dagger.LauncherAppComponent;
-import com.android.launcher3.dagger.LauncherAppSingleton;
-import com.android.launcher3.util.AllModulesMinusWMProxy;
-import com.android.launcher3.util.DisplayController;
-import com.android.launcher3.util.DisplayController.Info;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.RotationUtils;
 import com.android.launcher3.util.SandboxApplication;
@@ -48,13 +48,13 @@ import com.android.launcher3.util.window.CachedDisplayInfo;
 import com.android.launcher3.util.window.WindowManagerProxy;
 import com.android.quickstep.FallbackActivityInterface;
 import com.android.quickstep.util.SurfaceTransaction.MockProperties;
-
-import dagger.BindsInstance;
-import dagger.Component;
+import com.android.tools.dagger.mutation.annotations.BindValue;
+import com.android.tools.dagger.mutation.annotations.MutatedComponent;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,9 +64,17 @@ import java.util.List;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
+@MutatedComponent(target = LauncherAppComponent.class)
 public class TaskViewSimulatorTest {
 
     @Rule public final SandboxApplication app = new SandboxApplication();
+
+    @BindValue public DisplayController mockController = mock(DisplayController.class);
+
+    @Before
+    public void setup() {
+        app.initDaggerComponent(mutatedComponentBuilder(this));
+    }
 
     @Test
     public void taskProperlyScaled_portrait_noRotation_sameInsets1() {
@@ -166,11 +174,6 @@ public class TaskViewSimulatorTest {
         }
 
         void verifyNoTransforms() {
-            DisplayController mockController = mock(DisplayController.class);
-
-            app.initDaggerComponent(
-                    DaggerTaskViewSimulatorTest_TaskViewSimulatorTestComponent.builder()
-                            .bindDisplayController(mockController));
             int rotation = mDisplaySize.x > mDisplaySize.y
                     ? Surface.ROTATION_90 : Surface.ROTATION_0;
             CachedDisplayInfo cdi = new CachedDisplayInfo(mDisplaySize, rotation);
@@ -201,8 +204,8 @@ public class TaskViewSimulatorTest {
             configuration.densityDpi = mDensityDpi;
             Context configurationContext = app.createConfigurationContext(configuration);
 
-            DisplayController.Info info = new Info(
-                    configurationContext, false, wmProxy, perDisplayBoundsCache, mDensityDpi);
+            LauncherDisplayInfo info = new LauncherDisplayInfo(
+                    configurationContext, wmProxy, false, perDisplayBoundsCache, mDensityDpi);
             when(mockController.getInfo()).thenReturn(info);
 
             mDeviceProfile = InvariantDeviceProfile.INSTANCE.get(app)
@@ -210,7 +213,7 @@ public class TaskViewSimulatorTest {
             mDeviceProfile.updateInsets(mLauncherInsets);
 
             TaskViewSimulator tvs = new TaskViewSimulator(app,
-                    FallbackActivityInterface.INSTANCE, false, 0);
+                    FallbackActivityInterface.INSTANCE.get(app), false, 0);
             tvs.setDp(mDeviceProfile);
 
             int launcherRotation = info.rotation;
@@ -274,20 +277,6 @@ public class TaskViewSimulatorTest {
         @Override
         public void describeTo(Description description) {
             description.appendValue(mExpected);
-        }
-    }
-
-    @LauncherAppSingleton
-    @Component(modules = {AllModulesMinusWMProxy.class})
-    interface TaskViewSimulatorTestComponent extends LauncherAppComponent {
-
-        @Component.Builder
-        interface Builder extends LauncherAppComponent.Builder {
-
-            @BindsInstance
-            Builder bindDisplayController(DisplayController controller);
-
-            TaskViewSimulatorTestComponent build();
         }
     }
 }

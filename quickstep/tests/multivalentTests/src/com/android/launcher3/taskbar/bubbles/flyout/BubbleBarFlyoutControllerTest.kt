@@ -69,6 +69,7 @@ class BubbleBarFlyoutControllerTest {
                 override val collapsedColor = Color.BLUE
                 override val collapsedElevation = 1f
                 override val distanceToRevealTriangle = 50f
+                override val horizontalMargin = 20
             }
         flyoutCallbacks = FakeFlyoutCallbacks()
         val flyoutScheduler = FlyoutScheduler { block -> block.invoke() }
@@ -85,6 +86,8 @@ class BubbleBarFlyoutControllerTest {
             val lp = flyout.layoutParams as FrameLayout.LayoutParams
             assertThat(lp.gravity).isEqualTo(Gravity.BOTTOM or Gravity.LEFT)
             assertThat(flyout.translationY).isEqualTo(50f)
+            assertThat(lp.marginEnd).isEqualTo(20)
+            assertThat(lp.marginStart).isEqualTo(20)
         }
     }
 
@@ -98,6 +101,8 @@ class BubbleBarFlyoutControllerTest {
             val lp = flyout.layoutParams as FrameLayout.LayoutParams
             assertThat(lp.gravity).isEqualTo(Gravity.BOTTOM or Gravity.RIGHT)
             assertThat(flyout.translationY).isEqualTo(50f)
+            assertThat(lp.marginEnd).isEqualTo(20)
+            assertThat(lp.marginStart).isEqualTo(20)
         }
     }
 

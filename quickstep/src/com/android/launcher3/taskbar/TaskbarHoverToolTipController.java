@@ -30,6 +30,7 @@ import android.text.TextUtils;
 import android.view.ContextThemeWrapper;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
@@ -48,15 +49,15 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
     private static final int HOVER_TOOL_TIP_REVEAL_DURATION = 15;
 
     private final TaskbarActivityContext mActivity;
-    private final TaskbarView mTaskbarView;
+    private final ViewGroup mContainer;
     private final View mHoverView;
     private final ArrowTipView mHoverToolTipView;
     private final int mYOffset;
 
-    public TaskbarHoverToolTipController(TaskbarActivityContext activity, TaskbarView taskbarView,
+    public TaskbarHoverToolTipController(TaskbarActivityContext activity, ViewGroup container,
             View hoverView) {
         mActivity = activity;
-        mTaskbarView = taskbarView;
+        mContainer = container;
         mHoverView = hoverView;
 
         ContextThemeWrapper arrowContextWrapper = new ContextThemeWrapper(mActivity,
@@ -82,7 +83,7 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
         mHoverToolTipView.addOnLayoutChangeListener(
                 (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
                     mHoverToolTipView.setPivotY(bottom);
-                    mHoverToolTipView.setY(mTaskbarView.getTop() - mYOffset - (bottom - top));
+                    mHoverToolTipView.setY(mContainer.getTop() - mYOffset - (bottom - top));
                 });
     }
 
@@ -124,7 +125,7 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
 
         Rect iconViewBounds = Utilities.getViewBounds(mHoverView);
         mHoverToolTipView.showAtLocation(toolTipText, iconViewBounds.centerX(),
-                mTaskbarView.getTop() - mYOffset, /* shouldAutoClose= */ false);
+                mContainer.getTop() - mYOffset, /* shouldAutoClose= */ false);
     }
 
     private String getToolTipText() {
@@ -135,7 +136,7 @@ public class TaskbarHoverToolTipController implements View.OnHoverListener {
         } else if (mHoverView instanceof AppPairIcon icon) {
             return icon.getTitleTextView().getText().toString();
         } else if (mHoverView instanceof TaskbarOverflowView icon) {
-            return icon.getTextForTooltipPopup();
+            return icon.getIsActive() ? null : icon.getTextForTooltipPopup();
         } else {
             return null;
         }

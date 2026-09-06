@@ -19,14 +19,13 @@ package com.android.launcher3;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.text.InputType;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -43,13 +42,9 @@ import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.util.MSDLPlayerWrapper;
-import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
 
 import com.google.android.msdl.data.model.MSDLToken;
-
-import app.lawnchair.theme.color.tokens.ColorTokens;
-import app.lawnchair.theme.drawable.DrawableTokens;
 
 /**
  * Implements a DropTarget.
@@ -113,21 +108,16 @@ public abstract class ButtonDropTarget extends TextView
     }
 
     @Override
+    public boolean onDragEvent(DragEvent event) {
+        // We don't want this view to interfere with Launcher's own drag and drop.
+        return false;
+    }
+
+    @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
         mText = getText();
         setContentDescription(mText);
-        setBackground(DrawableTokens.DropTargetBackground.resolve(getContext()));
-        setTextColor();
-    }
-
-    private void setTextColor() {
-        int normalColor = ColorTokens.WorkspaceAccentColor.resolveColor(getContext());
-        int selectedColor = ColorTokens.DropTargetHoverTextColor.resolveColor(getContext());
-        setTextColor(new ColorStateList(
-                new int[][] { new int[] { -android.R.attr.state_selected },
-                        new int[] { android.R.attr.state_selected } },
-                new int[] { normalColor, selectedColor }));
     }
 
     protected void updateText(int resId) {
@@ -216,7 +206,8 @@ public abstract class ButtonDropTarget extends TextView
 
     @Override
     public void onDragStart(DropTarget.DragObject dragObject, DragOptions options) {
-        if (options.isKeyboardDrag) {
+        if (options.isKeyboardDrag
+                || (options.isMouseDrag && Flags.enableCursorDrivenWorkflows())) {
             mActive = false;
         } else {
             setupItemInfo(dragObject.dragInfo);
@@ -377,12 +368,6 @@ public abstract class ButtonDropTarget extends TextView
             mTextMultiLine = isMultiLine;
             setSingleLine(!isMultiLine);
             setMaxLines(isMultiLine ? MAX_LINES_TEXT_MULTI_LINE : MAX_LINES_TEXT_SINGLE_LINE);
-            int inputType = InputType.TYPE_CLASS_TEXT;
-            if (isMultiLine) {
-                inputType |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
-
-            }
-            setInputType(inputType);
         }
     }
 
@@ -479,10 +464,11 @@ public abstract class ButtonDropTarget extends TextView
      */
     public float resizeTextToFit() {
         float minSize = Utilities.pxToSp(getResources()
-                .getDimensionPixelSize(R.dimen.button_drop_target_min_text_size));
+                .getDimensionPixelSize(R.dimen.button_drop_target_min_text_size), getContext());
         float step = Utilities.pxToSp(getResources()
-                .getDimensionPixelSize(R.dimen.button_drop_target_resize_text_increment));
-        float textSize = Utilities.pxToSp(getTextSize());
+                        .getDimensionPixelSize(R.dimen.button_drop_target_resize_text_increment),
+                getContext());
+        float textSize = Utilities.pxToSp(getTextSize(), getContext());
 
         int availableWidth = getMeasuredWidth();
         int availableHeight = getMeasuredHeight();

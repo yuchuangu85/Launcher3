@@ -1,0 +1,39 @@
+// AOSP iconloaderlib migrated to Gradle (Launcher3-QuickStep-Android17 project)
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+android {
+    namespace 'com.android.launcher3.icons'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig {
+        minSdk 31
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
+        freeCompilerArgs = ['-Xjvm-default=all']
+    }
+    lint {
+        abortOnError false
+    }
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    rootProject.addPlatformJarsFor(project, ['SystemUI.jar'])
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.annotation
+    api project(":usertypelib")
+}

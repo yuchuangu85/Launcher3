@@ -1,0 +1,44 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader foreground;
+uniform half snowThickness;
+uniform half scale;
+uniform half screenWidth;
+
+#include "shaders/simplex2d.agsl"
+#include "shaders/utils.agsl"
+
+float random(vec2 uv) {
+    return fract(sin(dot(uv, vec2(14.53898, 56.233))) * 45312.644263742);
+}
+
+vec4 main(float2 fragCoord) {
+    // fragCoord should be already the adjusted UVs to have the expected rect of the image.
+    vec2 uv = fragCoord * scale / screenWidth;
+    float variation = 0.3 + simplex2d(11. * uv);
+    float distance = variation * snowThickness;
+
+    float aN = foreground.eval(fragCoord + vec2(0., distance)).a;
+    float aS = foreground.eval(fragCoord + vec2(0., -distance)).a;
+    float dY = (aN - aS) * 0.5;
+    dY = max(dY, 0.0);
+
+    vec4 color = vec4(0., 0., 0., 1.);
+    color.r = dY * 10.0;
+    color.g = random(uv);
+    return color;
+}

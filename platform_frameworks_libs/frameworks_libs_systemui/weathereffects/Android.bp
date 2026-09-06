@@ -1,0 +1,106 @@
+// Copyright (C) 2023 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+// The weather effects library only contains rendering logic.
+android_library {
+    name: "WeatherEffectsGraphicsLib",
+    sdk_version: "system_current",
+    // min_sdk version must be specified to not compile against platform apis.
+    // Using HardwareBufferRenderer requires minimum of 34.
+    min_sdk_version: "34",
+    static_libs: [
+        // Do not add Torus dependency here, since this package is only for rendering. The host app
+        // will include Torus or Livewallpaper frameworks.
+        "androidx.appcompat_appcompat",
+        "//frameworks/libs/systemui:com_android_systemui_shared_flags_lib",
+    ],
+    srcs: [
+        "graphics/src/**/*.java",
+        "graphics/src/**/*.kt",
+    ],
+    asset_dirs: [
+        "graphics/assets",
+    ],
+    javacflags: ["-Adagger.fastInit=enabled"],
+    kotlincflags: ["-Xjvm-default=all"],
+    plugins: ["dagger2-compiler"],
+    dxflags: ["--multi-dex"],
+}
+
+// Debug app.
+android_app {
+    name: "WeatherEffectsDebug",
+    manifest: "debug/AndroidManifest.xml",
+    owner: "google",
+    platform_apis: true,
+    srcs: [
+        "src/**/*.java",
+        "src/**/*.kt",
+        "debug/src/**/*.java",
+        "debug/src/**/*.kt",
+    ],
+    resource_dirs: [
+        "res",
+        "debug/res",
+    ],
+    asset_dirs: [
+        "debug/assets",
+    ],
+    static_libs: [
+        "androidx.slice_slice-core",
+        "androidx.slice_slice-builders",
+        "dagger2",
+        "jsr330", // Dagger inject annotations.
+        "kotlinx_coroutines_android",
+        "kotlinx_coroutines",
+        "androidx.core_core-ktx",
+        "androidx.appcompat_appcompat",
+        "androidx-constraintlayout_constraintlayout",
+        "toruslib",
+        "WeatherEffectsGraphicsLib",
+    ],
+    use_embedded_native_libs: true,
+    plugins: ["dagger2-compiler"],
+    optimize: {
+        enabled: true,
+        shrink: true,
+        shrink_resources: true,
+    },
+}
+
+android_test {
+    name: "weathereffects_tests",
+    instrumentation_for: "WeatherEffectsDebug",
+    manifest: "AndroidManifest.xml",
+    test_suites: ["general-tests"],
+    sdk_version: "current",
+    owner: "google",
+    srcs: [
+        "tests/src/**/*.java",
+        "tests/src/**/*.kt",
+    ],
+    static_libs: [
+        "WeatherEffectsGraphicsLib",
+        "androidx.test.rules",
+        "androidx.test.ext.junit",
+        "androidx.test.core",
+        "androidx.test.runner",
+        "kotlinx_coroutines_test",
+        "truth",
+    ],
+}

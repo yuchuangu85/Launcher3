@@ -5,7 +5,7 @@ DeviceProfile:
 	transposeLayoutWithOrientation:true
 	isGestureMode:true
 	isLandscape:true
-	isMultiWindowMode:false
+	isExternalDisplay:false
 	isTwoPanels:false
 	isLeftRightSplit:true
 	windowX: 0.0px (0.0dp)
@@ -67,8 +67,8 @@ DeviceProfile:
 	allAppsBorderSpacePxY: 42.0px (16.0dp)
 	numShownAllAppsColumns: 5
 	allAppsPadding.top: 74.0px (28.190475dp)
-	allAppsPadding.left: 0.0px (0.0dp)
-	allAppsPadding.right: 0.0px (0.0dp)
+	allAppsPadding.left: 32.0px (12.190476dp)
+	allAppsPadding.right: 32.0px (12.190476dp)
 	allAppsLeftRightMargin: 0.0px (0.0dp)
 	hotseatBarSizePx: 252.0px (96.0dp)
 	mHotseatColumnSpan: 5
@@ -81,7 +81,7 @@ DeviceProfile:
 	navButtonsLayoutWidthPx: 0.0px (0.0dp)
 	hotseatBarEndOffset: 0.0px (0.0dp)
 	hotseatQsbSpace: 0.0px (0.0dp)
-	hotseatQsbHeight: 0.0px (0.0dp)
+	hotseatQsbHeight: 165.0px (62.857143dp)
 	springLoadedHotseatBarTopMarginPx: 118.0px (44.95238dp)
 	getHotseatLayoutPadding(context).top: 74.0px (28.190475dp)
 	getHotseatLayoutPadding(context).bottom: 103.0px (39.238094dp)
@@ -113,7 +113,6 @@ DeviceProfile:
 	overviewTaskIconSizePx: 0.0px (0.0dp)
 	overviewTaskIconDrawableSizePx: 0.0px (0.0dp)
 	overviewTaskIconDrawableSizeGridPx: 0.0px (0.0dp)
-	overviewTaskThumbnailTopMarginPx: 0.0px (0.0dp)
 	overviewActionsTopMarginPx: 0.0px (0.0dp)
 	overviewActionsHeight: 0.0px (0.0dp)
 	overviewActionsClaimedSpaceBelow: 63.0px (24.0dp)

@@ -1,0 +1,218 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader foreground;
+uniform shader background;
+uniform shader outlineBuffer;
+uniform float time;
+uniform float screenAspectRatio;
+uniform float gridScale;
+uniform float2 screenSize;
+uniform half intensity;
+uniform mat3 transformMatrixBitmap;
+uniform mat3 transformMatrixWeather;
+
+#include "shaders/constants.agsl"
+#include "shaders/utils.agsl"
+#include "shaders/rain_shower.agsl"
+#include "shaders/rain_constants.agsl"
+#include "shaders/rain_splash.agsl"
+#include "shaders/glass_rain.agsl"
+
+// Controls how visible the rain drops are.
+const float rainVisibility = 0.4;
+
+/**
+ * Draws splashes around the outline of the given image.
+ */
+vec3 drawSplashes(vec2 uv, vec2 fragCoord, vec3 color) {
+    /** 1. Make a grid */
+    vec2 gridSize = vec2(15., 15.) * gridScale;
+    // Aspect ratio impacts visible cells.
+    gridSize.y /= screenAspectRatio;
+    // Scale the UV to allocate number of rows and columns.
+    vec2 gridUv = uv * gridSize;
+    // Invert y (otherwise it goes from 0=top to 1=bottom).
+    gridUv.y = 1. - gridUv.y;
+    // Generate column id, to offset columns vertically (so rain is not aligned).
+    float columnOffset = idGenerator(floor(gridUv.x));
+    gridUv.y += columnOffset * 2.6;
+
+    // For each cell, we set the internal UV from -0.5 (left, bottom) to 0.5 (right, top).
+    vec2 cellUv = fract(gridUv) - 0.5;
+    vec2 pixUv = cellUv;
+    pixUv.x *= -1;
+    vec2 pixDistance = screenSize * pixUv / gridSize;
+    float2 uvTexture =  transformPoint(transformMatrixBitmap, fragCoord + pixDistance);
+
+    float outline = step(0.1, outlineBuffer.eval(uvTexture).r);
+    if (outline < 0.1) {
+        // Simply return the given color when it's not considered as an outline.
+        return color;
+    }
+
+    float t = time + 53.512 * columnOffset;
+    float delay = 1.5173;
+    float duration = 1.2;
+
+    float circletime = floor(t / (duration + delay));
+    // Get the cell ID based on the grid position. [0, 1].
+    float cellId = idGenerator(floor(gridUv) + vec2(circletime, 23.14));
+    // Normalized time [0, 1].
+    float cellTime = max((mod(t + delay * cellId, duration + delay) - delay) / duration, 0.);
+
+    float splash = drawSplash(cellUv, cellTime) * smoothstep(0., 0.45, intensity);
+
+    return screenBlend(color, splash);
+}
+
+vec4 main(float2 fragCoord) {
+    // 1. Generate rain shower.
+    // Apply transform matrix to fragCoord
+    float2 uvTexture = transformPoint(transformMatrixBitmap, fragCoord);
+    // Calculate uv for snow based on transformed coordinates
+    float2 uv = transformPoint(transformMatrixWeather, fragCoord) / screenSize;
+
+    // Sample foreground alpha (used as a mask) and background color.
+    float foregroundAlpha = foreground.eval(uvTexture).a;
+    vec4 color = background.eval(uvTexture);
+
+    // Adjusts contrast and brightness.
+    float noise = 0.025 * triangleNoise(fragCoord.xy + vec2(12.31, 1024.1241));
+    color.rgb = imageRangeConversion(color.rgb, 0.84, 0.02, noise, intensity);
+
+    // Construct the final color: masked background using foreground's alpha.
+    vec4 colorForeground = vec4(color.rgb * foregroundAlpha, foregroundAlpha);
+
+    // Add rotation for the rain (as a default sin(time * 0.05) can be used).
+    float variation = wiggle(time - uv.y * 1.1, 0.10);
+    vec2 uvRot = rotateAroundPoint(uv, vec2(0.5, -1.42), variation * PI / 9.);
+
+    // 1.1. Generate a layer of rain behind the subject.
+    Rain rain = generateRain(
+          uvRot,
+          screenAspectRatio,
+          time * 18.,
+          /* Grid size = */ vec2(20.0, 2.0) * gridScale,
+          intensity);
+
+    color.rgb = mix(color.rgb, highlightColor, rainVisibility * rain.dropMask);
+
+    // 1.2. Generate mid layer of rain behind the subject.
+    rain = generateRain(
+          uvRot,
+          screenAspectRatio,
+          time * 21.4,
+          /* Grid size = */ vec2(30.0, 4.0) * gridScale,
+          intensity);
+
+    // 1.3. Blend those layers.
+    color.rgb = mix(color.rgb, highlightColor, rainVisibility * rain.dropMask);
+
+    // 1.4. Blend with the foreground. Any effect from here will be in front of the subject.
+    color.rgb = normalBlend(color.rgb, colorForeground.rgb, colorForeground.a);
+
+    // 1.5. Draw splashes
+    color.rgb = drawSplashes(uv, fragCoord, color.rgb);
+
+    // 1.6. Generate a layer of rain in front of the subject (bigger and faster).
+    rain = generateRain(
+          uvRot,
+          screenAspectRatio,
+          time * 27.,
+          /* Grid size = */ vec2(8.0, 3.0) * gridScale,
+          intensity);
+
+    // Closer rain drops are less visible.
+    color.rgb = mix(color.rgb, highlightColor, 0.7 * rainVisibility * rain.dropMask);
+
+    // 2. Generate glass rain layer.
+    // 2.0. Calculate UV and add a bit of noise so that the droplets are not perfect circles.
+    float2 glassUv = vec2(valueNoise(fragCoord) * 0.015 - 0.0025) + fragCoord / screenSize;
+
+    // 2.1. Generate small glass rain.
+    GlassRain smallDrippingRain = generateGlassRain(
+         glassUv,
+         screenAspectRatio,
+         time * 0.7,
+         /* Grid size = */ vec2(5.0, 1.6) * gridScale,
+         intensity * 0.6);
+    float dropMask = smallDrippingRain.dropMask;
+    float droppletsMask = smallDrippingRain.droppletsMask;
+    float trailMask = smallDrippingRain.trailMask;
+    vec2 dropUvMasked = smallDrippingRain.drop * dropMask;
+    vec2 droppletsUvMasked = smallDrippingRain.dropplets * droppletsMask;
+
+    // 2.2. Generate medium size glass rain.
+    GlassRain medDrippingRain = generateGlassRain(
+          glassUv,
+          screenAspectRatio,
+          time * 0.80,
+          /* Grid size = */ vec2(6., 0.945) * gridScale,
+          intensity * 0.6);
+
+    // 2.3. Combine those two glass rains.
+    dropMask = max(medDrippingRain.dropMask, dropMask);
+    droppletsMask = max(medDrippingRain.droppletsMask, droppletsMask);
+    trailMask = max(medDrippingRain.trailMask, trailMask);
+    dropUvMasked = mix(dropUvMasked,
+        medDrippingRain.drop * medDrippingRain.dropMask, medDrippingRain.dropMask);
+    droppletsUvMasked = mix(droppletsUvMasked,
+        medDrippingRain.dropplets * medDrippingRain.droppletsMask, medDrippingRain.droppletsMask);
+
+    // 2.4. Add static rain droplets on the glass surface. (They stay in place and dissapate.)
+    vec2 gridSize = vec2(12., 12.) * gridScale;
+    // Aspect ratio impacts visible cells.
+    gridSize.y /= screenAspectRatio;
+    vec3 staticRain = generateStaticGlassRain(glassUv, time, intensity, gridSize);
+    dropMask = max(dropMask, staticRain.z);
+    dropUvMasked = mix(dropUvMasked, staticRain.xy * staticRain.z, staticRain.z);
+
+    // 2.5. Distort uv for the rain drops and dropplets.
+    float distortionDrop = -0.1;
+    vec2 uvDiffractionOffsets =
+        distortionDrop * dropUvMasked;
+     vec2  s = screenSize;
+    // Ensure the diffracted image in drops is not inverted.
+    s.y *= -1;
+
+     vec3 sampledColor = background.eval(uvTexture + uvDiffractionOffsets * s).rgb;
+    sampledColor = imageRangeConversion(sampledColor, 0.84, 0.02, noise, intensity);
+    color.rgb = mix(color.rgb, sampledColor, max(dropMask, droppletsMask));
+
+    // 2.6. Add color tint to the rain drops.
+    color.rgb = mix(
+        color.rgb,
+        dropTint,
+        dropTintIntensity * smoothstep(0.7, 1., max(dropMask, droppletsMask)));
+
+    // 2.7. Add highlight to the drops.
+    color.rgb = mix(
+        color.rgb,
+        highlightColor,
+        highlightIntensity
+            * smoothstep(0.05, 0.08, max(dropUvMasked * 1.7, droppletsUvMasked * 2.6)).x);
+
+    // 2.8. Add shadows to the drops.
+    color.rgb = mix(
+        color.rgb,
+        contactShadowColor,
+        dropShadowIntensity *
+            smoothstep(0.055, 0.1, max(length(dropUvMasked * 1.7),
+                length(droppletsUvMasked * 1.9))));
+
+    return color;
+}

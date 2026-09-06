@@ -23,10 +23,7 @@ import com.android.launcher3.LauncherPrefs.Companion.backedUpItem
 /** Stores and retrieves onboarding-related data via SharedPreferences. */
 object OnboardingPrefs {
 
-    data class CountedItem(
-        val sharedPrefKey: String,
-        val maxCount: Int,
-    ) {
+    data class CountedItem(val sharedPrefKey: String, val maxCount: Int) {
         @VisibleForTesting val prefItem = backedUpItem(sharedPrefKey, 0)
 
         /** @return The number of times we have seen the given event. */
@@ -63,12 +60,15 @@ object OnboardingPrefs {
         }
     }
 
-    @JvmField val TASKBAR_EDU_TOOLTIP_STEP = CountedItem("launcher.taskbar_edu_tooltip_step", 3)
+    @Deprecated(
+        "This field is deprecated in favor of TASKBAR_SEARCH_EDU_SEEN," +
+            "TASKBAR_SWIPE_EDU_SEEN, TASKBAR_FEATURES_EDU_SEEN, TASKBAR_PINNING_EDU_SEEN and" +
+            "only used to check if old edu was shown to the user."
+    )
+    @JvmField
+    val TASKBAR_EDU_TOOLTIP_STEP = CountedItem("launcher.taskbar_edu_tooltip_step", 3)
 
     @JvmField val HOME_BOUNCE_COUNT = CountedItem("launcher.home_bounce_count", 3)
-
-    @JvmField
-    val HOTSEAT_DISCOVERY_TIP_COUNT = CountedItem("launcher.hotseat_discovery_tip_count", 5)
 
     @JvmField val ALL_APPS_VISITED_COUNT = CountedItem("launcher.all_apps_visited_count", 20)
 
@@ -77,5 +77,14 @@ object OnboardingPrefs {
     @JvmField
     val HOTSEAT_LONGPRESS_TIP_SEEN = backedUpItem("launcher.hotseat_longpress_tip_seen", false)
 
+    @JvmField
+    val AMBIENT_CUE_FIRST_TIME_SHOWN_AT =
+        backedUpItem("ambient_cue_show_first_time_onboarding", -1L)
+
+    @JvmField
+    val AMBIENT_CUE_LONG_PRESS_SEEN = backedUpItem("ambient_cue_show_long_press_onboarding", true)
+
     @JvmField val TASKBAR_SEARCH_EDU_SEEN = backedUpItem("launcher.taskbar_search_edu_seen", false)
+
+    @JvmField val TASKBAR_SEEN_EDU_FLAGS = backedUpItem("launcher.taskbar_seen_edu_flags", 0)
 }

@@ -124,9 +124,9 @@ public class LauncherSettings {
         public static final int ITEM_TYPE_DEEP_SHORTCUT = 6;
 
         /**
-         * The favorite is an app pair for launching split screen
+         * The favorite is an app group for launching split screen
          */
-        public static final int ITEM_TYPE_APP_PAIR = 10;
+        public static final int ITEM_TYPE_APP_GROUP = 10;
 
         // *** Below enum values are used for metrics purpose but not used in Favorites DB ***
 
@@ -151,17 +151,34 @@ public class LauncherSettings {
         public static final int ITEM_TYPE_PRIVATE_SPACE_INSTALL_APP_BUTTON = 11;
 
         /**
+         * The file item that comes from the local file system and is displayed on workspace.
+         */
+        public static final int ITEM_TYPE_FILE_SYSTEM_FILE = 12;
+
+        /**
+         * The folder item that comes from the local file system and is displayed on workspace.
+         */
+        public static final int ITEM_TYPE_FILE_SYSTEM_FOLDER = 13;
+
+        /**
+         * A custom view which typically implemented using
+         * {@link com.android.launcher3.model.data.ItemViewProvider}.
+         */
+        public static final int ITEM_TYPE_CUSTOM_VIEW = 14;
+
+        /**
+         * Type for a temporary item that exists during a system drag-and-drop sequence before being
+         * replaced with N-many items of more appropriate types during drop handling.
+         */
+        public static final int ITEM_TYPE_SYSTEM_DRAG = 15;
+
+        /**
          * The custom icon bitmap.
          * <P>Type: BLOB</P>
          */
         public static final String ICON = "icon";
 
         public static final String TABLE_NAME = "favorites";
-
-        /**
-         * Backup table created when user hotseat is moved to workspace for hybrid hotseat
-         */
-        public static final String HYBRID_HOTSEAT_BACKUP_TABLE = "hotseat_restore_backup";
 
         /**
          * Temporary table used specifically for multi-db grid migrations
@@ -202,9 +219,19 @@ public class LauncherSettings {
                 case CONTAINER_DESKTOP: return "desktop";
                 case CONTAINER_HOTSEAT: return "hotseat";
                 case CONTAINER_ALL_APPS_PREDICTION: return "prediction";
+                case CONTAINER_WIDGETS_PREDICTION: return "widgets_prediction";
+                case CONTAINER_HOTSEAT_PREDICTION: return "hotseat_prediction";
                 case CONTAINER_ALL_APPS: return "all_apps";
                 case CONTAINER_WIDGETS_TRAY: return "widgets_tray";
+                case CONTAINER_BOTTOM_WIDGETS_TRAY: return "bottom_widgets_tray";
+                case CONTAINER_PIN_WIDGETS: return "pin_widgets";
+                case CONTAINER_WALLPAPERS: return "wallpapers";
                 case CONTAINER_SHORTCUTS: return "shortcuts";
+                case CONTAINER_SETTINGS: return "settings";
+                case CONTAINER_TASKSWITCHER: return "taskswitcher";
+                case CONTAINER_PRIVATESPACE: return "privatespace";
+                case EXTENDED_CONTAINERS: return "extended_containers";
+                case CONTAINER_UNKNOWN: return "unknown";
                 default: return String.valueOf(container);
             }
         }
@@ -218,9 +245,10 @@ public class LauncherSettings {
                 case ITEM_TYPE_DEEP_SHORTCUT: return "DEEPSHORTCUT";
                 case ITEM_TYPE_TASK: return "TASK";
                 case ITEM_TYPE_QSB: return "QSB";
-                case ITEM_TYPE_APP_PAIR: return "APP_PAIR";
+                case ITEM_TYPE_APP_GROUP: return "APP_PAIR";
                 case ITEM_TYPE_PRIVATE_SPACE_INSTALL_APP_BUTTON:
                     return "PRIVATE_SPACE_INSTALL_APP_BUTTON";
+                case ITEM_TYPE_SYSTEM_DRAG: return "SYSTEM_DRAG";
                 default: return String.valueOf(type);
             }
         }
@@ -315,7 +343,7 @@ public class LauncherSettings {
 
         // LinkedHashMap maintains Order of Insertion
         @NonNull
-        private static LinkedHashMap<String, String> getColumnsToTypes(long profileId) {
+        public static LinkedHashMap<String, String> getColumnsToTypes(long profileId) {
             final LinkedHashMap<String, String> columnsToTypes = new LinkedHashMap<>();
             columnsToTypes.put(_ID, "INTEGER PRIMARY KEY");
             columnsToTypes.put(TITLE, "TEXT");

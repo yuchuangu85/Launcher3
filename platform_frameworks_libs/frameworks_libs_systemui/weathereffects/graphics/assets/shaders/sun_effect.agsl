@@ -1,0 +1,153 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader foreground;
+uniform shader background;
+uniform float screenAspectRatio;
+uniform float2 screenSize;
+uniform float time;
+uniform float intensity;
+uniform mat3 transformMatrixBitmap;
+uniform mat3 transformMatrixWeather;
+
+
+#include "shaders/constants.agsl"
+#include "shaders/utils.agsl"
+#include "shaders/simplex3d.agsl"
+
+#include "shaders/lens_flare.agsl"
+
+const vec3 godRaysColor = vec3(1., 0.857, 0.71428);
+const vec2 sunCenter = vec2(0.67, -1.0);
+
+float calculateRay(float angle, float time) {
+    /*
+     * God rays oscilations. It works like a fourier series, using the the uv position angle
+     * and time and phase to adjust how it looks.
+     */
+    float rays = 17.5 + 8.0 * sin(3. * angle + time);
+    rays += 4.0 * sin(12. * angle - 0.3 * time);
+    rays += 4.0 * sin(25. * angle + 0.9252 * time);
+    rays += -1.8 * cos(38. * angle - 0.114 * time);
+    rays += 0.45 * cos(60.124 * angle + 0.251 * time);
+    return rays;
+}
+
+float godRays(vec2 uv, vec2 center, float phase, float frequency, float time, float intensity) {
+    // Adjust position to center.
+    uv -= center;
+    // For each position, get the angle.
+    float angle = atan(uv.y, uv.x);
+    // The glow around the position of the sun.
+    float sunGlow = 1.0 / (1. + 20.0 * length(uv));
+    float rays = calculateRay(angle * frequency, phase + time);
+    return intensity * sunGlow * (rays * 0.4 + 2 + 2 * length(uv));
+}
+
+vec3 addGodRays(
+    vec3 background,
+    vec2 fragCoord,
+    vec2 uv,
+    vec2 sunPos,
+    float phase,
+    float frequency,
+    float timeSpeed) {
+    float rays =
+        godRays(
+            uv,
+            sunPos,
+            phase,
+            frequency,
+            timeSpeed * time,
+            intensity);
+    // Dithering.
+    rays -= triangleNoise(fragCoord.xy) * 0.025;
+    rays = clamp(rays, 0., 1.);
+    vec3 raysColor = mix(godRaysColor, min(godRaysColor + 0.5, vec3(1)), smoothstep(0.15, 0.6, rays));
+    return normalBlendNotPremultiplied(background.rgb, raysColor, smoothstep(0.1, 1., rays));
+}
+
+float checkBrightnessGodRaysAtCenter(
+    vec2 center,
+    float phase,
+    float frequency,
+    float timeSpeed) {
+    // For each position, get the angle.
+    float angle = atan(-center.y, -center.x);
+    float rays = calculateRay(angle * frequency, phase + timeSpeed * time);
+    // Normalize [0, 1] the brightness.
+    return smoothstep(-0.75, 35.25, rays);
+
+}
+
+vec4 main(float2 fragCoord) {
+    float2 aspectRatioAdj = vec2(1.);
+    if (screenAspectRatio > 1) {
+        aspectRatioAdj.x = screenAspectRatio;
+    } else {
+        aspectRatioAdj.y = 1. / screenAspectRatio;
+    }
+    // Apply transform matrix to fragCoord
+    float2 adjustedUv = transformPoint(transformMatrixBitmap, fragCoord);
+
+    float2 uv = transformPoint(transformMatrixWeather, fragCoord) / screenSize;
+    uv -= vec2(0.5, 0.5);
+    uv *= aspectRatioAdj;
+    // Random sun variation based on sin/cos signal.
+    vec2 sunVariation = 0.08 * vec2(sin(time * 0.3), cos(time * 0.5));
+    // Variation that moves sun on the same direction than the vector that goes from (0,0)
+    // to sunCenter, but scaling distance.
+    sunVariation += 0.1 * (0.5 * sin(time * 0.456) + 0.5) * sunCenter;
+    vec2 sunPos = sunVariation + sunCenter;
+    sunPos *= aspectRatioAdj;
+
+    vec4 color = background.eval(adjustedUv);
+    float foregroundAlpha = foreground.eval(adjustedUv).a;
+    vec4 colorForeground = vec4(color.rgb * foregroundAlpha, foregroundAlpha);
+    // add foreground
+    color.rgb = normalBlend(color.rgb, colorForeground.rgb, colorForeground.a);
+
+    // Calculate brightness from sunrays.
+    float brightnessSunray = checkBrightnessGodRaysAtCenter(sunPos, 10.0, 1.1, 0.9);
+    brightnessSunray *= brightnessSunray;
+
+    // Adjusts contrast and brightness.
+    float noise = 0.025 * triangleNoise(fragCoord.xy + vec2(12.31, 1024.1241));
+    color.rgb = imageRangeConversion(color.rgb, 0.88, 0.02, noise, intensity);
+
+    // Adjust color grading for shadows and highlights.
+    float lum = relativeLuminance(color.rgb);
+    vec3 highlightColor = vec3(0.41, 0.69, 0.856);
+    float highlightThres = 0.66;
+    float highlightBlend = 0.30 +  + brightnessSunray * 0.1;
+    vec3 shadowColor = vec3(0.756, 0.69, 0.31);
+    float shadowThres = 0.33;
+    float shadowBlend = 0.2 + brightnessSunray * 0.1;
+
+    float highlightsMask = smoothstep(highlightThres, 1., lum);
+    float shadowsMask = 1. - smoothstep(0., shadowThres, lum);
+
+    color.rgb = normalBlendNotPremultiplied(
+        color.rgb, shadowColor, intensity * shadowBlend * shadowsMask);
+    color.rgb = normalBlendNotPremultiplied(
+        color.rgb, highlightColor, intensity * highlightBlend * highlightsMask);
+
+    // Add god rays.
+    color.rgb = addGodRays(color.rgb, fragCoord.xy, uv, sunPos, 10.0, 1.1, 0.9);
+    // Add flare.
+    color.rgb = addFlare(color.rgb, uv, sunPos, (0.4 + 0.8 * brightnessSunray) * intensity, time);
+    return color;
+}

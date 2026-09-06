@@ -16,19 +16,21 @@
 
 package com.android.launcher3;
 
+import static com.android.launcher3.util.XmlElement.getRootElement;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
-import android.util.Xml;
 
-import org.xmlpull.v1.XmlPullParser;
+import com.android.launcher3.util.XmlElement;
+
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 /**
  * Workspace items have a fixed height, so we need a way to distribute any unused workspace height.
@@ -54,62 +56,43 @@ public class DevicePaddings {
 
     public DevicePaddings(Context context, int devicePaddingId) {
         try (XmlResourceParser parser = context.getResources().getXml(devicePaddingId)) {
-            final int depth = parser.getDepth();
-            int type;
-            while (((type = parser.next()) != XmlPullParser.END_TAG ||
-                    parser.getDepth() > depth) && type != XmlPullParser.END_DOCUMENT) {
-                if ((type == XmlPullParser.START_TAG) && DEVICE_PADDINGS.equals(parser.getName())) {
-                    final int displayDepth = parser.getDepth();
-                    while (((type = parser.next()) != XmlPullParser.END_TAG ||
-                            parser.getDepth() > displayDepth)
-                            && type != XmlPullParser.END_DOCUMENT) {
-                        if ((type == XmlPullParser.START_TAG)
-                                && DEVICE_PADDING.equals(parser.getName())) {
-                            TypedArray a = context.obtainStyledAttributes(
-                                    Xml.asAttributeSet(parser), R.styleable.DevicePadding);
-                            int maxWidthPx = a.getDimensionPixelSize(
-                                    R.styleable.DevicePadding_maxEmptySpace, 0);
-                            a.recycle();
+            for (XmlElement child :
+                    getRootElement(parser, DEVICE_PADDINGS).childIterator(DEVICE_PADDING)) {
+                TypedArray a = child.obtainAttrs(context, R.styleable.DevicePadding);
+                int maxWidthPx = a.getDimensionPixelSize(
+                        R.styleable.DevicePadding_maxEmptySpace, 0);
+                a.recycle();
 
-                            PaddingFormula workspaceTopPadding = null;
-                            PaddingFormula workspaceBottomPadding = null;
-                            PaddingFormula hotseatBottomPadding = null;
+                PaddingFormula workspaceTopPadding = null;
+                PaddingFormula workspaceBottomPadding = null;
+                PaddingFormula hotseatBottomPadding = null;
 
-                            final int limitDepth = parser.getDepth();
-                            while (((type = parser.next()) != XmlPullParser.END_TAG ||
-                                    parser.getDepth() > limitDepth)
-                                    && type != XmlPullParser.END_DOCUMENT) {
-                                AttributeSet attr = Xml.asAttributeSet(parser);
-                                if ((type == XmlPullParser.START_TAG)) {
-                                    if (WORKSPACE_TOP_PADDING.equals(parser.getName())) {
-                                        workspaceTopPadding = new PaddingFormula(context, attr);
-                                    } else if (WORKSPACE_BOTTOM_PADDING.equals(parser.getName())) {
-                                        workspaceBottomPadding = new PaddingFormula(context, attr);
-                                    } else if (HOTSEAT_BOTTOM_PADDING.equals(parser.getName())) {
-                                        hotseatBottomPadding = new PaddingFormula(context, attr);
-                                    }
-                                }
-                            }
+                for (XmlElement formula : child.childIterator()) {
+                    switch (formula.getName()) {
+                        case WORKSPACE_TOP_PADDING ->
+                                workspaceTopPadding = new PaddingFormula(context, formula);
+                        case WORKSPACE_BOTTOM_PADDING ->
+                                workspaceBottomPadding = new PaddingFormula(context, formula);
+                        case HOTSEAT_BOTTOM_PADDING ->
+                                hotseatBottomPadding = new PaddingFormula(context, formula);
+                    }
+                }
+                if (workspaceTopPadding == null
+                        || workspaceBottomPadding == null
+                        || hotseatBottomPadding == null) {
+                    if (Utilities.IS_DEBUG_DEVICE) {
+                        throw new RuntimeException("DevicePadding missing padding.");
+                    }
+                }
 
-                            if (workspaceTopPadding == null
-                                    || workspaceBottomPadding == null
-                                    || hotseatBottomPadding == null) {
-                                if (Utilities.IS_DEBUG_DEVICE) {
-                                    throw new RuntimeException("DevicePadding missing padding.");
-                                }
-                            }
-
-                            DevicePadding dp = new DevicePadding(maxWidthPx, workspaceTopPadding,
-                                    workspaceBottomPadding, hotseatBottomPadding);
-                            if (dp.isValid()) {
-                                mDevicePaddings.add(dp);
-                            } else {
-                                Log.e(TAG, "Invalid device padding found.");
-                                if (Utilities.IS_DEBUG_DEVICE) {
-                                    throw new RuntimeException("DevicePadding is invalid");
-                                }
-                            }
-                        }
+                DevicePadding dp = new DevicePadding(maxWidthPx, workspaceTopPadding,
+                        workspaceBottomPadding, hotseatBottomPadding);
+                if (dp.isValid()) {
+                    mDevicePaddings.add(dp);
+                } else {
+                    Log.e(TAG, "Invalid device padding found.");
+                    if (Utilities.IS_DEBUG_DEVICE) {
+                        throw new RuntimeException("DevicePadding is invalid");
                     }
                 }
             }
@@ -119,8 +102,7 @@ public class DevicePaddings {
         }
 
         // Sort ascending by maxEmptySpacePx
-        mDevicePaddings.sort((sl1, sl2) -> Integer.compare(sl1.maxEmptySpacePx,
-                sl2.maxEmptySpacePx));
+        mDevicePaddings.sort(Comparator.comparingInt(sl -> sl.maxEmptySpacePx));
     }
 
     public DevicePadding getDevicePadding(int extraSpacePx) {
@@ -201,14 +183,11 @@ public class DevicePaddings {
         private final float b;
         private final float c;
 
-        public PaddingFormula(Context context, AttributeSet attrs) {
-            TypedArray t = context.obtainStyledAttributes(attrs,
-                    R.styleable.DevicePaddingFormula);
-
+        PaddingFormula(Context context, XmlElement el) {
+            TypedArray t = el.obtainAttrs(context, R.styleable.DevicePaddingFormula);
             a = getValue(t, R.styleable.DevicePaddingFormula_a);
             b = getValue(t, R.styleable.DevicePaddingFormula_b);
             c = getValue(t, R.styleable.DevicePaddingFormula_c);
-
             t.recycle();
         }
 

@@ -15,6 +15,8 @@
  */
 package com.android.quickstep;
 
+import static android.view.Display.DEFAULT_DISPLAY;
+
 import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.BACKGROUND_APP;
@@ -24,30 +26,36 @@ import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.MultiPropertyFactory.MULTI_PROPERTY_VALUE;
 
 import android.animation.Animator;
-import android.animation.AnimatorSet;
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.RemoteAnimationTarget;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 
+import com.android.app.displaylib.PerDisplayRepository;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherAnimUtils;
-import com.android.launcher3.LauncherInitListener;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.anim.PendingAnimation;
-import com.android.launcher3.statehandlers.DepthController;
+import com.android.launcher3.dagger.LauncherAppSingleton;
+import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.statehandlers.LauncherDepthController;
 import com.android.launcher3.statemanager.StateManager;
-import com.android.launcher3.taskbar.LauncherTaskbarUIController;
+import com.android.launcher3.taskbar.TaskbarInteractor;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
-import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.util.DaggerSingletonObject;
+import com.android.launcher3.util.JoinedAnimator;
 import com.android.launcher3.util.NavigationMode;
+import com.android.launcher3.util.ThreadedAnimator;
 import com.android.launcher3.views.ScrimColors;
 import com.android.quickstep.GestureState.GestureEndTarget;
+import com.android.quickstep.dagger.QuickstepBaseAppComponent;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
 import com.android.quickstep.util.AnimatorControllerWithResistance;
+import com.android.quickstep.util.ContextInitListener;
 import com.android.quickstep.util.LayoutUtils;
 import com.android.quickstep.views.RecentsView;
 import com.android.systemui.plugins.shared.LauncherOverlayManager;
@@ -56,16 +64,32 @@ import com.android.wm.shell.shared.desktopmode.DesktopState;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import javax.inject.Inject;
+
 /**
  * {@link BaseActivityInterface} for the in-launcher recents.
  */
+@LauncherAppSingleton
 public final class LauncherActivityInterface extends
         BaseActivityInterface<LauncherState, QuickstepLauncher> {
 
-    public static final LauncherActivityInterface INSTANCE = new LauncherActivityInterface();
+    public static final DaggerSingletonObject<LauncherActivityInterface> INSTANCE =
+            new DaggerSingletonObject<>(QuickstepBaseAppComponent::getLauncherActivityInterface);
 
-    private LauncherActivityInterface() {
-        super(true, OVERVIEW, BACKGROUND_APP);
+    private final DesktopState mDesktopState;
+    private final TopTaskTracker mTopTaskTracker;
+    private final SystemUiProxy mSystemUiProxy;
+
+    @Inject
+    public LauncherActivityInterface(
+            @NonNull DesktopState desktopState,
+            @NonNull TopTaskTracker topTaskTracker,
+            @NonNull SystemUiProxy systemUiProxy,
+            @NonNull PerDisplayRepository<TaskAnimationManager> taskAnimationManagerRepo) {
+        super(true, OVERVIEW, BACKGROUND_APP, taskAnimationManagerRepo.get(DEFAULT_DISPLAY));
+        mDesktopState = desktopState;
+        mTopTaskTracker = topTaskTracker;
+        mSystemUiProxy = systemUiProxy;
     }
 
     @Override
@@ -129,14 +153,16 @@ public final class LauncherActivityInterface extends
         QuickstepLauncher launcher = factory.initBackgroundStateUI();
         // Since all apps is not visible, we can safely reset the scroll position.
         // This ensures then the next swipe up to all-apps starts from scroll 0.
-        launcher.getAppsView().reset(false /* animate */);
+        launcher.getAppsView().reset(false /* animate */, true /* clearScrim */);
         return factory;
     }
 
     @Override
-    public LauncherInitListener createActivityInitListener(Predicate<Boolean> onInitListener) {
-        return new LauncherInitListener((activity, alreadyOnHome) ->
-                onInitListener.test(alreadyOnHome));
+    public ContextInitListener<Launcher> createActivityInitListener(
+            Predicate<Boolean> onInitListener) {
+        return new ContextInitListener<>(
+                (activity, alreadyOnHome) -> onInitListener.test(alreadyOnHome),
+                Launcher.ACTIVITY_TRACKER);
     }
 
     @Override
@@ -156,7 +182,7 @@ public final class LauncherActivityInterface extends
 
     @Nullable
     @Override
-    public DepthController getDepthController() {
+    public LauncherDepthController getDepthController() {
         QuickstepLauncher launcher = getCreatedContainer();
         if (launcher == null) {
             return null;
@@ -166,12 +192,12 @@ public final class LauncherActivityInterface extends
 
     @Nullable
     @Override
-    public LauncherTaskbarUIController getTaskbarController() {
+    public TaskbarInteractor getTaskbarInteractor() {
         QuickstepLauncher launcher = getCreatedContainer();
         if (launcher == null) {
             return null;
         }
-        return launcher.getTaskbarUIController();
+        return launcher.getTaskbarInteractor();
     }
 
     @Nullable
@@ -212,8 +238,7 @@ public final class LauncherActivityInterface extends
         if (launcher == null) {
             return false;
         }
-        if (DesktopState.fromContext(launcher.asContext()).getShouldShowHomeBehindDesktop()
-                && !launcher.hasWindowFocus()) {
+        if (mDesktopState.getShouldShowHomeBehindDesktop() && !launcher.hasWindowFocus()) {
             // Home is always shown behind desktop, but it is currently not the top task, so treat
             // it as if it is not visible.
             return false;
@@ -261,25 +286,13 @@ public final class LauncherActivityInterface extends
         return homeBounds;
     }
 
-    @Override
-    public boolean isInLiveTileMode() {
-        QuickstepLauncher launcher = getCreatedContainer();
-
-        return launcher != null
-                && launcher.getStateManager().getState() == OVERVIEW
-                && launcher.isStarted()
-                && TopTaskTracker.INSTANCE.get(launcher).getCachedTopTask(false,
-                launcher.getDisplayId()).isHomeTask();
-    }
-
     private boolean isInMinusOne() {
         QuickstepLauncher launcher = getCreatedContainer();
 
         return launcher != null
                 && launcher.getStateManager().getState() == NORMAL
                 && !launcher.isStarted()
-                && TopTaskTracker.INSTANCE.get(launcher).getCachedTopTask(false,
-                launcher.getDisplayId()).isHomeTask();
+                && mTopTaskTracker.getCachedTopTask(false, launcher.getDisplayId()).isHomeTask();
     }
 
     @Override
@@ -299,7 +312,7 @@ public final class LauncherActivityInterface extends
             return;
         }
         LauncherOverlayManager om = launcher.getOverlayManager();
-        if (!SystemUiProxy.INSTANCE.get(launcher).getHomeVisibilityState().isHomeVisible()) {
+        if (!mSystemUiProxy.getHomeVisibilityState().isHomeVisible()) {
             om.hideOverlay(false /* animate */);
         } else {
             om.hideOverlay(150);
@@ -307,22 +320,20 @@ public final class LauncherActivityInterface extends
     }
 
     @Override
-    public @Nullable Animator getParallelAnimationToGestureEndTarget(GestureEndTarget endTarget,
-            long duration, RecentsAnimationCallbacks callbacks) {
-        LauncherTaskbarUIController uiController = getTaskbarController();
-        Animator superAnimator = super.getParallelAnimationToGestureEndTarget(
+    public @Nullable ThreadedAnimator getParallelAnimationToGestureEndTarget(
+            GestureEndTarget endTarget, long duration, RecentsAnimationCallbacks callbacks) {
+        TaskbarInteractor interactor = getTaskbarInteractor();
+        ThreadedAnimator superAnimator = super.getParallelAnimationToGestureEndTarget(
                 endTarget, duration, callbacks);
-        if (uiController == null || callbacks == null) {
+        if (interactor == null || callbacks == null) {
             return superAnimator;
         }
-        Animator taskbarAnimator = uiController.getParallelAnimationToGestureEndTarget(endTarget,
-                duration, callbacks);
+        ThreadedAnimator taskbarAnimator = interactor
+                .getParallelAnimationToGestureEndTarget(endTarget, duration, callbacks);
         if (superAnimator == null) {
             return taskbarAnimator;
         } else {
-            AnimatorSet animatorSet = new AnimatorSet();
-            animatorSet.playTogether(superAnimator, taskbarAnimator);
-            return animatorSet;
+            return new JoinedAnimator(superAnimator, taskbarAnimator);
         }
     }
 
@@ -333,19 +344,13 @@ public final class LauncherActivityInterface extends
     }
 
     @Override
-    public LauncherState stateFromGestureEndTarget(GestureEndTarget endTarget) {
-        switch (endTarget) {
-            case RECENTS:
-                return OVERVIEW;
-            case NEW_TASK:
-            case LAST_TASK:
-                return BACKGROUND_APP;
-            case ALL_APPS:
-                return ALL_APPS;
-            case HOME:
-            default:
-                return NORMAL;
-        }
+    public LauncherState stateFromGestureEndTarget(@NonNull GestureEndTarget endTarget) {
+        return switch (endTarget) {
+            case RECENTS -> OVERVIEW;
+            case NEW_TASK, LAST_TASK -> BACKGROUND_APP;
+            case ALL_APPS -> ALL_APPS;
+            default -> NORMAL;
+        };
     }
 
     @Override

@@ -72,7 +72,7 @@ public class FloatingMaskView extends ConstraintLayout {
     }
 
     private void updateColors() {
-        int color = mActivityContext.getAppsView().getBottomSheetBackgroundColor();
+        int color = mActivityContext.getAppsView().getBackgroundColor();
         mBottomBox.setBackgroundColor(color);
         mLeftCorner.setBackgroundTintList(ColorStateList.valueOf(color));
         mRightCorner.setBackgroundTintList(ColorStateList.valueOf(color));

@@ -37,11 +37,11 @@ import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
+import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.logging.StatsLogManager;
-import com.android.quickstep.TouchInteractionService.TISBinder;
+import com.android.quickstep.RecentsAnimationDeviceState;
 import com.android.quickstep.interaction.TutorialController.TutorialType;
 import com.android.quickstep.util.LayoutUtils;
-import com.android.quickstep.util.TISBindHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,7 +64,6 @@ public class GestureSandboxActivity extends FragmentActivity {
 
     private SharedPreferences mSharedPrefs;
     private StatsLogManager mStatsLogManager;
-    private TISBindHelper mTISBindHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,11 +98,8 @@ public class GestureSandboxActivity extends FragmentActivity {
                 .commit();
 
         correctUserOrientation();
-        mTISBindHelper = new TISBindHelper(this, this::onTISConnected);
-
         initWindowInsets();
     }
-
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
@@ -151,7 +147,7 @@ public class GestureSandboxActivity extends FragmentActivity {
     private void correctUserOrientation() {
         DeviceProfile deviceProfile = InvariantDeviceProfile.INSTANCE.get(
                 getApplicationContext()).getDeviceProfile(this);
-        if (deviceProfile.getDeviceProperties().isTablet()) {
+        if (deviceProfile.getDeviceProperties().isLargeScreen()) {
             // The tutorial will work in either orientation if the height and width are similar
             boolean showRotationPrompt = !LayoutUtils.isAspectRatioSquare(deviceProfile.getDeviceProperties().getAspectRatio())
                     && getResources().getConfiguration().orientation
@@ -349,10 +345,6 @@ public class GestureSandboxActivity extends FragmentActivity {
         updateServiceState(true);
     }
 
-    private void onTISConnected(TISBinder binder) {
-        updateServiceState(isResumed());
-    }
-
     @Override
     protected void onPause() {
         super.onPause();
@@ -360,16 +352,16 @@ public class GestureSandboxActivity extends FragmentActivity {
     }
 
     private void updateServiceState(boolean isEnabled) {
-        TISBinder binder = mTISBindHelper.getBinder();
-        if (binder != null) {
-            binder.setGestureBlockedTaskId(isEnabled ? getTaskId() : -1);
+        RecentsAnimationDeviceState state =  LauncherComponentProvider.get(this)
+                .getRecentsAnimationDeviceStateRepository().get(getDisplayId());
+        if (state != null) {
+            state.setGestureBlockingTaskId(isEnabled ? getTaskId() : -1);
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mTISBindHelper.onDestroy();
         updateServiceState(false);
     }
 }

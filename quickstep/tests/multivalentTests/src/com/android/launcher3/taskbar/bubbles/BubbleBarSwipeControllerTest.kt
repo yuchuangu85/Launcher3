@@ -16,12 +16,12 @@
 
 package com.android.launcher3.taskbar.bubbles
 
-import android.animation.AnimatorTestRule
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController
+import com.android.launcher3.taskbar.rules.TaskbarAnimatorTestRule
 import com.android.launcher3.touch.OverScroll
 import com.google.common.truth.Truth.assertThat
 import java.util.Optional
@@ -57,7 +57,7 @@ class BubbleBarSwipeControllerTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @get:Rule(order = 0) val mockitoRule: MockitoRule = MockitoJUnit.rule()
-    @get:Rule(order = 1) val animatorTestRule: AnimatorTestRule = AnimatorTestRule(this)
+    @get:Rule(order = 1) val animatorTestRule = TaskbarAnimatorTestRule(this)
 
     private lateinit var bubbleBarSwipeController: BubbleBarSwipeController
 
@@ -67,8 +67,6 @@ class BubbleBarSwipeControllerTest {
     @Mock private lateinit var bubbleStashedHandleViewController: BubbleStashedHandleViewController
     @Mock private lateinit var bubbleDragController: BubbleDragController
     @Mock private lateinit var bubbleDismissController: BubbleDismissController
-    @Mock private lateinit var bubbleBarPinController: BubbleBarPinController
-    @Mock private lateinit var bubblePinController: BubblePinController
     @Mock private lateinit var dragToBubbleController: DragToBubbleController
     @Mock private lateinit var bubbleCreator: BubbleCreator
 
@@ -92,8 +90,6 @@ class BubbleBarSwipeControllerTest {
                 Optional.of(bubbleStashedHandleViewController),
                 bubbleDragController,
                 bubbleDismissController,
-                bubbleBarPinController,
-                bubblePinController,
                 Optional.of(bubbleBarSwipeController),
                 dragToBubbleController,
                 bubbleCreator,
@@ -108,7 +104,7 @@ class BubbleBarSwipeControllerTest {
         val isUp = swipe < 0
         val damped = OverScroll.dampedScroll(abs(swipe), MAX_OVERSCROLL).toFloat()
         val dampedTranslation = if (isUp) -damped else damped
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(swipe)
         }
@@ -139,7 +135,7 @@ class BubbleBarSwipeControllerTest {
     // region Test that translation on views is reset on finish
 
     private fun testViewsTranslationResetOnFinish(swipe: Float) {
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(swipe)
             bubbleBarSwipeController.finish()
@@ -185,7 +181,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_stashedBar_belowUnstashThreshold_doesNotShowBar() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
         }
@@ -195,7 +191,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_stashedBar_belowUnstashThreshold_isSwipeGestureFalse() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
         }
@@ -205,7 +201,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_stashedBar_overUnstashThreshold_unstashBubbleBar() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
         }
@@ -215,7 +211,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_stashedBar_overUnstashThreshold_isSwipeGestureTrue() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
         }
@@ -225,7 +221,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_stashedBar_overUnstashThresholdMultipleTimes_unstashesMultipleTimes() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
@@ -233,7 +229,7 @@ class BubbleBarSwipeControllerTest {
         verify(bubbleStashController).showBubbleBar(expandBubbles = false, bubbleBarGesture = true)
         verify(bubbleStashController).stashBubbleBar()
 
-        getInstrumentation().runOnMainSync { bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH) }
+        runOnTaskbarUiThreadSync { bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH) }
         verify(bubbleStashController, times(2))
             .showBubbleBar(expandBubbles = false, bubbleBarGesture = true)
     }
@@ -241,24 +237,24 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_stashedBar_releaseOverUnstashThreshold_expandsBar() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
         }
         verify(bubbleStashController, never()).showBubbleBar(expandBubbles = eq(true), any())
-        getInstrumentation().runOnMainSync { bubbleBarSwipeController.finish() }
+        runOnTaskbarUiThreadSync { bubbleBarSwipeController.finish() }
         verify(bubbleStashController).showBubbleBar(expandBubbles = true, bubbleBarGesture = true)
     }
 
     @Test
     fun swipeUp_stashedBar_overUnstashReleaseBelowUnstash_doesNotExpandBar() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
         }
         verify(bubbleStashController).showBubbleBar(expandBubbles = false, bubbleBarGesture = true)
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
             bubbleBarSwipeController.finish()
         }
@@ -268,7 +264,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeDown_stashedBar_swipeIgnored() {
         setUpStashedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(DOWN)
         }
@@ -284,7 +280,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipe_expandedBar_swipeIgnored() {
         setUpExpandedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
             bubbleBarSwipeController.swipeTo(DOWN)
@@ -302,7 +298,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_collapsedBar_doesNotShowBarDuringDrag() {
         setUpCollapsedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
@@ -313,7 +309,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_collapsedBar_belowUnstashThreshold_isSwipeGestureFalse() {
         setUpCollapsedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
         }
@@ -323,7 +319,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_collapsedBar_overUnstashThreshold_isSwipeGestureTrue() {
         setUpCollapsedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
         }
@@ -333,7 +329,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_collapsedBar_finishOverUnstashThreshold_expandsBar() {
         setUpCollapsedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_ABOVE_UNSTASH)
             bubbleBarSwipeController.finish()
@@ -344,7 +340,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeUp_collapsedBar_finishBelowUnstashThreshold_doesNotExpandBar() {
         setUpCollapsedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(UP_BELOW_UNSTASH)
             bubbleBarSwipeController.finish()
@@ -355,7 +351,7 @@ class BubbleBarSwipeControllerTest {
     @Test
     fun swipeDown_collapsedBar_swipeIgnored() {
         setUpCollapsedBar()
-        getInstrumentation().runOnMainSync {
+        runOnTaskbarUiThreadSync {
             bubbleBarSwipeController.start()
             bubbleBarSwipeController.swipeTo(DOWN)
         }

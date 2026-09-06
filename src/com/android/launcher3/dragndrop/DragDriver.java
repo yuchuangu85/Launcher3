@@ -32,6 +32,7 @@ public abstract class DragDriver {
 
     public interface EventListener {
         void onDriverDragMove(float x, float y);
+        void onDriverDragEnterWindow();
         void onDriverDragExitWindow();
         void onDriverDragEnd(float x, float y);
         void onDriverDragCancel();
@@ -41,6 +42,9 @@ public abstract class DragDriver {
         mEventListener = eventListener;
         mSecondaryEventConsumer = sec;
     }
+
+    /** Returns whether the drag/drop operation is currently within the window. */
+    public abstract boolean isDragWithinWindow();
 
     /**
      * Called to handle system touch event
@@ -84,12 +88,18 @@ public abstract class DragDriver {
     static class SystemDragDriver extends DragDriver {
 
         private final long mDragStartTime;
+        private boolean mIsDragWithinWindow;
         float mLastX = 0;
         float mLastY = 0;
 
         SystemDragDriver(DragController dragController, Consumer<MotionEvent> sec) {
             super(dragController, sec);
             mDragStartTime = SystemClock.uptimeMillis();
+        }
+
+        @Override
+        public boolean isDragWithinWindow() {
+            return mIsDragWithinWindow;
         }
 
         @Override
@@ -133,6 +143,8 @@ public abstract class DragDriver {
                     return true;
 
                 case DragEvent.ACTION_DRAG_ENTERED:
+                    mIsDragWithinWindow = true;
+                    mEventListener.onDriverDragEnterWindow();
                     return true;
 
                 case DragEvent.ACTION_DRAG_LOCATION:
@@ -147,7 +159,9 @@ public abstract class DragDriver {
                     mEventListener.onDriverDragMove(event.getX(), event.getY());
                     mEventListener.onDriverDragEnd(mLastX, mLastY);
                     return true;
+
                 case DragEvent.ACTION_DRAG_EXITED:
+                    mIsDragWithinWindow = false;
                     mEventListener.onDriverDragExitWindow();
                     return true;
 
@@ -170,6 +184,11 @@ public abstract class DragDriver {
         InternalDragDriver(DragController dragController, Consumer<MotionEvent> sec) {
             super(dragController, sec);
             mDragController = dragController;
+        }
+
+        @Override
+        public boolean isDragWithinWindow() {
+            return true;
         }
 
         @Override

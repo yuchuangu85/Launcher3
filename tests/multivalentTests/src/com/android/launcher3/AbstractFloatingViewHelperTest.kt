@@ -16,95 +16,114 @@
 
 package com.android.launcher3
 
+import android.content.Context
+import android.view.MotionEvent
 import android.view.View
-import com.android.launcher3.dragndrop.DragLayer
-import com.android.launcher3.views.ActivityContext
+import android.view.ViewGroup
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SmallTest
+import com.android.launcher3.util.TestActivityContext
+import com.android.launcher3.views.BaseDragLayer
+import com.google.common.truth.Truth.assertThat
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoMoreInteractions
-import org.mockito.kotlin.whenever
+import org.junit.runner.RunWith
 
 /** Test for AbstractFloatingViewHelper */
+@SmallTest
+@RunWith(AndroidJUnit4::class)
 class AbstractFloatingViewHelperTest {
-    private val activityContext: ActivityContext = mock()
-    private val dragLayer: DragLayer = mock()
-    private val view: View = mock()
-    private val folderView: AbstractFloatingView = mock()
-    private val taskMenuView: AbstractFloatingView = mock()
-    private val abstractFloatingViewHelper = AbstractFloatingViewHelper()
+    @get:Rule val activityContext = TestActivityContext()
+
+    private lateinit var dragLayer: BaseDragLayer<*>
+    private lateinit var view: View
+    private lateinit var folderView: AbstractFloatingView
+    private lateinit var taskMenuView: AbstractFloatingView
+
+    private val abstractFloatingViewHelper = AbstractFloatingViewHelper
+
+    private class FakeFolderView(context: Context) : AbstractFloatingView(context, null) {
+        override fun isOfType(type: Int): Boolean = (type and TYPE_FOLDER) != 0
+
+        override fun onControllerInterceptTouchEvent(ev: MotionEvent) = false
+
+        override fun handleClose(animate: Boolean) {
+            (parent as? ViewGroup)?.removeView(this)
+        }
+    }
+
+    private class FakeTaskMenuView(context: Context) : AbstractFloatingView(context, null) {
+        override fun isOfType(type: Int): Boolean = (type and TYPE_TASK_MENU) != 0
+
+        override fun onControllerInterceptTouchEvent(ev: MotionEvent) = false
+
+        override fun handleClose(animate: Boolean) {
+            (parent as? ViewGroup)?.removeView(this)
+        }
+    }
 
     @Before
     fun setup() {
-        whenever(activityContext.dragLayer).thenReturn(dragLayer)
-        whenever(dragLayer.childCount).thenReturn(3)
-        whenever(dragLayer.getChildAt(0)).thenReturn(view)
-        whenever(dragLayer.getChildAt(1)).thenReturn(folderView)
-        whenever(dragLayer.getChildAt(2)).thenReturn(taskMenuView)
-        whenever(folderView.isOfType(any())).thenAnswer {
-            (it.getArgument<Int>(0) and AbstractFloatingView.TYPE_FOLDER) != 0
-        }
-        whenever(taskMenuView.isOfType(any())).thenAnswer {
-            (it.getArgument<Int>(0) and AbstractFloatingView.TYPE_TASK_MENU) != 0
-        }
+        dragLayer = activityContext.dragLayer
+        view = View(activityContext)
+        folderView = FakeFolderView(activityContext)
+        taskMenuView = FakeTaskMenuView(activityContext)
+
+        dragLayer.addView(view)
+        dragLayer.addView(folderView)
+        dragLayer.addView(taskMenuView)
     }
 
     @Test
     fun closeOpenViews_all() {
         abstractFloatingViewHelper.closeOpenViews(
             activityContext,
-            true,
-            AbstractFloatingView.TYPE_ALL
+            false,
+            AbstractFloatingView.TYPE_ALL,
         )
 
-        // b/343530737
-        verifyNoMoreInteractions(view)
-        verify(folderView).close(true)
-        verify(taskMenuView).close(true)
+        assertThat(view.parent).isNotNull()
+        assertThat(folderView.parent).isNull()
+        assertThat(taskMenuView.parent).isNull()
     }
 
     @Test
     fun closeOpenViews_taskMenu() {
         abstractFloatingViewHelper.closeOpenViews(
             activityContext,
-            true,
-            AbstractFloatingView.TYPE_TASK_MENU
+            false,
+            AbstractFloatingView.TYPE_TASK_MENU,
         )
 
-        // b/343530737
-        verifyNoMoreInteractions(view)
-        verify(folderView, never()).close(any())
-        verify(taskMenuView).close(true)
+        assertThat(view.parent).isNotNull()
+        assertThat(folderView.parent).isNotNull()
+        assertThat(taskMenuView.parent).isNull()
     }
 
     @Test
     fun closeOpenViews_other() {
         abstractFloatingViewHelper.closeOpenViews(
             activityContext,
-            true,
-            AbstractFloatingView.TYPE_PIN_IME_POPUP
+            false,
+            AbstractFloatingView.TYPE_PIN_IME_POPUP,
         )
 
-        // b/343530737
-        verifyNoMoreInteractions(view)
-        verify(folderView, never()).close(any())
-        verify(taskMenuView, never()).close(any())
+        assertThat(view.parent).isNotNull()
+        assertThat(folderView.parent).isNotNull()
+        assertThat(taskMenuView.parent).isNotNull()
     }
 
     @Test
-    fun closeOpenViews_both_animationOff() {
+    fun closeOpenViews_folderAndTaskMenu() {
         abstractFloatingViewHelper.closeOpenViews(
             activityContext,
             false,
-            AbstractFloatingView.TYPE_FOLDER or AbstractFloatingView.TYPE_TASK_MENU
+            AbstractFloatingView.TYPE_FOLDER or AbstractFloatingView.TYPE_TASK_MENU,
         )
 
-        // b/343530737
-        verifyNoMoreInteractions(view)
-        verify(folderView).close(false)
-        verify(taskMenuView).close(false)
+        assertThat(view.parent).isNotNull()
+        assertThat(folderView.parent).isNull()
+        assertThat(taskMenuView.parent).isNull()
     }
 }

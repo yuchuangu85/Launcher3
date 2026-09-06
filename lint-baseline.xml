@@ -1,37 +1,506 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.4.0-alpha01" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha01">
-
+<issues
+    format="6"
+    by="lint 8.4.0-alpha08"
+    type="baseline"
+    client=""
+    dependencies="true"
+    name=""
+    variant="all"
+    version="8.4.0-alpha08">
     <issue
         id="NewApi"
-        message="`@android:dimen/system_app_widget_background_radius` requires API level 31 (current min is 26)"
-        errorLine1='    &lt;corners android:radius="@android:dimen/system_app_widget_background_radius" /&gt;'
-        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="Call requires API level 34 (current min is 31): `java.util.stream.Stream#toList`"
+        errorLine1="            ItemInstallQueue.INSTANCE[context].getPendingShortcuts(user).toList()"
+        errorLine2="                                                                         ~~~~~~">
         <location
-            file="packages/apps/Launcher3/res/drawable/widget_resize_frame.xml"
-            line="20"
-            column="14"/>
+            file="packages/apps/Launcher3/src/com/android/launcher3/model/BgDataModel.kt"
+            line="288"
+            column="74"/>
     </issue>
 
     <issue
         id="NewApi"
-        message="Call requires API level 31 (current min is 26): `android.appwidget.AppWidgetHostView#resetColorResources`"
-        errorLine1="            resetColorResources();"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        message="Call requires API level 35 (current min is 31): `java.util.LinkedHashSet#addLast`"
+        errorLine1="                installedWidgets.addLast(packageName)"
+        errorLine2="                                 ~~~~~~~">
         <location
-            file="packages/apps/Launcher3/src/com/android/launcher3/widget/LauncherAppWidgetHostView.java"
-            line="117"
-            column="13"/>
+            file="packages/apps/Launcher3/src/com/android/launcher3/model/FirstScreenBroadcastHelper.kt"
+            line="186"
+            column="34"/>
     </issue>
 
     <issue
         id="NewApi"
-        message="Call requires API level 31 (current min is 30): `android.appwidget.AppWidgetHostView#setColorResources`"
-        errorLine1="            view.setColorResources(mWallpaperColorResources);"
-        errorLine2="                 ~~~~~~~~~~~~~~~~~">
+        message="Call requires API level 35 (current min is 31): `java.util.LinkedHashSet#removeLast`"
+        errorLine1="                    installedWidgets.isNotEmpty() -&gt; installedWidgets.removeLast()"
+        errorLine2="                                                                      ~~~~~~~~~~">
         <location
-            file="packages/apps/Launcher3/src/com/android/launcher3/graphics/LauncherPreviewRenderer.java"
-            line="433"
+            file="packages/apps/Launcher3/src/com/android/launcher3/model/FirstScreenBroadcastHelper.kt"
+            line="238"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Field requires API level 35 (current min is 31): `android.content.pm.PackageItemInfo#isArchived`"
+        errorLine1="                &amp;&amp; apps.stream().anyMatch(app -&gt; app.getApplicationInfo().isArchived)) {"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/icons/IconCache.java"
+            line="167"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 35 (current min is 31): `java.util.SequencedCollection#getFirst`"
+        errorLine1="            ShortcutInfo si = sis.getFirst();"
+        errorLine2="                                  ~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/icons/IconCache.java"
+            line="374"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 34 (current min is 31): `java.util.stream.Stream#toList`"
+        errorLine1="                            .toList()"
+        errorLine2="                             ~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/notification/NotificationListener.java"
+            line="116"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 34 (current min is 31): `java.util.stream.Stream#toList`"
+        errorLine1="                .toList()"
+        errorLine2="                 ~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/popup/PopupContainerWithArrow.kt"
+            line="222"
             column="18"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Class requires API level 34 (current min is 31): `android.window.OnBackAnimationCallback`"
+        errorLine1="    BaseActivity(), OnBackPressedDispatcherOwner, OnBackAnimationCallback, LifecycleOwner {"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widgetpicker/WidgetPickerActivity.kt"
+            line="42"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.content.Intent#getParcelableExtra`"
+        errorLine1="                    intent.getParcelableExtra(Intent.EXTRA_USER, UserHandle::class.java)"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widgetpicker/WidgetPickerActivity.kt"
+            line="76"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.app.Activity#getOnBackInvokedDispatcher`"
+        errorLine1="        onBackInvokedDispatcher.registerOnBackInvokedCallback("
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widgetpicker/WidgetPickerActivity.kt"
+            line="101"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.window.OnBackInvokedDispatcher#registerOnBackInvokedCallback`"
+        errorLine1="        onBackInvokedDispatcher.registerOnBackInvokedCallback("
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widgetpicker/WidgetPickerActivity.kt"
+            line="101"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 36.1 (current min is 31): `android.appwidget.AppWidgetHostView#startVisibilityTracking`"
+        errorLine1="                view.startVisibilityTracking()"
+        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widget/WidgetVisibilityTracker.kt"
+            line="73"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 36.1 (current min is 31): `android.appwidget.AppWidgetHostView#stopVisibilityTracking`"
+        errorLine1="                view.stopVisibilityTracking()"
+        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widget/WidgetVisibilityTracker.kt"
+            line="75"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 35 (current min is 31): `java.util.SequencedCollection#getFirst`"
+        errorLine1="                    requireNonNull(dragInfo.getUriList()).getFirst());"
+        errorLine2="                                                          ~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/Workspace.java"
+            line="2949"
+            column="59"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 35 (current min is 31): `java.util.SequencedCollection#getFirst`"
+        errorLine1="                        results.getFirst().handle((result, throwable) -&gt; runOnUiThread(() -&gt; {"
+        errorLine2="                                ~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/Workspace.java"
+            line="3108"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_dark` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_thumb_on_color&quot;&gt;@android:color/system_on_primary_dark&lt;/color&gt;"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-night-v31/colors.xml"
+            line="25"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_highest_dark` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_thumb_off_color&quot;&gt;@android:color/system_surface_container_highest_dark&lt;/color&gt;"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-night-v31/colors.xml"
+            line="26"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_dark` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_track_on_color&quot;&gt;@android:color/system_primary_dark&lt;/color&gt;"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-night-v31/colors.xml"
+            line="27"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_outline_dark` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_track_off_color&quot;&gt;@android:color/system_outline_dark&lt;/color&gt;"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-night-v31/colors.xml"
+            line="28"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_on_primary_light` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_thumb_on_color&quot;&gt;@android:color/system_on_primary_light&lt;/color&gt;"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v31/colors.xml"
+            line="60"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_container_highest_light` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_thumb_off_color&quot;&gt;@android:color/system_surface_container_highest_light&lt;/color&gt;"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v31/colors.xml"
+            line="61"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_primary_light` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_track_on_color&quot;&gt;@android:color/system_primary_light&lt;/color&gt;"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v31/colors.xml"
+            line="62"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_outline_light` requires API level 34 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;home_settings_track_off_color&quot;&gt;@android:color/system_outline_light&lt;/color&gt;"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v31/colors.xml"
+            line="63"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Class requires API level 34 (current min is 31): `android.window.OnBackAnimationCallback`"
+        errorLine1="    OnBackAnimationCallback,"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/dragndrop/AddItemActivity.kt"
+            line="93"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.app.Activity#getOnBackInvokedDispatcher`"
+        errorLine1="        onBackInvokedDispatcher.registerOnBackInvokedCallback("
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/dragndrop/AddItemActivity.kt"
+            line="514"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.window.OnBackInvokedDispatcher#registerOnBackInvokedCallback`"
+        errorLine1="        onBackInvokedDispatcher.registerOnBackInvokedCallback("
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/dragndrop/AddItemActivity.kt"
+            line="514"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.os.Bundle#getParcelable`"
+        errorLine1="                            extras?.getParcelable("
+        errorLine2="                                    ~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/compose/features/com/android/launcher3/widgetpicker/WidgetPickerComposeWrapperImpl.kt"
+            line="168"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 31): `android.os.Bundle#getParcelable`"
+        errorLine1="                            extras?.getParcelable("
+        errorLine2="                                    ~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/widgetpicker/WidgetPickerComposeWrapperImpl.kt"
+            line="165"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level CUR_DEVELOPMENT/10000 (current min is 31): `android.content.pm.PackageManager#getEnableAppLockIntentForPackage`"
+        errorLine1="                            .getEnableAppLockIntentForPackage(packageName, newAppLockEnabled)"
+        errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/popup/AppLockShortcut.kt"
+            line="65"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Field requires API level CUR_DEVELOPMENT/10000 (current min is 31): `android.content.pm.ApplicationInfo#isAppLockSupported`"
+        errorLine1="        android.security.Flags.appLockApis() &amp;&amp; appInfo?.isAppLockSupported ?: false"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/util/ApplicationInfoWrapper.kt"
+            line="118"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Field requires API level CUR_DEVELOPMENT/10000 (current min is 31): `android.content.pm.ApplicationInfo#isAppLockEnabled`"
+        errorLine1="        android.security.Flags.appLockApis() &amp;&amp; appInfo?.isAppLockEnabled ?: false"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/util/ApplicationInfoWrapper.kt"
+            line="122"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 35 (current min is 31): `java.util.List#getFirst`"
+        errorLine1="            ShortcutInfo si = sis.getFirst();"
+        errorLine2="                                  ~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/src/com/android/launcher3/icons/IconCache.java"
+            line="380"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_on_surface_light` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_inverse_on_surface_light&quot;&gt;@android:color/system_inverse_on_surface_light&lt;/color&gt;"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="27"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_primary_light` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_inverse_primary_light&quot;&gt;@android:color/system_inverse_primary_light&lt;/color&gt;"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="28"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_surface_light` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_inverse_surface_light&quot;&gt;@android:color/system_inverse_surface_light&lt;/color&gt;"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="29"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_scrim_light` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_scrim_light&quot;&gt;@android:color/system_scrim_light&lt;/color&gt;"
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="52"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_shadow_light` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_shadow_light&quot;&gt;@android:color/system_shadow_light&lt;/color&gt;"
+        errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="56"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_tint_light` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_surface_tint_light&quot;&gt;@android:color/system_surface_tint_light&lt;/color&gt;"
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="65"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_on_surface_dark` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_inverse_on_surface_dark&quot;&gt;@android:color/system_inverse_on_surface_dark&lt;/color&gt;"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="82"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_primary_dark` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_inverse_primary_dark&quot;&gt;@android:color/system_inverse_primary_dark&lt;/color&gt;"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="83"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_inverse_surface_dark` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_inverse_surface_dark&quot;&gt;@android:color/system_inverse_surface_dark&lt;/color&gt;"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="84"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_scrim_dark` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_scrim_dark&quot;&gt;@android:color/system_scrim_dark&lt;/color&gt;"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="107"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_shadow_dark` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_shadow_dark&quot;&gt;@android:color/system_shadow_dark&lt;/color&gt;"
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="111"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="`@android:color/system_surface_tint_dark` requires API level 10000 (current min is 31)"
+        errorLine1="    &lt;color name=&quot;system_surface_tint_dark&quot;&gt;@android:color/system_surface_tint_dark&lt;/color&gt;"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/apps/Launcher3/res/values-v34/colors.xml"
+            line="120"
+            column="44"/>
+    </issue>
+
+     <issue
+        id="NewApi"
+        message="`&lt;androidx.appfunctions.service.PlatformAppFunctionService>` requires API level 36 (current min is 31)"
+        errorLine1="        &lt;service"
+        errorLine2="        ^">
+        <location
+            file="./out/soong/.intermediates/packages/apps/Launcher3/Launcher3/android_common/manifest_merger/AndroidManifest.xml"
+            line="308"
+            column="9"/>
     </issue>
 
 </issues>

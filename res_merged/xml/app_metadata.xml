@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
+    appfn:description="
+This tool allows management of the Android launcher home screen, also known as the workspace.
+It enables querying the current layout and performing actions like adding, removing, or moving items (apps, widgets, folders).
+The workspace consists of one or more screens and a hotseat bar.
+
+The functions available are:
+
+QUERY FUNCTIONS:
+- getCurrentWorkspace(): Returns the current layout of all screens and the hotseat, including item positions and grid dimensions (rows, columns).
+- getInstalledApps(): Returns a list of all installed apps on the device.
+- getInstalledWidgets(): Returns a list of all installed widgets on the device.
+
+Some of the functions have complex recipes that must be followed to ensure success. As part of verifying that the recipes were followed,
+a proof of invocation process is followed by requiring that the function receives the underlying proof from each dependent function call
+detailed in the recipe.
+"
+appfn:displayDescription="@string/workspace_functions_app_display_description" />

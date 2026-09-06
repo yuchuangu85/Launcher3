@@ -20,7 +20,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
-import android.widget.ImageView
+import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import com.android.launcher3.R
 
@@ -29,10 +29,11 @@ import com.android.launcher3.R
  * hovered state UX.
  */
 @SuppressLint("AppCompatCustomView")
-class PaginationArrow(context: Context, attrs: AttributeSet) : ImageView(context, attrs) {
+class PaginationArrow(context: Context, attrs: AttributeSet) : ImageButton(context, attrs) {
     private val bgCircle = ContextCompat.getDrawable(context, R.drawable.ic_circle)
 
     init {
+        background = null
         foreground = ContextCompat.getDrawable(context, R.drawable.ic_chevron_left_rounded_700)
     }
 

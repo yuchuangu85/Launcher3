@@ -183,7 +183,7 @@ abstract class TutorialFragment extends GestureSandboxFragment implements OnTouc
 
         mDeviceProfile = InvariantDeviceProfile.INSTANCE.get(getContext())
                 .getDeviceProfile(getContext());
-        mIsLargeScreen = mDeviceProfile.getDeviceProperties().isTablet();
+        mIsLargeScreen = mDeviceProfile.getDeviceProperties().isLargeScreen();
         mIsFoldable = mDeviceProfile.getDeviceProperties().isTwoPanels();
 
         if (mOnAttachedToWindowPendingCreate) {
@@ -542,10 +542,6 @@ abstract class TutorialFragment extends GestureSandboxFragment implements OnTouc
         GestureSandboxActivity activity = getGestureSandboxActivity();
 
         return activity != null ? activity.getStatsLogManager() : null;
-    }
-
-    protected boolean isRotationPromptShowing() {
-        return false;
     }
 
     @Nullable

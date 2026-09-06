@@ -28,7 +28,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.core.view.updateLayoutParams
-import com.airbnb.lottie.LottieAnimationView
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.taskbar.TaskbarActivityContext
@@ -36,7 +35,6 @@ import com.android.launcher3.taskbar.TaskbarAutohideSuspendController.FLAG_AUTOH
 import com.android.launcher3.taskbar.TaskbarControllers
 import com.android.launcher3.taskbar.TaskbarControllers.LoggableTaskbarController
 import com.android.launcher3.views.ActivityContext
-import com.android.quickstep.util.LottieAnimationColorUtils
 import java.io.PrintWriter
 
 /**
@@ -228,11 +226,3 @@ private val DARK_TO_LIGHT_COLORS =
         ".yellow100" to R.color.lottie_yellow400,
         ".yellow400" to R.color.lottie_yellow600,
     )
-
-private fun LottieAnimationView.supportLightTheme() {
-    if (Utilities.isDarkTheme(context)) {
-        return
-    }
-
-    LottieAnimationColorUtils.updateToColorResources(this, DARK_TO_LIGHT_COLORS, context.theme)
-}

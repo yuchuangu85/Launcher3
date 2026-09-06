@@ -1,0 +1,122 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader foreground;
+uniform shader background;
+uniform shader fog;
+uniform shader clouds;
+uniform half2 fogSize;
+uniform half2 cloudsSize;
+uniform half4 time;
+uniform half screenAspectRatio;
+uniform half2 screenSize;
+uniform half pixelDensity;
+uniform half intensity;
+uniform mat3 transformMatrixBitmap;
+uniform mat3 transformMatrixWeather;
+
+#include "shaders/constants.agsl"
+#include "shaders/utils.agsl"
+#include "shaders/simplex2d.agsl"
+
+vec3 drawGrid(vec3 color, float x, float y) {
+    if (x < 0.025) {
+        for(float i = 0.; i < 30.; i++) {
+            float iFrag = i / 10.;
+            if (y > iFrag - 0.005 && y < iFrag + 0.005) {
+                if (i == 0.) {
+                    color.rgb = vec3(1.);
+                } else if (mod(iFrag, 1.) == 0.) {
+                    color.g = 1.;
+                    color.rb = vec2(0.);
+                } else {
+                    color.r = 1.;
+                    color.gb = vec2(0.);
+                }
+
+            }
+        }
+    }
+    return color;
+}
+
+vec4 drawClouds(vec2 uv, float dither1, float dither2, vec2 time1, vec2 time2, float far) {
+    vec4 fogTexture = fog.eval(
+        0.75 * fogSize * (uv + dither1) +
+        // Moves UV based on time.
+        vec2(time1 * 4.5));
+
+    vec4 cloudsTexture = clouds.eval(
+        0.375 * cloudsSize * (uv + dither2) +
+        // Moves UV based on time.
+        vec2(time2 * 5.5));
+
+    // Makes them more heavy at the bottom, and rounded at the top.
+    float generalCloudshape = smoothstep(
+        0,
+        0.4,
+        uv.y - 0.1 * sin(10. * uv.x + time1.x * 3.5 / fogSize.x));
+    // The smoothstep limits define the variation between clearings and density of clouds.
+    float cloudsShape = smoothstep(
+        0.1,
+        0.4,
+        0.5 * generalCloudshape * cloudsTexture.b +
+        // Makes the general outline of the clouds, adding variation
+        cloudsTexture.g * fogTexture.g -
+        (0.8 - intensity));
+
+    const vec3 shadowColor = vec3(0.3, 0.3, 0.37);
+    const vec3 highlightColor = vec3(0.95, 0.95, 0.99);
+    const vec3 lightBlueGreyColor = vec3(0.6, 0.6, 0.65);
+    // Fade the clouds at the bottom.
+    // adds some color texture to the clouds.
+    vec3 color = mix(shadowColor, highlightColor, cloudsShape);
+    color = mix(shadowColor, color, 0.75 * fogTexture.b);
+    color = mix(shadowColor, color, far);
+    vec3 colorScattered = mix(lightBlueGreyColor, highlightColor, cloudsShape);
+    colorScattered = mix(lightBlueGreyColor, colorScattered, 0.75 * fogTexture.b);
+    colorScattered = mix(lightBlueGreyColor, colorScattered, far);
+
+    color = mix(colorScattered, color, smoothstep(0.6, 0.9, intensity));
+    cloudsShape *= smoothstep(0.7, 0.5, uv.y);
+    return vec4(color, cloudsShape);
+}
+
+vec4 main(float2 fragCoord) {
+    float2 adjustedCoord = transformPoint(transformMatrixBitmap, fragCoord);
+    float2 uv = transformPoint(transformMatrixWeather, fragCoord) / screenSize;
+    uv.y /= screenAspectRatio;
+
+    vec2 timeForeground = vec2(time.x, time.y);
+    vec2 timeBackground = vec2(time.z, time.w);
+
+    float foregroundAlpha = foreground.eval(adjustedCoord).a;
+    vec4 bgd = background.eval(adjustedCoord);
+    vec4 fgd =  vec4(bgd.rgb * foregroundAlpha, foregroundAlpha);
+
+    float dither1 = triangleNoise((fragCoord) * pixelDensity) * 0.006;
+    float dither2 = triangleNoise((fragCoord) * pixelDensity) * 0.006;
+    // set background color as the starting layer.
+    vec4 color = bgd;
+    vec2 offset = vec2(0.4, 0.);
+
+    vec4 clouds = drawClouds(1.5 * (uv - offset) - 0.25, dither1, dither2, 612 + timeBackground * 0.647, 323 + timeForeground * 0.687, 0.45);
+    color.rgb = normalBlendNotPremultiplied(color.rgb, clouds.rgb, clouds.a * 0.8);
+    clouds = drawClouds(uv + 0.2, dither1, dither2, timeBackground, timeForeground, 1.);
+    color.rgb = normalBlendNotPremultiplied(color.rgb, clouds.rgb, clouds.a);
+    color.rgb = normalBlend(color.rgb, fgd.rgb, fgd.a);
+    return color;
+}

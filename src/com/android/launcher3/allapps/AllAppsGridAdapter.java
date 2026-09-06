@@ -12,8 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Modifications copyright 2021, Lawnchair
  */
 package com.android.launcher3.allapps;
 
@@ -30,13 +28,6 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.Adapter;
 
-import com.android.launcher3.BubbleTextView;
-import com.android.launcher3.R;
-import com.android.launcher3.config.FeatureFlags;
-import com.android.launcher3.model.data.AppInfo;
-import com.android.launcher3.model.data.ItemInfoWithIcon;
-import com.android.launcher3.util.PackageManagerHelper;
-import com.android.launcher3.util.Themes;
 import com.android.launcher3.allapps.search.SearchAdapterProvider;
 import com.android.launcher3.util.ScrollableLayoutManager;
 import com.android.launcher3.views.ActivityContext;
@@ -46,19 +37,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The grid view adapter of all the apps.
- *
- * @param <T> Type of context inflating all apps.
  */
-public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
-        BaseAllAppsAdapter<T> {
+public class AllAppsGridAdapter extends BaseAllAppsAdapter {
 
     public static final String TAG = "AppsGridAdapter";
     private final AppsGridLayoutManager mGridLayoutMgr;
-    private final CopyOnWriteArrayList<OnLayoutCompletedListener> mOnLayoutCompletedListeners = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<OnLayoutCompletedListener> mOnLayoutCompletedListeners =
+            new CopyOnWriteArrayList<>();
 
     /**
-     * Listener for
-     * {@link RecyclerView.LayoutManager#onLayoutCompleted(RecyclerView.State)}
+     * Listener for {@link RecyclerView.LayoutManager#onLayoutCompleted(RecyclerView.State)}
      */
     public interface OnLayoutCompletedListener {
         void onLayoutCompleted();
@@ -73,20 +61,21 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
     }
 
     /**
-     * Removes a {@link OnLayoutCompletedListener} to not receive a callback when
-     * {@link
+     * Removes a {@link OnLayoutCompletedListener} to not receive a callback when {@link
      * RecyclerView.LayoutManager#onLayoutCompleted(RecyclerView.State)} is called
      */
     public void removeOnLayoutCompletedListener(OnLayoutCompletedListener listener) {
         mOnLayoutCompletedListeners.remove(listener);
     }
 
-    public AllAppsGridAdapter(T activityContext, LayoutInflater inflater,
+
+    public AllAppsGridAdapter(ActivityContext activityContext, LayoutInflater inflater,
             AlphabeticalAppsList apps, SearchAdapterProvider<?> adapterProvider) {
         super(activityContext, inflater, apps, adapterProvider);
-        mGridLayoutMgr = new AppsGridLayoutManager(mActivityContext);
+        mGridLayoutMgr = new AppsGridLayoutManager(mActivityContext.asContext());
         mGridLayoutMgr.setSpanSizeLookup(new GridSpanSizer());
-        setAppsPerRow(activityContext.getDeviceProfile().numShownAllAppsColumns);
+        setAppsPerRow(
+                activityContext.getDeviceProfile().getAllAppsProfile().getNumShownAllAppsColumns());
     }
 
     /**
@@ -103,8 +92,7 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
     }
 
     /**
-     * A subclass of GridLayoutManager that overrides accessibility values during
-     * app search.
+     * A subclass of GridLayoutManager that overrides accessibility values during app search.
      */
     public class AppsGridLayoutManager extends ScrollableLayoutManager {
 
@@ -116,8 +104,7 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
         public void onInitializeAccessibilityEvent(AccessibilityEvent event) {
             super.onInitializeAccessibilityEvent(event);
 
-            // Ensure that we only report the number apps for accessibility not including
-            // other
+            // Ensure that we only report the number apps for accessibility not including other
             // adapter views
             final AccessibilityRecordCompat record = AccessibilityEventCompat
                     .asRecord(event);
@@ -162,8 +149,7 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
         }
 
         /**
-         * Returns the number of rows before {@param adapterPosition}, including this
-         * position
+         * Returns the number of rows before {@param adapterPosition}, including this position
          * which should not be counted towards the collection info.
          */
         private int getRowsNotForAccessibility(int adapterPosition) {
@@ -189,8 +175,7 @@ public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
         @Override
         protected int incrementTotalHeight(Adapter adapter, int position, int heightUntilLastPos) {
             AllAppsGridAdapter.AdapterItem item = mApps.getAdapterItems().get(position);
-            // only account for the first icon in the row since they are the same size
-            // within a row
+            // only account for the first icon in the row since they are the same size within a row
             return (isIconViewType(item.viewType) && item.rowAppIndex != 0)
                     ? heightUntilLastPos
                     : (heightUntilLastPos + mCachedSizes.get(item.viewType));

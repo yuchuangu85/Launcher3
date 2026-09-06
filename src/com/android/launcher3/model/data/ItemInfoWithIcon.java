@@ -16,7 +16,6 @@
 
 package com.android.launcher3.model.data;
 
-import static com.android.launcher3.icons.BitmapInfo.FLAG_NO_BADGE;
 import static com.android.launcher3.icons.BitmapInfo.FLAG_THEMED;
 
 import android.content.Context;
@@ -27,17 +26,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.Flags;
-import com.android.launcher3.Utilities;
+import com.android.launcher3.automation.AutomationRepository;
 import com.android.launcher3.graphics.ThemeManager;
+import com.android.launcher3.homescreenfiles.HomeScreenFilesUtilsKt;
 import com.android.launcher3.icons.BitmapInfo;
 import com.android.launcher3.icons.BitmapInfo.DrawableCreationFlags;
 import com.android.launcher3.icons.FastBitmapDrawable;
+import com.android.launcher3.icons.IconShape;
 import com.android.launcher3.icons.cache.CacheLookupFlag;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.util.ApiWrapper;
-
-import app.lawnchair.preferences.PreferenceManager;
 
 /**
  * Represents an ItemInfo which also holds an icon.
@@ -114,11 +113,6 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
      */
     public static final int FLAG_DISABLED_VERSION_LOWER = 1 << 12;
 
-    public static final int FLAG_DISABLED_MASK = FLAG_DISABLED_SAFEMODE
-            | FLAG_DISABLED_NOT_AVAILABLE | FLAG_DISABLED_SUSPENDED
-            | FLAG_DISABLED_QUIET_USER | FLAG_DISABLED_BY_PUBLISHER | FLAG_DISABLED_LOCKED_USER
-            | FLAG_DISABLED_VERSION_LOWER;
-
     /**
      * Flag indicating this item can't be pinned to home screen.
      */
@@ -139,6 +133,31 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
      * Flag indicating whether the package related to the item & user supports multiple instances.
      */
     public static final int FLAG_SUPPORTS_MULTI_INSTANCE = 1 << 16;
+
+    /**
+     * Indicates that the icon is disabled because the file system is not ready.
+     */
+    public static final int FLAG_DISABLED_FILE_SYSTEM_NOT_READY = 1 << 17;
+
+    public static final int FLAG_DISABLED_MASK = FLAG_DISABLED_SAFEMODE
+            | FLAG_DISABLED_NOT_AVAILABLE | FLAG_DISABLED_SUSPENDED
+            | FLAG_DISABLED_QUIET_USER | FLAG_DISABLED_BY_PUBLISHER | FLAG_DISABLED_LOCKED_USER
+            | FLAG_DISABLED_VERSION_LOWER | FLAG_DISABLED_FILE_SYSTEM_NOT_READY;
+
+    /**
+     * Indicates that the package is currently being automated.
+     */
+    public static final int FLAG_AUTOMATED = 1 << 18;
+
+    /**
+     * Flag indicating whether App Lock is supported for the app.
+     */
+    public static final int FLAG_APP_LOCK_SUPPORTED = 1 << 19;
+
+    /**
+     * Flag indicating whether App Lock is enabled for the app.
+     */
+    public static final int FLAG_APP_LOCK_ENABLED = 1 << 20;
 
     /**
      * Status associated with the system state of the underlying item. This is calculated every
@@ -301,6 +320,20 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
         return (runtimeStatusFlags & FLAG_NOT_RESIZEABLE) != 0;
     }
 
+    /**
+     * Returns whether App Lock is supported for the app.
+     */
+    public boolean isAppLockSupported() {
+        return (runtimeStatusFlags & FLAG_APP_LOCK_SUPPORTED) != 0;
+    }
+
+    /**
+     * Returns whether App Lock is enabled for the app.
+     */
+    public boolean isAppLockEnabled() {
+        return (runtimeStatusFlags & FLAG_APP_LOCK_ENABLED) != 0;
+    }
+
     /** Creates an intent to that launches the app store at this app's page. */
     @Nullable
     public Intent getMarketIntent(Context context) {
@@ -322,22 +355,55 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
      * Returns a FastBitmapDrawable with the icon.
      */
     public FastBitmapDrawable newIcon(Context context) {
-        var shouldTheme = PreferenceManager.getInstance(context).getThemedIcons().get();
-        return newIcon(context, shouldTheme ? BitmapInfo.FLAG_THEMED : BitmapInfo.FLAG_NO_BADGE);
+        return newIcon(context, 0);
+    }
+
+    public FastBitmapDrawable newIcon(Context context, @DrawableCreationFlags int creationFlags) {
+        ThemeManager themeManager = ThemeManager.INSTANCE.get(context);
+        IconShape iconShape = null;
+        if (HomeScreenFilesUtilsKt.isFileSystemFileItem(this)) {
+            iconShape = themeManager.getFileShapeData();
+        } else if (supportsCustomShapes(creationFlags)) {
+            iconShape = themeManager.getIconShapeData().getValue();
+        }
+        if (!themeManager.isIconThemeEnabled()) {
+            creationFlags &= ~FLAG_THEMED;
+        }
+        FastBitmapDrawable drawable = bitmap.newIcon(context, creationFlags, iconShape);
+        drawable.setDisabled(isDisabled());
+        return drawable;
     }
 
     /**
-     * Returns a FastBitmapDrawable with the icon and context theme applied
+     * Returns true if the current BitmapInfo can support cropping to custom icon shapes.
      */
-    public FastBitmapDrawable newIcon(Context context, @DrawableCreationFlags int creationFlags) {
-        var shouldTheme = PreferenceManager.getInstance(context).getThemedIcons().get();
-        if (!shouldTheme) {
-            creationFlags &= ~FLAG_THEMED;
+    public boolean supportsCustomShapes(@DrawableCreationFlags int creationFlags) {
+        return Flags.enableLauncherIconShapes()
+                && (creationFlags & FLAG_THEMED) != 0
+                && bitmap.isFullBleed();
+    }
+
+    /**
+     * Returns true if item is a Promise Icon or actively downloading, and the item is not an
+     * inactive archived app.
+     */
+    public boolean shouldShowPendingIcon() {
+        return (((this instanceof WorkspaceItemInfo wii) && wii.hasPromiseIconUi())
+                || (runtimeStatusFlags & FLAG_SHOW_DOWNLOAD_PROGRESS_MASK) != 0)
+                && !isInactiveArchive();
+    }
+
+    /**
+     * Checks if the package is currently automated and sets the FLAG_AUTOMATED flag.
+     */
+    public void checkAndApplyAutomationFlag(AutomationRepository repository) {
+        if (Flags.enableAppAutomationIndicator() && getTargetPackage() != null) {
+            if (repository.isPackageAutomated(user, getTargetPackage())) {
+                runtimeStatusFlags |= FLAG_AUTOMATED;
+            } else {
+                runtimeStatusFlags &= ~FLAG_AUTOMATED;
+            }
         }
-        FastBitmapDrawable drawable = bitmap.newIcon(
-                context, creationFlags, Utilities.getIconShapeOrNull(context));
-        drawable.setDisabled(isDisabled());
-        return drawable;
     }
 
     @Override

@@ -22,29 +22,29 @@ import android.content.Context
 import android.net.Uri.Builder
 import android.os.RemoteException
 import android.os.UserHandle
-import android.platform.uiautomatorhelpers.DeviceHelpers
 import android.platform.uiautomatorhelpers.DeviceHelpers.context
 import android.platform.uiautomatorhelpers.DeviceHelpers.uiDevice
 import android.provider.Settings.Global
 import android.provider.Settings.System
 import android.util.Log
 import android.view.Display
+import android.view.IWindowManager
 import android.view.Surface
 import android.view.WindowManagerGlobal
-import com.android.dx.mockito.inline.extended.ExtendedMockito.spyOn
-import com.android.launcher3.Flags
+import com.android.launcher3.Flags.enableTaskbarUiThread
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.InvariantDeviceProfile.OnIDPChangeListener
-import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherPrefs
-import com.android.launcher3.LauncherPrefs.Companion.get
 import com.android.launcher3.dagger.LauncherComponentProvider.appComponent
-import com.android.launcher3.util.DisplayController
-import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener
-import com.android.launcher3.util.DisplayController.Info
-import com.android.launcher3.util.Executors
+import com.android.launcher3.display.DisplayController
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.Executors.MODEL_EXECUTOR
+import com.android.launcher3.util.Executors.THREAD_POOL_EXECUTOR
+import com.android.launcher3.util.Executors.getTaskbarUiThread
 import com.android.launcher3.util.ModelTestExtensions.clearModelDb
+import com.android.launcher3.util.NavigationMode
+import com.android.launcher3.util.RoboApiWrapper.convertToSpy
+import com.android.launcher3.util.SafeCloseable
 import com.android.launcher3.util.TestUtil
 import com.android.launcher3.util.launcheremulator.DensityPicker.Density
 import com.android.launcher3.util.launcheremulator.models.DeviceEmulationData
@@ -57,12 +57,8 @@ import com.android.launcher3.util.launcheremulator.models.LauncherOrientation.SE
 import com.android.launcher3.util.window.WindowManagerProxy
 import java.util.concurrent.CountDownLatch
 import org.junit.Assert
-import org.mockito.Mockito.doAnswer
-import org.mockito.kotlin.any
 import org.mockito.kotlin.mockingDetails
 import org.mockito.kotlin.reset
-import org.mockito.kotlin.whenever
-import org.mockito.stubbing.Answer
 
 object LauncherCustomizer {
     private const val TAG = "LauncherCustomizer"
@@ -76,7 +72,7 @@ object LauncherCustomizer {
     /** Apply all non null customizations starting from device, then grid, font scale and theme */
     @Throws(Exception::class)
     fun applyAll(context: Context, params: EmulationParams) {
-        LauncherAppState.getInstance(DeviceHelpers.context).model.clearModelDb()
+        context.appComponent.testableModelState.model.clearModelDb()
 
         System.putFloat(context.contentResolver, System.FONT_SCALE, params.fontScale.value)
 
@@ -87,10 +83,9 @@ object LauncherCustomizer {
             if (params.isRtl) RTL_ON else RTL_OFF,
         )
 
-        emulate(context, params.device, params.density)
+        emulate(context, params.device, params.density, params.navigationMode)
 
-        applyFixedLandscape(params.isFixedLandscape)
-
+        applyFixedLandscape(context, params.isFixedLandscape)
         applyGridOption(context, params.grid)
 
         context
@@ -102,8 +97,8 @@ object LauncherCustomizer {
 
         applyIsThemed(context, params.isUsingThemeIcons)
 
-        // Flush the main thread so that all the settings are applied
-        TestUtil.runOnExecutorSync(Executors.MAIN_EXECUTOR) {}
+        // Flush the main thread and taskbar ui thread so that all the settings are applied
+        syncUiState()
 
         if (!isOrientationCorrect(params.orientation) && !params.isFixedLandscape) {
             Log.d(TAG, "retry orientation: ${params.orientation}")
@@ -111,32 +106,21 @@ object LauncherCustomizer {
         }
     }
 
-    private fun applyFixedLandscape(isFixedLandscape: Boolean) {
+    private fun applyFixedLandscape(context: Context, isFixedLandscape: Boolean) {
         val idp = InvariantDeviceProfile.INSTANCE[context]
-        get(context).put(LauncherPrefs.ALLOW_ROTATION, !isFixedLandscape)
         if (idp.isFixedLandscape == isFixedLandscape) return
         val latch = CountDownLatch(1)
         val listener = OnIDPChangeListener {
             if (idp.isFixedLandscape == isFixedLandscape) latch.countDown()
         }
         idp.addOnChangeListener(listener)
-        get(context).put(LauncherPrefs.FIXED_LANDSCAPE_MODE, isFixedLandscape)
+        LauncherPrefs.get(context).put(LauncherPrefs.FIXED_LANDSCAPE_MODE, isFixedLandscape)
         latch.await()
         idp.removeOnChangeListener(listener)
     }
 
     private fun applyGridOption(context: Context, gridParam: String) {
-        var grid = gridParam
-        if (Flags.oneGridSpecs()) {
-            when (gridParam) {
-                "normal" -> grid = "medium"
-            }
-        } else {
-            when (gridParam) {
-                "medium" -> grid = "normal"
-            }
-        }
-        sendGridRequest(context, "default_grid", "name", grid)
+        sendGridRequest(context, "default_grid", "name", gridParam)
     }
 
     private fun applyIsThemed(context: Context, isThemed: Boolean) =
@@ -154,7 +138,7 @@ object LauncherCustomizer {
         values.putObject(arg, argValue)
         Assert.assertEquals(
             RESULT_SUCCESS,
-            context.appComponent.gridCustomizationsProxy.update(gridUri, values, null, null),
+            context.appComponent.gridCustomizationsProxy.update(gridUri, values, null, null, null),
         )
     }
 
@@ -192,78 +176,72 @@ object LauncherCustomizer {
 
     /** @param device data required to emulate a given device display */
     @Throws(Exception::class)
-    private fun emulate(context: Context, device: DeviceEmulationData, densityScale: Density) {
+    private fun emulate(
+        context: Context,
+        device: DeviceEmulationData,
+        densityScale: Density,
+        navigationMode: NavigationMode? = null,
+    ) {
         val densities = DensityPicker.getDisplayEntries(device)
 
-        // Set up emulation
-        // Override WindowManagerProxy
+        // Force ui state to settle before touching the mocks
+        syncUiState()
+
         TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {
             val wmp = WindowManagerProxy.INSTANCE[context]
+
+            // Avoid aggressive resets if possible, or wrap them tightly
             if (mockingDetails(wmp).isSpy) reset(wmp)
 
-            spyOn(wmp)
-            val wmpOverride = TestWindowManagerProxy(device)
-            val answer = Answer {
-                wmpOverride::class
+            val wmpOverride =
+                TestWindowManagerProxy(device).apply { setNavigationMode(navigationMode) }
+            wmp.convertToSpy {
+                WindowManagerProxy::class
                     .java
-                    .getMethod(it.method.name, *it.method.parameterTypes)
+                    .getDeclaredMethod(it.method.name, *it.method.parameterTypes)
+                    .apply { isAccessible = true }
                     .invoke(wmpOverride, *it.arguments)
             }
-
-            doAnswer(answer).whenever(wmp).isTaskbarDrawnInProcess
-            doAnswer(answer).whenever(wmp).estimateInternalDisplayBounds(any())
-            doAnswer(answer).whenever(wmp).isInDesktopMode(any())
-            doAnswer(answer).whenever(wmp).showLockedTaskbarOnHome(any())
-            doAnswer(answer).whenever(wmp).isHomeVisible()
-            doAnswer(answer).whenever(wmp).getRealBounds(any(), any())
-            doAnswer(answer).whenever(wmp).normalizeWindowInsets(any(), any(), any())
-            doAnswer(answer).whenever(wmp).getDisplayInfo(any())
-            doAnswer(answer).whenever(wmp).getCurrentBounds(any())
-            doAnswer(answer).whenever(wmp).getRotation(any())
-            doAnswer(answer).whenever(wmp).getNavigationMode(any())
         }
 
-        val userId = UserHandle.myUserId()
-
-        // This is equivalent to calling:
-        //   adb shell wm size {device.width}x{device.height} and adb shell wm scale 1 "
         WindowManagerGlobal.getWindowManagerService()!!.apply {
-            setForcedDisplaySize(Display.DEFAULT_DISPLAY, device.width, device.height)
             setForcedDisplayScalingMode(Display.DEFAULT_DISPLAY, 1)
 
-            // Change density twice to force display controller to reset its state
-            val targetDensity = densities[densityScale]!!
-            setForcedDisplayDensityForUser(Display.DEFAULT_DISPLAY, targetDensity / 2, userId)
-            waitForDensityChange(context, targetDensity / 2)
+            // This is equivalent to calling: adb shell wm size {device.width}x{device.height}"
+            setForcedDisplaySize(Display.DEFAULT_DISPLAY, device.width, device.height)
 
-            setForcedDisplayDensityForUser(Display.DEFAULT_DISPLAY, targetDensity, userId)
-            waitForDensityChange(context, targetDensity)
+            // Change density twice to force display controller to reset its state
+            setAndWaitForDensity(context, densities[densityScale]!! + 1)
+            setAndWaitForDensity(context, densities[densityScale]!!)
         }
     }
 
     @Throws(Exception::class)
-    private fun waitForDensityChange(context: Context, targetDensity: Int) {
+    private fun IWindowManager.setAndWaitForDensity(context: Context, targetDensity: Int) {
         val latch = CountDownLatch(1)
-        Executors.MAIN_EXECUTOR.execute {
+        MAIN_EXECUTOR.execute {
             val controller = DisplayController.INSTANCE[context]
             if (controller.info.densityDpi == targetDensity) {
                 latch.countDown()
                 return@execute
             }
-            controller.addChangeListener(
-                object : DisplayInfoChangeListener {
-                    override fun onDisplayInfoChanged(context: Context, info: Info, flags: Int) {
+            controller.listenable?.let {
+                var safeCloseable: SafeCloseable? = null
+                safeCloseable =
+                    it.forEachChange(MAIN_EXECUTOR) { info, _ ->
                         if (info.densityDpi == targetDensity) {
                             // Remove listener asynchronously
-                            Executors.MAIN_EXECUTOR.handler.post {
-                                controller.removeChangeListener(this)
-                            }
+                            safeCloseable?.close()
                             latch.countDown()
                         }
                     }
-                }
-            )
+            }
         }
+        setForcedDisplayDensityForUser(
+            Display.DEFAULT_DISPLAY,
+            targetDensity,
+            UserHandle.myUserId(),
+        )
         latch.await()
     }
 
@@ -273,12 +251,16 @@ object LauncherCustomizer {
         sendGridRequest(context, "icon_themed", COL_ICON_THEMED_VALUE, false)
         System.putFloat(context.contentResolver, System.FONT_SCALE, DEFAULT.value)
         Global.putInt(context.contentResolver, Global.DEVELOPMENT_FORCE_RTL, RTL_OFF)
-        applyFixedLandscape(false)
+        applyFixedLandscape(context, false)
+
+        // IMPORTANT: Wait for the main thread and taskbar ui thread to settle after those settings
+        // changes. This ensures the Taskbar thread has finished reacting to the new config
+        // BEFORE we pull the rug out by resetting the mocks.
+        syncUiState()
 
         TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {
-            WindowManagerProxy.INSTANCE[context].let { wmp ->
-                if (mockingDetails(wmp).isSpy) reset(wmp)
-            }
+            val wmp = WindowManagerProxy.INSTANCE[context]
+            if (mockingDetails(wmp).isSpy) reset(wmp)
         }
 
         WindowManagerGlobal.getWindowManagerService()!!.apply {
@@ -286,5 +268,17 @@ object LauncherCustomizer {
             clearForcedDisplayDensityForUser(Display.DEFAULT_DISPLAY, UserHandle.myUserId())
         }
         uiDevice.setOrientationNatural()
+        syncUiState()
+    }
+
+    private fun syncUiState() {
+        TestUtil.runOnExecutorSync(MODEL_EXECUTOR) {}
+        TestUtil.runOnExecutorSync(THREAD_POOL_EXECUTOR) {}
+        if (enableTaskbarUiThread()) {
+            TestUtil.runOnExecutorSync(getTaskbarUiThread()) {}
+        }
+        // Sleep 500ms to let theme to be applied and icon alpha animation to finish
+        Thread.sleep(500)
+        uiDevice.waitForIdle()
     }
 }

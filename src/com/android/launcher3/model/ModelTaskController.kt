@@ -23,12 +23,12 @@ import com.android.launcher3.celllayout.CellPosMapper
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.model.BgDataModel.FixedContainerItems
+import com.android.launcher3.model.BgDataModel.ModificationSource.ModelTask
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.widget.model.WidgetsListBaseEntriesBuilder
 import java.util.function.Predicate
-import java.util.stream.Collectors
 import javax.inject.Inject
 
 /** Class with utility methods and properties for running a LauncherModel Task */
@@ -40,6 +40,7 @@ constructor(
     val dataModel: BgDataModel,
     val allAppsList: AllAppsList,
     val model: LauncherModel,
+    val modelWriterFactory: ModelWriterFactory,
 ) {
 
     private val uiExecutor = MAIN_EXECUTOR
@@ -55,7 +56,14 @@ constructor(
      * Updates from model task, do not deal with icon position in hotseat. Also no need to verify
      * changes as the ModelTasks always push the changes to callbacks
      */
-    fun getModelWriter() = model.getWriter(false /* verifyChanges */, CellPosMapper.DEFAULT, null)
+    fun getModelWriter(): IModelWriter =
+        modelWriterFactory.create(
+            verifyChanges = false,
+            CellPosMapper.DEFAULT,
+            modificationSource = ModelTask,
+            // TODO: (b/455016031) - Remove owner from ModelWriter
+            owner = null,
+        )
 
     fun bindUpdatedWorkspaceItems(allUpdates: Collection<ItemInfo>) {
         // Bind workspace items
@@ -63,22 +71,17 @@ constructor(
         if (workspaceUpdates.isNotEmpty()) {
             scheduleCallbackTask { it.bindItemsUpdated(workspaceUpdates) }
         }
-        dataModel.updateItems(allUpdates.toList(), null)
     }
 
     fun bindExtraContainerItems(item: FixedContainerItems) {
         scheduleCallbackTask { it.bindExtraContainerItems(item) }
     }
 
-    fun bindDeepShortcuts(dataModel: BgDataModel) {
-        val shortcutMapCopy = HashMap(dataModel.deepShortcutMap)
-        scheduleCallbackTask { it.bindDeepShortcutMap(shortcutMapCopy) }
-    }
-
     fun bindUpdatedWidgets(dataModel: BgDataModel) {
         val allWidgets =
             WidgetsListBaseEntriesBuilder(context)
                 .build(dataModel.widgetsModel.widgetsByPackageItemForPicker)
+        dataModel.notifyWidgetsUpdate(allWidgets)
         scheduleCallbackTask { it.bindAllWidgets(allWidgets) }
     }
 

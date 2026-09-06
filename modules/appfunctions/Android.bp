@@ -1,0 +1,54 @@
+// Copyright (C) 2026 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
+    default_visibility: [
+        "//packages/apps/Launcher3:__subpackages__",
+        "//vendor:__subpackages__",
+    ],
+}
+
+android_library {
+    name: "workspace-functions",
+    sdk_version: "current",
+    min_sdk_version: min_launcher3_sdk_version,
+    srcs: [
+        "src/com/android/launcher3/appfunctions/workspace/WorkspaceAppFunctions.kt",
+        "src/com/android/launcher3/appfunctions/workspace/WorkspaceFlatTypes.kt",
+        "src/com/android/launcher3/appfunctions/workspace/WorkspaceRepository.kt",
+        "src/com/android/launcher3/appfunctions/workspace/WorkspaceTypeTranslator.kt",
+        "src/com/android/launcher3/appfunctions/workspace/WorkspaceMutationManager.kt",
+        "src/com/android/launcher3/appfunctions/workspace/validators/SelectorValidator.kt",
+        "src/com/android/launcher3/appfunctions/workspace/validators/ItemSelectorValidator.kt",
+        "src/com/android/launcher3/appfunctions/workspace/validators/RemoveItemValidator.kt",
+        "src/com/android/launcher3/appfunctions/workspace/provider/WorkspaceProvider.kt",
+        "src/com/android/launcher3/appfunctions/workspace/provider/InstalledItemsProvider.kt",
+    ],
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.appfunctions_appfunctions",
+        "androidx.appfunctions_appfunctions-service",
+        "androidx.appcompat_appcompat",
+    ],
+    libs: [
+        // Only needed at link time to resolve optional deps from the support library.
+        "com.android.extensions.appfunctions.stubs",
+    ],
+    plugins: ["androidx.appfunctions_appfunctions-compiler-plugin"],
+    kotlincflags: ["-Xjvm-default=all"],
+    enable_ksp: true, // required for appfunctions
+    optional_uses_libs: ["com.android.extensions.appfunctions"],
+}

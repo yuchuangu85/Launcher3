@@ -1,0 +1,34 @@
+// AOSP displaylib module (com.android.app.displaylib) — source build.
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.kapt'
+}
+android {
+    namespace 'com.android.app.displaylib'
+    compileSdk 37
+    buildToolsVersion "37.0.0"
+    defaultConfig { minSdk 31 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions { jvmTarget = '21'; freeCompilerArgs = ['-Xjvm-default=all'] }
+    lint { abortOnError false }
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+}
+dependencies {
+    rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    rootProject.addPlatformJarsFor(project, ['SystemUI.jar'])
+    implementation libs.javax.inject
+    implementation libs.dagger
+    kapt libs.dagger.compiler
+    implementation project(':tracinglib')
+    implementation libs.androidx.annotation
+    implementation libs.androidx.core.ktx
+}

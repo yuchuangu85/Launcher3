@@ -1,0 +1,194 @@
+package: "com.android.systemui.shared"
+container: "system"
+
+# go/keep-sorted start block=yes newline_separated=yes by_regex=name:\s*"([^"]+)"
+flag {
+    name: "aod_inactivity_detection"
+    namespace: "systemui"
+    description: "Support an activity detection sensor to power down the display to save power."
+    bug: "402534470"
+}
+
+flag {
+    name: "blueflax_first_phase"
+    namespace: "systemui"
+    description: "Enable Blueflax feature first phase."
+    bug: "483872198"
+}
+
+flag {
+    name: "bouncer_area_exclusion"
+    namespace : "systemui"
+    description : "Exclusion List to calculated a default bouncer region on dream"
+    bug : "327003425"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "brightness_dialog_on_system_user"
+    namespace: "systemui"
+    description: "Launches BrightnessDialog always on System user from Settings"
+    bug: "411698713"
+    metadata {
+         purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "cue_bar_ace_migration"
+    namespace: "launcher_search"
+    description: "Cue Bar receives data from new service provider and is rendered in Taskbar."
+    bug: "437417091"
+}
+
+flag {
+  name: "cursor_hot_corner"
+  namespace: "systemui"
+  description: "Enables hot corner navigation by cursor"
+  bug: "397182595"
+}
+
+flag {
+  name: "enable_ai_clocks"
+  namespace: "systemui"
+  description: "Enables AI clocks functionality"
+  bug: "493645457"
+}
+
+flag {
+    name: "enable_home_delay"
+    namespace: "systemui"
+    description: "Enables fix that exposes signal to notify the completion of the RRO loading."
+    bug: "307507412"
+    metadata {
+        purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "enable_lpp_assist_invocation_initial_rumble"
+    namespace: "systemui"
+    description: "Enables the initial rumble haptics on power button long press for launching assistant"
+    bug: "419235496"
+    metadata {
+         purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "enable_recents_in_taskbar"
+    namespace: "launcher"
+    description: "Replace hybrid hotseat app predictions with strictly Recent Apps"
+    bug: "315354060"
+}
+
+flag {
+  name: "enable_sage"
+  namespace: "ailabs"
+  description: "Enables Sage experience in SysUI/Launcher."
+  bug: "443160967"
+}
+
+flag {
+    name: "example_shared_flag"
+    namespace: "systemui"
+    description: "An Example Flag"
+    bug: "308482106"
+}
+
+flag {
+    name: "extended_wallpaper_effects"
+    namespace: "systemui"
+    description: "Enables extended wallpaper effects"
+    bug: "334125919"
+}
+
+flag {
+  name: "extendible_theme_manager"
+  namespace: "launcher"
+  description: "Enables custom theme manager in Launcher and Customization Picker"
+  bug: "381897614"
+}
+
+flag {
+    name: "launcher_animation_shell_migration"
+    namespace: "systemui"
+    description: "Migrate old animation APIs to newer shell transition APIs"
+    bug: "449709471"
+}
+
+flag {
+    name: "pan_and_zoom_in_extended_wallpaper_effects"
+    namespace: "systemui"
+    description: "Support pan & zoom for extended wallpaper effects"
+    bug: "417165168"
+}
+
+flag {
+    name: "photo_shuffle_flag"
+    namespace: "systemui"
+    description: "Flag for enabling the photo shuffle feature"
+    bug: "445051119"
+}
+
+flag {
+    name: "shade_allow_back_gesture"
+    namespace: "systemui"
+    description: "Allow Back Gestures in Shade"
+    bug: "309545085"
+}
+
+flag {
+    name: "smartspace_aqi_updated_design"
+    namespace: "systemui"
+    description: "Enable updated design for aqi in Smartspace"
+    bug: "435016376"
+    metadata {
+         purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "smartspace_semantic_weather_data"
+    namespace: "systemui"
+    description: "Support semantic weather data and its rendering in Smartspace"
+    bug: "416745891"
+}
+
+flag {
+    name: "smartspace_sports_card_background"
+    namespace: "systemui"
+    description: "Enables Smartspace sports card background protection and related ui updates"
+    bug: "380285747"
+    metadata {
+         purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "smartspace_weather_use_monochrome_font_icons"
+    namespace: "systemui"
+    description: "Update Smartspace to use monochrome font icons for weather"
+    bug: "389957594"
+    metadata {
+         purpose: PURPOSE_BUGFIX
+    }
+}
+
+flag {
+    name: "three_button_corner_swipe"
+    namespace: "systemui"
+    description: "Allow the Assistant corner swipe gesture while in 3 button mode"
+    bug: "361651619"
+}
+
+flag {
+    name: "workspace_items_label_hidden"
+    namespace: "launcher"
+    description: "Gives the user the option to hide app icon labels on the workspace"
+    bug: "456634299"
+}
+
+# go/keep-sorted end

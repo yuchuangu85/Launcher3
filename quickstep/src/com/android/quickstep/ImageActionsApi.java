@@ -31,7 +31,6 @@ import android.graphics.Insets;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.Log;
-import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
@@ -107,11 +106,6 @@ public class ImageActionsApi {
     @UiThread
     public void startShareActivity(Rect crop) {
         ImageActionUtils.startShareActivity(mContext, mBitmapSupplier, crop, null, TAG);
-    }
-
-    @UiThread
-    public void startLensActivity() {
-        ImageActionUtils.startLensActivity(mContext, mBitmapSupplier, null, null, TAG);
     }
 
     /**

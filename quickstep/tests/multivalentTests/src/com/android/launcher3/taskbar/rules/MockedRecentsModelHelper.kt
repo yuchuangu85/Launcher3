@@ -16,6 +16,9 @@
 
 package com.android.launcher3.taskbar.rules
 
+import com.android.launcher3.Flags.enableTaskbarUiThread
+import com.android.launcher3.util.ListenableStream
+import com.android.launcher3.util.SafeCloseable
 import com.android.quickstep.RecentsModel
 import com.android.quickstep.RecentsModel.RecentTasksChangedListener
 import com.android.quickstep.TaskIconCache
@@ -23,8 +26,11 @@ import com.android.quickstep.TaskThumbnailCache
 import com.android.quickstep.util.GroupTask
 import java.util.function.BiConsumer
 import java.util.function.Consumer
+import java.util.function.Predicate
+import kotlin.reflect.KProperty
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -33,9 +39,21 @@ import org.mockito.kotlin.mock
 class MockedRecentsModelHelper {
     private val mockIconCache: TaskIconCache = mock()
     private val mockThumbnailCache: TaskThumbnailCache = mock()
+    private val argumentCaptor = argumentCaptor<(Void?) -> Unit>()
+    private val safeClosable: SafeCloseable = mock()
+    private val mockTaskChangeListenable: ListenableStream<Void?> = mock {
+        on { forEach(any(), argumentCaptor.capture()) } doAnswer
+            {
+                onTaskChangeCallback = argumentCaptor.lastValue
+                safeClosable
+            }
+    }
 
     var taskListId = 0
     var recentTasksChangedListener: RecentTasksChangedListener? = null
+
+    var onTaskChangeCallback: ((Void?) -> Unit)? = null
+
     var taskRequests: MutableList<(List<GroupTask>) -> Unit> = mutableListOf()
 
     val mockRecentsModel: RecentsModel = mock {
@@ -53,7 +71,9 @@ class MockedRecentsModelHelper {
                 recentTasksChangedListener = it.getArgument<RecentTasksChangedListener>(0)
             }
 
-        on { getTasks(anyOrNull<BiConsumer<List<GroupTask>, Int>>(), anyOrNull()) } doAnswer
+        on { tasksChanges } doReturn mockTaskChangeListenable
+
+        on { getTasks(any<BiConsumer<List<GroupTask>, Int>>(), anyOrNull()) } doAnswer
             {
                 val request = it.getArgument<BiConsumer<List<GroupTask>, Int>?>(0)
                 if (request != null) {
@@ -62,11 +82,18 @@ class MockedRecentsModelHelper {
                 taskListId
             }
 
-        on { getTasks(anyOrNull(), anyOrNull<Consumer<List<GroupTask>>>()) } doAnswer
+        on {
+            getTasks(anyOrNull<Predicate<GroupTask>>(), anyOrNull<Consumer<List<GroupTask>>>())
+        } doAnswer
             {
+                val predicate: Predicate<GroupTask>? = it.getArgument<Predicate<GroupTask>>(0)
                 val request = it.getArgument<Consumer<List<GroupTask>>?>(1)
                 if (request != null) {
-                    taskRequests.add { response -> request.accept(response) }
+                    taskRequests.add { response ->
+                        request.accept(
+                            response.filter { groupTask -> predicate?.test(groupTask) ?: true }
+                        )
+                    }
                 }
                 taskListId
             }
@@ -82,4 +109,27 @@ class MockedRecentsModelHelper {
 
         on { isTaskListValid(any()) } doAnswer { taskListId == it.getArgument(0) }
     }
+
+    private var recentTasks: List<GroupTask> = emptyList()
+
+    // NOTE: For the update to take effect, `resolvePendingTaskRequests()` needs to be called, so
+    // calbacks to any pending `RecentsModel.getTasks()` get called with the updated task list.
+    fun updateRecentTasks(tasks: List<GroupTask>) {
+        ++taskListId
+        recentTasks = tasks
+        if (enableTaskbarUiThread()) {
+            onTaskChangeCallback?.invoke(null)
+        } else {
+            recentTasksChangedListener?.onRecentTasksChanged()
+        }
+    }
+
+    fun resolvePendingTaskRequests() {
+        val requests = mutableListOf<(List<GroupTask>) -> Unit>()
+        requests.addAll(taskRequests)
+        taskRequests.clear()
+        requests.forEach { it(recentTasks) }
+    }
+
+    operator fun getValue(source: Any, property: KProperty<*>): RecentsModel = mockRecentsModel
 }

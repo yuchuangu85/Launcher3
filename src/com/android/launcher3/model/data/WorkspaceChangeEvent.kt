@@ -16,29 +16,43 @@
 
 package com.android.launcher3.model.data
 
+import com.android.launcher3.model.BgDataModel.ModificationSource
+import com.android.launcher3.model.BgDataModel.ModificationSource.ModelTask
+import com.android.launcher3.model.BgDataModel.ModificationSource.UISurface
+import com.android.launcher3.views.ActivityContext
 import java.lang.ref.WeakReference
 import java.util.function.Predicate
 
 /** Represents a change being made to the existing [WorkspaceData] */
-sealed class WorkspaceChangeEvent(actualOwner: Any?) {
+sealed class WorkspaceChangeEvent(actualOwner: ModificationSource) {
 
     private val ownerRef = WeakReference(actualOwner)
 
-    // The source of the change. If its user driven, it will point to the UI component where
-    // the user is interacting or null if the change was made as a result of some system
-    // event. Clients can use this to exclude self-made changes.
-    val owner: Any?
-        get() = ownerRef.get()
+    /**
+     * Returns true if the modification source is same as [surface]. UI surface changes are
+     * generally user driven and the UI is updated as part of the interaction itself. Clients can
+     * use this to exclude self-made changes.
+     */
+    fun isSource(surface: ActivityContext) = (ownerRef.get() as? UISurface)?.surface == surface
 
     /** New items were added to the model */
-    class AddEvent(val items: List<ItemInfo>, owner: Any?) : WorkspaceChangeEvent(owner)
+    class AddEvent(val items: List<ItemInfo>, owner: ModificationSource) :
+        WorkspaceChangeEvent(owner)
 
     /** Some properties of existing items changed */
-    class UpdateEvent(val items: List<ItemInfo>, owner: Any?) : WorkspaceChangeEvent(owner)
+    class UpdateEvent(val items: Set<ItemInfo>, owner: ModificationSource) :
+        WorkspaceChangeEvent(owner)
 
     /**
      * Some items were removed from the model. Note that the event uses a [Predicate] instead of
      * actual [ItemInfo] as the items may not exist anymore
      */
-    class RemoveEvent(val items: Predicate<ItemInfo?>, owner: Any?) : WorkspaceChangeEvent(owner)
+    class RemoveEvent(val items: Predicate<ItemInfo?>, owner: ModificationSource) :
+        WorkspaceChangeEvent(owner)
+
+    /**
+     * Indicates a full refresh of data causing the UI surface to rebind their UI. Since a full
+     * refresh is not meant to be skipped, source is always treated as [ModelTask].
+     */
+    class FullRefresh(val reason: String) : WorkspaceChangeEvent(ModelTask)
 }

@@ -16,24 +16,28 @@
 
 package com.android.launcher3.taskbar
 
+import android.view.Display
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.launcher3.taskbar.TaskbarBackgroundRenderer.Companion.MAX_ROUNDNESS
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.launcher3.taskbar.rules.TaskbarUnitTestRule
 import com.android.launcher3.taskbar.rules.TaskbarWindowSandboxContext
-import com.android.launcher3.util.LauncherMultivalentJUnit
 import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RunWith(LauncherMultivalentJUnit::class)
-@LauncherMultivalentJUnit.EmulatedDevices(["pixelFoldable2023", "pixelTablet2023"])
+@RunWith(AndroidJUnit4::class)
 class TaskbarDesktopModeControllerTest {
 
     @get:Rule(order = 0) val context = TaskbarWindowSandboxContext.create()
-    @get:Rule(order = 1) val taskbarUnitTestRule = TaskbarUnitTestRule(this, context)
+    @get:Rule(order = 1) val taskbarUnitTestRule = TaskbarUnitTestRule(context)
 
-    @TaskbarUnitTestRule.InjectController
-    lateinit var taskbarDesktopModeController: TaskbarDesktopModeController
+    private val taskbarDesktopModeController by
+        taskbarUnitTestRule.delegate { it.taskbarDesktopModeController }
+    private val taskbarCornerRoundness by taskbarUnitTestRule.delegate { it.taskbarCornerRoundness }
 
     @Test
     fun whenTaskbarRequiresCornerRoundness_shouldReturnDefaultCornerRoundness() {
@@ -44,5 +48,26 @@ class TaskbarDesktopModeControllerTest {
     @Test
     fun whenTaskbarRequiresCornerRoundness_shouldReturnZeroAsCornerRoundness() {
         assertThat(taskbarDesktopModeController.getTaskbarCornerRoundness(false)).isEqualTo(0f)
+    }
+
+    @Test
+    fun onTaskbarCornerRoundingUpdate_taskbarRoundingRequired_cornerAnimationRoundingStarts() {
+        runOnTaskbarUiThreadSync {
+            taskbarDesktopModeController.onTaskbarCornerRoundingUpdate(true, context.base.displayId)
+        }
+
+        assertTrue(taskbarCornerRoundness.isAnimatingToValue(MAX_ROUNDNESS))
+    }
+
+    @Test
+    fun onTaskbarCornerRoundingUpdate_taskbarRoundingRequired_differentDisplay_noRounding() {
+        runOnTaskbarUiThreadSync {
+            taskbarDesktopModeController.onTaskbarCornerRoundingUpdate(
+                true,
+                Display.INVALID_DISPLAY,
+            )
+        }
+
+        assertFalse(taskbarCornerRoundness.isAnimating)
     }
 }

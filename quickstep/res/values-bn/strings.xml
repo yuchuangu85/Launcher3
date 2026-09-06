@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"পিন করুন"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"ফ্রি-ফর্ম"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"ডেস্কটপ"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"%1$s-এর জন্য ডেস্কটপ"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"এক্সটার্নাল ডিসপ্লেতে সরিয়ে নিয়ে যান"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"মুছুন"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"ডেস্কটপ"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"আজকে <xliff:g id="TIME">%1$s</xliff:g> বাকি আছে"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"অ্যাপের সাজেশন"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"আপনার প্রয়োজন হতে পারে এমন অ্যাপ"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"আপনার হোম স্ক্রিনের নিচে সারিতে অ্যাপ সাজেশন পান"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"হোম স্ক্রিনের \'ফেভারিট রো\' বিকল্পের জন্য অ্যাপ সাজেশন পান"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"হোম স্ক্রিন থেকে সরাসরি সব থেকে বেশি ব্যবহার করা অ্যাপগুলি অ্যাক্সেস করুন। আপনার রুটিনের উপর ভিত্তি করে সাজেশন পরির্তন করা হবে। নিচের সারিতে থাকা অ্যাপ আপনার হোম স্ক্রিনে সরানো হবে।"</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"খুব বেশি ব্যবহার করেন এমন অ্যাপগুলি হোম স্ক্রিন থেকে সহজে সরাসরি অ্যাক্সেস করুন। আপনার রুটিন অনুযায়ী সাজেশন পরির্তন করা হবে। \'ফেভারিট রো\' বিকল্পে থাকা অ্যাপগুলি হোম স্ক্রিনে সরিয়ে দেওয়া হবে।"</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"অ্যাপ সাজেশন পান"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"না থাক"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"সেটিংস"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"সব থেকে বেশি ব্যবহার করা অ্যাপ এখানে দেখানো হয় এবং রুটিনের উপর ভিত্তি করে পরিবর্তন হতে পারে"</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"অ্যাপ সাজেশন পেতে নিচের সারিতে অ্যাপগুলি টেনে আনুন"</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"খালি জায়গাতে অ্যাপ সাজেশন যোগ করা হয়েছে"</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"অ্যাপ সাজেশন চালু করা আছে"</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"অ্যাপ সাজেশন বন্ধ করা আছে"</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"আপনার প্রয়োজন হতে পারে এমন অ্যাপ: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"জেসচার নেভিগেশন সম্পর্কিত টিউটোরিয়াল"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"আপনার ডিভাইস ঘোরান"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"জেসচার নেভিগেশন টিউটোরিয়াল সম্পূর্ণ করতে আপনার ডিভাইসটি ঘোরান"</string>
@@ -81,7 +75,7 @@
     <string name="overview_gesture_intro_subtitle" msgid="4968091015637850859">"একটি অ্যাপ থেকে অন্যটিতে পাল্টাতে, স্ক্রিনের নিচ থেকে উপরে সোয়াইপ করে ধরে রাখুন, তারপরে ছেড়ে দিন।"</string>
     <string name="overview_gesture_tutorial_title" msgid="4125835002668708720">"অ্যাপ পরিবর্তন করুন"</string>
     <string name="overview_gesture_tutorial_subtitle" msgid="5253549754058973071">"স্ক্রিনের নিচের থেকে উপরের দিকে সোয়াইপ করে ধরে থাকুন, তারপরে ছেড়ে দিন"</string>
-    <string name="overview_gesture_tutorial_success" msgid="1910267697807973076">"শাবাশ!"</string>
+    <string name="overview_gesture_tutorial_success" msgid="1910267697807973076">"সাবাস!"</string>
     <string name="gesture_tutorial_confirm_title" msgid="6201516182040074092">"সব প্রস্তুত"</string>
     <string name="gesture_tutorial_action_button_label" msgid="6249846312991332122">"হয়ে গেছে"</string>
     <string name="gesture_tutorial_action_button_label_settings" msgid="2923621047916486604">"সেটিংস"</string>
@@ -96,7 +90,10 @@
     <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"সিস্টেম নেভিগেশন সেটিংস"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"আপনার <xliff:g id="DEVICE">%1$s</xliff:g> \nপ্রস্তুত!"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"আপনার ডিভাইস \nপ্রস্তুত!"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"এখন আপনি ব্যবহার শুরু করতে পারেন!"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"আপনার নতুন <xliff:g id="DEVICE">%1$s</xliff:g> ব্যবহার করুন!"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"আপনার <xliff:g id="DEVICE">%1$s</xliff:g>-এ ব্যবহার শুরু করতে উপরের দিকে সোয়াইপ করুন"</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"আপনার <xliff:g id="DEVICE">%1$s</xliff:g> ব্যবহার করা শুরু করতে ট্যাপ করুন"</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"কীভাবে নেভিগেট করবেন তা বেছে নিন"</annotation></string>
     <string name="allset_hint_expressive" msgid="756856423510976261">"উপরের দিকে সোয়াইপ করুন"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"হোম বোতামে ট্যাপ করুন"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"স্প্লিট স্ক্রিন ব্যবহার করতে অন্য অ্যাপ বেছে নিন"</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"এই অ্যাপ বা আপনার প্রতিষ্ঠান এই অ্যাকশনটি পারফর্ম করার অনুমতি দেয়নি"</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"উইজেট বর্তমানে ব্যবহার করা যাচ্ছে না, অন্য একটি অ্যাপ বেছে নিন"</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"কপি করুন"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"সেভ করুন"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"স্ক্রিন ঘোরান"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"অ্যানিমেশন যেখানে দেখানো হচ্ছে, কীভাবে টাস্কবারটি স্ক্রিনের নিচ থেকে দেখা যায় এবং ব্যবহার করা না হলে অটোমেটিক লুকানো হয়"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"অ্যানিমেশন যেখানে দেখানো হচ্ছে, টগল ব্যবহার করে কীভাবে আপনার টাস্কবার পিন করতে হয়, যাতে স্ক্রিনের নিচে টাস্কবার স্থায়ীভাবে দেখা যায়"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"\'টেনে আনা\' জেসচার ব্যবহার করে টাস্কবার থেকে কীভাবে বাবল তৈরি করা হয় তা অ্যানিমেশনে দেখানো হচ্ছে"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"অ্যানিমেশন যেখানে দেখানো হচ্ছে, টাস্কবার থেকে একটি অ্যাপকে, খোলা আছে এমন অ্যাপের উপরে টেনে এনে রেখে কীভাবে \'স্প্লিট স্ক্রিন\' তৈরি করতে হয়"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"অ্যানিমেশন যেখানে দেখানো হচ্ছে, আপনার ডিভাইসে সাজেস্ট করা অ্যাপ কীভাবে অ্যাক্সেস করবেন"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"অ্যানিমেশন যেখানে দেখানো হচ্ছে, অ্যাকশন \'কী\' টাচ করে ধরে রেখে এবং আইটেমটি যেখানে রয়েছে তা বেছে নিয়ে কীভাবে স্ক্রিনে কোনও আইটেম সার্চ করতে হয়"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"টাস্কবার এডুকেশন"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"একসাথে ২টি অ্যাপ ব্যবহার করতে একটি অ্যাপ পাশে টেনে আনুন"</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"\'টাস্কবার\' দেখার জন্য উপরের দিকে ধীরে সোয়াইপ করুন"</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"ফ্লোটিং করানোর জন্য নিচে কোণ পর্যন্ত টেনে আনুন"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"টাস্কবার দেখতে ধীরে ধীরে উপরের দিকে সোয়াইপ করুন"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"আপনার রুটিন অনুযায়ী অ্যাপ থেকে সাজেশন পান"</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"\'টাস্কবার\' পিন করতে, ডিভাইডার বেশ কিছুক্ষণ প্রেস করে রাখুন"</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"\'টাস্কবার\' ফিচারের সাহায্যে আরও অনেক কিছু করুন"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"টাস্কবার সবসময় দেখানো"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"স্ক্রিনের নিচে টাস্কবার সবসময় দেখাতে ডিভাইডার টাচ করে ধরে থাকুন"</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"কোনও অ্যাপকে ফ্লোটিং করাতে, সেটিকে কোণের দিকে টেনে আনুন"</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"আপনার স্ক্রিনে দেখতে পাওয়া কন্টেন্ট সার্চ করতে অ্যাকশন কী স্পর্শ করে ধরে রাখুন"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"সার্চ করার জন্য এই প্রোডাক্ট স্ক্রিনের বেছে নেওয়া অংশটুকু ব্যবহার করে। Google-এর <xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>গোপনীয়তা নীতি<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g> এবং <xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>পরিষেবার শর্তাবলী<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g> প্রযোজ্য।"</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"বন্ধ করুন"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"হয়ে গেছে"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"পরবর্তী"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"হোম"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"অ্যাক্সেসিবিলিটি"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"ফিরে যান"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"সম্প্রতি"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"বিজ্ঞপ্তি"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"দ্রুত সেটিংস"</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"আরও বিকল্প"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"টাস্কবার"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"\'টাস্কবার\' দেখানো হয়েছে"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"টাস্কবার ও বাবল বাঁদিকে দেখানো হয়েছে"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"টাস্কবার ও বাবল ডানদিকে দেখানো হয়েছে"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"বাবল বার"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"নেভিগেশন বার"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"সবসময় টাস্কবার দেখুন"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"\'নেভিগেশন\' মোড পরিবর্তন করুন"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"টাস্কবার ডিভাইডার"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"অন্যান্য সাম্প্রতিক অ্যাপ"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"অন্যান্য সাম্প্রতিক অ্যাপ"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"অন্যান্য অ্যাপ"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"সরান"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"উপরে/বাঁদিকে সরান"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"নিচে/ডানদিকে সরান"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"বাবল হিসেবে অ্যাপ খুলুন"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"আইটেম বাঁদিকে সরান"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"আইটেম ডানদিকে সরান"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"সম্প্রতি ব্যবহৃত অ্যাপ"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"সাম্প্রতিক অ্যাপের তালিকা"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{আরও অ্যাপ}one{আরও অ্যাপ}other{আরও অ্যাপ}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"ডেস্কটপ"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"<xliff:g id="APP_NAME_1">%1$s</xliff:g> ও <xliff:g id="APP_NAME_2">%2$s</xliff:g>"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>টি টাস্কের মধ্যে <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> নম্বর আইটেম"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>টির মধ্যে <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> নম্বর আইটেম, বেছে নিতে \'কী\' বাইন্ডিং রিলিজ করুন"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"বাঁ দিকে স্ক্রল করুন"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"ডান দিকে স্ক্রল করুন"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"বাবল"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"বাঁদিকে সরান"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"ডানদিকে সরান"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"সব বাতিল করুন"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g> বড় করুন"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g> আড়াল করুন"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"খোঁজার জন্য সার্কেল বানান"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"অ্যাপ আইকন"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"অ্যাপের শিরোনাম"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"বন্ধ করার বোতাম"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"টাস্কবারে পিন করুন"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"টাস্কবার থেকে আনপিন করুন"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"বন্ধ করুন"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"নাজ"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"বন্ধ করুন"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"ছবিটি নাজ করুন"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>⁠"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"আইকন"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"সহায়ক সাজেশন পান"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"আপনি স্ক্রিনে যা করছেন তার সাথে প্রাসঙ্গিক তথ্য ও অ্যাকশন সক্রিয়ভাবে সাজেস্ট করতে আমরা AI ব্যবহার করি"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"বন্ধ করুন"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"বড় করুন"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"অ্যাম্বিয়েন্ট সাজেশনের আইকন"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"কীভাবে সাজেশন জেনারেট করা হয় তা দেখতে টাচ করে &amp; ধরে রাখুন"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"অটোফিল"</string>
 </resources>

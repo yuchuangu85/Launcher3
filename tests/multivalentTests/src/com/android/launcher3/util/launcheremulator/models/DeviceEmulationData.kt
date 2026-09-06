@@ -22,8 +22,10 @@ import android.os.Build
 import android.util.ArrayMap
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.InvariantDeviceProfile.DeviceType
+import com.android.launcher3.deviceprofile.parser.GridOption
+import com.android.launcher3.display.DisplayController
+import com.android.launcher3.display.LauncherDisplayInfo
 import com.android.launcher3.testing.shared.ResourceUtils
-import com.android.launcher3.util.DisplayController
 import com.android.launcher3.util.window.WindowManagerProxy.MIN_TABLET_WIDTH
 import java.util.Locale
 import kotlin.math.min
@@ -97,7 +99,7 @@ class DeviceEmulationData(
         @JvmOverloads
         fun getCurrentDeviceData(
             context: Context,
-            info: DisplayController.Info = DisplayController.INSTANCE[context].info,
+            info: LauncherDisplayInfo = DisplayController.INSTANCE[context].info,
         ): DeviceEmulationData {
             val code = Build.MODEL.replace("\\s".toRegex(), "").lowercase(Locale.getDefault())
             val resourceOverrides: MutableMap<String, Int> = ArrayMap()
@@ -125,12 +127,13 @@ class DeviceEmulationData(
 
             @DeviceType val deviceType = info.deviceType
             val defaultGrid =
-                InvariantDeviceProfile.parseAllDefinedGridOptions(context, info)
-                    .stream()
-                    .filter { it.isEnabled(deviceType) }
-                    .map { it.name }
-                    .findFirst()
-                    .get()
+                GridOption.parseAllDefined(
+                        context,
+                        info,
+                        filter = { it.isEnabled(deviceType) },
+                        mapper = { option, _ -> option.name },
+                    )
+                    .first()
 
             return DeviceEmulationData(
                 name = code,

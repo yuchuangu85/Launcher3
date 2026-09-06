@@ -16,6 +16,7 @@
 package com.android.launcher3.taskbar;
 
 import static android.view.Display.DEFAULT_DISPLAY;
+import static android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
 
 import static com.android.launcher3.EncryptionType.ENCRYPTED;
 import static com.android.launcher3.LauncherPrefs.nonRestorableItem;
@@ -25,12 +26,16 @@ import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_N
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.app.TaskInfo;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewOutlineProvider;
+
+import androidx.annotation.AnyThread;
+import androidx.annotation.Nullable;
 
 import com.android.launcher3.ConstantItem;
 import com.android.launcher3.DeviceProfile;
@@ -43,10 +48,15 @@ import com.android.launcher3.anim.RoundedRectRevealOutlineProvider;
 import com.android.launcher3.util.Executors;
 import com.android.launcher3.util.MultiValueAlpha;
 import com.android.quickstep.NavHandle;
+import com.android.quickstep.TopTaskTracker;
 import com.android.systemui.shared.system.QuickStepContract.SystemUiStateFlags;
+import com.android.systemui.shared.system.TaskStackChangeListener;
+import com.android.systemui.shared.system.TaskStackChangeListeners;
 import com.android.wm.shell.shared.handles.RegionSamplingHelper;
 
 import java.io.PrintWriter;
+import java.lang.ref.WeakReference;
+import java.util.Objects;
 
 /**
  * Handles properties/data collection, then passes the results to our stashed handle View to render.
@@ -59,7 +69,9 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     public static final int ALPHA_INDEX_ASSISTANT_INVOKED = 2;
     public static final int ALPHA_INDEX_HIDDEN_WHILE_DREAMING = 3;
     public static final int ALPHA_INDEX_NUDGED = 4;
-    private static final int NUM_ALPHA_CHANNELS = 5;
+    public static final int ALPHA_INDEX_ALL_SET_TRANSITION = 5;
+    public static final int ALPHA_INDEX_CUEBAR_HIDDEN = 6;
+    private static final int NUM_ALPHA_CHANNELS = 7;
 
     // Values for long press animations, picked to most closely match navbar spec.
     private static final float SCALE_TOUCH_ANIMATION_SHRINK = 0.85f;
@@ -74,11 +86,12 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     private static final ConstantItem<Boolean> STASHED_HANDLE_REGION_IS_DARK =
             nonRestorableItem(SHARED_PREFS_STASHED_HANDLE_REGION_DARK_KEY, false, ENCRYPTED);
 
-    private final TaskbarActivityContext mActivity;
+    private final WeakReference<TaskbarActivityContext> mActivityRef;
     private final LauncherPrefs mPrefs;
     private final StashedHandleView mStashedHandleView;
     private int mStashedHandleWidth;
     private final int mStashedHandleHeight;
+    @Nullable
     private RegionSamplingHelper mRegionSamplingHelper;
     private final MultiValueAlpha mTaskbarStashedHandleAlpha;
     private final AnimatedFloat mTaskbarStashedHandleHintScale = new AnimatedFloat(
@@ -105,27 +118,29 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
 
     private float mTranslationYForSwipe;
     private float mTranslationYForStash;
+    private TaskStackChangeListener mTaskStackChangeListener;
 
     public StashedHandleViewController(TaskbarActivityContext activity,
             StashedHandleView stashedHandleView) {
-        mActivity = activity;
-        mPrefs = LauncherPrefs.get(mActivity);
+        mActivityRef = new WeakReference<>(activity);
+        mPrefs = LauncherPrefs.get(activity);
         mStashedHandleView = stashedHandleView;
         mTaskbarStashedHandleAlpha = new MultiValueAlpha(mStashedHandleView, NUM_ALPHA_CHANNELS);
         mTaskbarStashedHandleAlpha.setUpdateVisibility(true);
         mStashedHandleView.updateHandleColor(
                 mPrefs.get(STASHED_HANDLE_REGION_IS_DARK), false /* animate */);
-        final Resources resources = mActivity.getResources();
+        final Resources resources = activity.getResources();
         mStashedHandleHeight = resources.getDimensionPixelSize(
                 R.dimen.taskbar_stashed_handle_height);
     }
 
     public void init(TaskbarControllers controllers) {
         mControllers = controllers;
-        DeviceProfile deviceProfile = mActivity.getDeviceProfile();
-        Resources resources = mActivity.getResources();
-        if (mActivity.isPhoneGestureNavMode() || mActivity.isTinyTaskbar()
-                || mActivity.isBubbleBarOnPhone()) {
+        TaskbarActivityContext activity = Objects.requireNonNull(mActivityRef.get());
+        DeviceProfile deviceProfile = activity.getDeviceProfile();
+        Resources resources = activity.getResources();
+        if (activity.isPhoneGestureNavMode() || activity.isTinyTaskbar()
+                || activity.isBubbleBarOnPhone()) {
             mTaskbarSize = resources.getDimensionPixelSize(R.dimen.taskbar_phone_size);
             mStashedHandleWidth =
                     resources.getDimensionPixelSize(R.dimen.taskbar_stashed_small_screen);
@@ -138,13 +153,17 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
         mStashedHandleView.getLayoutParams().height = mTaskbarSize + taskbarBottomMargin;
 
         mTaskbarStashedHandleAlpha.get(ALPHA_INDEX_STASHED).setValue(
-                mActivity.isPhoneGestureNavMode() ? 1 : 0);
+                activity.isPhoneGestureNavMode() ? 1 : 0);
         mTaskbarStashedHandleHintScale.updateValue(1f);
 
         final int stashedTaskbarHeight = mControllers.taskbarStashController.getStashedHeight();
         mStashedHandleView.setOutlineProvider(new ViewOutlineProvider() {
             @Override
             public void getOutline(View view, Outline outline) {
+                TaskbarActivityContext activity = mActivityRef.get();
+                if (activity == null) {
+                    return;
+                }
                 final int stashedCenterX = view.getWidth() / 2;
                 final int stashedCenterY = view.getHeight() - stashedTaskbarHeight / 2;
                 mStashedHandleBounds.set(
@@ -154,7 +173,7 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
                         stashedCenterY + mStashedHandleHeight / 2);
                 mStashedHandleView.updateSampledRegion(mStashedHandleBounds);
                 mStashedHandleRadius = Flags.enableLauncherIconShapes()
-                        ? getShapedTaskbarRadius(mActivity)
+                        ? getShapedTaskbarRadius(activity)
                         : view.getHeight() / 2f;
                 outline.setRoundRect(mStashedHandleBounds, mStashedHandleRadius);
             }
@@ -167,9 +186,21 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
             view.setPivotX(stashedCenterX);
             view.setPivotY(stashedCenterY);
         });
-        initRegionSampler();
-        if (mActivity.isPhoneGestureNavMode()) {
+        if (activity.isPrimaryDisplay()) {
+            initRegionSampler();
+        }
+        if (activity.isPhoneGestureNavMode()) {
             onIsStashedChanged(true);
+        }
+        if (!activity.isPrimaryDisplay()) {
+            mTaskStackChangeListener = new TaskStackChangeListener() {
+                @Override
+                public void onTaskStackChanged() {
+                    updateHandleColorOnConnectedDisplay();
+                }
+            };
+            TaskStackChangeListeners.getInstance().registerTaskStackListener(
+                    mTaskStackChangeListener);
         }
     }
 
@@ -204,12 +235,17 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
             mRegionSamplingHelper.stopAndDestroy();
         }
         mRegionSamplingHelper = null;
+        if (mTaskStackChangeListener != null) {
+            TaskStackChangeListeners.getInstance().unregisterTaskStackListener(
+                    mTaskStackChangeListener);
+        }
     }
 
     public MultiValueAlpha getStashedHandleAlpha() {
         return mTaskbarStashedHandleAlpha;
     }
 
+    @AnyThread
     public AnimatedFloat getStashedHandleHintScale() {
         return mTaskbarStashedHandleHintScale;
     }
@@ -224,13 +260,14 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
                 .getTransientTaskbarIconLayoutBounds();
         float startRadius = mStashedHandleRadius;
 
-        if (mActivity.isTransientTaskbar()) {
+        TaskbarActivityContext activity = mActivityRef.get();
+        if (activity != null && activity.isTransientTaskbar()) {
             // Account for the full visual height of the transient taskbar.
             int heightDiff = (mTaskbarSize - visualBounds.height()) / 2;
             visualBounds.top -= heightDiff;
             visualBounds.bottom += heightDiff;
             startRadius = Flags.enableLauncherIconShapes()
-                    ? getShapedTaskbarRadius(mActivity)
+                    ? getShapedTaskbarRadius(activity)
                     : visualBounds.height() / 2f;
         }
 
@@ -276,6 +313,10 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     }
 
     private void updateSamplingState() {
+        if (mRegionSamplingHelper == null) {
+            return;
+        }
+
         updateRegionSamplingWindowVisibility();
         if (shouldSample()) {
             mStashedHandleView.updateSampledRegion(mStashedHandleBounds);
@@ -297,7 +338,7 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     /**
      * Sets the translation of the stashed handle during the swipe up gesture.
      */
-    protected void setTranslationYForSwipe(float transY) {
+    public void setTranslationYForSwipe(float transY) {
         mTranslationYForSwipe = transY;
         updateTranslationY();
     }
@@ -328,11 +369,37 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     }
 
     private void updateRegionSamplingWindowVisibility() {
-        mRegionSamplingHelper.setWindowVisible(shouldSample() && !mTaskbarHidden);
+        if (mRegionSamplingHelper != null) {
+            mRegionSamplingHelper.setWindowVisible(shouldSample() && !mTaskbarHidden);
+        }
     }
 
     public boolean isStashedHandleVisible() {
         return mStashedHandleView.getVisibility() == View.VISIBLE;
+    }
+
+    /**
+     * Updates stash handle's color for connected displays.
+     * TODO: b/441128583 - Remove this when framework limitation of luma sampling is fixed.
+     **/
+    void updateHandleColorOnConnectedDisplay() {
+        TaskbarActivityContext activity = mActivityRef.get();
+        if (activity == null || activity.isPrimaryDisplay()) {
+            return;
+        }
+
+        boolean isRegionDark = mPrefs.get(STASHED_HANDLE_REGION_IS_DARK);
+        TopTaskTracker.CachedTaskInfo cachedTopTaskInfo =
+                TopTaskTracker.INSTANCE.get(activity).getCachedTopTask(
+                        /* filterOnlyVisibleRecents= */ true, activity.getDisplayId());
+        TaskInfo topTaskInfo = cachedTopTaskInfo.getLegacyBaseTask();
+        if (topTaskInfo != null && topTaskInfo.taskDescription != null) {
+            int appearance = topTaskInfo.taskDescription.getSystemBarsAppearance();
+            isRegionDark = (appearance & APPEARANCE_LIGHT_NAVIGATION_BARS)
+                    != APPEARANCE_LIGHT_NAVIGATION_BARS;
+        }
+
+        mStashedHandleView.updateHandleColor(isRegionDark, /* animate= */ false);
     }
 
     @Override
@@ -342,7 +409,9 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
         pw.println(prefix + "\tisStashedHandleVisible=" + isStashedHandleVisible());
         pw.println(prefix + "\tmStashedHandleWidth=" + mStashedHandleWidth);
         pw.println(prefix + "\tmStashedHandleHeight=" + mStashedHandleHeight);
-        mRegionSamplingHelper.dump(prefix, pw);
+        if (mRegionSamplingHelper != null) {
+            mRegionSamplingHelper.dump(prefix, pw);
+        }
     }
 
     @Override
@@ -369,5 +438,10 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     @Override
     public int getNavHandleWidth(Context context) {
         return mStashedHandleWidth;
+    }
+
+    @Override
+    public Rect getBoundsOnScreen() {
+        return mStashedHandleView.getSampledRegion();
     }
 }

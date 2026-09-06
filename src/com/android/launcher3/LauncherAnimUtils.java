@@ -20,6 +20,7 @@ import android.animation.Animator;
 import android.animation.Animator.AnimatorListener;
 import android.animation.AnimatorListenerAdapter;
 import android.graphics.Color;
+import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.FloatProperty;
@@ -33,6 +34,8 @@ import android.widget.TextView;
 import com.android.launcher3.util.MultiScalePropertyFactory;
 import com.android.launcher3.views.ScrimColors;
 import com.android.launcher3.views.ScrimView;
+
+import java.util.function.Function;
 
 public class LauncherAnimUtils {
     /**
@@ -58,19 +61,57 @@ public class LauncherAnimUtils {
                 }
             };
 
-    public static final FloatProperty<View> SCALE_PROPERTY =
-            new FloatProperty<View>("scale") {
-                @Override
-                public Float get(View view) {
-                    return view.getScaleX();
-                }
+    public static final FloatProperty<View> SCALE_PROPERTY = getScaleProperty();
 
-                @Override
-                public void setValue(View view, float scale) {
+    /** Used to debug b/489475544, after the crash is fixed, caller can just use SCALE_PROPERTY t*/
+    public static FloatProperty<View> getScaleProperty() {
+        return new ScaleProperty();
+    }
+
+    /**
+     * FloatProperty that saves the creation call stacktrace, so that during animation frame if
+     * {@link android.view.ViewRootImpl$CalledFromWrongThreadException} is detected, the crash
+     * will contain creation call stacktrace.
+     */
+    private static class ScaleProperty extends FloatProperty<View> {
+
+        private final Exception mException;
+
+        ScaleProperty() {
+            super("scale");
+            mException = new Exception();
+        }
+
+        @Override
+        public Float get(View view) {
+            return view.getScaleX();
+        }
+
+        @Override
+        public void setValue(View view, float scale) {
+            try {
+                if (view.getHandler() != null
+                        && view.getHandler().getLooper() != android.os.Looper.myLooper()) {
+                    view.post(() -> {
+                        view.setScaleX(scale);
+                        view.setScaleY(scale);
+                    });
+                } else {
                     view.setScaleX(scale);
                     view.setScaleY(scale);
                 }
-            };
+            } catch (RuntimeException e) {
+                // Check if the class name matches the hidden Android exception
+                if (e.getClass().getName().contains("CalledFromWrongThreadException")) {
+                    RuntimeException diagnostic = new RuntimeException(
+                            "Thread Mismatch! Creator trace attached as cause.", e);
+                    diagnostic.initCause(mException);
+                    throw diagnostic;
+                }
+                throw e;
+            }
+        }
+    }
 
     /**
      * Property to set the scale of workspace. The value is based on a combination
@@ -88,6 +129,7 @@ public class LauncherAnimUtils {
     public static final int SCALE_INDEX_WORKSPACE_STATE = 2;
     public static final int SCALE_INDEX_REVEAL_ANIM = 3;
     public static final int SCALE_INDEX_WIDGET_TRANSITION = 4;
+    public static final int SCALE_INDEX_FOLDER_ANIM = 5;
 
     /** Increase the duration if we prevented the fling, as we are going against a high velocity. */
     public static int blockedFlingDurationFactor(float velocity) {
@@ -146,47 +188,26 @@ public class LauncherAnimUtils {
                 }
             };
 
-    public static final FloatProperty<View> VIEW_TRANSLATE_X =
-            View.TRANSLATION_X instanceof FloatProperty ? (FloatProperty) View.TRANSLATION_X
-                    : new FloatProperty<View>("translateX") {
-                        @Override
-                        public void setValue(View view, float v) {
-                            view.setTranslationX(v);
-                        }
+    public static final FloatProperty<View> VIEW_TRANSLATE_X = convert(View.TRANSLATION_X);
+    public static final FloatProperty<View> VIEW_TRANSLATE_Y = convert(View.TRANSLATION_Y);
+    public static final FloatProperty<View> VIEW_TRANSLATE_Z = convert(View.TRANSLATION_Z);
 
-                        @Override
-                        public Float get(View view) {
-                            return view.getTranslationX();
-                        }
-                    };
+    public static final FloatProperty<View> VIEW_ALPHA = convert(View.ALPHA);
 
-    public static final FloatProperty<View> VIEW_TRANSLATE_Y =
-            View.TRANSLATION_Y instanceof FloatProperty ? (FloatProperty) View.TRANSLATION_Y
-                    : new FloatProperty<View>("translateY") {
-                        @Override
-                        public void setValue(View view, float v) {
-                            view.setTranslationY(v);
-                        }
+    private static FloatProperty<View> convert(Property<View, Float> property) {
+        if (property instanceof FloatProperty<View> f) return f;
+        return new FloatProperty<>(property.getName()) {
+            @Override
+            public void setValue(View view, float v) {
+                property.set(view, v);
+            }
 
-                        @Override
-                        public Float get(View view) {
-                            return view.getTranslationY();
-                        }
-                    };
-
-    public static final FloatProperty<View> VIEW_ALPHA =
-            View.ALPHA instanceof FloatProperty ? (FloatProperty) View.ALPHA
-                    : new FloatProperty<View>("alpha") {
-                        @Override
-                        public void setValue(View view, float v) {
-                            view.setAlpha(v);
-                        }
-
-                        @Override
-                        public Float get(View view) {
-                            return view.getAlpha();
-                        }
-                    };
+            @Override
+            public Float get(View view) {
+                return property.get(view);
+            }
+        };
+    }
 
     public static final IntProperty<View> VIEW_BACKGROUND_COLOR =
             new IntProperty<View>("backgroundColor") {
@@ -203,6 +224,16 @@ public class LauncherAnimUtils {
                     return ((ColorDrawable) view.getBackground()).getColor();
                 }
             };
+
+    /**
+     * Returns a function to fetch the coordinate (centerX or centerY) for the primary axis
+     * of movement between the start and target Rect.
+     */
+    public static Function<RectF, Float> getPosProviderForRect(RectF start, RectF target) {
+        float totalXDiff = Math.abs(start.centerX() - target.centerX());
+        float totalYDiff = Math.abs(start.centerY() - target.centerY());
+        return totalYDiff > totalXDiff ? RectF::centerY : RectF::centerX;
+    }
 
     public static final Property<ScrimView, ScrimColors> SCRIM_COLORS =
             new Property<ScrimView, ScrimColors>(ScrimColors.class, "scrimColors") {

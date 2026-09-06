@@ -21,8 +21,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ShortcutInfo;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,12 +31,13 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.icons.BitmapInfo;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.shortcuts.ShortcutKey;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ContentWriter;
-import com.android.wm.shell.shared.bubbles.BubbleAnythingFlagHelper;
+import com.android.wm.shell.shared.bubbles.BubbleFlagHelper;
 
 import java.util.Arrays;
 
@@ -78,6 +77,12 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
      *
      */
     public static final int FLAG_START_FOR_RESULT = 1 << 4;
+
+    /**
+     * Used to indicate that the icon bitmap in the restored Launcher db file is full-bleed and not
+     * cropped.
+     */
+    public static final int FLAG_RESTORED_FULL_BLEED = 1 << 5;
 
     /**
      * The intent used to start the application.
@@ -129,11 +134,9 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
     public WorkspaceItemInfo(ShortcutInfo shortcutInfo, Context context) {
         user = shortcutInfo.getUserHandle();
         itemType = Favorites.ITEM_TYPE_DEEP_SHORTCUT;
-        if (Flags.privateSpaceRestrictAccessibilityDrag()) {
-            if (UserCache.INSTANCE.get(context).getUserInfo(user).isPrivate()) {
-                runtimeStatusFlags |= FLAG_NOT_PINNABLE;
-            }
-        }
+        if (UserCache.INSTANCE.get(context).getUserInfo(user).isPrivate()) {
+            runtimeStatusFlags |= FLAG_NOT_PINNABLE;
+         }
         updateFromDeepShortcutInfo(shortcutInfo, context);
     }
 
@@ -179,9 +182,15 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
         return isPromise() && !hasStatusFlag(FLAG_SUPPORTS_WEB_UI);
     }
 
+    @Override
+    public boolean supportsCustomShapes(@BitmapInfo.DrawableCreationFlags int creationFlags) {
+        return !(isArchived() && !hasStatusFlag(FLAG_RESTORED_FULL_BLEED))
+                && super.supportsCustomShapes(creationFlags);
+    }
+
     public void updateFromDeepShortcutInfo(@NonNull final ShortcutInfo shortcutInfo,
             @NonNull final Context context) {
-        if (BubbleAnythingFlagHelper.enableCreateAnyBubble()) {
+        if (BubbleFlagHelper.enableCreateAnyBubble()) {
             mShortcutInfo = shortcutInfo;
         }
         // {@link ShortcutInfo#getActivity} can change during an update. Recreate the intent
@@ -202,29 +211,21 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
         if (shortcutInfo.isEnabled()) {
             runtimeStatusFlags &= ~FLAG_DISABLED_BY_PUBLISHER;
         } else {
-            if (Utilities.ATLEAST_P) {
-                Log.w(TAG, "updateFromDeepShortcutInfo: Updated shortcut has been disabled. "
-                        + " package=" + shortcutInfo.getPackage()
-                        + " disabledReason=" + shortcutInfo.getDisabledReason());
-            }
+            Log.w(TAG, "updateFromDeepShortcutInfo: Updated shortcut has been disabled. "
+                    + " package=" + shortcutInfo.getPackage()
+                    + " disabledReason=" + shortcutInfo.getDisabledReason());
             runtimeStatusFlags |= FLAG_DISABLED_BY_PUBLISHER;
         }
 
-        if (Utilities.ATLEAST_P) {
-            if (shortcutInfo.getDisabledReason() == ShortcutInfo.DISABLED_REASON_VERSION_LOWER) {
-                runtimeStatusFlags |= FLAG_DISABLED_VERSION_LOWER;
-            } else {
-                runtimeStatusFlags &= ~FLAG_DISABLED_VERSION_LOWER;
-            }
+        if (shortcutInfo.getDisabledReason() == ShortcutInfo.DISABLED_REASON_VERSION_LOWER) {
+            runtimeStatusFlags |= FLAG_DISABLED_VERSION_LOWER;
         } else {
             runtimeStatusFlags &= ~FLAG_DISABLED_VERSION_LOWER;
         }
 
-        if (Utilities.ATLEAST_Q) {
-            Person[] persons = ApiWrapper.INSTANCE.get(context).getPersons(shortcutInfo);
-            personKeys = persons.length == 0 ? Utilities.EMPTY_STRING_ARRAY
-                    : Arrays.stream(persons).map(Person::getKey).sorted().toArray(String[]::new);
-        }
+        Person[] persons = ApiWrapper.INSTANCE.get(context).getPersons(shortcutInfo);
+        personKeys = persons.length == 0 ? Utilities.EMPTY_STRING_ARRAY
+            : Arrays.stream(persons).map(Person::getKey).sorted().toArray(String[]::new);
     }
 
     @Nullable

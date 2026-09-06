@@ -16,16 +16,30 @@
 
 package com.android.quickstep
 
+import android.os.Build
+import android.platform.test.rule.DeviceProduct
+import android.platform.test.rule.LimitDevicesRule
+import android.platform.test.rule.SkipOnDeviceless
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class RobolectricTest {
+
+    @Rule @JvmField val limitDevicesRule = LimitDevicesRule()
+
     @Test
     fun test1() {
         val actual = 1 + 1
         assertThat(actual).isEqualTo(2)
+    }
+
+    @Test
+    @SkipOnDeviceless
+    fun ignoredOnDevicelessExampleTest() {
+        assertThat(Build.PRODUCT).isNotEqualTo(DeviceProduct.ROBOLECTRIC.product)
     }
 }

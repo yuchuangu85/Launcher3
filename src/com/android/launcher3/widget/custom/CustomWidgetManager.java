@@ -18,8 +18,9 @@ package com.android.launcher3.widget.custom;
 
 import static com.android.launcher3.model.data.LauncherAppWidgetInfo.CUSTOM_WIDGET_ID;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
-import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.CLS_CUSTOM_WIDGET_PREFIX;
+import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.CUSTOM_WIDGET_PACKAGE;
 
+import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
@@ -38,19 +39,21 @@ import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DaggerSingletonTracker;
 import com.android.launcher3.util.PluginManagerWrapper;
 import com.android.launcher3.util.SafeCloseable;
-import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.systemui.plugins.CustomWidgetPlugin;
+import com.android.systemui.plugins.PluginLifecycleManager;
 import com.android.systemui.plugins.PluginListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * CustomWidgetManager handles custom widgets implemented as a plugin.
@@ -58,59 +61,64 @@ import javax.inject.Inject;
 @LauncherAppSingleton
 public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
 
+    public static final String NAMED_CUSTOM_WIDGETS = "CUSTOM_WIDGETS";
+
     public static final DaggerSingletonObject<CustomWidgetManager> INSTANCE =
             new DaggerSingletonObject<>(LauncherBaseAppComponent::getCustomWidgetManager);
 
-    private static final String TAG = "CustomWidgetManager";
-    private static final String PLUGIN_PKG = "android";
     private final Context mContext;
-    private final HashMap<ComponentName, CustomWidgetPlugin> mPlugins;
-    private final List<CustomAppWidgetProviderInfo> mCustomWidgets;
+    private final HashMap<ComponentName, CustomWidget> mWidgets = new HashMap<>();
+    private final List<CustomAppWidgetProviderInfo> mInfos = new ArrayList<>();
+
     private final List<Runnable> mWidgetRefreshCallbacks = new CopyOnWriteArrayList<>();
     private final @NonNull AppWidgetManager mAppWidgetManager;
 
     @Inject
-    CustomWidgetManager(@ApplicationContext Context context, PluginManagerWrapper pluginManager,
-            DaggerSingletonTracker tracker) {
-        this(context, pluginManager, AppWidgetManager.getInstance(context), tracker);
-    }
-
-    @VisibleForTesting
     CustomWidgetManager(@ApplicationContext Context context,
             PluginManagerWrapper pluginManager,
-            @NonNull AppWidgetManager widgetManager,
+            @Named(NAMED_CUSTOM_WIDGETS) Set<CustomWidget> customWidgetSet,
             DaggerSingletonTracker tracker) {
         mContext = context;
-        mAppWidgetManager = widgetManager;
-        mPlugins = new HashMap<>();
-        mCustomWidgets = new ArrayList<>();
+        mAppWidgetManager = AppWidgetManager.getInstance(context);
 
         pluginManager.addPluginListener(this, CustomWidgetPlugin.class, true);
         tracker.addCloseable(() -> pluginManager.removePluginListener(this));
+
+        for (CustomWidget w : customWidgetSet) {
+            onCustomWidgetAdded(w);
+        }
     }
 
-    @Override
-    public void onPluginConnected(CustomWidgetPlugin plugin, Context context) {
-        CustomAppWidgetProviderInfo info = getAndAddInfo(new ComponentName(
-                PLUGIN_PKG, CLS_CUSTOM_WIDGET_PREFIX + plugin.getClass().getName()));
+    private void onCustomWidgetAdded(CustomWidget widget) {
+        CustomAppWidgetProviderInfo info = getAndAddInfo(
+                new ComponentName(CUSTOM_WIDGET_PACKAGE, widget.getId()));
         if (info != null) {
-            plugin.updateWidgetInfo(info, mContext);
-            mPlugins.put(info.provider, plugin);
+            widget.updateWidgetInfo(mContext, info);
+            mWidgets.put(info.provider, widget);
             mWidgetRefreshCallbacks.forEach(MAIN_EXECUTOR::execute);
         }
     }
 
     @Override
-    public void onPluginDisconnected(CustomWidgetPlugin plugin) {
-        // Leave the providerInfo as plugins can get disconnected/reconnected multiple times
-        mPlugins.values().remove(plugin);
-        mWidgetRefreshCallbacks.forEach(MAIN_EXECUTOR::execute);
+    public void onPluginLoaded(@NonNull CustomWidgetPlugin plugin,
+            @NonNull Context pluginContext,
+            @NonNull PluginLifecycleManager<CustomWidgetPlugin> manager) {
+        onCustomWidgetAdded(new CustomWidgetPluginWrapper(
+                plugin, manager.getComponentName().flattenToShortString()));
+    }
+
+    @Override
+    public void onPluginUnloaded(
+            @NonNull CustomWidgetPlugin plugin,
+            @NonNull PluginLifecycleManager<CustomWidgetPlugin> manager) {
+        mWidgets.remove(new ComponentName(
+                CUSTOM_WIDGET_PACKAGE, manager.getComponentName().flattenToShortString()));
     }
 
     @VisibleForTesting
     @NonNull
-    Map<ComponentName, CustomWidgetPlugin> getPlugins() {
-        return mPlugins;
+    Map<ComponentName, CustomWidget> getWidgets() {
+        return mWidgets;
     }
 
     /**
@@ -123,14 +131,11 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
     }
 
     /**
-     * Callback method to inform a plugin it's corresponding widget has been created.
+     * Creates a view corresponding to the [info] using [context]
      */
-    public void onViewCreated(LauncherAppWidgetHostView view) {
-        CustomAppWidgetProviderInfo info = (CustomAppWidgetProviderInfo) view.getAppWidgetInfo();
-        CustomWidgetPlugin plugin = mPlugins.get(info.provider);
-        if (plugin != null) {
-            plugin.onViewCreated(view);
-        }
+    public AppWidgetHostView createView(Context context, LauncherAppWidgetProviderInfo info) {
+        CustomWidget widget = mWidgets.get(info.provider);
+        return widget != null ? widget.createView(context, info) : new AppWidgetHostView(context);
     }
 
     /**
@@ -138,7 +143,7 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
      */
     @NonNull
     public Stream<CustomAppWidgetProviderInfo> stream() {
-        return mCustomWidgets.stream();
+        return mInfos.stream();
     }
 
     /**
@@ -146,26 +151,30 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
      */
     @Nullable
     public LauncherAppWidgetProviderInfo getWidgetProvider(ComponentName cn) {
-        LauncherAppWidgetProviderInfo info = mCustomWidgets.stream()
-                .filter(w -> w.getComponent().equals(cn)).findAny().orElse(null);
-        if (info == null) {
-            // If the info is not present, add a placeholder info since the
-            // plugin might get loaded later
-            info = getAndAddInfo(cn);
-        }
-        return info;
+        // If the info is not present, add a placeholder info since the
+        // plugin might get loaded later
+        return mInfos.stream()
+                .filter(w -> w.getComponent().equals(cn))
+                .findAny()
+                .orElseGet(() -> getAndAddInfo(cn));
     }
 
     /**
      * Returns an id to set as the appWidgetId for a custom widget.
      */
     public int allocateCustomAppWidgetId(ComponentName componentName) {
-        return CUSTOM_WIDGET_ID - mCustomWidgets.indexOf(getWidgetProvider(componentName));
+        int total = mInfos.size();
+        for (int i = 0; i < total; i++) {
+            if (componentName.equals(mInfos.get(i).provider)) {
+                return CUSTOM_WIDGET_ID - i;
+            }
+        }
+        return CUSTOM_WIDGET_ID - total;
     }
 
     @Nullable
     private CustomAppWidgetProviderInfo getAndAddInfo(ComponentName cn) {
-        for (CustomAppWidgetProviderInfo info : mCustomWidgets) {
+        for (CustomAppWidgetProviderInfo info : mInfos) {
             if (info.provider.equals(cn)) return info;
         }
 
@@ -180,7 +189,7 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
 
         info.provider = cn;
         info.initialLayout = 0;
-        mCustomWidgets.add(info);
+        mInfos.add(info);
         return info;
     }
 }

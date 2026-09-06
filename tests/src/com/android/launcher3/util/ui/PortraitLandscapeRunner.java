@@ -16,16 +16,10 @@
 
 package com.android.launcher3.util.ui;
 
-import static com.android.launcher3.LauncherPrefs.FIXED_LANDSCAPE_MODE;
-
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.Surface;
-import android.view.View;
 
-import com.android.launcher3.Flags;
-import com.android.launcher3.Launcher;
-import com.android.launcher3.LauncherPrefs;
-import com.android.launcher3.tapl.TestHelpers;
 import com.android.launcher3.util.rule.FailureWatcher;
 
 import org.junit.rules.TestRule;
@@ -36,13 +30,10 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
-public class PortraitLandscapeRunner<LAUNCHER_TYPE extends Launcher, OVERVIEW_TYPE extends View>
-        implements TestRule {
+public class PortraitLandscapeRunner implements TestRule {
     private static final String TAG = "PortraitLandscapeRunner";
-    private AbstractLauncherUiTest<LAUNCHER_TYPE, OVERVIEW_TYPE> mTest;
+    private final AbstractLauncherUiTest<?, ?> mTest;
 
     // Annotation for tests that need to be run in portrait and landscape modes.
     @Retention(RetentionPolicy.RUNTIME)
@@ -50,54 +41,44 @@ public class PortraitLandscapeRunner<LAUNCHER_TYPE extends Launcher, OVERVIEW_TY
     public @interface PortraitLandscape {
     }
 
-    public PortraitLandscapeRunner(AbstractLauncherUiTest<LAUNCHER_TYPE, OVERVIEW_TYPE> test) {
+    public PortraitLandscapeRunner(AbstractLauncherUiTest<?, ?> test) {
         mTest = test;
     }
 
     @Override
     public Statement apply(Statement base, Description description) {
-        if (!TestHelpers.isInLauncherProcess()
-                || description.getAnnotation(PortraitLandscape.class) == null) {
-            return base;
-        }
-
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 try {
+                    if (description.getAnnotation(PortraitLandscape.class) == null) {
+                        base.evaluate();
+                        return;
+                    }
                     try {
                         // we expect to begin unlocked...
                         AbstractLauncherUiTest.verifyKeyguardInvisible();
-
                         mTest.mDevice.pressHome();
-                        mTest.waitForLauncherCondition("Launcher activity wasn't created",
-                                Objects::nonNull,
-                                TimeUnit.SECONDS.toMillis(20));
-
-                        mTest.executeOnLauncher(launcher ->
-                                launcher.getRotationHelper().forceAllowRotationForTesting(
-                                        true));
-
+                        mTest.mLauncher.waitForLauncherInitialized();
+                        mTest.mLauncher.setEnableRotation(true);
                     } catch (Throwable e) {
                         FailureWatcher.onError(mTest.mLauncher, description);
                         throw e;
                     }
 
-                    evaluateInPortrait();
-                    evaluateInLandscape();
+                    goToPortrait();
+                    base.evaluate();
+                    mTest.getDevice().pressHome();
+                    goToLandscape();
+                    base.evaluate();
+                    mTest.getDevice().pressHome();
                 } catch (Throwable e) {
                     Log.e(TAG, "Error", e);
                     throw e;
                 } finally {
-
                     mTest.mDevice.setOrientationNatural();
-                    mTest.executeOnLauncher(launcher ->
-                    {
-                        if (launcher != null) {
-                            LauncherPrefs.get(launcher).put(FIXED_LANDSCAPE_MODE, false);
-                            launcher.getRotationHelper().forceAllowRotationForTesting(false);
-                        }
-                    });
+                    mTest.mLauncher.setFixedLandscape(false);
+                    mTest.mLauncher.setEnableRotation(false);
                     mTest.mLauncher.setExpectedRotation(Surface.ROTATION_0);
 
                     // and end unlocked...
@@ -105,29 +86,26 @@ public class PortraitLandscapeRunner<LAUNCHER_TYPE extends Launcher, OVERVIEW_TY
                 }
             }
 
-            private void evaluateInPortrait() throws Throwable {
-                mTest.mDevice.setOrientationNatural();
-                mTest.mLauncher.setExpectedRotation(Surface.ROTATION_0);
-                AbstractLauncherUiTest.checkDetectedLeaks(mTest.mLauncher, true);
-                base.evaluate();
-                mTest.getDevice().pressHome();
-            }
 
-            private void evaluateInLandscape() throws Throwable {
-                mTest.executeOnLauncher(launcher -> LauncherPrefs.get(launcher)
-                        .put(FIXED_LANDSCAPE_MODE, shouldHaveFixedLandscape(launcher)));
-                mTest.mDevice.setOrientationLeft();
-                mTest.mLauncher.setExpectedRotation(Surface.ROTATION_90);
-                AbstractLauncherUiTest.checkDetectedLeaks(mTest.mLauncher, true);
-                base.evaluate();
-                mTest.getDevice().pressHome();
-            }
-
-            private boolean shouldHaveFixedLandscape(Launcher launcher) {
-                return Flags.oneGridSpecs()
-                        && !launcher.getDeviceProfile().getDeviceProperties().isTablet()
-                        && !launcher.getDeviceProfile().getDeviceProperties().isMultiDisplay();
-            }
         };
+    }
+
+    /**
+     * Makes the phone go into Portrait mode.
+     */
+    public void goToPortrait() throws RemoteException {
+        mTest.mDevice.setOrientationNatural();
+        mTest.mLauncher.setExpectedRotation(Surface.ROTATION_0);
+        AbstractLauncherUiTest.checkDetectedLeaks(mTest.mLauncher);
+    }
+
+    /**
+     * Makes the phone go into Landscape mode or FixedLandscape for phones.
+     */
+    public void goToLandscape() throws RemoteException {
+        mTest.mLauncher.setFixedLandscape(true);
+        mTest.mDevice.setOrientationLeft();
+        AbstractLauncherUiTest.checkDetectedLeaks(mTest.mLauncher);
+        mTest.mLauncher.setExpectedRotation(Surface.ROTATION_90);
     }
 }

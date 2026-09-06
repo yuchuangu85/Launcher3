@@ -16,7 +16,6 @@
 package com.android.launcher3.allapps.search;
 
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_EMPTY_SEARCH;
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import android.content.Context;
 import android.os.Handler;
@@ -29,6 +28,7 @@ import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.search.SearchAlgorithm;
 import com.android.launcher3.search.SearchCallback;
 import com.android.launcher3.search.StringMatcherUtility;
+import com.android.launcher3.util.LooperExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,19 +38,20 @@ import java.util.List;
  */
 public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
 
-    protected static final int MAX_RESULTS_COUNT = 5;
+    private static final int MAX_RESULTS_COUNT = 5;
 
     private final LauncherAppState mAppState;
     private final Handler mResultHandler;
     private final boolean mAddNoResultsMessage;
 
-    public DefaultAppSearchAlgorithm(Context context) {
-        this(context, false);
+    public DefaultAppSearchAlgorithm(Context context, LooperExecutor uiExecutor) {
+        this(context, uiExecutor, false);
     }
 
-    public DefaultAppSearchAlgorithm(Context context, boolean addNoResultsMessage) {
+    public DefaultAppSearchAlgorithm(
+            Context context, LooperExecutor uiExecutor, boolean addNoResultsMessage) {
         mAppState = LauncherAppState.getInstance(context);
-        mResultHandler = new Handler(MAIN_EXECUTOR.getLooper());
+        mResultHandler = new Handler(uiExecutor.getLooper());
         mAddNoResultsMessage = addNoResultsMessage;
     }
 
@@ -85,13 +86,13 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
      * Filters {@link AppInfo}s matching specified query
      */
     @AnyThread
-    private static ArrayList<AdapterItem> getTitleMatchResult(List<AppInfo> apps, String query) {
-        // Do an intersection of the words in the query and each title, and filter out
-        // all the
+    public static ArrayList<AdapterItem> getTitleMatchResult(List<AppInfo> apps, String query) {
+        // Do an intersection of the words in the query and each title, and filter out all the
         // apps that don't match all of the words in the query.
         final String queryTextLower = query.toLowerCase();
         final ArrayList<AdapterItem> result = new ArrayList<>();
-        StringMatcherUtility.StringMatcher matcher = StringMatcherUtility.StringMatcher.getInstance();
+        StringMatcherUtility.StringMatcher matcher =
+                StringMatcherUtility.StringMatcher.getInstance();
 
         int resultCount = 0;
         int total = apps.size();

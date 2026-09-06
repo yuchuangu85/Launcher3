@@ -19,19 +19,20 @@ package com.android.launcher3.desktop
 import android.app.WindowConfiguration.ACTIVITY_TYPE_STANDARD
 import android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM
 import android.content.Context
+import android.content.res.Resources
 import android.platform.test.annotations.DisableFlags
 import android.platform.test.annotations.EnableFlags
 import android.platform.test.flag.junit.SetFlagsRule
 import android.view.WindowManager.TRANSIT_OPEN
 import android.view.WindowManager.TRANSIT_TO_FRONT
+import android.window.RemoteTransition
 import android.window.TransitionFilter
 import android.window.TransitionFilter.CONTAINER_ORDER_ANY
-import android.window.TransitionFilter.CONTAINER_ORDER_TOP
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.launcher3.display.DisplayController
 import com.android.quickstep.SystemUiProxy
-import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_APP_LAUNCH_BUGFIX
-import com.android.window.flags2.Flags.FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX
+import com.android.window.flags.Flags
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -49,76 +50,75 @@ import org.mockito.kotlin.whenever
 @RunWith(AndroidJUnit4::class)
 class DesktopAppLaunchTransitionManagerTest {
 
-    @get:Rule val mSetFlagsRule = SetFlagsRule()
-
+    @get:Rule(order = 0) val mSetFlagsRule = SetFlagsRule()
     private val context = mock<Context>()
+    private val applicationContext = mock<Context>()
+    private val resources = mock<Resources>()
     private val systemUiProxy = mock<SystemUiProxy>()
+    private val displayController = mock<DisplayController>()
     private lateinit var transitionManager: DesktopAppLaunchTransitionManager
 
     @Before
     fun setUp() {
-        whenever(context.resources).thenReturn(mock())
+        whenever(context.applicationContext).thenReturn(applicationContext)
+        whenever(context.resources).thenReturn(resources)
+        whenever(applicationContext.resources).thenReturn(resources)
+        whenever(resources.getDimensionPixelSize(any())).thenReturn(42)
         whenever(DesktopModeStatus.canEnterDesktopMode(context)).thenReturn(true)
-        transitionManager = DesktopAppLaunchTransitionManager(context, systemUiProxy)
+        transitionManager =
+            DesktopAppLaunchTransitionManager(context, systemUiProxy, displayController)
     }
 
     @Test
-    @EnableFlags(FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX)
-    fun registerTransitions_appLaunchFlagEnabled_registersTransition() {
+    fun registerTransitions_registersTransition() {
         transitionManager.registerTransitions()
 
-        verify(systemUiProxy, times(1)).registerRemoteTransition(any(), any())
+        verify(systemUiProxy, times(1)).registerRemoteTransition(any())
     }
 
     @Test
-    @DisableFlags(FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX)
-    fun registerTransitions_appLaunchFlagDisabled_doesntRegisterTransition() {
+    @DisableFlags(Flags.FLAG_CROSS_DISPLAY_TRANSITION_V2)
+    fun registerTransitions_usesCorrectFilter() {
         transitionManager.registerTransitions()
+        val transitionArgumentCaptor = argumentCaptor<RemoteTransition>()
 
-        verify(systemUiProxy, times(0)).registerRemoteTransition(any(), any())
-    }
+        verify(systemUiProxy).registerRemoteTransition(transitionArgumentCaptor.capture())
 
-    @Test
-    @EnableFlags(FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX)
-    @DisableFlags(FLAG_ENABLE_DESKTOP_APP_LAUNCH_BUGFIX)
-    fun registerTransitions_usesCorrectFilter_flagDisabled() {
-        transitionManager.registerTransitions()
-        val filterArgumentCaptor = argumentCaptor<TransitionFilter>()
+        assertThat(transitionArgumentCaptor.lastValue).isNotNull()
 
-        verify(systemUiProxy, times(1))
-            .registerRemoteTransition(any(), filterArgumentCaptor.capture())
+        val filter = transitionArgumentCaptor.lastValue.filter ?: TransitionFilter()
+        assertThat(filter.mTypeSet).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
 
-        assertThat(filterArgumentCaptor.lastValue).isNotNull()
-        assertThat(filterArgumentCaptor.lastValue.mTypeSet)
-            .isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
-        assertThat(filterArgumentCaptor.lastValue.mRequirements).hasLength(1)
-        val launchRequirement = filterArgumentCaptor.lastValue.mRequirements!![0]
-        assertThat(launchRequirement.mModes).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
-        assertThat(launchRequirement.mActivityType).isEqualTo(ACTIVITY_TYPE_STANDARD)
-        assertThat(launchRequirement.mWindowingMode).isEqualTo(WINDOWING_MODE_FREEFORM)
-        assertThat(launchRequirement.mOrder).isEqualTo(CONTAINER_ORDER_TOP)
-    }
-
-    @Test
-    @EnableFlags(
-        FLAG_ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX,
-        FLAG_ENABLE_DESKTOP_APP_LAUNCH_BUGFIX,
-    )
-    fun registerTransitions_usesCorrectFilter_flagEnabled() {
-        transitionManager.registerTransitions()
-        val filterArgumentCaptor = argumentCaptor<TransitionFilter>()
-
-        verify(systemUiProxy, times(1))
-            .registerRemoteTransition(any(), filterArgumentCaptor.capture())
-
-        assertThat(filterArgumentCaptor.lastValue).isNotNull()
-        assertThat(filterArgumentCaptor.lastValue.mTypeSet)
-            .isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
-        assertThat(filterArgumentCaptor.lastValue.mRequirements).hasLength(1)
-        val launchRequirement = filterArgumentCaptor.lastValue.mRequirements!![0]
+        assertThat(filter.mRequirements).hasLength(1)
+        val launchRequirement = filter.mRequirements!![0]
         assertThat(launchRequirement.mModes).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
         assertThat(launchRequirement.mActivityType).isEqualTo(ACTIVITY_TYPE_STANDARD)
         assertThat(launchRequirement.mWindowingMode).isEqualTo(WINDOWING_MODE_FREEFORM)
         assertThat(launchRequirement.mOrder).isEqualTo(CONTAINER_ORDER_ANY)
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_CROSS_DISPLAY_TRANSITION_V2)
+    fun registerTransitions_usesCorrectFilter_withCrossDisplayFlag() {
+        transitionManager.registerTransitions()
+        val transitionArgumentCaptor = argumentCaptor<RemoteTransition>()
+
+        verify(systemUiProxy).registerRemoteTransition(transitionArgumentCaptor.capture())
+
+        assertThat(transitionArgumentCaptor.lastValue).isNotNull()
+
+        val filter = transitionArgumentCaptor.lastValue.filter ?: TransitionFilter()
+        assertThat(filter.mTypeSet).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
+
+        assertThat(filter.mRequirements).hasLength(2)
+        val launchRequirement = filter.mRequirements!![0]
+        assertThat(launchRequirement.mModes).isEqualTo(intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT))
+        assertThat(launchRequirement.mActivityType).isEqualTo(ACTIVITY_TYPE_STANDARD)
+        assertThat(launchRequirement.mWindowingMode).isEqualTo(WINDOWING_MODE_FREEFORM)
+        assertThat(launchRequirement.mOrder).isEqualTo(CONTAINER_ORDER_ANY)
+
+        val notCrossDisplayRequirement = filter.mRequirements!![1]
+        assertThat(notCrossDisplayRequirement.mNot).isTrue()
+        assertThat(notCrossDisplayRequirement.mIsCrossDisplayMove).isTrue()
     }
 }

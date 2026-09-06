@@ -17,7 +17,6 @@ package com.android.quickstep.fallback;
 
 import static android.app.ActivityTaskManager.INVALID_TASK_ID;
 
-import static com.android.launcher3.util.OverviewReleaseFlags.enableGridOnlyOverview;
 import static com.android.quickstep.GestureState.GestureEndTarget.RECENTS;
 import static com.android.quickstep.fallback.RecentsState.DEFAULT;
 import static com.android.quickstep.fallback.RecentsState.MODAL_TASK;
@@ -27,12 +26,10 @@ import android.animation.AnimatorSet;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
-import com.android.launcher3.AbstractFloatingView;
-import com.android.launcher3.anim.AnimatorPlaybackController;
-import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.desktop.DesktopRecentsTransitionController;
 import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.statehandlers.DesktopVisibilityController;
@@ -43,34 +40,32 @@ import com.android.launcher3.util.SplitConfigurationOptions;
 import com.android.launcher3.util.SplitConfigurationOptions.SplitSelectSource;
 import com.android.quickstep.GestureState;
 import com.android.quickstep.RemoteTargetGluer.RemoteTargetHandle;
-import com.android.quickstep.fallback.window.RecentsWindowManager;
+import com.android.quickstep.split.SplitSelectStateController;
 import com.android.quickstep.util.GroupTask;
 import com.android.quickstep.util.SingleTask;
-import com.android.quickstep.util.SplitSelectStateController;
+import com.android.quickstep.util.SurfaceTransactionApplier;
 import com.android.quickstep.views.OverviewActionsView;
+import com.android.quickstep.views.RecentsDismissUtils;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.RecentsViewContainer;
 import com.android.quickstep.views.TaskContainer;
 import com.android.quickstep.views.TaskView;
+import com.android.quickstep.window.RecentsWindowManager;
 import com.android.systemui.shared.recents.model.Task;
 import com.android.wm.shell.shared.GroupedTaskInfo;
+
+import kotlin.Unit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewContainer
+public abstract class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewContainer
         & StatefulContainer<RecentsState>> extends RecentsView<CONTAINER_TYPE, RecentsState>
         implements StateListener<RecentsState> {
 
-    private static final int TASK_DISMISS_DURATION = 150;
-
     @Nullable
     private Task mHomeTask;
-
-    public FallbackRecentsView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
-    }
 
     public FallbackRecentsView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
@@ -79,20 +74,17 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
 
     @Override
     public void init(OverviewActionsView actionsView, SplitSelectStateController splitController,
-            @Nullable DesktopRecentsTransitionController desktopRecentsTransitionController) {
-        super.init(actionsView, splitController, desktopRecentsTransitionController);
+            @Nullable DesktopRecentsTransitionController desktopRecentsTransitionController,
+            SurfaceTransactionApplier surfaceTransactionApplier,
+            @Nullable ViewGroup emptyRecentsMessageView) {
+        super.init(actionsView, splitController, desktopRecentsTransitionController,
+                surfaceTransactionApplier, emptyRecentsMessageView);
         if (mContainer instanceof RecentsWindowManager) {
             // These will be set during the state transition to DEFAULT
             return;
         }
         setOverviewStateEnabled(true);
         setOverlayEnabled(true);
-    }
-
-    @Override
-    protected void handleStartHome(boolean animated) {
-        mContainer.startHome();
-        AbstractFloatingView.closeAllOpenViews(mContainer, mContainer.isStarted());
     }
 
     @Override
@@ -133,14 +125,16 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
         if (mHomeTask != null && endTarget == RECENTS) {
             TaskView homeTaskView = getTaskViewByTaskId(mHomeTask.key.id);
             if (homeTaskView != null) {
-                PendingAnimation pendingAnimation = new PendingAnimation(TASK_DISMISS_DURATION);
-                createTaskDismissAnimation(pendingAnimation, homeTaskView, true, false,
-                        TASK_DISMISS_DURATION, false /* dismissingForSplitSelection*/,
-                        null /* gridEndData */);
-                pendingAnimation.addEndListener(e -> setCurrentTask(-1));
-                AnimatorPlaybackController controller = pendingAnimation.createPlaybackController();
-                controller.dispatchOnStart();
-                animatorSet.play(controller.getAnimationPlayer());
+                RecentsDismissUtils.SpringSet dismissSpringSet =
+                        mDismissUtils.createTaskDismissSpringAnimation(homeTaskView,
+                                false /* removeTask */, false /* isSplitSelection */);
+                if (dismissSpringSet != null) {
+                    dismissSpringSet.addEndListener(() -> {
+                        setCurrentTask(-1);
+                        return Unit.INSTANCE;
+                    });
+                    mDismissUtils.play(animatorSet, dismissSpringSet);
+                }
             }
         }
     }
@@ -247,14 +241,9 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
 
     @Override
     public void onStateTransitionStart(RecentsState toState) {
-        setOverviewStateEnabled(true);
-        if (enableGridOnlyOverview()) {
-            if (toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
-                setOverviewGridEnabled(true);
-            }
-        } else {
-            setOverviewGridEnabled(
-                    toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile()));
+        setOverviewStateEnabled(toState.isRecentsViewVisible());
+        if (toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
+            setOverviewGridEnabled(true);
         }
         setOverviewFullscreenEnabled(toState.isFullScreen());
         if (toState == MODAL_TASK) {
@@ -265,8 +254,9 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
 
         resetShareUIState();
 
-        // Set border after select mode changes to avoid showing border during state transition
-        if (!toState.isRecentsViewVisible() || toState == MODAL_TASK) {
+        // Set border state changes to avoid showing border during state transitions
+        if (!toState.isRecentsViewVisible() || toState == MODAL_TASK
+                || toState == OVERVIEW_SPLIT_SELECT) {
             setTaskBorderEnabled(false);
         }
 
@@ -275,11 +265,11 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
 
     @Override
     public void onStateTransitionComplete(RecentsState finalState) {
-        DesktopVisibilityController.INSTANCE.get(mContainer).onLauncherStateChanged(finalState);
-        if (enableGridOnlyOverview()) {
-            if (!finalState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
-                setOverviewGridEnabled(false);
-            }
+        mUtils.onStateTransitionComplete(finalState);
+        DesktopVisibilityController.INSTANCE.get(mContainer).onLauncherStateChanged(
+                mContainer.getDisplayId(), finalState);
+        if (!finalState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
+            setOverviewGridEnabled(false);
         }
         if (!finalState.isRecentsViewVisible()) {
             // Clean-up logic that occurs when recents is no longer in use/visible.
@@ -299,11 +289,6 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
         if (finalState != OVERVIEW_SPLIT_SELECT) {
             mSplitSelectStateController.resetState();
         }
-
-        // disabling this so app icons aren't drawn on top of recent tasks.
-        if (isOverlayEnabled && !(mContainer instanceof RecentsWindowManager)) {
-            mBlurUtils.setDrawLiveTileBelowRecents(true);
-        }
     }
 
     @Override
@@ -312,7 +297,6 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
         if (enabled) {
             RecentsState state = mContainer.getStateManager().getState();
             setDisallowScrollToClearAll(!state.hasClearAllButton());
-            setDisallowScrollToAddDesk(!state.hasAddDeskButton());
         }
     }
 
@@ -331,6 +315,11 @@ public class FallbackRecentsView<CONTAINER_TYPE extends Context & RecentsViewCon
 
     @Override
     public boolean canLaunchFullscreenTask() {
+        // On external displays, the container is RecentsWindowManager and its state can be stale.
+        // Query `isSplitSelectionActive` directly for the current split selection status.
+        if (mContainer instanceof RecentsWindowManager) {
+            return !isSplitSelectionActive();
+        }
         return !mContainer.isInState(OVERVIEW_SPLIT_SELECT);
     }
 }

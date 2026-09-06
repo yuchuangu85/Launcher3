@@ -32,9 +32,9 @@ import android.view.MotionEvent;
 import android.view.Surface;
 
 import com.android.launcher3.R;
+import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.testing.shared.TestProtocol;
-import com.android.launcher3.util.DisplayController.Info;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.window.CachedDisplayInfo;
 import com.android.quickstep.util.ActiveGestureProtoLogProxy;
@@ -86,7 +86,7 @@ class OrientationTouchTransformer {
      * QUICKSTEP_ROTATION_UNINITIALIZED, then user has not tapped on an active nav region.
      * Otherwise it will be the rotation of the display when the user first interacted with the
      * active nav bar region.
-     * The "session" ends when {@link #enableMultipleRegions(boolean, Info)} is
+     * The "session" ends when {@link #enableMultipleRegions(boolean, LauncherDisplayInfo)} is
      * called - usually from a timeout or if user starts interacting w/ the foreground app.
      *
      * This is different than {@link #mLastRectTouched} as it can get reset by the system whereas
@@ -106,13 +106,17 @@ class OrientationTouchTransformer {
         mResources = resources;
         mMode = mode;
         mContractInfo = contractInfo;
-        mNavBarGesturalHeight = getNavbarSize(ResourceUtils.NAVBAR_BOTTOM_GESTURE_SIZE);
+        mNavBarGesturalHeight = calculateDefaultGesturalHeight();
         mNavBarLargerGesturalHeight = ResourceUtils.getDimenByName(
                 ResourceUtils.NAVBAR_BOTTOM_GESTURE_LARGER_SIZE, resources,
                 mNavBarGesturalHeight);
     }
 
-    private void refreshTouchRegion(Info info, Resources newRes, String reason) {
+    private int calculateDefaultGesturalHeight() {
+        return getNavbarSize(ResourceUtils.NAVBAR_BOTTOM_GESTURE_SIZE);
+    }
+
+    private void refreshTouchRegion(LauncherDisplayInfo info, Resources newRes, String reason) {
         // Swipe touch regions are independent of nav mode, so we have to clear them explicitly
         // here to avoid, for ex, a nav region for 2-button rotation 0 being used for 3-button mode
         // It tries to cache and reuse swipe regions whenever possible based only on rotation
@@ -121,7 +125,7 @@ class OrientationTouchTransformer {
         resetSwipeRegions(info, reason);
     }
 
-    void setNavigationMode(NavigationMode newMode, Info info, Resources newRes) {
+    void setNavigationMode(NavigationMode newMode, LauncherDisplayInfo info, Resources newRes) {
         if (enableLog()) {
             Log.d(TAG, "setNavigationMode new: " + newMode + " oldMode: " + mMode + " " + this);
         }
@@ -132,7 +136,14 @@ class OrientationTouchTransformer {
         refreshTouchRegion(info, newRes, "setNavigationMode");
     }
 
-    void setGesturalHeight(int newGesturalHeight, Info info, Resources newRes) {
+    /**
+     * Touches within this number of pixels from the bottom of the screen can get intercepted to
+     * handle gesture navigation. Passing a value less than 0 will revert to a default value.
+     */
+    void setGesturalHeight(int newGesturalHeight, LauncherDisplayInfo info, Resources newRes) {
+        if (newGesturalHeight < 0) {
+            newGesturalHeight = calculateDefaultGesturalHeight();
+        }
         if (mNavBarGesturalHeight == newGesturalHeight) {
             return;
         }
@@ -146,9 +157,9 @@ class OrientationTouchTransformer {
      * alongside other regions.
      * Ok to call multiple times
      *
-     * @see #enableMultipleRegions(boolean, Info)
+     * @see #enableMultipleRegions(boolean, LauncherDisplayInfo)
      */
-    void createOrAddTouchRegion(Info info, String reason) {
+    void createOrAddTouchRegion(LauncherDisplayInfo info, String reason) {
         mCachedDisplayInfo = new CachedDisplayInfo(info.currentSize, info.rotation);
 
         if (mQuickStepStartingRotation > QUICKSTEP_ROTATION_UNINITIALIZED
@@ -177,7 +188,7 @@ class OrientationTouchTransformer {
      * @param enableMultipleRegions Set to true to start tracking multiple nav bar regions
      * @param info The current displayInfo which will be the start of the quickswitch gesture
      */
-    void enableMultipleRegions(boolean enableMultipleRegions, Info info) {
+    void enableMultipleRegions(boolean enableMultipleRegions, LauncherDisplayInfo info) {
         mEnableMultipleRegions = enableMultipleRegions && mMode != NavigationMode.TWO_BUTTONS;
         if (mEnableMultipleRegions) {
             mQuickStepStartingRotation = info.rotation;
@@ -197,7 +208,7 @@ class OrientationTouchTransformer {
      *
      * @param displayInfo The display whos rotation will be used as the current active rotation
      */
-    void setSingleActiveRegion(Info displayInfo) {
+    void setSingleActiveRegion(LauncherDisplayInfo displayInfo) {
         mActiveTouchRotation = displayInfo.rotation;
         resetSwipeRegions(displayInfo, "setSingleActiveRegion");
     }
@@ -208,7 +219,7 @@ class OrientationTouchTransformer {
      * To be called whenever we want to stop tracking more than one swipe region.
      * Ok to call multiple times.
      */
-    private void resetSwipeRegions(Info region, String reason) {
+    private void resetSwipeRegions(LauncherDisplayInfo region, String reason) {
         if (enableLog()) {
             Log.d(TAG, "clearing all regions except rotation: " + mCachedDisplayInfo.rotation
                     + " reason=" + reason);
@@ -235,7 +246,7 @@ class OrientationTouchTransformer {
         }
     }
 
-    private OrientationRectF createRegionForDisplay(Info display, String reason) {
+    private OrientationRectF createRegionForDisplay(LauncherDisplayInfo display, String reason) {
         if (enableLog()) {
             Log.d(TAG, "creating rotation region for: " + mCachedDisplayInfo.rotation
             + " with mode: " + mMode + " displayRotation: " + display.rotation +

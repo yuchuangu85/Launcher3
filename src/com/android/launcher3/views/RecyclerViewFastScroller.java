@@ -21,7 +21,6 @@ import static android.view.HapticFeedbackConstants.CLOCK_TICK;
 import static androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE;
 
 import static com.android.launcher3.views.RecyclerViewFastScroller.FastScrollerLocation.ALL_APPS_SCROLLER;
-import static com.android.launcher3.views.RecyclerViewFastScroller.FastScrollerLocation.WIDGET_SCROLLER;
 
 import android.animation.ObjectAnimator;
 import android.content.Context;
@@ -58,8 +57,6 @@ import com.android.launcher3.util.Themes;
 import java.util.Collections;
 import java.util.List;
 
-import app.lawnchair.theme.color.tokens.ColorTokens;
-
 /**
  * The track and scrollbar that shows when you scroll the list.
  */
@@ -68,9 +65,7 @@ public class RecyclerViewFastScroller extends View {
     /** FastScrollerLocation describes what RecyclerView the fast scroller is dedicated to. */
     public enum FastScrollerLocation {
         UNKNOWN_SCROLLER(0),
-        ALL_APPS_SCROLLER(1),
-        WIDGET_SCROLLER(2);
-
+        ALL_APPS_SCROLLER(1);
         public final int location;
 
         FastScrollerLocation(int location) {
@@ -79,7 +74,7 @@ public class RecyclerViewFastScroller extends View {
     }
     private static final String TAG = "RecyclerViewFastScroller";
     private static final boolean DEBUG = false;
-    private static final int FASTSCROLL_THRESHOLD_MILLIS = 10;
+    private static final int FASTSCROLL_THRESHOLD_MILLIS = 40;
     private static final int SCROLL_DELTA_THRESHOLD_DP = 4;
 
     // Track is very narrow to target and correctly. This is especially the case if a user is
@@ -178,7 +173,7 @@ public class RecyclerViewFastScroller extends View {
 
         mFastScrollerLocation = FastScrollerLocation.UNKNOWN_SCROLLER;
         mTrackPaint = new Paint();
-        mTrackPaint.setColor(ColorTokens.TextColorPrimary.resolveColor(getContext()));
+        mTrackPaint.setColor(Themes.getAttrColor(context, android.R.attr.textColorPrimary));
         mTrackPaint.setAlpha(MAX_TRACK_ALPHA);
 
         mThumbColor = Themes.getColorAccent(context);
@@ -288,7 +283,7 @@ public class RecyclerViewFastScroller extends View {
 
                 if ((Math.abs(mDy) < mDeltaThreshold &&
                         mRv.getScrollState() != SCROLL_STATE_IDLE)) {
-                    // now the touch events are being passed to the {@link WidgetCell} until the
+                    // now the touch events are being passed to the item until the
                     // touch sequence goes over the touch slop.
                     mRv.stopScroll();
                 }
@@ -435,13 +430,11 @@ public class RecyclerViewFastScroller extends View {
         // swiping very close to the thumb area (not just within it's bound)
         // will also prevent back gesture
         SYSTEM_GESTURE_EXCLUSION_RECT.get(0).offset(mThumbDrawOffset.x, mThumbDrawOffset.y);
-        if (Utilities.ATLEAST_Q) {
-            if (mSystemGestureInsets != null) {
-                SYSTEM_GESTURE_EXCLUSION_RECT.get(0).left =
+        if (mSystemGestureInsets != null) {
+            SYSTEM_GESTURE_EXCLUSION_RECT.get(0).left =
                     SYSTEM_GESTURE_EXCLUSION_RECT.get(0).right - mSystemGestureInsets.right;
-            }
-            setSystemGestureExclusionRects(SYSTEM_GESTURE_EXCLUSION_RECT);
         }
+        setSystemGestureExclusionRects(SYSTEM_GESTURE_EXCLUSION_RECT);
         canvas.restoreToCount(saveCount);
     }
 
@@ -452,11 +445,7 @@ public class RecyclerViewFastScroller extends View {
 
     @Override
     public WindowInsets onApplyWindowInsets(WindowInsets insets) {
-        if (Utilities.ATLEAST_Q) {
-            mSystemGestureInsets = insets.getSystemGestureInsets();
-        } else {
-            mSystemGestureInsets = null;
-        }
+        mSystemGestureInsets = insets.getSystemGestureInsets();
         return super.onApplyWindowInsets(insets);
     }
 

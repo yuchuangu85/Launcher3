@@ -19,11 +19,9 @@ import android.app.prediction.AppPredictor
 import android.app.prediction.AppTarget
 import android.app.prediction.AppTargetEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WALLPAPERS
-import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_PREDICTION
 import com.android.launcher3.util.SandboxApplication
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
@@ -35,8 +33,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.mock
+import org.mockito.junit.MockitoJUnit
 
 /** Unit tests for [QuickstepModelDelegate]. */
 @RunWith(AndroidJUnit4::class)
@@ -46,16 +43,15 @@ class QuickstepModelDelegateTest {
 
     private lateinit var underTest: QuickstepModelDelegate
 
+    @get:Rule val mockito = MockitoJUnit.rule()
     @Mock private lateinit var target: AppTarget
     @Mock private lateinit var mockedAppTargetEvent: AppTargetEvent
     @Mock private lateinit var allAppsPredictor: AppPredictor
     @Mock private lateinit var hotseatPredictor: AppPredictor
-    @Mock private lateinit var widgetRecommendationPredictor: AppPredictor
     @Mock private lateinit var itemParserFactory: PredictedItemFactory.Factory
 
     @Before
     fun setUp() {
-        MockitoAnnotations.initMocks(this)
         underTest =
             QuickstepModelDelegate(
                 context,
@@ -66,15 +62,8 @@ class QuickstepModelDelegateTest {
             )
         underTest.mAllPredictionAppsState.predictor = allAppsPredictor
         underTest.mHotseatPredictionState.predictor = hotseatPredictor
-        underTest.mWidgetsRecommendationState.predictor = widgetRecommendationPredictor
-        underTest.mModel = LauncherAppState.getInstance(context).model
-        underTest.mDataModel =
-            BgDataModel(
-                WidgetsModel(context),
-                /* homeDataProvider */ { null },
-                /* dumpManager */ mock(),
-                /* DaggerSingletonTracker */ mock(),
-            )
+        underTest.mModel = context.appComponent.testableModelState.model
+        underTest.mDataModel = context.appComponent.testableModelState.dataModel
     }
 
     @Test
@@ -83,16 +72,6 @@ class QuickstepModelDelegateTest {
 
         verify(allAppsPredictor).notifyAppTargetEvent(mockedAppTargetEvent)
         verifyNoMoreInteractions(hotseatPredictor)
-        verifyNoMoreInteractions(widgetRecommendationPredictor)
-    }
-
-    @Test
-    fun onWidgetPrediction_notifyWidgetRecommendationPredictor() {
-        underTest.onAppTargetEvent(mockedAppTargetEvent, CONTAINER_WIDGETS_PREDICTION)
-
-        verifyNoMoreInteractions(allAppsPredictor)
-        verify(widgetRecommendationPredictor).notifyAppTargetEvent(mockedAppTargetEvent)
-        verifyNoMoreInteractions(hotseatPredictor)
     }
 
     @Test
@@ -100,7 +79,6 @@ class QuickstepModelDelegateTest {
         underTest.onAppTargetEvent(mockedAppTargetEvent, CONTAINER_HOTSEAT_PREDICTION)
 
         verifyNoMoreInteractions(allAppsPredictor)
-        verifyNoMoreInteractions(widgetRecommendationPredictor)
         verify(hotseatPredictor).notifyAppTargetEvent(mockedAppTargetEvent)
     }
 
@@ -109,7 +87,6 @@ class QuickstepModelDelegateTest {
         underTest.onAppTargetEvent(mockedAppTargetEvent, CONTAINER_WALLPAPERS)
 
         verifyNoMoreInteractions(allAppsPredictor)
-        verifyNoMoreInteractions(widgetRecommendationPredictor)
         verify(hotseatPredictor).notifyAppTargetEvent(mockedAppTargetEvent)
     }
 
@@ -117,7 +94,6 @@ class QuickstepModelDelegateTest {
     fun hotseatActionPin_recreateHotSeat() {
         assertSame(underTest.mHotseatPredictionState.predictor, hotseatPredictor)
         val appTargetEvent = AppTargetEvent.Builder(target, AppTargetEvent.ACTION_PIN).build()
-        underTest.markActive()
 
         underTest.onAppTargetEvent(appTargetEvent, CONTAINER_HOTSEAT_PREDICTION)
 
@@ -128,7 +104,6 @@ class QuickstepModelDelegateTest {
     @Test
     fun hotseatActionUnpin_recreateHotSeat() {
         assertSame(underTest.mHotseatPredictionState.predictor, hotseatPredictor)
-        underTest.markActive()
         val appTargetEvent = AppTargetEvent.Builder(target, AppTargetEvent.ACTION_UNPIN).build()
 
         underTest.onAppTargetEvent(appTargetEvent, CONTAINER_HOTSEAT_PREDICTION)
@@ -141,7 +116,6 @@ class QuickstepModelDelegateTest {
     fun container_actionPin_notRecreateHotSeat() {
         assertSame(underTest.mHotseatPredictionState.predictor, hotseatPredictor)
         val appTargetEvent = AppTargetEvent.Builder(target, AppTargetEvent.ACTION_UNPIN).build()
-        underTest.markActive()
 
         underTest.onAppTargetEvent(appTargetEvent, CONTAINER_ALL_APPS_PREDICTION)
 

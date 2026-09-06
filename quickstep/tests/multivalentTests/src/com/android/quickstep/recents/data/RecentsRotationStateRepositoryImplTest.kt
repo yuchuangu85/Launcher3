@@ -18,14 +18,19 @@ package com.android.quickstep.recents.data
 
 import android.view.Surface.ROTATION_270
 import android.view.Surface.ROTATION_90
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SmallTest
 import com.android.quickstep.orientation.SeascapePagedViewHandler
 import com.android.quickstep.util.RecentsOrientedState
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 /** Test for [RecentsRotationStateRepositoryImpl] */
+@SmallTest
+@RunWith(AndroidJUnit4::class)
 class RecentsRotationStateRepositoryImplTest {
     private val recentsOrientedState = mock<RecentsOrientedState>()
 

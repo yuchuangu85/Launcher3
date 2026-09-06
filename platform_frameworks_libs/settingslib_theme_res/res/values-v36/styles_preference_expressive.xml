@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2024 The Android Open Source Project
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+  -->
+<resources>
+    <style name="SettingsLibPreference" parent="SettingsPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.Category" parent="SettingsCategoryPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.CheckBoxPreference" parent="SettingsCheckBoxPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.SwitchPreferenceCompat" parent="SettingsSwitchPreferenceCompat.SettingsLib"/>
+
+    <style name="SettingsLibPreference.SeekBarPreference" parent="SettingsSeekbarPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.PreferenceScreen" parent="SettingsPreferenceScreen.SettingsLib"/>
+
+    <style name="SettingsLibPreference.DialogPreference" parent="SettingsPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.DialogPreference.EditTextPreference" parent="SettingsEditTextPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.DropDown" parent="SettingsDropdownPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.SwitchPreference" parent="SettingsSwitchPreference.SettingsLib"/>
+
+    <style name="SettingsLibPreference.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference</item>
+    </style>
+
+    <style name="SettingsLibPreference.Category.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference_category</item>
+    </style>
+
+    <style name="SettingsLibPreference.CheckBoxPreference.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference</item>
+    </style>
+
+    <style name="SettingsLibPreference.SwitchPreferenceCompat.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference</item>
+        <item name="android:widgetLayout">@layout/settingslib_expressive_preference_switch</item>
+    </style>
+
+    <style name="SettingsLibPreference.SeekBarPreference.Expressive"/>
+
+    <style name="SettingsLibPreference.PreferenceScreen.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference</item>
+    </style>
+
+    <style name="SettingsLibPreference.DialogPreference.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference</item>
+    </style>
+
+    <style name="SettingsLibPreference.DialogPreference.EditTextPreference.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference</item>
+        <item name="dialogLayout">@layout/settingslib_preference_dialog_edittext</item>
+    </style>
+
+    <style name="SettingsLibPreference.DropDown.Expressive">
+        <item name="layout">@layout/settingslib_expressive_preference_dropdown</item>
+    </style>
+
+    <style name="SettingsLibPreference.SwitchPreference.Expressive"/>
+
+    <!-- Styles for Expressive Design Preferences (overridable via theme attribute) -->
+    <style name="ExpressivePreferenceTheme">
+        <item name="expressivePreferenceRootLayoutStyle">@style/ExpressivePreferenceRootLayoutStyle</item>
+        <item name="expressivePreferenceWidgetFrameStyle">@style/ExpressivePreferenceWidgetFrameStyle</item>
+    </style>
+
+    <style name="ExpressivePreferenceRootLayoutStyle">
+        <item name="android:minHeight">72dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">?android:attr/listPreferredItemPaddingStart</item>
+        <item name="android:paddingEnd">?android:attr/listPreferredItemPaddingEnd</item>
+        <item name="android:background">@drawable/settingslib_round_background_stateful</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:baselineAligned">false</item>
+    </style>
+
+    <style name="ExpressivePreferenceWidgetFrameStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:gravity">end|center_vertical</item>
+        <item name="android:minWidth">@dimen/settingslib_expressive_space_medium4</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="ExpressivePreferenceIconFrameStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">@dimen/settingslib_expressive_space_medium3</item>
+        <item name="android:minHeight">@dimen/settingslib_expressive_space_medium3</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_marginEnd">@dimen/settingslib_expressive_space_extrasmall6</item>
+    </style>
+
+    <style name="ExpressivePreferenceIconStyle">
+        <item name="android:layout_width">@dimen/settingslib_expressive_space_medium3</item>
+        <item name="android:layout_height">@dimen/settingslib_expressive_space_medium3</item>
+        <item name="android:scaleType">centerInside</item>
+    </style>
+
+    <style name="ExpressivePreferenceTextFrameStyle">
+        <item name="android:layout_width">@dimen/settingslib_expressive_space_none</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">@dimen/settingslib_expressive_space_medium3</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingVertical">@dimen/settingslib_expressive_space_small1</item>f
+        <item name="android:paddingStart">@dimen/settingslib_expressive_space_none</item>
+        <item name="android:paddingEnd">@dimen/settingslib_expressive_space_small1</item>
+    </style>
+
+    <style name="ExpressivePreferenceTextFrameTitleStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_gravity">start</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:textAppearance">?android:attr/textAppearanceListItem</item>
+        <item name="android:ellipsize">marquee</item>
+    </style>
+
+    <style name="ExpressivePreferenceTextFrameSummaryStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_below">@android:id/title</item>
+        <item name="android:layout_alignStart">@android:id/title</item>
+        <item name="android:layout_gravity">start</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:textAppearance">?android:attr/textAppearanceListItemSecondary</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:maxLines">10</item>
+    </style>
+
+    <style name="ExpressiveTwoTargetDividerStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">?android:attr/listPreferredItemPaddingEnd</item>
+        <item name="android:paddingLeft">?android:attr/listPreferredItemPaddingEnd</item>
+        <item name="android:paddingVertical">@dimen/settingslib_expressive_space_extrasmall7</item>
+        <item name="android:paddingEnd">@dimen/settingslib_expressive_space_extrasmall6</item>
+    </style>
+
+    <style name="ExpressiveTwoTargetDividerImageViewStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingEnd">@dimen/settingslib_expressive_space_extrasmall4</item>
+        <item name="android:src">@drawable/settingslib_expressive_icon_chevron</item>
+    </style>
+
+    <style name="ExpressiveTwoTargetDividerViewStyle">
+        <item name="android:layout_width">1dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:background">?android:attr/listDivider</item>
+    </style>
+
+    <style name="ExpressivePreferenceCategoryTheme">
+        <item name="expressivePreferenceCategoryRootLayoutStyle">@style/ExpressivePreferenceCategoryRootLayoutStyle</item>
+        <item name="expressivePreferenceCategoryRelativeLayoutStyle">@style/ExpressivePreferenceCategoryRelativeLayoutStyle</item>
+        <item name="expressivePreferenceCategoryTitleStyle">@style/ExpressivePreferenceCategoryTitleStyle</item>
+        <item name="expressivePreferenceCategorySummaryStyle">@style/ExpressivePreferenceCategorySummaryStyle</item>
+    </style>
+
+    <style name="ExpressivePreferenceCategoryRootLayoutStyle">
+        <item name="android:paddingLeft">?android:attr/listPreferredItemPaddingLeft</item>
+        <item name="android:paddingStart">?android:attr/listPreferredItemPaddingStart</item>
+        <item name="android:paddingRight">?android:attr/listPreferredItemPaddingRight</item>
+        <item name="android:paddingEnd">?android:attr/listPreferredItemPaddingEnd</item>
+        <item name="android:paddingTop">@dimen/settingslib_expressive_space_small1</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:baselineAligned">false</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <style name="ExpressivePreferenceCategoryRelativeLayoutStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:paddingStart">@dimen/settingslib_expressive_space_extrasmall4</item>
+        <item name="android:paddingTop">@dimen/settingslib_expressive_space_extrasmall4</item>
+        <item name="android:paddingBottom">@dimen/settingslib_expressive_space_extrasmall4</item>
+    </style>
+
+    <style
+        name="ExpressivePreferenceCategoryTitleStyle"
+        parent="@style/PreferenceCategoryTitleTextStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_gravity">start</item>
+        <item name="android:textAlignment">viewStart</item>
+    </style>
+
+    <style
+        name="ExpressivePreferenceCategorySummaryStyle"
+        parent="@style/PreferenceSummaryTextStyle">
+        <item name="android:ellipsize">end</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_below">@android:id/title</item>
+        <item name="android:layout_alignStart">@android:id/title</item>
+        <item name="android:layout_gravity">start</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:maxLines">10</item>
+    </style>
+</resources>

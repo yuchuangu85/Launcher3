@@ -23,16 +23,10 @@ import android.database.MatrixCursor
 import android.os.Build
 import android.provider.SearchIndexablesContract
 import android.provider.SearchIndexablesProvider
-import android.util.Xml
-import androidx.core.content.withStyledAttributes
-import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.InvariantDeviceProfile.TYPE_TABLET
 import com.android.launcher3.R
-import com.android.launcher3.model.DeviceGridState
-import java.io.IOException
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserException
+import com.android.launcher3.util.XmlElement.Companion.getRootElement
 
 @TargetApi(Build.VERSION_CODES.O)
 class LauncherSearchIndexablesProvider : SearchIndexablesProvider() {
@@ -70,7 +64,7 @@ class LauncherSearchIndexablesProvider : SearchIndexablesProvider() {
     }
 
     fun isDeviceTablet(): Boolean {
-        return DeviceGridState(context).deviceType == TYPE_TABLET
+        return InvariantDeviceProfile.INSTANCE.get(context).deviceType == TYPE_TABLET
     }
 
     override fun queryRawData(projection: Array<String>) =
@@ -78,41 +72,25 @@ class LauncherSearchIndexablesProvider : SearchIndexablesProvider() {
 
     override fun queryNonIndexableKeys(projection: Array<String>): Cursor {
         val cursor = MatrixCursor(SearchIndexablesContract.NON_INDEXABLES_KEYS_COLUMNS)
-        if (Flags.oneGridSpecs() && !isDeviceTablet()) {
-            cursor.addRow(arrayOf(ALLOW_ROTATION_KEY))
-        } else {
+        if (isDeviceTablet()) {
             cursor.addRow(arrayOf(FIXED_LANDSCAPE_KEY))
         }
-        if (!context!!.getSystemService(LauncherApps::class.java)?.hasShortcutHostPermission()!!) {
+        val ctx = context!!
+        if (!ctx.getSystemService(LauncherApps::class.java)!!.hasShortcutHostPermission()) {
             // We are not the current launcher. Hide all preferences
-            try {
-                context!!.resources!!.getXml(R.xml.indexable_launcher_prefs).use { parser ->
-                    val depth = parser.depth
-                    val attrs = intArrayOf(android.R.attr.key)
-                    var type: Int = parser.next()
-                    while (
-                        (type != XmlPullParser.END_TAG || parser.depth > depth) &&
-                            type != XmlPullParser.END_DOCUMENT
-                    ) {
-                        if (type == XmlPullParser.START_TAG) {
-                            context?.withStyledAttributes(Xml.asAttributeSet(parser), attrs) {
-                                cursor.addRow(arrayOf(getString(0)))
-                            }
-                        }
-                        type = parser.next()
-                    }
+            ctx.resources.getXml(R.xml.indexable_launcher_prefs).use { parser ->
+                val attrs = intArrayOf(android.R.attr.key)
+                parser.getRootElement().children().forEach {
+                    it.obtainAttrs(ctx, attrs)
+                        .apply { cursor.addRow(arrayOf(getString(0))) }
+                        .recycle()
                 }
-            } catch (e: IOException) {
-                throw RuntimeException(e)
-            } catch (e: XmlPullParserException) {
-                throw RuntimeException(e)
             }
         }
         return cursor
     }
 
     companion object {
-        private const val ALLOW_ROTATION_KEY = "pref_allowRotation"
         private const val FIXED_LANDSCAPE_KEY = "pref_fixed_landscape_mode"
     }
 }

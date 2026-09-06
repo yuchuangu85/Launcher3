@@ -16,73 +16,112 @@
 
 package com.android.launcher3.util
 
-import android.content.Context
 import android.content.Intent
-import android.os.Process
-import android.os.UserManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
+import com.android.launcher3.util.rule.MockUsersRule
+import com.android.launcher3.util.rule.MockUsersRule.MockUser
+import com.android.users.UserType
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
-import org.mockito.kotlin.whenever
 
-/** Unit tests for {@link LockedUserState} */
+/** Unit tests for [LockedUserState] */
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class LockedUserStateTest {
 
-    private val userManager: UserManager = mock()
-    private val context: Context = mock()
-    private val lifeCycle: DaggerSingletonTracker = mock()
-
-    @Before
-    fun setup() {
-        whenever(context.getSystemService(UserManager::class.java)).thenReturn(userManager)
-    }
+    @get:Rule(order = 1) val context = SandboxApplication()
+    @get:Rule(order = 2) val mockUser = MockUsersRule(context)
 
     @After
     fun tearDown() {
-        UI_HELPER_EXECUTOR.submit {}.get()
-        MAIN_EXECUTOR.submit {}.get()
+        TestUtil.runOnExecutorSync(UI_HELPER_EXECUTOR) {}
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = true)
     fun runOnUserUnlocked_runs_action_immediately_if_already_unlocked() {
-        whenever(userManager.isUserUnlocked(Process.myUserHandle())).thenReturn(true)
         val action: Runnable = mock()
-        LockedUserState(context, lifeCycle).runOnUserUnlocked(action)
+        LockedUserState.get(context).runOnUserUnlocked(action = action)
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
         verify(action).run()
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
     fun runOnUserUnlocked_waits_to_run_action_until_user_is_unlocked() {
-        whenever(userManager.isUserUnlocked(Process.myUserHandle())).thenReturn(false)
         val action: Runnable = mock()
-        val state = LockedUserState(context, lifeCycle)
-        state.runOnUserUnlocked(action)
-        // b/343530737
+        LockedUserState.get(context).runOnUserUnlocked(action = action)
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
         verifyNoMoreInteractions(action)
-        state.userUnlockedReceiver.onReceive(context, Intent(Intent.ACTION_USER_UNLOCKED))
+
+        LockedUserState.get(context)
+            .userUnlockedReceiver
+            .onReceive(context, Intent(Intent.ACTION_USER_UNLOCKED))
+        TestUtil.runOnExecutorSync(MAIN_EXECUTOR) {}
         verify(action).run()
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = true)
     fun isUserUnlocked_returns_true_when_user_is_unlocked() {
-        whenever(userManager.isUserUnlocked(Process.myUserHandle())).thenReturn(true)
-        assertThat(LockedUserState(context, lifeCycle).isUserUnlocked).isTrue()
+        assertThat(LockedUserState.get(context).isUserUnlocked).isTrue()
     }
 
     @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
     fun isUserUnlocked_returns_false_when_user_is_locked() {
-        whenever(userManager.isUserUnlocked(Process.myUserHandle())).thenReturn(false)
-        assertThat(LockedUserState(context, lifeCycle).isUserUnlocked).isFalse()
+        assertThat(LockedUserState.get(context).isUserUnlocked).isFalse()
+    }
+
+    @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = true)
+    fun taskExecutorOnProvidedExecutor_when_user_already_unlocked() {
+        val action: Runnable = mock()
+        val taskQueue = mutableListOf<Runnable>()
+        LockedUserState.get(context).runOnUserUnlocked(executor = taskQueue::add, action = action)
+
+        assertThat(taskQueue).containsExactly(action)
+    }
+
+    @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
+    fun taskExecutorOnProvidedExecutor_after_user_is_unlocked() {
+        val action: Runnable = mock()
+        val taskQueue = mutableListOf<Runnable>()
+        LockedUserState.get(context).runOnUserUnlocked(executor = taskQueue::add, action = action)
+
+        assertThat(taskQueue).isEmpty()
+
+        LockedUserState.get(context)
+            .userUnlockedReceiver
+            .onReceive(context, Intent(Intent.ACTION_USER_UNLOCKED))
+        assertThat(taskQueue).containsExactly(action)
+    }
+
+    @Test
+    @MockUser(userType = UserType.MAIN, isUserUnlocked = false)
+    fun removed_task_does_not_execute() {
+        val action1: Runnable = mock()
+        val action2: Runnable = mock()
+        val taskQueue = mutableListOf<Runnable>()
+        LockedUserState.get(context).runOnUserUnlocked(executor = taskQueue::add, action = action1)
+        LockedUserState.get(context).runOnUserUnlocked(executor = taskQueue::add, action = action2)
+        assertThat(taskQueue).isEmpty()
+
+        LockedUserState.get(context).removeOnUserUnlockedRunnable(action1)
+        LockedUserState.get(context)
+            .userUnlockedReceiver
+            .onReceive(context, Intent(Intent.ACTION_USER_UNLOCKED))
+        assertThat(taskQueue).containsExactly(action2)
     }
 }

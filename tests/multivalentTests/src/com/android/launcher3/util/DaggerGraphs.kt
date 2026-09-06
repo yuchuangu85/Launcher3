@@ -18,16 +18,24 @@ package com.android.launcher3.util
 
 import com.android.launcher3.FakeLauncherPrefs
 import com.android.launcher3.LauncherPrefs
-import com.android.launcher3.compose.core.widgetpicker.NoOpWidgetPickerModule
 import com.android.launcher3.concurrent.ExecutorsModule
-import com.android.launcher3.util.dagger.LauncherExecutorsModule
 import com.android.launcher3.dagger.ApiWrapperModule
 import com.android.launcher3.dagger.AppModule
-import com.android.launcher3.dagger.LauncherConcurrencyModule
+import com.android.launcher3.dagger.AutomationModule
+import com.android.launcher3.dagger.DesktopModule
+import com.android.launcher3.dagger.HomeScreenFilesModule
+import com.android.launcher3.dagger.LauncherModelModule
+import com.android.launcher3.dagger.OrganizerLauncherModule
 import com.android.launcher3.dagger.PerDisplayModule
+import com.android.launcher3.dagger.SettingsModule
 import com.android.launcher3.dagger.StaticObjectModule
+import com.android.launcher3.dagger.StatsLoggerModule
+import com.android.launcher3.dagger.TaskOverlayModule
 import com.android.launcher3.dagger.WidgetModule
 import com.android.launcher3.dagger.WindowManagerProxyModule
+import com.android.launcher3.dagger.WorkspaceFunctionsLauncherModule
+import com.android.launcher3.util.dagger.LauncherExecutorsModule
+import com.android.launcher3.widgetpicker.NoOpWidgetPickerModule
 import dagger.Binds
 import dagger.Module
 
@@ -45,10 +53,18 @@ abstract class FakePrefsModule {
             WidgetModule::class,
             AppModule::class,
             PerDisplayModule::class,
-            LauncherConcurrencyModule::class,
             ExecutorsModule::class,
             LauncherExecutorsModule::class,
-            NoOpWidgetPickerModule::class
+            NoOpWidgetPickerModule::class,
+            LauncherModelModule::class,
+            HomeScreenFilesModule::class,
+            DesktopModule::class,
+            SettingsModule::class,
+            AutomationModule::class,
+            TaskOverlayModule::class,
+            WorkspaceFunctionsLauncherModule::class,
+            StatsLoggerModule::class,
+            OrganizerLauncherModule::class,
         ]
 )
 class CommonModulesForTest
@@ -63,7 +79,3 @@ class AllModulesForTest
 /** All modules except the WMProxy */
 @Module(includes = [ApiWrapperModule::class, CommonModulesForTest::class])
 class AllModulesMinusWMProxy
-
-/** All modules except the ApiWrapper */
-@Module(includes = [WindowManagerProxyModule::class, CommonModulesForTest::class])
-class AllModulesMinusApiWrapper

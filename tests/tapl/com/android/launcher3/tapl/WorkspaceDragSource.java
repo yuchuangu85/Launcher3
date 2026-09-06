@@ -70,7 +70,7 @@ interface WorkspaceDragSource {
      */
     default HomeAppIcon dragToWorkspace(int cellX, int cellY) {
         Launchable launchable = getLaunchable();
-        final String iconName = launchable.getObject().getText();
+        final String iconName = launchable.getText();
         LauncherInstrumentation launcher = launchable.mLauncher;
         try (LauncherInstrumentation.Closable e = launcher.eventsCheck();
              LauncherInstrumentation.Closable c = launcher.addContextLayer(

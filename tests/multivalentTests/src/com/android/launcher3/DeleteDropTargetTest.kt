@@ -1,15 +1,18 @@
 package com.android.launcher3
 
-import android.content.Context
+import android.platform.test.annotations.DisableFlags
 import android.platform.test.annotations.EnableFlags
 import android.platform.test.flag.junit.SetFlagsRule
-import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.launcher3.Utilities.*
+import com.android.launcher3.LauncherSettings.Favorites
+import com.android.launcher3.Utilities.enableRunningInTestHarnessForTests
+import com.android.launcher3.dragndrop.DragOptions
 import com.android.launcher3.dragndrop.DragView
-import com.android.launcher3.util.ActivityContextWrapper
+import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.util.MSDLPlayerWrapper
+import com.android.launcher3.util.TestActivityContext
+import com.android.providers.media.flags.Flags.FLAG_ENABLE_TRASH_AND_RESTORE_BY_FILE_PATH_API
 import com.google.android.msdl.data.model.MSDLToken
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -28,10 +31,9 @@ import org.mockito.kotlin.verifyNoMoreInteractions
 class DeleteDropTargetTest {
 
     @get:Rule val mSetFlagsRule = SetFlagsRule()
+    @get:Rule val mContext = TestActivityContext()
 
     @Mock private val msdlPlayerWrapper = mock<MSDLPlayerWrapper>()
-
-    private var mContext: Context = ActivityContextWrapper(getApplicationContext())
 
     // Use a non-abstract class implementation
     private var buttonDropTarget: DeleteDropTarget = DeleteDropTarget(mContext)
@@ -59,10 +61,76 @@ class DeleteDropTargetTest {
     fun onDragEnter_performsMSDLSwipeThresholdFeedback() {
         buttonDropTarget.setMSDLPlayerWrapper(msdlPlayerWrapper)
         val target = DropTarget.DragObject(mContext)
-        target.dragView = mock<DragView<*>>()
+        target.dragView = mock<DragView>()
         buttonDropTarget.onDragEnter(target)
 
         verify(msdlPlayerWrapper, times(1)).playToken(eq(MSDLToken.SWIPE_THRESHOLD_INDICATOR))
         verifyNoMoreInteractions(msdlPlayerWrapper)
+    }
+
+    @Test
+    fun setsTextBasedOnDragSource() {
+        verifyTextForItemInfo(ItemInfo().apply { id = ItemInfo.NO_ID }, "Cancel")
+        verifyTextForItemInfo(
+            ItemInfo().apply {
+                id = 1
+                itemType = Favorites.ITEM_TYPE_APPLICATION
+            },
+            "Remove",
+        )
+    }
+
+    @Test
+    @DisableFlags(
+        Flags.FLAG_ENABLE_HOME_SCREEN_FILES_TRASHING,
+        FLAG_ENABLE_TRASH_AND_RESTORE_BY_FILE_PATH_API,
+    )
+    fun setsTextForFileSystemItemsWhenTrashingDisabled() {
+        verifyTextForItemInfo(
+            ItemInfo().apply {
+                id = 1
+                itemType = Favorites.ITEM_TYPE_FILE_SYSTEM_FILE
+            },
+            "Delete permanently",
+        )
+        verifyTextForItemInfo(
+            ItemInfo().apply {
+                id = 1
+                itemType = Favorites.ITEM_TYPE_FILE_SYSTEM_FOLDER
+            },
+            "Delete permanently",
+        )
+    }
+
+    @Test
+    @EnableFlags(
+        Flags.FLAG_ENABLE_HOME_SCREEN_FILES_TRASHING,
+        FLAG_ENABLE_TRASH_AND_RESTORE_BY_FILE_PATH_API,
+    )
+    fun setsTextForFileSystemItemsWhenTrashingEnabled() {
+        verifyTextForItemInfo(
+            ItemInfo().apply {
+                id = 1
+                itemType = Favorites.ITEM_TYPE_FILE_SYSTEM_FILE
+            },
+            "Move to trash",
+        )
+        verifyTextForItemInfo(
+            ItemInfo().apply {
+                id = 1
+                itemType = Favorites.ITEM_TYPE_FILE_SYSTEM_FOLDER
+            },
+            "Move to trash",
+        )
+    }
+
+    private fun verifyTextForItemInfo(item: ItemInfo, expectedText: String) {
+        buttonDropTarget.updateText("My Test")
+
+        val target = DropTarget.DragObject(mContext)
+        target.dragInfo = item
+        buttonDropTarget.onDragStart(target, DragOptions())
+
+        assertThat(buttonDropTarget.mText).isEqualTo(expectedText)
     }
 }

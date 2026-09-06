@@ -1,20 +1,21 @@
 package com.android.launcher3.popup;
 
 import static com.android.launcher3.AbstractFloatingView.TYPE_FOLDER;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DISMISS_PREDICTION_UNDO;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_INSTALL_SYSTEM_SHORTCUT_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_UNINSTALL_SYSTEM_SHORTCUT_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_APP_INFO_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_DONT_SUGGEST_APP_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_WIDGETS_TAP;
-import static com.android.launcher3.widget.picker.model.data.WidgetPickerDataUtils.findAllWidgetsForPackageUser;
+import static com.android.launcher3.testing.shared.ResourceUtils.INVALID_RESOURCE_HANDLE;
 
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ShortcutInfo;
 import android.graphics.Rect;
-import android.net.Uri;
 import android.os.Process;
 import android.os.UserHandle;
 import android.util.Log;
@@ -30,14 +31,20 @@ import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.AbstractFloatingViewHelper;
 import com.android.launcher3.DropTargetHandler;
 import com.android.launcher3.Flags;
+import com.android.launcher3.LauncherModel;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
 import com.android.launcher3.SecondaryDropTarget;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
 import com.android.launcher3.allapps.PrivateProfileManager;
+import com.android.launcher3.dagger.LauncherComponentProvider;
+import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.UserCache;
+import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.util.ActivityOptionsWrapper;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ComponentKey;
@@ -46,14 +53,10 @@ import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.Snackbar;
-import com.android.launcher3.widget.WidgetsBottomSheet;
 import com.android.launcher3.widget.picker.model.data.WidgetPickerData;
+import com.android.wm.shell.shared.bubbles.logging.EntryPoint;
 
-import java.net.URISyntaxException;
 import java.util.Arrays;
-
-import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
-import app.lawnchair.preferences2.PreferenceManager2;
 
 /**
  * Represents a system shortcut for a given app. The shortcut should have a label and icon, and an
@@ -74,20 +77,20 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
     protected final T mTarget;
     protected final ItemInfo mItemInfo;
     protected final View mOriginalView;
-    protected final boolean mIsCollapsible;
+    public final boolean mIsCollapsible;
 
     private final AbstractFloatingViewHelper mAbstractFloatingViewHelper;
 
     public SystemShortcut(int iconResId, int labelResId, T target, ItemInfo itemInfo,
             View originalView) {
         this(iconResId, labelResId, target, itemInfo, originalView,
-                new AbstractFloatingViewHelper(), /* isCollapsible */ true);
+                AbstractFloatingViewHelper.INSTANCE, /* isCollapsible */ true);
     }
 
     public SystemShortcut(int iconResId, int labelResId, T target, ItemInfo itemInfo,
             View originalView, boolean isCollapsible) {
         this(iconResId, labelResId, target, itemInfo, originalView,
-                new AbstractFloatingViewHelper(), isCollapsible);
+                AbstractFloatingViewHelper.INSTANCE, isCollapsible);
     }
 
     public SystemShortcut(int iconResId, int labelResId, T target, ItemInfo itemInfo,
@@ -109,6 +112,15 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
         mIsCollapsible = isCollapsible;
     }
 
+    /** @return the resource id of the icon **/
+    public int getIconResId() {
+        return mIconResId;
+    }
+
+    /** @return the resource id of the label **/
+    public int getLabelResId() {
+        return mLabelResId;
+    }
     public void setIconAndLabelFor(View iconView, TextView labelView) {
         iconView.setBackgroundResource(mIconResId);
         labelView.setText(mLabelResId);
@@ -138,8 +150,11 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
         final PackageUserKey packageUserKey = PackageUserKey.fromItemInfo(itemInfo);
         if (packageUserKey == null) return null;
 
-        final WidgetPickerData data = context.getWidgetPickerDataProvider().get();
-        if (findAllWidgetsForPackageUser(data, packageUserKey).isEmpty()) {
+        final WidgetPickerData data = LauncherModel.useModelRepositoryBinding()
+                ? LauncherComponentProvider.get(context.asContext())
+                        .getHomeScreenRepository().getAllWidgets().getValue()
+                : context.getWidgetPickerDataProvider().get();
+        if (data.findAllWidgetsForPackageUser(packageUserKey).isEmpty()) {
             // hides widget picker shortcut if there are no widgets for the package.
             return null;
         }
@@ -157,20 +172,19 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
          * @return drawable for Widget shortcut icon
          */
         public static int getDrawableId() {
-            if (Flags.enableLauncherVisualRefresh()) {
-                return R.drawable.widgets_24px;
-            } else {
-                return R.drawable.ic_widget;
-            }
+            return R.drawable.widgets_24px;
         }
 
         @Override
         public void onClick(View view) {
             AbstractFloatingView.closeAllOpenViews(mTarget);
-            WidgetsBottomSheet widgetsBottomSheet =
-                    (WidgetsBottomSheet) mTarget.getLayoutInflater().inflate(
-                            R.layout.widgets_bottom_sheet, mTarget.getDragLayer(), false);
-            widgetsBottomSheet.populateAndShow(mItemInfo);
+            Context context = view.getContext();
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.putExtra(Intent.EXTRA_PACKAGE_NAME,
+                    mItemInfo.getTargetPackage());
+            intent.putExtra(Intent.EXTRA_USER, mItemInfo.user);
+            intent.setPackage(context.getPackageName());
+            context.startActivity(intent);
             mTarget.getStatsLogManager().logger().withItemInfo(mItemInfo)
                     .log(LAUNCHER_SYSTEM_SHORTCUT_WIDGETS_TAP);
         }
@@ -192,12 +206,9 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
          * @return drawable for App Info shortcut icon
          */
         public static int getDrawableId() {
-            if (Flags.enableLauncherVisualRefresh()) {
-                return R.drawable.info_24px;
-            } else {
-                return R.drawable.ic_info_no_shadow;
-            }
+            return R.drawable.info_24px;
         }
+
         /**
          * Constructor used by overview for staged split to provide custom A11y information.
          *
@@ -259,7 +270,7 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
     public static class RemoveApp<T extends ActivityContext> extends SystemShortcut<T> {
 
         public RemoveApp(T target, ItemInfo itemInfo, @NonNull View originalView) {
-            super(R.drawable.ic_remove_no_shadow, R.string.remove_drop_target_label, target,
+            super(R.drawable.ic_remove_no_shadow, R.string.remove_system_shortcut_label, target,
                     itemInfo, originalView, false);
         }
 
@@ -268,8 +279,40 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
             AbstractFloatingView.closeAllOpenViewsExcept(mTarget, TYPE_FOLDER);
             DropTargetHandler dropTargetHandler =
                     ActivityContext.lookupContext(view.getContext()).getDropTargetHandler();
-            dropTargetHandler.prepareToUndoDelete();
+            dropTargetHandler.prepareToUndoDelete(mItemInfo);
             dropTargetHandler.onDeleteComplete(mItemInfo, mOriginalView);
+        }
+    }
+
+
+    public static final Factory<ActivityContext> ADD_TO_HOME_SCREEN =
+            (activity, itemInfo, originalView) -> {
+                if (itemInfo.container != CONTAINER_ALL_APPS
+                        && itemInfo.container != CONTAINER_ALL_APPS_PREDICTION) {
+                    return null;
+                }
+                return new AddToHomeScreen<>(activity, itemInfo, originalView);
+            };
+    public static class AddToHomeScreen<T extends ActivityContext> extends SystemShortcut<T> {
+
+        public AddToHomeScreen(T target, ItemInfo itemInfo, @NonNull View originalView) {
+            super(R.drawable.ic_plus, R.string.action_add_to_workspace, target,
+                    itemInfo, originalView, false);
+        }
+
+        @Override
+        public void onClick(View view) {
+            AbstractFloatingView.closeAllOpenViews(mTarget);
+            LauncherAccessibilityDelegate launcherAccessibilityDelegate =
+                    (LauncherAccessibilityDelegate) mTarget.getAccessibilityDelegate();
+            launcherAccessibilityDelegate.addToWorkspace(mItemInfo,
+                    /*accessibility=*/ false,
+                    /*finishCallback=*/ (success) -> {
+                        mTarget.getStatsLogManager().logger()
+                                .withItemInfo(mItemInfo)
+                                .log(StatsLogManager.LauncherEvent
+                                        .LAUNCHER_TAP_TO_ADD_TO_HOME_SCREEN_FROM_ALL_APPS);
+                    });
         }
     }
 
@@ -399,14 +442,13 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
             mTarget.getStatsLogManager().logger()
                     .withItemInfo(mItemInfo)
                     .log(LAUNCHER_SYSTEM_SHORTCUT_DONT_SUGGEST_APP_TAP);
-            if (Flags.enableDismissPredictionUndo()) {
-                Snackbar.show(mTarget,
-                        view.getContext().getString(R.string.item_removed), R.string.undo,
-                        () -> { }, () ->
-                            mTarget.getStatsLogManager().logger()
-                                    .withItemInfo(mItemInfo)
-                                    .log(LAUNCHER_DISMISS_PREDICTION_UNDO));
-            }
+            Snackbar.show(mTarget,
+                    view.getContext().getString(R.string.item_removed),
+                    R.string.undo,
+                    () -> {},
+                    () -> mTarget.getStatsLogManager().logger()
+                            .withItemInfo(mItemInfo)
+                            .log(LAUNCHER_DISMISS_PREDICTION_UNDO));
         }
     }
 
@@ -434,7 +476,8 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
             };
 
     private static class UninstallApp<T extends ActivityContext> extends SystemShortcut<T> {
-        @NonNull ComponentName mComponentName;
+        @NonNull
+        ComponentName mComponentName;
 
         UninstallApp(T target, ItemInfo itemInfo, @NonNull View originalView,
                 @NonNull ComponentName cn) {
@@ -468,31 +511,60 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
                         && !(itemInfo instanceof WorkspaceItemInfo)) {
                     return null;
                 }
-                if (itemInfo instanceof WorkspaceItemInfo) {
-                    // Don't show bubble shortcut option for non-resizeable apps on small screens.
-                    // TODO(b/411558731): isPhone just checks for smallest width < 600dp, so it
-                    // basically is a check for small screens including Foldables when folded.
-                    // However, the name is a bit misleading, so considering renaming.
-                    WorkspaceItemInfo wsItemInfo = (WorkspaceItemInfo) itemInfo;
-                    if (wsItemInfo.isNonResizeable()
-                            && activity.getDeviceProfile().getDeviceProperties().isPhone()) {
-                        return null;
+                if (itemInfo instanceof ItemInfoWithIcon itemInfoWithIcon) {
+                    // Don't show bubble shortcut if the item is non-resizeable but not supported.
+                    if (itemInfoWithIcon.isNonResizeable()) {
+                        // TODO(b/411558731): isPhone just checks for smallest width < 600dp, so it
+                        // basically is a check for small screens including Foldables when folded.
+                        // However, the name is a bit misleading, so considering renaming.
+                        final boolean isSmallScreen =
+                                activity.getDeviceProfile().getDeviceProperties().isPhone();
+                        final boolean supportsBubbleNonResizeable =
+                                systemSupportsNonResizableMultiWindow(
+                                        (Context) activity, isSmallScreen);
+                        if (!supportsBubbleNonResizeable) {
+                            return null;
+                        }
                     }
                 }
                 return new BubbleShortcut<>(activity, itemInfo, originalView);
             };
 
+    /**
+     * Checks if the system framework policy supports multi-window for non-resizable activities
+     * The support is defined by a device specific config and can be conditional on screen size.
+     *
+     * @param context The {@link Context} used to access resources.
+     * @param isSmallScreen true if the current device display is considered a small screen.
+     * @return true if non-resizable activities are allowed in multi-window, false otherwise.
+     */
+    private static boolean systemSupportsNonResizableMultiWindow(
+            Context context, boolean isSmallScreen) {
+        final int config = ResourceUtils.getIntegerByName("config_supportsNonResizableMultiWindow",
+                context.getResources(), INVALID_RESOURCE_HANDLE);
+        return switch (config) {
+            case -1 -> false; // Never supports multi-window for non-resizable apps.
+            case 0 -> !isSmallScreen; // Supports only on large screens.
+            case 1 -> true; // Always supports multi-window for non-resizable apps.
+            default -> false; // Should not occur with valid system configurations.
+        };
+    }
+
     public interface BubbleActivityStarter {
         /** Tell SysUI to show the provided shortcut in a bubble. */
-        void showShortcutBubble(ShortcutInfo info);
+        void showShortcutBubble(ShortcutInfo info, EntryPoint entryPoint);
 
         /** Tell SysUI to show the provided intent in a bubble. */
-        void showAppBubble(Intent intent, UserHandle user);
+        void showAppBubble(Intent intent, UserHandle user, EntryPoint entryPoint);
     }
+
+    /** Marker interface for identifying bubbles starting from taskbar. */
+    public interface TaskbarBubbleActivityStarter extends BubbleActivityStarter {}
 
     public static class BubbleShortcut<T extends ActivityContext> extends SystemShortcut<T> {
 
         private BubbleActivityStarter mStarter;
+        private final boolean mInTaskbar;
 
         public BubbleShortcut(T target, ItemInfo itemInfo, View originalView) {
             super(R.drawable.ic_bubble_button, R.string.bubble, target,
@@ -500,6 +572,17 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
             if (target instanceof BubbleActivityStarter) {
                 mStarter = (BubbleActivityStarter) target;
             }
+            mInTaskbar = target instanceof TaskbarBubbleActivityStarter;
+        }
+
+        private EntryPoint getEntryPoint() {
+            if (mItemInfo.isInAllApps()) {
+                return EntryPoint.ALL_APPS_ICON_MENU;
+            }
+            if (mItemInfo.isInHotseat()) {
+                return mInTaskbar ? EntryPoint.TASKBAR_ICON_MENU : EntryPoint.HOTSEAT_ICON_MENU;
+            }
+            return EntryPoint.LAUNCHER_ICON_MENU;
         }
 
         @Override
@@ -514,20 +597,35 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
                 WorkspaceItemInfo workspaceItemInfo = (WorkspaceItemInfo) mItemInfo;
                 ShortcutInfo shortcutInfo = workspaceItemInfo.getDeepShortcutInfo();
                 if (shortcutInfo != null) {
-                    mStarter.showShortcutBubble(shortcutInfo);
+                    mStarter.showShortcutBubble(shortcutInfo, getEntryPoint());
                     return;
                 }
             }
             // If we're here check for an intent
-            Intent intent = mItemInfo.getIntent();
-            if (intent != null) {
+            if (mItemInfo.getIntent() != null) {
+                final Intent intent = new Intent(mItemInfo.getIntent());
                 if (intent.getPackage() == null) {
                     intent.setPackage(mItemInfo.getTargetPackage());
                 }
-                mStarter.showAppBubble(intent, mItemInfo.user);
+                mStarter.showAppBubble(intent, mItemInfo.user, getEntryPoint());
             } else {
                 Log.w(TAG, "unable to bubble, no intent: " + mItemInfo);
             }
         }
     }
+
+    public static final Factory<ActivityContext> APP_LOCK =
+            (activity, itemInfo, originalView) -> {
+                if (!android.security.Flags.appLockApis()) {
+                    return null;
+                }
+                if (itemInfo instanceof ItemInfoWithIcon itemInfoWithIcon) {
+                    if (itemInfoWithIcon.isAppLockSupported()) {
+                        return AppLockShortcut.newInstance(activity, itemInfo, originalView,
+                                itemInfoWithIcon.isAppLockEnabled());
+                    }
+                }
+                // Don't show the shortcut for items without an icon or that don't support App Lock.
+                return null;
+            };
 }

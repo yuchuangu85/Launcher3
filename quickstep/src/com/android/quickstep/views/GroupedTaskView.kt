@@ -24,23 +24,23 @@ import android.view.View
 import android.view.ViewStub
 import com.android.internal.jank.Cuj
 import com.android.launcher3.Flags.enableRefactorDigitalWellbeingToast
-import com.android.launcher3.Flags.enableRefactorTaskContentView
-import com.android.launcher3.Flags.enableRefactorTaskThumbnail
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
-import com.android.launcher3.util.OverviewReleaseFlags.enableOverviewIconMenu
+import com.android.launcher3.dagger.ActivityContextComponent
 import com.android.launcher3.util.RunnableList
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT
 import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_UNDEFINED
 import com.android.quickstep.TaskOverlayFactory
+import com.android.quickstep.recents.ui.viewmodel.GroupedTaskViewModel
+import com.android.quickstep.split.SplitSelectStateController
 import com.android.quickstep.util.RecentsOrientedState
-import com.android.quickstep.util.SplitSelectStateController
 import com.android.quickstep.util.SplitTask
 import com.android.systemui.shared.system.InteractionJankMonitorWrapper
 import com.android.wm.shell.Flags.enableFlexibleTwoAppSplit
 import com.android.wm.shell.shared.split.SplitBounds
 import com.android.wm.shell.shared.split.SplitScreenConstants.PersistentSnapPosition
+import javax.inject.Inject
 
 /**
  * TaskView that contains and shows thumbnails for not one, BUT TWO(!!) tasks
@@ -63,7 +63,6 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
     val rightBottomTaskContainer: TaskContainer
         get() = taskContainers[1]
 
-    // TODO(b/336612373): Support new TTV for GroupedTaskView
     var splitBoundsConfig: SplitBounds? = null
         private set
 
@@ -71,6 +70,12 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
     val snapPosition: Int
         /** Returns the [PersistentSnapPosition] of this pair of tasks. */
         get() = splitBoundsConfig?.snapPosition ?: STAGE_POSITION_UNDEFINED
+
+    @Inject lateinit var groupedTaskViewModel: GroupedTaskViewModel
+
+    override fun initialiseInjectables(component: ActivityContextComponent) {
+        component.inject(this)
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -89,33 +94,12 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
             layoutDirection == LAYOUT_DIRECTION_RTL,
             inSplitSelection,
         )
-
-        if (!enableOverviewIconMenu()) {
-            updateIconPlacement()
-        }
     }
 
     override fun inflateViewStubs() {
         super.inflateViewStubs()
         findViewById<ViewStub>(R.id.bottomright_task_content_view)
-            ?.apply {
-                inflatedId =
-                    if (enableRefactorTaskContentView()) R.id.bottomright_task_content_view
-                    else R.id.bottomright_snapshot
-                layoutResource =
-                    when {
-                        enableRefactorTaskContentView() -> R.layout.task_content_view
-                        enableRefactorTaskThumbnail() -> R.layout.task_thumbnail
-                        else -> R.layout.task_thumbnail_deprecated
-                    }
-            }
-            ?.inflate()
-        findViewById<ViewStub>(R.id.bottomRight_icon)
-            ?.apply {
-                layoutResource =
-                    if (enableOverviewIconMenu()) R.layout.icon_app_chip_view
-                    else R.layout.icon_view
-            }
+            ?.apply { layoutResource = R.layout.task_content_view }
             ?.inflate()
         if (!enableRefactorDigitalWellbeingToast()) {
             findViewById<ViewStub>(R.id.bottomRight_digital_wellbeing_toast)
@@ -135,7 +119,6 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
         taskOverlayFactory: TaskOverlayFactory,
     ) {
         this.groupTask = splitTask
-        cancelPendingLoadTasks()
         taskContainers =
             listOf(
                 createTaskContainer(
@@ -143,7 +126,6 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
                     R.id.task_content_view,
                     R.id.snapshot,
                     R.id.icon,
-                    R.id.show_windows,
                     R.id.digital_wellbeing_toast,
                     STAGE_POSITION_TOP_OR_LEFT,
                     taskOverlayFactory,
@@ -151,10 +133,8 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
                 createTaskContainer(
                     splitTask.bottomRightTask,
                     R.id.bottomright_task_content_view,
-                    if (enableRefactorTaskContentView()) R.id.snapshot
-                    else R.id.bottomright_snapshot,
+                    R.id.snapshot,
                     R.id.bottomRight_icon,
-                    R.id.show_windows_right,
                     R.id.bottomRight_digital_wellbeing_toast,
                     STAGE_POSITION_BOTTOM_OR_RIGHT,
                     taskOverlayFactory,
@@ -162,46 +142,57 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
             )
         this.splitBoundsConfig = splitTask.splitBounds
         taskContainers.forEach { it.digitalWellBeingToast?.splitBounds = splitBoundsConfig }
-        onBind(orientedState)
+        onBind(orientedState, taskOverlayFactory)
     }
 
     override fun setOrientationState(orientationState: RecentsOrientedState) {
-        if (enableOverviewIconMenu()) {
-            splitBoundsConfig?.let {
-                val groupedTaskViewSizes =
-                    orientationState.orientationHandler.getGroupedTaskViewSizes(
-                        container.deviceProfile,
-                        it,
-                        layoutParams.width,
-                        layoutParams.height,
-                    )
-                val iconViewMarginStart =
-                    resources.getDimensionPixelSize(
-                        R.dimen.task_thumbnail_icon_menu_expanded_top_start_margin
-                    )
-                val iconViewBackgroundMarginStart =
-                    resources.getDimensionPixelSize(
-                        R.dimen.task_thumbnail_icon_menu_background_margin_top_start
-                    )
-                val iconMargins = (iconViewMarginStart + iconViewBackgroundMarginStart) * 2
-                // setMaxWidth() needs to be called before mIconView.setIconOrientation which is
-                // called in the super below.
-                (leftTopTaskContainer.iconView as IconAppChipView).maxWidth =
-                    groupedTaskViewSizes.first.x - iconMargins
-                (rightBottomTaskContainer.iconView as IconAppChipView).maxWidth =
-                    groupedTaskViewSizes.second.x - iconMargins
-            }
+        splitBoundsConfig?.let {
+            val groupedTaskViewSizes =
+                orientationState.orientationHandler.getGroupedTaskViewSizes(
+                    container.deviceProfile,
+                    it,
+                    layoutParams.width,
+                    layoutParams.height,
+                )
+            val iconViewMarginStart =
+                resources.getDimensionPixelSize(
+                    R.dimen.task_thumbnail_icon_menu_expanded_top_start_margin
+                )
+            val iconViewBackgroundMarginStart =
+                resources.getDimensionPixelSize(
+                    R.dimen.task_thumbnail_icon_menu_background_margin_top_start
+                )
+            val iconMargins = (iconViewMarginStart + iconViewBackgroundMarginStart) * 2
+            val spaceForTaskDismissButton = calculateSpaceForTaskDismissButton()
+            // setMaxWidth() needs to be called before mIconView.setIconOrientation which is
+            // called in the super below.
+            leftTopTaskContainer.iconView.maxWidth =
+                groupedTaskViewSizes.first.x - iconMargins - spaceForTaskDismissButton
+            rightBottomTaskContainer.iconView.maxWidth =
+                groupedTaskViewSizes.second.x - iconMargins - spaceForTaskDismissButton
         }
         super.setOrientationState(orientationState)
         updateIconPlacement()
     }
 
+    private fun calculateSpaceForTaskDismissButton() =
+        if (groupedTaskViewModel.showTaskDismissButton()) {
+            val taskDismissBtnWidth =
+                resources.getDimensionPixelSize(R.dimen.task_dismiss_button_width)
+            val taskDismissBtnMargin =
+                resources.getDimensionPixelSize(R.dimen.task_dismiss_button_margin)
+            val taskDismissBtnPadding =
+                resources.getDimensionPixelSize(R.dimen.task_dismiss_button_padding)
+
+            taskDismissBtnWidth + taskDismissBtnMargin + taskDismissBtnPadding
+        } else {
+            0
+        }
+
     private fun updateIconPlacement() {
         val splitBoundsConfig = splitBoundsConfig ?: return
         val deviceProfile = container.deviceProfile
-        val taskIconHeight = deviceProfile.overviewProfile.taskIconSizePx
         val inSplitSelection = getThisTaskCurrentlyInSplitSelection() != INVALID_TASK_ID
-        var oneIconHiddenDueToSmallWidth = false
 
         if (enableFlexibleTwoAppSplit()) {
             // Update values for both icons' setFlexSplitAlpha. Mainly, we want to hide an icon if
@@ -218,54 +209,32 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
                 hideLeftTopIcon = splitBoundsConfig.leftTopTaskPercent < MINIMUM_RATIO_TO_SHOW_ICON
                 hideRightBottomIcon =
                     splitBoundsConfig.rightBottomTaskPercent < MINIMUM_RATIO_TO_SHOW_ICON
-                if (hideLeftTopIcon || hideRightBottomIcon) {
-                    oneIconHiddenDueToSmallWidth = true
-                }
             }
 
-            leftTopTaskContainer.iconView.setFlexSplitAlpha(if (hideLeftTopIcon) 0f else 1f)
-            rightBottomTaskContainer.iconView.setFlexSplitAlpha(if (hideRightBottomIcon) 0f else 1f)
+            leftTopTaskContainer.iconView.flexSplitAlpha = if (hideLeftTopIcon) 0f else 1f
+            rightBottomTaskContainer.iconView.flexSplitAlpha = if (hideRightBottomIcon) 0f else 1f
         }
 
-        if (enableOverviewIconMenu()) {
-            val isDeviceRtl = Utilities.isRtl(resources)
-            val groupedTaskViewSizes =
-                pagedOrientationHandler.getGroupedTaskViewSizes(
-                    deviceProfile,
-                    splitBoundsConfig,
-                    layoutParams.width,
-                    layoutParams.height,
-                )
-            pagedOrientationHandler.setSplitIconParams(
-                leftTopTaskContainer.iconView.asView(),
-                rightBottomTaskContainer.iconView.asView(),
-                taskIconHeight,
-                groupedTaskViewSizes.first.x,
-                groupedTaskViewSizes.first.y,
-                layoutParams.height,
+        val isDeviceRtl = Utilities.isRtl(resources)
+        val groupedTaskViewSizes =
+            pagedOrientationHandler.getGroupedTaskViewSizes(
+                deviceProfile,
+                splitBoundsConfig,
                 layoutParams.width,
-                isDeviceRtl,
-                deviceProfile,
-                splitBoundsConfig,
-                inSplitSelection,
-                oneIconHiddenDueToSmallWidth,
+                layoutParams.height,
             )
-        } else {
-            pagedOrientationHandler.setSplitIconParams(
-                leftTopTaskContainer.iconView.asView(),
-                rightBottomTaskContainer.iconView.asView(),
-                taskIconHeight,
-                leftTopTaskContainer.taskContentView.measuredWidth,
-                leftTopTaskContainer.taskContentView.measuredHeight,
-                measuredHeight,
-                measuredWidth,
-                isLayoutRtl,
-                deviceProfile,
-                splitBoundsConfig,
-                inSplitSelection,
-                oneIconHiddenDueToSmallWidth,
-            )
-        }
+        pagedOrientationHandler.setSplitIconParams(
+            leftTopTaskContainer.iconView,
+            rightBottomTaskContainer.iconView,
+            groupedTaskViewSizes.first.x,
+            groupedTaskViewSizes.first.y,
+            layoutParams.height,
+            layoutParams.width,
+            isDeviceRtl,
+            deviceProfile,
+            splitBoundsConfig,
+            inSplitSelection,
+        )
     }
 
     fun updateSplitBoundsConfig(splitBounds: SplitBounds?) {
@@ -273,6 +242,7 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
         taskContainers.forEach {
             it.digitalWellBeingToast?.splitBounds = splitBoundsConfig
             it.digitalWellBeingToast?.initialize()
+            it.onTaskViewDisplayConfigChanged()
         }
         invalidate()
     }
@@ -354,7 +324,7 @@ class GroupedTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
 
         // Check which of the two apps was selected
         if (
-            rightBottomTaskContainer.iconView.asView().containsPoint(lastTouchDownPosition) ||
+            rightBottomTaskContainer.iconView.containsPoint(lastTouchDownPosition) ||
                 rightBottomTaskContainer.snapshotView.containsPoint(lastTouchDownPosition)
         ) {
             return 1

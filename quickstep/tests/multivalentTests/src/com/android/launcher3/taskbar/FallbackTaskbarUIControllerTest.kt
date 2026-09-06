@@ -19,6 +19,7 @@ package com.android.launcher3.taskbar
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.launcher3.statemanager.StateManager
+import com.android.launcher3.taskbar.TaskbarControllerTestUtil.runOnTaskbarUiThreadSync
 import com.android.quickstep.RecentsActivity
 import com.android.quickstep.fallback.RecentsState
 import org.junit.Before
@@ -55,26 +56,30 @@ class FallbackTaskbarUIControllerTest : TaskbarBaseTestCase() {
     @Test
     fun stateTransitionComplete_stateDefault() {
         stateListener.onStateTransitionComplete(RecentsState.DEFAULT)
-        // verify dragging disabled
-        verify(taskbarDragController, times(1)).setDisallowGlobalDrag(true)
-        verify(taskbarAllAppsController, times(1)).setDisallowGlobalDrag(true)
-        // verify long click enabled
-        verify(taskbarDragController, times(1)).setDisallowLongClick(false)
-        verify(taskbarAllAppsController, times(1)).setDisallowLongClick(false)
-        // verify split selection enabled
-        verify(taskbarPopupController, times(1)).setAllowInitialSplitSelection(true)
+        runOnTaskbarUiThreadSync {
+            // verify dragging disabled
+            verify(taskbarDragController, times(1)).setDisallowGlobalDrag(true)
+            verify(taskbarAllAppsController, times(1)).setDisallowGlobalDrag(true)
+            // verify long click enabled
+            verify(taskbarDragController, times(1)).setDisallowLongClick(false)
+            verify(taskbarAllAppsController, times(1)).setDisallowLongClick(false)
+            // verify split selection enabled
+            verify(taskbarPopupController, times(1)).setAllowInitialSplitSelection(true)
+        }
     }
 
     @Test
     fun stateTransitionComplete_stateSplitSelect() {
         stateListener.onStateTransitionComplete(RecentsState.OVERVIEW_SPLIT_SELECT)
-        // verify dragging disabled
-        verify(taskbarDragController, times(1)).setDisallowGlobalDrag(false)
-        verify(taskbarAllAppsController, times(1)).setDisallowGlobalDrag(false)
-        // verify long click enabled
-        verify(taskbarDragController, times(1)).setDisallowLongClick(true)
-        verify(taskbarAllAppsController, times(1)).setDisallowLongClick(true)
-        // verify split selection enabled
-        verify(taskbarPopupController, times(1)).setAllowInitialSplitSelection(false)
+        runOnTaskbarUiThreadSync {
+            // verify dragging disabled
+            verify(taskbarDragController, times(1)).setDisallowGlobalDrag(false)
+            verify(taskbarAllAppsController, times(1)).setDisallowGlobalDrag(false)
+            // verify long click enabled
+            verify(taskbarDragController, times(1)).setDisallowLongClick(true)
+            verify(taskbarAllAppsController, times(1)).setDisallowLongClick(true)
+            // verify split selection enabled
+            verify(taskbarPopupController, times(1)).setAllowInitialSplitSelection(false)
+        }
     }
 }

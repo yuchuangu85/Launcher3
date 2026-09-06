@@ -1,7 +1,5 @@
 package com.android.launcher3.model;
 
-import static com.android.launcher3.Utilities.ATLEAST_S;
-
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 
@@ -33,7 +31,7 @@ public class WidgetItem extends ComponentKey {
         super(info.provider, info.getProfile());
 
         label = iconCache.getTitleNoCache(info);
-        description = ATLEAST_S && info.loadDescription(context) != null ? info.loadDescription(context) : "";
+        description = info.loadDescription(context);
         widgetInfo = info;
         activityInfo = null;
 

@@ -22,4 +22,6 @@ import androidx.annotation.Dimension
  */
 interface TaskbarContainer {
     @get:Dimension(unit = Dimension.DP) val spaceNeeded: Int
+    val taskbarIconViewSize: Int
+    val taskbarIconViewPadding: Int
 }

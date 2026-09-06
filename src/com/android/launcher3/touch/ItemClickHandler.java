@@ -15,16 +15,12 @@
  */
 package com.android.launcher3.touch;
 
-import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
-
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_BIND_PENDING_APPWIDGET;
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_RECONFIGURE_APPWIDGET;
-import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
-import static com.android.launcher3.Utilities.ATLEAST_BAKLAVA;
-import static com.android.launcher3.allapps.AlphabeticalAppsList.PRIVATE_SPACE_PACKAGE;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_FOLDER_OPEN;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_INSTALL_APP_BUTTON_TAP;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_BY_PUBLISHER;
+import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_FILE_SYSTEM_NOT_READY;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_LOCKED_USER;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_QUIET_USER;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_SAFEMODE;
@@ -38,6 +34,7 @@ import android.content.Intent;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageInstaller.SessionInfo;
 import android.os.Process;
+import android.os.Trace;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -77,7 +74,6 @@ import com.android.launcher3.widget.WidgetAddFlowHandler;
 import com.android.launcher3.widget.WidgetManagerHelper;
 
 import java.util.Collections;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -102,6 +98,7 @@ public class ItemClickHandler {
         Launcher launcher = Launcher.getLauncher(v.getContext());
         if (!launcher.getWorkspace().isFinishedSwitchingState()) return;
 
+        Trace.beginSection("ItemClickHandler#onClick");
         Object tag = v.getTag();
         if (tag instanceof WorkspaceItemInfo) {
             onClickAppShortcut(v, (WorkspaceItemInfo) tag, launcher);
@@ -130,6 +127,7 @@ public class ItemClickHandler {
         } else if (tag instanceof ItemClickProxy) {
             ((ItemClickProxy) tag).onItemClicked(v);
         }
+        Trace.endSection();
     }
 
     /**
@@ -223,7 +221,8 @@ public class ItemClickHandler {
                 addFlowHandler.startBindFlow(launcher, info.appWidgetId, info,
                         REQUEST_BIND_PENDING_APPWIDGET);
             } else {
-                addFlowHandler.startConfigActivity(launcher, info, REQUEST_RECONFIGURE_APPWIDGET);
+                addFlowHandler.startConfigActivityIfSupported(launcher, info,
+                        REQUEST_RECONFIGURE_APPWIDGET);
             }
         } else {
             final String packageName = info.providerName.getPackageName();
@@ -300,12 +299,16 @@ public class ItemClickHandler {
                 return true;
             }
             // Otherwise just use a generic error message.
-            int error = R.string.activity_not_available;
-            if ((shortcut.runtimeStatusFlags & FLAG_DISABLED_SAFEMODE) != 0) {
+            final int error;
+            final int runtimeStatusFlags = shortcut.runtimeStatusFlags;
+            if ((runtimeStatusFlags & FLAG_DISABLED_SAFEMODE) != 0) {
                 error = R.string.safemode_shortcut_error;
-            } else if ((shortcut.runtimeStatusFlags & FLAG_DISABLED_BY_PUBLISHER) != 0
-                    || (shortcut.runtimeStatusFlags & FLAG_DISABLED_LOCKED_USER) != 0) {
+            } else if ((runtimeStatusFlags & FLAG_DISABLED_BY_PUBLISHER) != 0
+                    || (runtimeStatusFlags & FLAG_DISABLED_FILE_SYSTEM_NOT_READY) != 0
+                    || (runtimeStatusFlags & FLAG_DISABLED_LOCKED_USER) != 0) {
                 error = R.string.shortcut_not_available;
+            } else {
+                error = R.string.activity_not_available;
             }
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show();
             return true;
@@ -396,28 +399,6 @@ public class ItemClickHandler {
                         launcher.getAppsView().getPrivateProfileManager().getProfileUser());
                 launcher.getStatsLogManager().logger().log(
                         LAUNCHER_PRIVATE_SPACE_INSTALL_APP_BUTTON_TAP);
-            }
-        }
-
-        boolean enableMovingContentIntoPrivateSpace = false;
-        if (ATLEAST_BAKLAVA) {
-            try {
-                /* LC-Note: Some devices (Android 16 QPR) doesn't have or expose this flag to user.
-                 * Let's assume no, because (the flags) enableMovingContentIntoPrivateSpace seems
-                 * to be False for R8 by default.
-                 * */
-                enableMovingContentIntoPrivateSpace = enableMovingContentIntoPrivateSpace();
-            } catch (NoClassDefFoundError | NoSuchMethodError e) {
-                enableMovingContentIntoPrivateSpace = false;
-            }
-        }
-        if (enableMovingContentIntoPrivateSpace &&
-                Objects.equals(item.getTargetPackage(), PRIVATE_SPACE_PACKAGE)
-                && item.itemType != ITEM_TYPE_DEEP_SHORTCUT) {
-            // Only show the popup menu when clicking on the icon itself.
-            if (v instanceof BubbleTextView btv) {
-                btv.startLongPressAction();
-                return;
             }
         }
         if (intent == null) {

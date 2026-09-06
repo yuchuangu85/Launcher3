@@ -1,0 +1,82 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+uniform shader texture;
+uniform shader lut;
+uniform float intensity;
+/*
+ * The LUT cube size, in pixels (depth, width and height). If we use the OpenGL coordinate
+ * system (right-handed, Y-up, X-right, negative Z-forward), each direction represents a color change:
+ *     - Right changes (width) are related to red changes.
+ *     - Up changes (height) are related to blue changes.
+ *     - Forward changes (depth) are related to green changes.
+ */
+const float LUT_CUBE_SIZE = 32.0;
+
+/*
+ * Each height unit of the LUT cube is sliced into an LUT_CUBE_SIZE x LUT_CUBE_SIZE image;
+ * then all the images are concatenated on the texture image width. Thus, the image height
+ * is LUT_CUBE_SIZE and the width is LUT_CUBE_SIZE x LUT_CUBE_SIZE. Each slice will have a
+ * different blue value, and inside each slice, vertical direction means green color changes and
+ * horizontal direction means red color changes.
+ */
+const float IMAGE_WIDTH = LUT_CUBE_SIZE * LUT_CUBE_SIZE;
+
+// The last slice first pixel index.
+const float LAST_SLICE_FIRST_IDX = IMAGE_WIDTH - LUT_CUBE_SIZE;
+
+// The last pixel index of a slice.
+const float SLICE_LAST_IDX = LUT_CUBE_SIZE - 1.;
+const float SLICE_LAST_IDX_INV = 1. / SLICE_LAST_IDX;
+
+// Applies lut, pass in texture color to apply to.
+vec4 main(float2 fragCoord) {
+    vec4 color = texture.eval(fragCoord);
+
+    /*
+     * When we fetch the new color on the LUT cube, each color can fall in between two values
+     * (pixels) which might not be one next to each other. we need to calculate both values and
+     * interpolate.
+     */
+    vec3 colorTmp = color.rgb * SLICE_LAST_IDX;
+
+    // Calculate the floor UVs.
+    vec3 colorFloor = floor(colorTmp) * SLICE_LAST_IDX_INV;
+    ivec2 uvFloor = ivec2(
+        int(colorFloor.b * LAST_SLICE_FIRST_IDX + colorFloor.r * SLICE_LAST_IDX),
+        int(colorFloor.g * SLICE_LAST_IDX)
+    );
+
+    // Calculate the ceil UVs.
+    vec3 colorCeil = ceil(colorTmp) * SLICE_LAST_IDX_INV;
+    ivec2 uvCeil = ivec2(
+        int(colorCeil.b * LAST_SLICE_FIRST_IDX + colorCeil.r * SLICE_LAST_IDX),
+        int(colorCeil.g * SLICE_LAST_IDX)
+    );
+
+    /*
+     * Fetch the color from the LUT, and combine both floor and ceiling options based on the
+     * fractional part.
+     */
+    vec4 colorAfterLut = vec4(0., 0., 0., color.a);
+    colorAfterLut.rgb = mix(
+        lut.eval(vec2(uvFloor.x, uvFloor.y)).rgb,
+        lut.eval(vec2(uvCeil.x, uvCeil.y)).rgb,
+        fract(colorTmp)
+    );
+
+    return mix(color, colorAfterLut, intensity);
+}

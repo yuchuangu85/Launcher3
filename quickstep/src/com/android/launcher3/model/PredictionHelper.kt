@@ -41,7 +41,6 @@ import com.android.launcher3.logger.LauncherAtom.ContainerInfo.ContainerCase.TAS
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo.ContainerCase.WORKSPACE
 import com.android.launcher3.logger.LauncherAtom.FolderContainer.ParentContainerCase
 import com.android.launcher3.logger.LauncherAtom.HotseatContainer
-import com.android.launcher3.logger.LauncherAtom.ItemInfo.ItemCase.WIDGET
 import com.android.launcher3.logger.LauncherAtom.WorkspaceContainer
 import com.android.launcher3.logger.LauncherAtomExtensions.ExtendedContainers.ContainerCase.DEVICE_SEARCH_RESULT_CONTAINER
 import com.android.launcher3.model.data.ItemInfo
@@ -83,14 +82,6 @@ object PredictionHelper {
     @JvmStatic
     fun ItemInfo.isTrackedForWidgetPrediction(): Boolean =
         itemType == ITEM_TYPE_APPWIDGET && container == CONTAINER_DESKTOP
-
-    /**
-     * Helper method to determine if [LauncherAtom.ItemInfo] should be tracked and reported to
-     * widget predictors
-     */
-    @JvmStatic
-    fun LauncherAtom.ItemInfo.isTrackedForWidgetPrediction(): Boolean =
-        itemCase == WIDGET && containerInfo.containerCase == WORKSPACE
 
     /** Creates and returns bundle using workspace items for hotseat predictions */
     @JvmStatic
@@ -208,7 +199,7 @@ object PredictionHelper {
             info.itemType == Favorites.ITEM_TYPE_FOLDER ->
                 AppTarget.Builder(AppTargetId("folder:" + info.id), context.packageName, info.user)
                     .build()
-            info.itemType == Favorites.ITEM_TYPE_APP_PAIR ->
+            info.itemType == Favorites.ITEM_TYPE_APP_GROUP ->
                 AppTarget.Builder(
                         AppTargetId("app_pair:" + info.id),
                         context.packageName,

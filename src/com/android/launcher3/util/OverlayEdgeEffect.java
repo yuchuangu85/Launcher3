@@ -22,7 +22,6 @@ import android.view.MotionEvent;
 import android.widget.EdgeEffect;
 
 import com.android.launcher3.BuildConfig;
-import com.android.launcher3.BuildConfigs;
 import com.android.launcher3.Utilities;
 import com.android.systemui.plugins.shared.LauncherOverlayManager.LauncherOverlayTouchProxy;
 
@@ -50,7 +49,7 @@ public class OverlayEdgeEffect extends EdgeEffectCompat {
     @Override
     public float onPullDistance(float deltaDistance, float displacement) {
         // Fallback implementation, will never actually get called
-        if (BuildConfigs.IS_DEBUG_DEVICE) {
+        if (BuildConfig.IS_DEBUG_DEVICE) {
             throw new RuntimeException("Wrong method called");
         }
         MotionEvent mv = MotionEvent.obtain(SystemClock.uptimeMillis(), SystemClock.uptimeMillis(),
@@ -87,7 +86,7 @@ public class OverlayEdgeEffect extends EdgeEffectCompat {
     @Override
     public void onRelease() {
         // Fallback implementation, will never actually get called
-        if (BuildConfigs.IS_DEBUG_DEVICE) {
+        if (BuildConfig.IS_DEBUG_DEVICE) {
             throw new RuntimeException("Wrong method called");
         }
         MotionEvent mv = MotionEvent.obtain(SystemClock.uptimeMillis(), SystemClock.uptimeMillis(),

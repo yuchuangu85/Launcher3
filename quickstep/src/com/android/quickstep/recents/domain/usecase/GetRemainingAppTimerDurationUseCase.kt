@@ -17,8 +17,10 @@
 package com.android.quickstep.recents.domain.usecase
 
 import android.os.UserHandle
+import com.android.quickstep.recents.data.AppTimerResponse
 import com.android.quickstep.recents.data.AppTimersRepository
 import java.time.Duration
+import javax.inject.Inject
 
 /**
  * Use case that provides remaining duration on the app usage limit timer set for the given user.
@@ -26,17 +28,25 @@ import java.time.Duration
  * Responsible for applying business rules around how the remaining time is treated within overview
  * module e.g. rounds partial minutes to the next minute.
  */
-class GetRemainingAppTimerDurationUseCase(private val appTimersRepository: AppTimersRepository) {
+class GetRemainingAppTimerDurationUseCase
+@Inject
+constructor(private val appTimersRepository: AppTimersRepository) {
     suspend operator fun invoke(packageName: String, userHandle: UserHandle): Duration? {
-        val totalRemainingDuration =
-            appTimersRepository.getRemainingDuration(packageName, userHandle) ?: return null
-        val totalRemainingMs = totalRemainingDuration.toMillis()
+        val totalRemainingDuration: AppTimerResponse =
+            appTimersRepository.getRemainingDuration(packageName, userHandle)
+        when (totalRemainingDuration) {
+            is AppTimerResponse.NoTimer -> return null
+            is AppTimerResponse.AppTimerDuration -> {
+                val duration = totalRemainingDuration.duration
+                val totalRemainingMs = duration.toMillis()
 
-        val isLessThanAMinute = totalRemainingMs < MS_IN_A_MINUTE
-        val isInWholeMinutes = (totalRemainingMs % MS_IN_A_MINUTE) == 0L
-        return when {
-            isLessThanAMinute || isInWholeMinutes -> totalRemainingDuration
-            else -> Duration.ofMinutes(totalRemainingDuration.toMinutes() + 1)
+                val isLessThanAMinute = totalRemainingMs < MS_IN_A_MINUTE
+                val isInWholeMinutes = (totalRemainingMs % MS_IN_A_MINUTE) == 0L
+                return when {
+                    isLessThanAMinute || isInWholeMinutes -> duration
+                    else -> Duration.ofMinutes(duration.toMinutes() + 1)
+                }
+            }
         }
     }
 

@@ -1,0 +1,82 @@
+// launcher3-quickstep-e2e-test-shared-utils
+
+filegroup {
+    name: "launcher3-quickstep-e2e-test-shared-utils",
+    srcs: [
+        "com/android/quickstep/util/MultiDisplayTestRule.kt",
+    ],
+}
+
+// launcher3-quickstep-e2e-inproc-tests
+
+filegroup {
+    name: "launcher3-quickstep-e2e-inproc-tests-only",
+    srcs: [
+        "com/android/quickstep/TaplPrivateSpaceTest.java",
+        "com/android/quickstep/TaplStartLauncherViaGestureTests.java",
+        "com/android/quickstep/TaplTaskbarPinningTest.kt",
+        "com/android/quickstep/TaplTestsKeyboardQuickSwitch.java",
+        "com/android/quickstep/TaplTestsPersistentTaskbar.java",
+        "com/android/quickstep/TaplTestsTaskbar.java",
+        "com/android/quickstep/recents/TaplOverviewDesktopTest.kt",
+        "com/android/quickstep/recents/TaplOverviewFallbackTest.java",
+    ],
+}
+
+filegroup {
+    name: "launcher3-quickstep-e2e-inproc-tests-utils",
+    srcs: [
+        "com/android/quickstep/AbstractQuickStepTest.java",
+        "com/android/quickstep/AbstractTaplTestsTaskbar.java",
+        "com/android/quickstep/TaskbarModeSwitchRule.java",
+        "com/android/quickstep/NavigationModeSwitchRule.java",
+        "com/android/launcher3/testcomponent/ExcludeFromRecentsTestActivity.java",
+        ":launcher3-quickstep-e2e-test-shared-utils",
+    ],
+}
+
+filegroup {
+    name: "launcher3-quickstep-e2e-inproc-tests",
+    srcs: [
+        ":launcher3-quickstep-e2e-inproc-tests-only",
+        ":launcher3-quickstep-e2e-inproc-tests-utils",
+    ],
+}
+
+// launcher3-quickstep-oop-tests
+
+filegroup {
+    name: "launcher3-quickstep-oop-tests-only",
+    srcs: [
+        "com/android/quickstep/TaplTaskbarDragging.kt",
+        "com/android/quickstep/TaplTestsQuickstep.java",
+        "com/android/quickstep/TaplTestsSplitscreen.java",
+        "com/android/quickstep/TaplTestsTrackpad.java",
+        "com/android/quickstep/TaplTestTaskbarIconDrag.kt",
+        "com/android/quickstep/TaplTestsDesktopTaskbarAllAppsDragTest.java",
+        "com/android/quickstep/TaplTestsTransientTaskbar.java",
+        "com/android/quickstep/recents/TaplOverviewDismissTest.java",
+        "com/android/quickstep/recents/TaplOverviewIconTest.java",
+        "com/android/quickstep/recents/TaplOverviewKeyboardTest.java",
+        "com/android/quickstep/recents/TaplOverviewTest.java",
+        "com/android/quickstep/recents/TaplOverviewExternalDisplayTest.kt",
+    ],
+}
+
+filegroup {
+    name: "launcher3-quickstep-oop-tests-utils",
+    srcs: [
+        "com/android/quickstep/util/SplitScreenTestUtils.kt",
+        "com/android/quickstep/util/OOPDisplayWindowingModeRule.kt",
+        ":launcher3-quickstep-e2e-test-shared-utils",
+    ],
+}
+
+filegroup {
+    name: "launcher3-quickstep-oop-tests",
+    srcs: [
+        ":launcher3-quickstep-oop-tests-only",
+        ":launcher3-quickstep-oop-tests-utils",
+        ":launcher3-quickstep-e2e-inproc-tests-utils",
+    ],
+}

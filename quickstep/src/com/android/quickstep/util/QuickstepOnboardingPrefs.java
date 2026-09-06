@@ -25,7 +25,6 @@ import static com.android.launcher3.util.NavigationMode.NO_BUTTON;
 import static com.android.launcher3.util.OnboardingPrefs.ALL_APPS_VISITED_COUNT;
 import static com.android.launcher3.util.OnboardingPrefs.HOME_BOUNCE_COUNT;
 import static com.android.launcher3.util.OnboardingPrefs.HOME_BOUNCE_SEEN;
-import static com.android.launcher3.util.OnboardingPrefs.HOTSEAT_DISCOVERY_TIP_COUNT;
 
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherPrefs;
@@ -33,11 +32,10 @@ import com.android.launcher3.LauncherState;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.Workspace;
 import com.android.launcher3.appprediction.AppsDividerView;
-import com.android.launcher3.hybridhotseat.HotseatPredictionController;
+import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.statemanager.StateManager.StateListener;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
-import com.android.launcher3.util.DisplayController;
 import com.android.quickstep.views.AllAppsEduView;
 
 /**
@@ -63,30 +61,6 @@ public class QuickstepOnboardingPrefs {
                             HOME_BOUNCE_COUNT.hasReachedMax(launcher))) {
                         LauncherPrefs.get(launcher).put(HOME_BOUNCE_SEEN, true);
                         stateManager.removeStateListener(this);
-                    }
-                }
-            });
-        }
-
-        if (!Utilities.isRunningInTestHarness()
-                && !HOTSEAT_DISCOVERY_TIP_COUNT.hasReachedMax(launcher)) {
-            stateManager.addStateListener(new StateListener<LauncherState>() {
-                boolean mFromAllApps = false;
-
-                @Override
-                public void onStateTransitionStart(LauncherState toState) {
-                    mFromAllApps = launcher.getStateManager().getCurrentStableState() == ALL_APPS;
-                }
-
-                @Override
-                public void onStateTransitionComplete(LauncherState finalState) {
-                    HotseatPredictionController client = launcher.getHotseatPredictionController();
-                    if (mFromAllApps && finalState == NORMAL && client.hasPredictions()) {
-                        if (!launcher.getDeviceProfile().getDeviceProperties().isTablet()
-                                && HOTSEAT_DISCOVERY_TIP_COUNT.increment(launcher)) {
-                            client.showEdu();
-                            stateManager.removeStateListener(this);
-                        }
                     }
                 }
             });

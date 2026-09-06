@@ -18,11 +18,13 @@ package com.android.quickstep.actioncorner
 
 import android.app.ActivityOptions
 import android.content.Context
+import android.view.Display.DEFAULT_DISPLAY
 import android.window.SplashScreen
 import com.android.launcher3.Flags.enableReversibleHomeActionCorner
 import com.android.launcher3.concurrent.annotations.LightweightBackground
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.util.ActivityOptionsWrapper
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.RunnableList
 import com.android.launcher3.util.SplitConfigurationOptions
 import com.android.quickstep.OverviewCommandHelper
@@ -31,6 +33,7 @@ import com.android.quickstep.OverviewCommandHelper.CommandType.TOGGLE_OVERVIEW_P
 import com.android.quickstep.OverviewComponentObserver
 import com.android.quickstep.RecentsModel
 import com.android.quickstep.TopTaskTracker
+import com.android.quickstep.dagger.SysUIConnectionSingleton
 import com.android.quickstep.util.AnimUtils
 import com.android.quickstep.util.GroupTask
 import com.android.quickstep.util.SingleTask
@@ -41,39 +44,43 @@ import com.android.systemui.shared.system.actioncorner.ActionCornerConstants.Act
 import com.android.systemui.shared.system.actioncorner.ActionCornerConstants.HOME
 import com.android.systemui.shared.system.actioncorner.ActionCornerConstants.OVERVIEW
 import com.android.wm.shell.shared.GroupedTaskInfo
+import com.android.wm.shell.shared.desktopmode.DesktopState
 import com.android.wm.shell.shared.split.SplitScreenConstants
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
 import java.util.concurrent.Executor
 import java.util.function.Predicate
+import javax.inject.Inject
 
 /**
  * Handles actions triggered from action corners that are mapped to specific functionalities.
  * Launcher supports both overview and home actions.
  */
+@SysUIConnectionSingleton
 class ActionCornerHandler
-@AssistedInject
+@Inject
 constructor(
     @ApplicationContext private val context: Context,
     private val overviewComponentObserver: OverviewComponentObserver,
     private val topTaskTracker: TopTaskTracker,
     private val recentsModel: RecentsModel,
     private val activityManagerWrapper: ActivityManagerWrapper,
+    private val desktopState: DesktopState,
     @LightweightBackground private val executor: Executor,
-    @Assisted private val overviewCommandHelper: OverviewCommandHelper,
+    private val overviewCommandHelper: OverviewCommandHelper,
 ) {
-    @AssistedFactory
-    interface Factory {
-        fun create(overviewCommandHelper: OverviewCommandHelper): ActionCornerHandler
-    }
 
     private val displayToPreviousScreenMap = HashMap<Int, PreviousScreen>()
 
     fun handleAction(@Action action: Int, displayId: Int) {
         when (action) {
-            // TODO(b/410798748): handle projected mode when launching overview
-            OVERVIEW -> overviewCommandHelper.addCommandsForAllDisplays(TOGGLE_OVERVIEW_PREVIOUS)
+            OVERVIEW ->
+                if (desktopState.isProjectedMode()) {
+                    overviewCommandHelper.addCommandsForDisplaysExcept(
+                        TOGGLE_OVERVIEW_PREVIOUS,
+                        DEFAULT_DISPLAY,
+                    )
+                } else {
+                    overviewCommandHelper.addCommandsForAllDisplays(TOGGLE_OVERVIEW_PREVIOUS)
+                }
             HOME ->
                 if (enableReversibleHomeActionCorner()) {
                     handleHomeAction(displayId)
@@ -198,7 +205,8 @@ constructor(
         )
 
         val recentsViewContainer = getRecentsViewContainer(displayId) ?: return null
-        val endCallback = AnimUtils.completeRunnableListCallback(callbacks, recentsViewContainer)
+        val endCallback =
+            AnimUtils.completeRunnableListCallback(callbacks, recentsViewContainer, MAIN_EXECUTOR)
         options.setOnAnimationAbortListener(endCallback)
         options.setOnAnimationFinishedListener(endCallback)
         return ActivityOptionsWrapper(options, callbacks).options

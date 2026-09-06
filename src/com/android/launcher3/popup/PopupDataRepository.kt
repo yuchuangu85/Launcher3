@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright (C) 2026 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,52 +16,26 @@
 
 package com.android.launcher3.popup
 
-import android.content.Intent
 import com.android.launcher3.model.data.ItemInfo
-import java.util.stream.Stream
+import javax.inject.Inject
+import javax.inject.Named
 
-/**
- * Enum for the category of popup we have, as we handle different categories of shortcuts
- * differently depending on the category.
- */
-enum class PopupCategory {
-    SYSTEM_SHORTCUT,
-    SYSTEM_SHORTCUT_FIXED,
-}
-
-/** Data class which stores all the values we need to create a long press menu shortcut. */
-data class PopupData(
-    val iconResId: Int,
-    val labelResId: Int,
-    val intent: Intent,
-    val category: PopupCategory,
-)
-
-/** Repository to get all the popup data needed for the long press menu. */
-interface PopupDataRepository {
-    /**
-     * @return a map where we the key is the type of poppable and the value is a stream of popup
-     *   data belonging to that type.
-     */
-    fun getAllPopupData(): Map<PoppableType, Stream<PopupData>>
+class PopupDataRepository
+@Inject
+constructor(@Named(POPUP_DATA_MAPPER) val mappers: Set<@JvmSuppressWildcards PopupDataMapper>) {
 
     /**
-     * @param type of PoppableType is what we use to filter shortcuts to only show the ones for that
-     *   type of shortcut (e.g: only show long press shortcuts that belong to Folder type).
-     * @return a stream of popup data belonging to that type.
+     * Retrieves the popup data for a specific [ItemInfo].
+     *
+     * @param itemInfo The item to retrieve popup data for.
+     * @return the list of [PopupData] if available, or null if the item type is not supported.
      */
-    fun getPopupDataByType(type: PoppableType): Stream<PopupData>
+    fun getAllSupportedPopupActions(itemInfo: ItemInfo): List<PopupData>? {
+        // TODO: Implement some sorting logic
+        return mappers.mapNotNull { it.getPopupDataByItemInfo(itemInfo) }.flatten().ifEmpty { null }
+    }
 
-    /** Factory for creating a popup data repository */
-    companion object PopupDataRepositoryFactory {
-        /**
-         * Creates a popup data repository.
-         *
-         * @param itemInfo is all the items for which we want to aggregate their popup data.
-         * @return a new PopupDataRepository.
-         */
-        fun createRepository(vararg itemInfo: ItemInfo): PopupDataRepository {
-            return TODO("Provide the return value")
-        }
+    companion object {
+        const val POPUP_DATA_MAPPER = "POPUP_DATA_MAPPER"
     }
 }

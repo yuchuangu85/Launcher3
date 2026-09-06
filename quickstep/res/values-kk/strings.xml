@@ -22,6 +22,7 @@
     <string name="recent_task_option_pin" msgid="7929860679018978258">"Бекіту"</string>
     <string name="recent_task_option_freeform" msgid="48863056265284071">"Еркін форма"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Компьютер"</string>
+    <string name="recent_split_task_option_desktop" msgid="7272418191932478598">"%1$s жұмыс үстелі"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Сыртқы дисплейге ауыстыру"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"Өшіру"</string>
     <string name="recent_task_desktop" msgid="8081113562549637334">"Жұмыс үстелі"</string>
@@ -35,19 +36,12 @@
     <string name="time_left_for_app" msgid="3111996412933644358">"Бүгін <xliff:g id="TIME">%1$s</xliff:g> қалды"</string>
     <string name="title_app_suggestions" msgid="4185902664111965088">"Қолданба ұсыныстары"</string>
     <string name="all_apps_prediction_tip" msgid="2672336544844936186">"Ұсынылатын қолданбалар"</string>
-    <string name="hotseat_edu_title_migrate" msgid="306578144424489980">"Негізгі экранның төменгі жолында қолданбаларды ұсыну"</string>
-    <string name="hotseat_edu_title_migrate_landscape" msgid="3633942953997845243">"Қолданба ұсыныстары негізгі экрандағы таңдаулылар жолында көрсетілетін болады"</string>
-    <string name="hotseat_edu_message_migrate" msgid="8927179260533775320">"Жиі пайдаланылатын қолданбаларға негізгі экраннан кіруге болады. Ұсыныстар күнделікті әрекеттеріңізге сәйкес өзгереді. Төменгі қатардағы қолданбалар негізгі экранға қарай жоғары жылжиды."</string>
-    <string name="hotseat_edu_message_migrate_landscape" msgid="4248943380443387697">"Жиі пайдаланылатын қолданбаларға негізгі экраннан оңай кіре аласыз. Ұсыныстар күнделікті әрекеттеріңізге сәйкес өзгереді. Таңдаулылар жолындағы қолданбалар негізгі экранға ауысады."</string>
-    <string name="hotseat_edu_accept" msgid="1611544083278999837">"Қолданба ұсыныстарын алу"</string>
-    <string name="hotseat_edu_dismiss" msgid="2781161822780201689">"Жоқ, рақмет"</string>
     <string name="hotseat_prediction_settings" msgid="6246554993566070818">"Параметрлер"</string>
     <string name="hotseat_auto_enrolled" msgid="522100018967146807">"Жиі пайдаланылатын қолданбалар осы жерде көрсетіледі. Олар күнделікті әрекеттеріңізге сәйкес өзгереді."</string>
     <string name="hotseat_tip_no_empty_slots" msgid="1325212677738179185">"Қолданба ұсыныстарын алу үшін төменгі қатардан керектерін сүйреп шығарыңыз."</string>
     <string name="hotseat_tip_gaps_filled" msgid="3035673010274223538">"Қолданба ұсыныстары бос орынға қойылып отырады."</string>
     <string name="hotsaet_tip_prediction_enabled" msgid="2233554377501347650">"\"Қолданба ұсыныстары\" функциясы қосылды."</string>
     <string name="hotsaet_tip_prediction_disabled" msgid="1506426298884658491">"\"Қолданба ұсыныстары\" функциясы өшірулі."</string>
-    <string name="hotseat_prediction_content_description" msgid="4582028296938078419">"Болжалды қолданба: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="gesture_tutorial_title" msgid="2750751261768388354">"Қимылмен басқару оқулығы"</string>
     <string name="gesture_tutorial_rotation_prompt_title" msgid="7537946781362766964">"Құрылғыны бұрыңыз"</string>
     <string name="gesture_tutorial_rotation_prompt" msgid="1664493449851960691">"Қимылмен басқару нұсқаулығын аяқтау үшін құрылғыны бұрыңыз."</string>
@@ -60,7 +54,7 @@
     <string name="back_gesture_tutorial_confirm_subtitle" msgid="5181305411668713250">"Артқа қайту қимылы сезгіштігін параметрлерден өзгертіңіз."</string>
     <string name="back_gesture_intro_title" msgid="19551256430224428">"Артқа қайту үшін сырғытыңыз"</string>
     <string name="back_gesture_intro_subtitle" msgid="7912576483031802797">"Соңғы ашылған экранға оралу үшін экранның сол немесе оң жақ шетінен ортасына қарай сырғытыңыз."</string>
-    <string name="back_gesture_tutorial_title" msgid="1944737946101059789">"Артқа"</string>
+    <string name="back_gesture_tutorial_title" msgid="1944737946101059789">"Артқа қайту"</string>
     <string name="back_gesture_tutorial_subtitle" msgid="6639993416000920142">"Экранның сол немесе оң жақ шетінен ортасына қарай сырғытыңыз."</string>
     <string name="home_gesture_feedback_swipe_too_far_from_edge" msgid="4816365433160895458">"Экранның төменгі шетінен жоғары қарай сырғытыңыз."</string>
     <string name="home_gesture_feedback_overview_detected" msgid="5177627157303895077">"Жіберер алдында кідіріс жасамаңыз."</string>
@@ -76,7 +70,7 @@
     <string name="overview_gesture_feedback_home_detected" msgid="663432226180397138">"Жіберер алдында терезені ұзағырақ ұстап тұруға тырысыңыз."</string>
     <string name="overview_gesture_feedback_wrong_swipe_direction" msgid="1191055451018584958">"Тігінен жоғары қарай сырғытыңыз да, кідіріңіз."</string>
     <string name="overview_gesture_feedback_complete_with_follow_up" msgid="3544611727467765026">"Қимылдарды қолдануды үйрендіңіз. Қимылдарды өшіру үшін \"Параметрлер\" бөліміне өтіңіз."</string>
-    <string name="overview_gesture_feedback_complete_without_follow_up" msgid="2903050864432331629">"Қолданбаларды ауыстыру қимылын аяқтадыңыз."</string>
+    <string name="overview_gesture_feedback_complete_without_follow_up" msgid="2903050864432331629">"Қолданбалар арасында ауысу қимылын аяқтадыңыз."</string>
     <string name="overview_gesture_intro_title" msgid="2902054412868489378">"Қолданбаларды ауыстыру үшін сырғытыңыз"</string>
     <string name="overview_gesture_intro_subtitle" msgid="4968091015637850859">"Бір қолданбадан екіншісіне ауысу үшін экранның төменгі жағынан жоғары қарай сырғытып, ұстап тұрыңыз, кейін жіберіңіз."</string>
     <string name="overview_gesture_tutorial_title" msgid="4125835002668708720">"Қолданбалар арасында ауысу"</string>
@@ -93,12 +87,15 @@
     <string name="allset_button_hint" msgid="2395219947744706291">"Негізгі экранға өту үшін негізгі экран түймесін түртіңіз."</string>
     <string name="allset_description_generic" msgid="5385500062202019855">"<xliff:g id="DEVICE">%1$s</xliff:g> пайдалануға дайын."</string>
     <string name="allset_description_fallback" msgid="2488751930355201578">"Құрылғы пайдалануға дайын."</string>
-    <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Навигацияның жүйелік параметрлері"</annotation></string>
+    <string name="allset_navigation_settings" msgid="4713404605961476027"><annotation id="link">"Жүйе навигациясы параметрлері"</annotation></string>
     <string name="allset_title_expressive" msgid="474399969304146994">"<xliff:g id="DEVICE">%1$s</xliff:g> \nдайын!"</string>
     <string name="allset_title_expressive_fallback" msgid="2829102990606405239">"Құрылғыңыз \nдайын!"</string>
+    <string name="allset_title_expressive_fixed" msgid="3564219469262883526">"Іске кірісуге болады!"</string>
     <string name="allset_subtitle_expressive" msgid="419688197551192358">"Жаңа <xliff:g id="DEVICE">%1$s</xliff:g> дайын!"</string>
+    <string name="allset_subtitle_expressive_gesture_navigation" msgid="8931442349501593934">"Құрылғыны (<xliff:g id="DEVICE">%1$s</xliff:g>) пайдалана бастау үшін жоғары сырғытыңыз."</string>
+    <string name="allset_subtitle_expressive_button_navigation" msgid="5219509605046028014">"<xliff:g id="DEVICE">%1$s</xliff:g> қолдануды бастау үшін түртіңіз."</string>
     <string name="allset_navigation_settings_expressive" msgid="3745595273748356"><annotation id="link">"Өту жолын таңдау"</annotation></string>
-    <string name="allset_hint_expressive" msgid="756856423510976261">"Жоғары сырғыту"</string>
+    <string name="allset_hint_expressive" msgid="756856423510976261">"Жоғары сырғытыңыз"</string>
     <string name="allset_button_hint_expressive" msgid="667643693410494225">"Негізгі экран түймесін түртіңіз"</string>
     <string name="allset_device_type_tablet" msgid="2173392009787325894">"планшет"</string>
     <string name="allset_device_type_phone" msgid="6842334562074507337">"телефон"</string>
@@ -113,24 +110,30 @@
     <string name="toast_split_app_unsupported" msgid="2360229567007828914">"Экранды бөлу үшін басқа қолданбаны таңдаңыз."</string>
     <string name="blocked_by_policy" msgid="2071401072261365546">"Бұл әрекетке қолданба не ұйым рұқсат етпейді."</string>
     <string name="split_widgets_not_supported" msgid="1355743038053053866">"Виджеттерге қазір қолдау көрсетілмейді. Басқа қолданба таңдаңыз."</string>
+    <string name="action_image_copy" msgid="6877540054727709339">"Көшіру"</string>
+    <string name="action_image_save" msgid="6205538612408306742">"Сақтау"</string>
     <string name="accessibility_rotate_button" msgid="4771825231336502943">"Экранды бұру"</string>
     <string name="taskbar_edu_swipe_animation_description" msgid="1690727240826006218">"Тапсырмалар жолағының экранның төменгі жағынан қалай көрініп, қолданылмаған кезде автоматты түрде жасырылатыны көрсетілген анимация"</string>
     <string name="taskbar_edu_pinning_animation_description" msgid="8148601093590683880">"Тапсырмалар жолағы экранның төменгі жағында үнемі көрініп тұруы үшін, оны ауыстырғышпен бекіту жолы көрсетілген анимация"</string>
+    <string name="taskbar_edu_bubbles_animation_description" msgid="421866726938396813">"Қалқыма терезені тапсырмалар жолағынан сүйреу арқылы жасау жолы көрсетілген анимация"</string>
     <string name="taskbar_edu_split_screen_animation_description" msgid="371796444988899166">"Қолданбаны тапсырмалар жолағынан ашық қолданба үстіне сүйреп қою арқылы бөлінген экран жасау жолы көрсетілген анимация"</string>
     <string name="taskbar_edu_suggested_app_animation_description" msgid="3443453246478079085">"Құрылғыдағы ұсынылған қолданбаларға кіру жолы көрсетілген анимация"</string>
     <string name="taskbar_edu_suggested_search_animation_description" msgid="1874284242557104818">"Әрекет пернесін басып тұрып, элемент кіретін аймақты таңдау арқылы экрандағы элементті іздеу жолы көрсетілген анимация"</string>
     <string name="taskbar_edu_a11y_title" msgid="5417986057866415355">"Тапсырмалар жолағы: үйрену"</string>
     <string name="taskbar_edu_splitscreen" msgid="5605512479258053350">"2 қолданбаны бір мезгілде пайдалану үшін қолданбаны шетке сүйреңіз."</string>
-    <string name="taskbar_edu_stashing" msgid="5645461372669217294">"Тапсырмалар жолағын көрсету үшін жоғары қарай ақырын сырғытыңыз."</string>
+    <string name="taskbar_edu_bubbles" msgid="5179266214319135127">"Қалқып тұруы үшін, төменгі бұрыштарға сүйреңіз"</string>
+    <string name="taskbar_edu_stashing" msgid="911857479758694381">"Тапсырмалар жолағын көрсету үшін жоғары баяу сырғытыңыз"</string>
     <string name="taskbar_edu_suggestions" msgid="8215044496435527982">"Іс-әрекеттеріңізге негізделген қолданба ұсыныстарын алыңыз."</string>
     <string name="taskbar_edu_pinning" msgid="6708550858580071558">"Тапсырмалар жолағын бекіту үшін бөлгішті ұзақ басып тұрыңыз."</string>
     <string name="taskbar_edu_features" msgid="3320337287472848162">"Тапсырмалар жолағында мүмкіндік көп"</string>
     <string name="taskbar_edu_pinning_title" msgid="210102174154211712">"Тапсырмалар жолағын әрдайым көрсету"</string>
     <string name="taskbar_edu_pinning_standalone" msgid="2636919474366410467">"Экранның төменгі жағында тапсырмалар жолағы әрдайым көрсетілуі үшін, бөлгішті басып тұрыңыз."</string>
+    <string name="taskbar_edu_bubbles_standalone" msgid="4182824636656528043">"Қалқыма қолданба белгішесін жасау үшін оны бұрышқа сүйреңіз."</string>
     <string name="taskbar_search_edu_title" msgid="5569194922234364530">"Экраннан іздеу үшін әрекет пернесін басып тұрыңыз"</string>
     <string name="taskbar_edu_search_disclosure" msgid="8734536088447779686">"Бұл өнім іздеу үшін экранның таңдалған бөлігін пайдаланады. Google <xliff:g id="BEGIN_PRIVACY_LINK">&lt;a href="%1$s"&gt;</xliff:g>Құпиялық саясаты<xliff:g id="END_PRIVACY_LINK">&lt;/a&gt;</xliff:g> мен <xliff:g id="BEGIN_TOS_LINK">&lt;a href="%2$s"&gt;</xliff:g>Қызмет көрсету шарттары<xliff:g id="END_TOS_LINK">&lt;/a&gt;</xliff:g> қолданылады."</string>
     <string name="taskbar_edu_close" msgid="887022990168191073">"Жабу"</string>
     <string name="taskbar_edu_done" msgid="6880178093977704569">"Дайын"</string>
+    <string name="taskbar_edu_next" msgid="4007618274426775841">"Келесі"</string>
     <string name="taskbar_button_home" msgid="2151398979630664652">"Негізгі экран"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"Арнайы мүмкіндік"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"Артқа"</string>
@@ -138,24 +141,27 @@
     <string name="taskbar_button_recents" msgid="7273376136216613134">"Соңғылары"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"Хабарландырулар"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"Жылдам параметрлер"</string>
+    <string name="taskbar_button_more_options" msgid="8685586215650683202">"Басқа опциялар"</string>
     <string name="taskbar_a11y_title" msgid="6432169809852243110">"Тапсырмалар жолағы"</string>
-    <string name="taskbar_a11y_shown_title" msgid="6842833581088937713">"Тапсырмалар жолағы көрсетілді"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_left_title" msgid="4242431789851790046">"Тапсырмалар жолағы мен қалқыма терезелер сол жақта көрсетілген"</string>
-    <string name="taskbar_a11y_shown_with_bubbles_right_title" msgid="8219065376188180113">"Тапсырмалар жолағы мен қалқыма терезелер оң жақта көрсетілген"</string>
+    <string name="bubble_bar_a11y_title" msgid="7743340801055597168">"Қалқыма терезелер жолағы"</string>
     <string name="taskbar_phone_a11y_title" msgid="4933360237131229395">"Навигация жолағы"</string>
     <string name="always_show_taskbar" msgid="3608801276107751229">"Тапсырма жолағын үнемі көрсету"</string>
     <string name="change_navigation_mode" msgid="9088393078736808968">"Навигация режимін өзгерту"</string>
     <string name="taskbar_divider_a11y_title" msgid="6608690309720242080">"Тапсырмалар жолағын бөлгіш"</string>
-    <string name="taskbar_overflow_a11y_title" msgid="8114045167370723746">"Басқа соңғы қолданбалар"</string>
+    <string name="taskbar_recents_overflow_a11y_title" msgid="8005941062446304304">"Басқа соңғы қолданбалар"</string>
+    <string name="taskbar_pinned_overflow_a11y_title" msgid="2314810718333302626">"Басқа қолданбалар"</string>
+    <string name="taskbar_drag_to_unpin_title" msgid="7652941692376783721">"Өшіру"</string>
     <string name="move_drop_target_top_or_left" msgid="2988702185049595807">"Жоғары/солға жылжыту"</string>
     <string name="move_drop_target_bottom_or_right" msgid="5431393418797620162">"Төмен/оңға жылжыту"</string>
     <string name="open_app_as_a_bubble" msgid="6642626287247807473">"Қолданбаны қалқыма терезе түрінде ашу"</string>
+    <string name="action_move_item_left" msgid="1553114361342866236">"Элементті солға жылжыту"</string>
+    <string name="action_move_item_right" msgid="682950193875586183">"Элементті оңға жылжыту"</string>
     <string name="quick_switch_pane_title" msgid="4677158207760585812">"Соңғы қолданбалар"</string>
     <string name="quick_switch_content_description" msgid="2851244536728720005">"Соңғы қолданбалар тізімі"</string>
     <string name="quick_switch_overflow" msgid="3679780650881041632">"{count,plural, =1{қосымша қолданба}other{қосымша қолданба}}"</string>
     <string name="quick_switch_desktop" msgid="8393802056024499749">"Компьютер"</string>
     <string name="quick_switch_split_task" msgid="5598194724255333896">"<xliff:g id="APP_NAME_1">%1$s</xliff:g> және <xliff:g id="APP_NAME_2">%2$s</xliff:g>"</string>
-    <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g>/<xliff:g id="TOTAL_TASKS">%3$d</xliff:g> элемент"</string>
+    <string name="quick_switch_task_with_position_in_parent" msgid="9082434281522648105">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g>/<xliff:g id="TOTAL_TASKS">%3$d</xliff:g> элемент. Таңдау үшін перне тағайындауларын босатыңыз."</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"Солға айналдыру"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"Оңға айналдыру"</string>
     <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"Қалқыма терезе"</string>
@@ -165,15 +171,20 @@
     <string name="bubble_bar_action_move_left" msgid="3306922475737714758">"Солға жылжыту"</string>
     <string name="bubble_bar_action_move_right" msgid="3455099638571411251">"Оңға жылжыту"</string>
     <string name="bubble_bar_action_dismiss_all" msgid="3290722022983403060">"Барлығын жабу"</string>
-    <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>: жаю"</string>
-    <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"<xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>: жию"</string>
     <string name="search_gesture_feature_title" msgid="1294044108313175306">"Қоршау арқылы іздеу"</string>
     <string name="header_app_icon_description" msgid="2184625881433608027">"Қолданба белгішесі"</string>
     <string name="header_default_app_title" msgid="8308052350689531566">"Қолданба атауы"</string>
-    <string name="header_close_icon_description" msgid="5400033616675911319">"\"Жабу\" түймесі"</string>
-    <string name="pin_to_taskbar" msgid="6607778046321626950">"Тапсырмалар жолағына бекіту"</string>
-    <string name="unpin_from_taskbar" msgid="2178811773165572676">"Тапсырмалар жолағынан босату"</string>
+    <string name="header_close_icon_description" msgid="9216416109255777643">"Жабу"</string>
     <string name="nudge_a11y_title" msgid="2126529303123687912">"Еске салғыш"</string>
     <string name="nudge_a11y_close" msgid="4513937143817625570">"Жабу"</string>
     <string name="nudge_a11y_image" msgid="117910310515857252">"Еске салғыш суреті"</string>
+    <string name="running_app_description" msgid="1309281047289078871">"<xliff:g id="APP_TITLE">%1$s</xliff:g> <xliff:g id="RUNNING_STATE">%2$s</xliff:g>"</string>
+    <string name="ambientcue_first_time_edu_icon_description" msgid="899917821554299010">"Белгіше"</string>
+    <string name="ambientcue_first_time_edu_title" msgid="2018548669156363447">"Пайдалы ұсыныстар алыңыз"</string>
+    <string name="ambientcue_first_time_edu_text" msgid="4645551981871066999">"Экранда орындап жатқан әрекетіңізге сәйкес ақпарат пен әрекеттерді белсене ұсыну үшін жасанды интеллектіні пайдаланамыз"</string>
+    <string name="underlay_close_button_content_description" msgid="5386282762373529057">"Жабу"</string>
+    <string name="ambient_cue_expand_action" msgid="3718141784327417087">"жаю"</string>
+    <string name="ambient_cue_icon_content_description" msgid="6470228671884918485">"Қоршаған орта ұсыныстарының белгішесі"</string>
+    <string name="ambientcue_long_press_edu_text" msgid="2399090372677751105">"Ұсыныстар қалай жасалатынын көру үшін басып тұрыңыз"</string>
+    <string name="ambient_cue_autofill_action" msgid="5880997492149716614">"автотолтыру"</string>
 </resources>

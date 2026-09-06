@@ -24,11 +24,13 @@ import com.android.launcher3.util.Executors
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.MODEL_EXECUTOR
 import com.android.launcher3.util.LooperExecutor
+import java.util.concurrent.CopyOnWriteArraySet
 
 open class ListenableAppWidgetHost(private val ctx: Context, hostId: Int) :
     AppWidgetHost(ctx, hostId) {
 
     protected val holders = mutableListOf<LauncherWidgetHolder>()
+    private val updateDispatcher = CopyOnWriteArraySet<ProvidersUpdateDispatcher>()
 
     override fun onProvidersChanged() {
         MAIN_EXECUTOR.execute {
@@ -51,8 +53,17 @@ open class ListenableAppWidgetHost(private val ctx: Context, hostId: Int) :
         }
     }
 
+    fun registerUpdateDispatcher(dispatcher: ProvidersUpdateDispatcher) {
+        updateDispatcher.add(dispatcher)
+    }
+
+    fun unregisterUpdateDispatcher(dispatcher: ProvidersUpdateDispatcher) {
+        updateDispatcher.remove(dispatcher)
+    }
+
     override fun onProviderChanged(appWidgetId: Int, appWidget: AppWidgetProviderInfo) {
         val info = LauncherAppWidgetProviderInfo.fromProviderInfo(ctx, appWidget)
+        updateDispatcher.forEach { it.dispatchUpdate(appWidgetId, info) }
         super.onProviderChanged(appWidgetId, info)
         // The super method updates the dimensions of the providerInfo. Update the
         // launcher spans accordingly.

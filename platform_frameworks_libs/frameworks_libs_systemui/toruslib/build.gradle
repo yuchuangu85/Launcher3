@@ -1,0 +1,92 @@
+// Copyright (C) 2023 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    ext.versions = [
+            'minSdk'     : 31,
+            'targetSdk'  : 34,
+            'compileSdk' : 34,
+            'buildTools' : '29.0.3',
+            'kotlin'     : '1.6.21',
+            'ktx'        : '1.5.0-beta02',
+            'material'   : '1.2.1',
+            'appcompat'  : '1.3.0',
+            'androidXLib': '1.1.0-alpha02'
+    ]
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:7.4.2"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+subprojects {
+    if (name.startsWith("torus")) {
+        version = VERSION_NAME
+        group = GROUP
+
+        apply plugin: 'com.android.library'
+        apply plugin: 'kotlin-android'
+
+        android {
+            namespace "com.google.android.torus"
+
+            compileSdkVersion versions.compileSdk
+            buildToolsVersion versions.buildTools
+
+            defaultConfig {
+                minSdkVersion versions.minSdk
+                targetSdkVersion versions.targetSdk
+            }
+
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    consumerProguardFiles 'lib-proguard-rules.txt'
+                }
+            }
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_1_8
+                targetCompatibility JavaVersion.VERSION_1_8
+            }
+
+            kotlinOptions {
+                jvmTarget = '1.8'
+            }
+        }
+
+        dependencies {
+            implementation "org.jetbrains.kotlin:kotlin-stdlib:$versions.kotlin"
+            implementation "androidx.core:core-ktx:$versions.ktx"
+            implementation "androidx.appcompat:appcompat:$versions.appcompat"
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

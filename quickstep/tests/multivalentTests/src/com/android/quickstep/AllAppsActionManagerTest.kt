@@ -16,24 +16,21 @@
 
 package com.android.quickstep
 
-import android.app.PendingIntent
-import android.content.IIntentSender
 import android.hardware.input.InputManager
 import android.provider.Settings
 import android.provider.Settings.Secure.USER_SETUP_COMPLETE
+import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.launcher3.dagger.LauncherAppComponent
-import com.android.launcher3.dagger.LauncherAppSingleton
-import com.android.launcher3.util.AllModulesForTest
+import com.android.launcher3.taskbar.TaskbarManagerImpl
 import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
 import com.android.launcher3.util.SandboxApplication
 import com.android.launcher3.util.SettingsCache
 import com.android.launcher3.util.SettingsCacheSandbox
 import com.android.launcher3.util.TestUtil
-import com.android.quickstep.input.QuickstepKeyGestureEventsManager
+import com.android.tools.dagger.mutation.annotations.BindValue
+import com.android.tools.dagger.mutation.annotations.MutatedComponent
 import com.google.common.truth.Truth.assertThat
-import dagger.BindsInstance
-import dagger.Component
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit.SECONDS
 import org.junit.After
@@ -41,8 +38,11 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mock
+import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mockito.junit.MockitoJUnit
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.whenever
@@ -51,36 +51,51 @@ private const val TIMEOUT = 5L
 private val USER_SETUP_COMPLETE_URI = Settings.Secure.getUriFor(USER_SETUP_COMPLETE)
 
 @RunWith(AndroidJUnit4::class)
+@UiThreadTest
+@MutatedComponent(target = LauncherAppComponent::class)
 class AllAppsActionManagerTest {
     private val callbackSemaphore = Semaphore(0)
     private val bgExecutor = UI_HELPER_EXECUTOR
 
+    @get:Rule val mockto = MockitoJUnit.rule()
     @get:Rule val context = SandboxApplication()
     private val inputManager = context.spyService(InputManager::class.java)
 
     private val settingsCacheSandbox =
         SettingsCacheSandbox().also { it[USER_SETUP_COMPLETE_URI] = 1 }
     private val quickstepKeyGestureEventsManager by
-        lazy(LazyThreadSafetyMode.NONE) { spy(QuickstepKeyGestureEventsManager(context)) }
+        lazy(LazyThreadSafetyMode.NONE) {
+            spy(context.appComponent.quickstepKeyGestureEventsManager)
+        }
+
+    @Mock lateinit var allAppsIntentSenderProvider: TaskbarManagerImpl.AllAppsIntentSender
 
     private val allAppsActionManager by
         lazy(LazyThreadSafetyMode.NONE) {
             AllAppsActionManager(context, bgExecutor, quickstepKeyGestureEventsManager) {
                 callbackSemaphore.release()
-                PendingIntent(IIntentSender.Default())
+                allAppsIntentSenderProvider
             }
         }
 
+    @BindValue
+    val settingsCache: SettingsCache
+        get() = settingsCacheSandbox.cache
+
     @Before
-    fun setUp() {
-        context.initDaggerComponent(
-            DaggerAllAppsActionManagerTestComponent.builder()
-                .bindSettingsCache(settingsCacheSandbox.cache)
-        )
+    fun initDaggerGraphAndWaitForSettingUpdate() {
+        context.initDaggerComponent(mutatedComponentBuilder())
 
         doNothing().whenever(inputManager).registerKeyGestureEventHandler(any(), any())
         doNothing().whenever(inputManager).unregisterKeyGestureEventHandler(any())
+
+        // Trigger any property access to initialize allAppsActionManager
+        allAppsActionManager.isActionRegistered
+        // Wait for SettingCache update isUserSetupComplete on bgExecutor.
+        bgExecutor.submit<Any?> { null }.get()
     }
+
+    @Before fun unlockUser() = allAppsActionManager.onUserUnlocked()
 
     @After fun destroyManager() = allAppsActionManager.onDestroy()
 
@@ -138,6 +153,7 @@ class AllAppsActionManagerTest {
     @Test
     fun taskbarPresent_userSetupIncomplete_actionUnregistered() {
         settingsCacheSandbox[USER_SETUP_COMPLETE_URI] = 0
+        TestUtil.runOnExecutorSync(bgExecutor) {}
         allAppsActionManager.isTaskbarPresent = true
         assertThat(allAppsActionManager.isActionRegistered).isFalse()
     }
@@ -153,6 +169,8 @@ class AllAppsActionManagerTest {
     fun taskbarPresent_userSetupCompleted_actionRegistered() {
         settingsCacheSandbox[USER_SETUP_COMPLETE_URI] = 0
         allAppsActionManager.isTaskbarPresent = true
+        TestUtil.runOnExecutorSync(bgExecutor) {}
+        reset(quickstepKeyGestureEventsManager)
 
         settingsCacheSandbox[USER_SETUP_COMPLETE_URI] = 1
         TestUtil.runOnExecutorSync(bgExecutor) {} // Force system action to register.
@@ -165,6 +183,8 @@ class AllAppsActionManagerTest {
     fun taskbarPresent_setupUiDismissed_actionRegistered() {
         allAppsActionManager.isSetupUiVisible = true
         allAppsActionManager.isTaskbarPresent = true
+        TestUtil.runOnExecutorSync(bgExecutor) {}
+        reset(quickstepKeyGestureEventsManager)
 
         allAppsActionManager.isSetupUiVisible = false
         TestUtil.runOnExecutorSync(bgExecutor) {} // Force system action to register.
@@ -178,17 +198,5 @@ class AllAppsActionManagerTest {
         allAppsActionManager.onDestroy()
 
         verify(quickstepKeyGestureEventsManager).unregisterAllAppsKeyGestureEvent()
-    }
-}
-
-@LauncherAppSingleton
-@Component(modules = [AllModulesForTest::class])
-interface AllAppsActionManagerTestComponent : LauncherAppComponent {
-
-    @Component.Builder
-    interface Builder : LauncherAppComponent.Builder {
-        @BindsInstance fun bindSettingsCache(settingsCache: SettingsCache): Builder
-
-        override fun build(): AllAppsActionManagerTestComponent
     }
 }

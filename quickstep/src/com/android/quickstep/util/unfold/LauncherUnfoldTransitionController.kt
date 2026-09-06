@@ -32,7 +32,7 @@ class LauncherUnfoldTransitionController(
     private val progressProvider: ProxyUnfoldTransitionProvider,
 ) : OnDeviceProfileChangeListener, ActivityLifecycleCallbacksAdapter, TransitionProgressListener {
 
-    private var isTablet: Boolean? = null
+    private var isLargeScreen: Boolean? = null
     private var hasUnfoldTransitionStarted = false
     private val timeoutAlarm =
         Alarm().apply {
@@ -56,7 +56,7 @@ class LauncherUnfoldTransitionController(
     }
 
     override fun onDeviceProfileChanged(dp: DeviceProfile) {
-        if (isTablet != null && dp.getDeviceProperties().isTablet != isTablet) {
+        if (isLargeScreen != null && dp.getDeviceProperties().isLargeScreen != isLargeScreen) {
             // We should preemptively start the animation only if:
             // - We changed to the unfolded screen
             // - SystemUI IPC connection is alive, so we won't end up in a situation that we won't
@@ -67,7 +67,7 @@ class LauncherUnfoldTransitionController(
             //   change only after we went back to home screen and we don't want to start the
             //   animation in this case.
             if (
-                dp.getDeviceProperties().isTablet &&
+                dp.getDeviceProperties().isLargeScreen &&
                     progressProvider.isActive &&
                     !hasUnfoldTransitionStarted
             ) {
@@ -77,13 +77,13 @@ class LauncherUnfoldTransitionController(
                 Trace.beginAsyncSection("$TAG#startedPreemptively", 0)
                 timeoutAlarm.setAlarm(PREEMPTIVE_UNFOLD_TIMEOUT_MS)
             }
-            if (!dp.getDeviceProperties().isTablet) {
+            if (!dp.getDeviceProperties().isLargeScreen) {
                 // Reset unfold transition status when folded
                 hasUnfoldTransitionStarted = false
             }
         }
 
-        isTablet = dp.getDeviceProperties().isTablet
+        isLargeScreen = dp.getDeviceProperties().isLargeScreen
     }
 
     override fun onTransitionStarted() {

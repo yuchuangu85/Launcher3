@@ -15,9 +15,9 @@
  */
 package com.android.launcher3.taskbar.bubbles
 
-import android.graphics.Bitmap
-import android.graphics.Path
+import com.android.launcher3.icons.BitmapInfo
 import com.android.launcher3.taskbar.bubbles.flyout.BubbleBarFlyoutMessage
+import com.android.launcher3.taskbar.bubbles.model.BubbleIcon
 import com.android.wm.shell.shared.bubbles.BubbleInfo
 
 /** An entity in the bubble bar. */
@@ -27,10 +27,9 @@ sealed class BubbleBarItem(open val key: String, open var view: BubbleView)
 data class BubbleBarBubble(
     var info: BubbleInfo,
     override var view: BubbleView,
-    var badge: Bitmap,
-    var icon: Bitmap,
+    var badge: BitmapInfo,
+    var icon: BubbleIcon,
     var dotColor: Int,
-    var dotPath: Path,
     var appName: String,
     var flyoutMessage: BubbleBarFlyoutMessage?,
 ) : BubbleBarItem(info.key, view)

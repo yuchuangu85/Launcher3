@@ -1,0 +1,56 @@
+/*
+ * Copyright (C) 2025 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// `foregroundOutline`: Original size bitmap with blurred foreground outline
+uniform shader foregroundOutline;
+uniform shader noise;
+uniform mat3 transformMatrixBitmapScaleOnly;
+
+#include "shaders/simplex2d.agsl"
+#include "shaders/utils.agsl"
+
+/**
+ * This shader generates ready-to-use snow accumulation with noise and a fluffy effect
+ * added to the foreground outline. It also proportionally scales the input bitmap
+ * to fit the screen size for memory efficiency.
+ *
+ * For snow_effects, only transform `fragCoord` based on parallax translation to access this result.
+ * - R channel: Controls accumulation thickness based on intensity.
+ * - G and B channels: Cache intermediate values to avoid redundant per-frame calculations.
+ */
+vec4 main(float2 fragCoord) {
+    vec4 color = vec4(0, 0, 0, 1.0);
+    // Apply transform matrix to fragCoord to scale down output
+    float2 adjustedUv = transformPoint(transformMatrixBitmapScaleOnly, fragCoord);
+    // Load noise texture to give "fluffiness" to the snow. Displace the sampling of the noise.
+    vec3 cloudsNoise = noise.eval(adjustedUv * 7000 + vec2(fragCoord.y, -fragCoord.x)).rgb;
+    // Add dither to give texture to the snow and ruffle the edges.
+    float dither = abs(triangleNoise(fragCoord * 0.01));
+    // Get the accumulated snow buffer. r contains its mask, g contains some random noise.
+    vec2 accSnow = foregroundOutline.eval(adjustedUv).rg;
+    //  R channel as intensity threshold
+    color.r = accSnow.r;
+    // Sharpen the mask of the accumulated snow, but not in excess.
+    // Makes the edges of the snow layer accumulation rougher.
+    color.g =  1. - cloudsNoise.b - 0.3 * dither;
+    // Load snow texture and dither. Make it have gray-ish values.
+    float accSnowTexture = smoothstep(0.2, 0.7, /* noise= */ accSnow.g) * 0.7;
+    accSnowTexture = map(accSnowTexture, dither - 1, 1, 0, 1);
+    // Adjust snow texture coverage/shape.
+    accSnowTexture = map(accSnowTexture, 0.67, 0.8, 0, 1);
+    color.b = 1.- 0.6 * accSnowTexture - 0.35 * dither;
+    return color;
+}

@@ -1,0 +1,25 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_library {
+    name: "SurfaceEffectsCoreLib",
+
+    srcs: [
+        "src/**/*.java",
+        "src/**/*.kt",
+    ],
+
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.compose.runtime_runtime",
+        "androidx.core_core-ktx",
+        "androidx.core_core-animation",
+    ],
+
+    manifest: "AndroidManifest.xml",
+    kotlincflags: ["-Xjvm-default=all"],
+
+    min_sdk_version: "33",
+    sdk_version: "current",
+}

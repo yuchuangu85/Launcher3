@@ -17,13 +17,12 @@
 package com.android.launcher3.widget
 
 import android.content.Context
-import com.android.launcher3.BuildConfigs
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.Launcher
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger.RestoreError
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.logging.FileLog
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
-import com.android.launcher3.qsb.QsbContainerView
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -38,16 +37,6 @@ constructor(
     private val widgetHelper = WidgetManagerHelper(context)
 
     fun inflateAppWidget(item: LauncherAppWidgetInfo): InflationResult {
-        if (item.hasOptionFlag(LauncherAppWidgetInfo.OPTION_SEARCH_WIDGET)) {
-            item.providerName = QsbContainerView.getSearchComponentName(context)
-            if (item.providerName == null) {
-                return InflationResult(
-                    TYPE_DELETE,
-                    reason = "search widget removed because search component cannot be found",
-                    restoreErrorType = RestoreError.NO_SEARCH_WIDGET,
-                )
-            }
-        }
         if (isSafeModeEnabled) return InflationResult(TYPE_PENDING)
 
         val appWidgetInfo: LauncherAppWidgetProviderInfo?
@@ -59,7 +48,7 @@ constructor(
             // The widget id is not valid. Try to find the widget based on the provider info.
             appWidgetInfo = widgetHelper.findProvider(item.providerName, item.user)
             if (appWidgetInfo == null) {
-                if (!BuildConfigs.WIDGETS_ENABLED) {
+                if (!BuildConfig.WIDGETS_ENABLED) {
                     removalReason = "widgets are disabled on go device."
                     logReason = RestoreError.WIDGETS_DISABLED
                 } else {

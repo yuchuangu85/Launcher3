@@ -24,12 +24,11 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Space
 import com.android.launcher3.DeviceProfile
+import com.android.launcher3.R
 import com.android.launcher3.taskbar.TaskbarActivityContext
 import com.android.launcher3.taskbar.navbutton.LayoutResourceHelper.ID_END_CONTEXTUAL_BUTTONS
 import com.android.launcher3.taskbar.navbutton.LayoutResourceHelper.ID_END_NAV_BUTTONS
 import com.android.launcher3.taskbar.navbutton.LayoutResourceHelper.ID_START_CONTEXTUAL_BUTTONS
-import com.android.launcher3.taskbar.navbutton.NavButtonLayoutFactory.Companion
-import com.android.launcher3.taskbar.navbutton.NavButtonLayoutFactory.NavButtonLayoutter
 
 /**
  * Select the correct layout for nav buttons
@@ -60,6 +59,7 @@ class NavButtonLayoutFactory {
             navButtonsView: NearestTouchFrame,
             imeSwitcher: ImageView?,
             a11yButton: ImageView?,
+            moreOptionsButton: ImageView?,
             space: Space?,
             resources: Resources,
             isKidsMode: Boolean,
@@ -76,6 +76,9 @@ class NavButtonLayoutFactory {
                 navButtonsView.requireViewById<ViewGroup>(ID_START_CONTEXTUAL_BUTTONS)
             val isPhoneNavMode = phoneMode && isThreeButtonNav
             val isPhoneGestureMode = phoneMode && !isThreeButtonNav
+            val backButton: ImageView? = navButtonContainer.findViewById(R.id.back)
+            val homeButton: ImageView? = navButtonContainer.findViewById(R.id.home)
+            val recentsButton: ImageView? = navButtonContainer.findViewById(R.id.recent_apps)
             return when {
                 isInSetup -> {
                     SetupNavLayoutter(
@@ -86,7 +89,11 @@ class NavButtonLayoutFactory {
                         startContextualContainer,
                         imeSwitcher,
                         a11yButton,
+                        moreOptionsButton,
                         space,
+                        backButton,
+                        homeButton,
+                        recentsButton,
                     )
                 }
                 isPhoneNavMode -> {
@@ -99,7 +106,11 @@ class NavButtonLayoutFactory {
                             startContextualContainer,
                             imeSwitcher,
                             a11yButton,
+                            moreOptionsButton,
                             space,
+                            backButton,
+                            homeButton,
+                            recentsButton,
                         )
                     } else if (surfaceRotation == ROTATION_90) {
                         navButtonsView.setIsVertical(true)
@@ -110,7 +121,11 @@ class NavButtonLayoutFactory {
                             startContextualContainer,
                             imeSwitcher,
                             a11yButton,
+                            moreOptionsButton,
                             space,
+                            backButton,
+                            homeButton,
+                            recentsButton,
                         )
                     } else {
                         navButtonsView.setIsVertical(true)
@@ -121,7 +136,11 @@ class NavButtonLayoutFactory {
                             startContextualContainer,
                             imeSwitcher,
                             a11yButton,
+                            moreOptionsButton,
                             space,
+                            backButton,
+                            homeButton,
+                            recentsButton,
                         )
                     }
                 }
@@ -133,10 +152,11 @@ class NavButtonLayoutFactory {
                         startContextualContainer,
                         imeSwitcher,
                         a11yButton,
+                        moreOptionsButton,
                         space,
                     )
                 }
-                deviceProfile.isTaskbarPresent -> {
+                deviceProfile.deviceProperties.taskbarConfiguration.isTaskbarPresent -> {
                     return when {
                         isKidsMode -> {
                             KidsNavLayoutter(
@@ -146,7 +166,11 @@ class NavButtonLayoutFactory {
                                 startContextualContainer,
                                 imeSwitcher,
                                 a11yButton,
+                                moreOptionsButton,
                                 space,
+                                backButton,
+                                homeButton,
+                                recentsButton,
                             )
                         }
                         else ->
@@ -157,7 +181,11 @@ class NavButtonLayoutFactory {
                                 startContextualContainer,
                                 imeSwitcher,
                                 a11yButton,
+                                moreOptionsButton,
                                 space,
+                                backButton,
+                                homeButton,
+                                recentsButton,
                             )
                     }
                 }
@@ -169,5 +197,17 @@ class NavButtonLayoutFactory {
     /** Lays out and provides access to the home, recents, and back buttons for various mischief */
     interface NavButtonLayoutter {
         fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean)
+
+        fun layoutButtons(
+            context: TaskbarActivityContext,
+            isA11yButtonPersistent: Boolean,
+            isA11yVisible: Boolean,
+            isMoreOptionsVisible: Boolean,
+        ) {
+            layoutButtons(context, isA11yButtonPersistent)
+        }
+
+        /** Isolated logic for updating the order of the 3 buttons. */
+        fun addThreeButtons()
     }
 }

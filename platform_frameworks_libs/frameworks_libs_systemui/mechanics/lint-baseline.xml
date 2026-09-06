@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues
+    type="baseline"
+    client=""
+    dependencies="true"
+    name=""
+    variant=""
+    version="">
+    <issue
+        id="NewApi"
+        message="Call requires API level 35 (current min is 31): `java.util.List#removeFirst` (Prior to API level 35, this call would resolve to a Kotlin stdlib extension function. You can use `removeAt(0)` instead.)"
+        errorLine1="                            history.removeFirst()"
+        errorLine2="                                    ~~~~~~~~~~~~~">
+        <location
+            file="frameworks/libs/systemui/mechanics/src/com/android/mechanics/debug/DebugVisualization.kt"
+            line="309"
+            column="37"/>
+    </issue>
+
+</issues>

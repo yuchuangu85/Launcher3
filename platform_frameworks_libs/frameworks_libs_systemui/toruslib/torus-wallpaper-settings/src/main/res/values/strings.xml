@@ -1,0 +1,4 @@
+<resources>
+    <!-- Title for live wallpaper setting page that lets the user choose color. -->
+    <string name="color_chips_title">Choose color</string>
+</resources>

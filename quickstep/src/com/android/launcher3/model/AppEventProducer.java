@@ -21,9 +21,8 @@ import static android.app.prediction.AppTargetEvent.ACTION_PIN;
 import static android.app.prediction.AppTargetEvent.ACTION_UNDISMISS;
 import static android.app.prediction.AppTargetEvent.ACTION_UNPIN;
 
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION;
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_PREDICTION;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_APP_LAUNCH_DRAGDROP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_APP_LAUNCH_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DISMISS_PREDICTION_UNDO;
@@ -40,10 +39,8 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCH
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_DONT_SUGGEST_APP_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASK_LAUNCH_SWIPE_DOWN;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASK_LAUNCH_TAP;
-import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_ADD_BUTTON_TAP;
 import static com.android.launcher3.model.PredictionHelper.getLocationString;
 import static com.android.launcher3.model.PredictionHelper.isTrackedForHotseatPrediction;
-import static com.android.launcher3.model.PredictionHelper.isTrackedForWidgetPrediction;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 
 import android.app.prediction.AppTarget;
@@ -68,9 +65,9 @@ import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.logging.StatsLogManager.EventEnum;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.shortcuts.ShortcutRequest;
-import com.android.launcher3.util.UserIconInfo;
 import com.android.quickstep.logging.StatsLogCompatManager.StatsLogConsumer;
 import com.android.systemui.shared.system.SysUiStatsLog;
+import com.android.users.UserType;
 
 import java.util.Optional;
 import java.util.function.ObjIntConsumer;
@@ -96,11 +93,9 @@ public class AppEventProducer implements StatsLogConsumer {
 
     @WorkerThread
     private boolean handleMessage(Message msg) {
-        switch (msg.what) {
-            case MSG_LAUNCH: {
-                mCallback.accept((AppTargetEvent) msg.obj, msg.arg1);
-                return true;
-            }
+        if (msg.what == MSG_LAUNCH) {
+            mCallback.accept((AppTargetEvent) msg.obj, msg.arg1);
+            return true;
         }
         return false;
     }
@@ -149,9 +144,6 @@ public class AppEventProducer implements StatsLogConsumer {
             if (isTrackedForHotseatPrediction(atomInfo)) {
                 sendEvent(atomInfo, ACTION_PIN, CONTAINER_HOTSEAT_PREDICTION);
             }
-            if (isTrackedForWidgetPrediction(atomInfo)) {
-                sendEvent(atomInfo, ACTION_PIN, CONTAINER_WIDGETS_PREDICTION);
-            }
             mLastDragItem = null;
         } else if (event == LAUNCHER_ITEM_DROP_FOLDER_CREATED) {
             if (isTrackedForHotseatPrediction(atomInfo)) {
@@ -169,34 +161,23 @@ public class AppEventProducer implements StatsLogConsumer {
             if (mLastDragItem != null && isTrackedForHotseatPrediction(mLastDragItem)) {
                 sendEvent(mLastDragItem, ACTION_UNPIN, CONTAINER_HOTSEAT_PREDICTION);
             }
-            if (mLastDragItem != null && isTrackedForWidgetPrediction(mLastDragItem)) {
-                sendEvent(mLastDragItem, ACTION_UNPIN, CONTAINER_WIDGETS_PREDICTION);
-            }
         } else if (event == LAUNCHER_HOTSEAT_PREDICTION_PINNED) {
             if (isTrackedForHotseatPrediction(atomInfo)) {
                 sendEvent(atomInfo, ACTION_PIN, CONTAINER_HOTSEAT_PREDICTION);
             }
         } else if (event == LAUNCHER_ONRESUME) {
-            if (Utilities.ATLEAST_Q) {
-                AppTarget target = new AppTarget.Builder(new AppTargetId("launcher:launcher"),
+            AppTarget target = new AppTarget.Builder(new AppTargetId("launcher:launcher"),
                     mContext.getPackageName(), Process.myUserHandle())
                     .build();
-                sendEvent(target, atomInfo, ACTION_LAUNCH, CONTAINER_ALL_APPS_PREDICTION);
-            } else {
-                sendEvent(atomInfo, ACTION_LAUNCH, CONTAINER_ALL_APPS_PREDICTION);
-            }
+            sendEvent(target, atomInfo, ACTION_LAUNCH, CONTAINER_ALL_APPS_PREDICTION);
         } else if (event == LAUNCHER_DISMISS_PREDICTION_UNDO) {
             sendEvent(atomInfo, ACTION_UNDISMISS, CONTAINER_HOTSEAT_PREDICTION);
-        } else if (event == LAUNCHER_WIDGET_ADD_BUTTON_TAP) {
-            if (isTrackedForWidgetPrediction(atomInfo)) {
-                sendEvent(atomInfo, ACTION_PIN, CONTAINER_WIDGETS_PREDICTION);
-            }
         }
     }
 
     @Nullable
     AppTarget toAppTarget(LauncherAtom.ItemInfo info) {
-        int iconInfoType = getIconInfoTypeFromItemInfo(info);
+        UserType iconInfoType = getIconInfoTypeFromItemInfo(info);
         UserCache userCache = UserCache.INSTANCE.get(mContext);
         UserHandle userHandle = userCache.getUserProfiles().stream()
                 .filter(user -> userCache.getUserInfo(user).type == iconInfoType)
@@ -249,11 +230,10 @@ public class AppEventProducer implements StatsLogConsumer {
             }
             case FOLDER_ICON:
                 return createTempFolderTarget();
+            default:
+                break;
         }
         if (id != null && cn != null) {
-            if (!Utilities.ATLEAST_Q) {
-                return null;
-            }
             if (shortcutInfo != null) {
                 return new AppTarget.Builder(new AppTargetId(id), shortcutInfo).build();
             }
@@ -266,13 +246,9 @@ public class AppEventProducer implements StatsLogConsumer {
 
 
     private AppTarget createTempFolderTarget() {
-        try {
-            return new AppTarget.Builder(new AppTargetId("folder:" + SystemClock.uptimeMillis()),
+        return new AppTarget.Builder(new AppTargetId("folder:" + SystemClock.uptimeMillis()),
                 mContext.getPackageName(), Process.myUserHandle())
                 .build();
-        } catch (NoClassDefFoundError e) {
-            return null;
-        }
     }
 
     private static ComponentName parseNullable(String componentNameString) {
@@ -280,15 +256,15 @@ public class AppEventProducer implements StatsLogConsumer {
                 ? null : ComponentName.unflattenFromString(componentNameString);
     }
 
-    private int getIconInfoTypeFromItemInfo(LauncherAtom.ItemInfo info) {
+    private UserType getIconInfoTypeFromItemInfo(LauncherAtom.ItemInfo info) {
         int userType = info.getUserType();
         return switch (userType) {
-            case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_WORK -> UserIconInfo.TYPE_WORK;
+            case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_WORK -> UserType.WORK;
             case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_CLONED ->
-                    UserIconInfo.TYPE_CLONED;
+                    UserType.CLONED;
             case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_PRIVATE ->
-                    UserIconInfo.TYPE_PRIVATE;
-            default -> UserIconInfo.TYPE_MAIN;
+                    UserType.PRIVATE;
+            default -> UserType.MAIN;
         };
     }
 }

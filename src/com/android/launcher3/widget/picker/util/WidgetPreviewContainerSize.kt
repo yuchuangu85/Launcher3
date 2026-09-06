@@ -23,11 +23,9 @@ import kotlin.math.abs
 /** Size of a preview container in terms of the grid spans. */
 data class WidgetPreviewContainerSize(@JvmField val spanX: Int, @JvmField val spanY: Int) {
     companion object {
-        /**
-         * Returns a template that can be used for presenting featured widgets in widget picker.
-         **/
+        /** Returns a template that can be used for presenting featured widgets in widget picker. */
         fun pickTemplateForFeaturedWidgets(dp: DeviceProfile): List<WidgetPreviewContainerSize> =
-            if (dp.deviceProperties.isTablet && !dp.deviceProperties.isTwoPanels) {
+            if (dp.deviceProperties.isLargeScreen && !dp.deviceProperties.isTwoPanels) {
                 TABLET_FEATURED_CONTAINER_SIZES.random()
             } else {
                 HANDHELD_FEATURED_CONTAINER_SIZES.random()
@@ -39,7 +37,7 @@ data class WidgetPreviewContainerSize(@JvmField val spanX: Int, @JvmField val sp
          */
         fun forItem(item: WidgetItem, dp: DeviceProfile): WidgetPreviewContainerSize {
             val sizes =
-                if (dp.deviceProperties.isTablet && !dp.deviceProperties.isTwoPanels) {
+                if (dp.deviceProperties.isLargeScreen && !dp.deviceProperties.isTwoPanels) {
                     TABLET_WIDGET_PREVIEW_SIZES
                 } else {
                     HANDHELD_WIDGET_PREVIEW_SIZES

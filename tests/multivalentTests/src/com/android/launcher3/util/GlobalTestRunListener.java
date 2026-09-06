@@ -20,6 +20,8 @@ import org.junit.runner.Description;
 import org.junit.runner.notification.RunListener;
 import org.mockito.Mockito;
 
+import java.util.concurrent.ExecutorService;
+
 public class GlobalTestRunListener extends RunListener {
     /**
      * See {@link RunListener#testFinished} which executes per atomic test.
@@ -34,5 +36,15 @@ public class GlobalTestRunListener extends RunListener {
         // execution is completed.
         Mockito.framework().clearInlineMocks();
         super.testSuiteFinished(description);
+    }
+
+    @Override
+    public void testFinished(Description description) throws Exception {
+        // Clear all remaining Executor jobs before moving to next test. This prevents async jobs
+        // completing in other tests and causing problems/flakes/failures.
+        for (ExecutorService executor: Executors.getAllExecutorsForTesting()) {
+            TestUtil.runOnExecutorSync(executor, () -> {});
+        }
+        super.testFinished(description);
     }
 }

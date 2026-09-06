@@ -45,6 +45,11 @@ public abstract class Launchable {
         return mObject;
     }
 
+    /* Returns the visible text of the object. */
+    public String getText() {
+        return mObject.getText();
+    }
+
     protected boolean launcherStopsAfterLaunch() {
         return true;
     }
@@ -63,11 +68,11 @@ public abstract class Launchable {
                         + mLauncher.getVisibleBounds(mObject));
 
                 if (launcherStopsAfterLaunch()) {
-                    mLauncher.executeAndWaitForLauncherStop(
-                            () -> mLauncher.clickLauncherObject(mObject),
+                    mLauncher.executeAndWaitForLauncherToYieldFocus(
+                            () -> mObject.click(),
                             "clicking the launchable");
                 } else {
-                    mLauncher.clickLauncherObject(mObject);
+                    mObject.click();
                 }
 
                 try (LauncherInstrumentation.Closable c2 = mLauncher.addContextLayer("clicked")) {
@@ -97,7 +102,7 @@ public abstract class Launchable {
                     mObject));
 
             mLauncher.executeAndWaitForLauncherStop(
-                    () -> mLauncher.clickLauncherObject(mObject),
+                    () -> mObject.click(),
                     "clicking the launchable");
 
             try (LauncherInstrumentation.Closable c2 = mLauncher.addContextLayer("clicked")) {
