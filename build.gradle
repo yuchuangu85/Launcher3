@@ -92,7 +92,7 @@ android {
     // deps) is not part of this Gradle setup.
     flavorDimensions "launcher"
     productFlavors {
-        quickstep {
+        withquickstep {
             dimension "launcher"
             // Default/full Launcher3QuickStep equivalent (matches the current source layout).
         }
