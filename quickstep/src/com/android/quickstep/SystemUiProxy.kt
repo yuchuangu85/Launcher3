@@ -144,57 +144,65 @@ constructor(
     private val systemUiProxyDeathRecipient =
         IBinder.DeathRecipient { uiExecutor.execute { clearProxy() } }
 
-    val pipAnimationListeners =
+    val pipAnimationListeners by lazy {
         OneWayBinderList.forNullableSetter(
             mapper = IPipAnimationListener.Stub::asInterface,
             setter = { pip?.setPipAnimationListener(it) },
         )
+    }
 
-    val bubblesListeners =
+    val bubblesListeners by lazy {
         OneWayBinderList(
             mapper = IBubblesListener.Stub::asInterface,
             onFirstRegister = { bubbles?.registerBubbleListener(it) },
             onLastUnregister = { bubbles?.unregisterBubbleListener(it) },
         )
+    }
 
-    val splitScreenListeners =
+    val splitScreenListeners by lazy {
         OneWayBinderList(
             mapper = ISplitScreenListener.Stub::asInterface,
             onFirstRegister = { splitScreen?.registerSplitScreenListener(it) },
             onLastUnregister = { splitScreen?.unregisterSplitScreenListener(it) },
         )
+    }
 
-    val splitSelectListeners =
+    val splitSelectListeners by lazy {
         OneWayBinderList(
             mapper = ISplitSelectListener.Stub::asInterface,
             onFirstRegister = { splitScreen?.registerSplitSelectListener(it) },
             onLastUnregister = { splitScreen?.unregisterSplitSelectListener(it) },
         )
+    }
 
-    val startingWindowListeners =
+    val startingWindowListeners by lazy {
         OneWayBinderList.forNullableSetter(
             mapper = IStartingWindowListener.Stub::asInterface,
             setter = { startingWindow?.setStartingWindowListener(it) },
         )
+    }
 
-    val recentTasksListeners =
+    val recentTasksListeners by lazy {
         OneWayBinderList(
             mapper = IRecentTasksListener.Stub::asInterface,
             onFirstRegister = { recentTasks?.registerRecentTasksListener(it) },
             onLastUnregister = { recentTasks?.unregisterRecentTasksListener(it) },
         )
+    }
 
-    val unfoldAnimationListeners =
+    val unfoldAnimationListeners by lazy {
         OneWayBinderList.forNullableSetter(
             mapper = IUnfoldTransitionListener.Stub::asInterface,
             setter = { unfoldAnimation?.setListener(it) },
         )
+    }
 
-    val desktopTaskListeners =
+    val desktopTaskListeners by lazy {
         OneWayBinderList.forNullableSetter(
             mapper = IDesktopTaskListener.Stub::asInterface,
             setter = { desktopMode?.setTaskListener(it) },
         )
+    }
 
     private val remoteTransitions = LinkedHashSet<RemoteTransition>()
 

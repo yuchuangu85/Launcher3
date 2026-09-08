@@ -96,6 +96,14 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
 
     private int mFocusRectOutsets = 0;
 
+    /**
+     * The framework implementation of this API is absent on some vendor Android 17 builds.
+     * Keep widget inflation working; those builds fall back to their normal RemoteViews handling.
+     */
+    public void setInteractionHandler(RemoteViews.InteractionHandler interactionHandler) {
+        // No compatible framework hook is available.
+    }
+
     public LauncherAppWidgetHostView(Context context) {
         super(context);
         mActivityContext = ActivityContext.lookupContext(context);

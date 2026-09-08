@@ -55,13 +55,13 @@ import android.window.IOnBackInvokedCallback;
 
 import com.android.app.animation.Animations;
 import com.android.app.animation.Interpolators;
-import com.android.internal.policy.SystemBarUtils;
 import com.android.internal.view.AppearanceRegion;
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.QuickstepTransitionManager;
+import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.display.DisplayController;
@@ -607,7 +607,9 @@ public class LauncherBackAnimationController {
                 R.dimen.swipe_back_window_corner_radius)
                 : 0;
         mWindowScaleStartCornerRadius = QuickStepContract.getWindowCornerRadius(mLauncher);
-        mStatusBarHeight = SystemBarUtils.getStatusBarHeight(mLauncher);
+        // SystemBarUtils is hidden API and has incompatible method sets on vendor builds.
+        mStatusBarHeight = ResourceUtils.getDimenByName("status_bar_height",
+                mLauncher.getResources(), 0);
         mMaxBlurRadius = mLauncher.getResources().getDimensionPixelSize(
             R.dimen.max_depth_blur_radius_enhanced);
     }

@@ -15,4 +15,5 @@ android {
 }
 dependencies {
     rootProject.addFrameworkJarFor(project, "framework-android17.jar")
+    implementation libs.androidx.annotation
 }

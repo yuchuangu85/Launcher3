@@ -77,7 +77,7 @@ android {
     buildToolsVersion "37.0.0"
 
     defaultConfig {
-        applicationId "com.android.launcher3"
+        applicationId "com.codemx.android.launcher3"
         minSdk 31
         targetSdk 37
         versionCode 1
@@ -239,6 +239,13 @@ dependencies {
     addPlatformJarsFor(project, ['SystemUI.jar'])
     addSystemUIJar(project)
 
+    // AOSP supplies these aconfig-generated Flags classes from system_ext. Standalone APKs do
+    // not share that class loader, so package the matching generated implementations at runtime.
+    implementation files(
+            "$FRAMEWORK_PREBUILTS_DIR/com_android_launcher3_flags_lib.jar",
+            "$FRAMEWORK_PREBUILTS_DIR/com_android_systemui_shared_flags_lib.jar",
+            "$FRAMEWORK_PREBUILTS_DIR/com_android_wm_shell_flags_lib.jar")
+
     implementation project(':iconloaderlib')
     implementation project(':animationlib')
     implementation project(':contextualeducationlib')
@@ -246,6 +253,7 @@ dependencies {
     implementation project(':dynamiccolors')
     implementation project(':cuebarlib')
     implementation project(':displaylib')
+    implementation project(':msdllib')
     implementation project(':aceclient')
     compileOnly project(':pccore')
     implementation project(':wmshell_compat')
@@ -261,6 +269,7 @@ dependencies {
     implementation libs.androidx.recyclerview
     implementation libs.androidx.dynamicanimation
     implementation libs.androidx.core.animation
+    implementation libs.androidx.graphics.shapes
     implementation libs.androidx.preference.ktx
     implementation libs.androidx.window
     implementation libs.androidx.lifecycle.runtime.ktx

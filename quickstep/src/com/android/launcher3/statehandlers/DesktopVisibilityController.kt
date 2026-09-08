@@ -33,7 +33,6 @@ import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.getTaskbarUiThread
 import com.android.launcher3.util.MutableListenableRef
 import com.android.launcher3.util.Preconditions
-import com.android.quickstep.SystemUiProxy
 import com.android.quickstep.fallback.RecentsState
 import com.android.wm.shell.desktopmode.DisplayDeskState
 import com.android.wm.shell.desktopmode.IDesktopTaskListener.Stub
@@ -51,7 +50,6 @@ class DesktopVisibilityController
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
-    systemUiProxy: SystemUiProxy,
     lifecycleTracker: DaggerSingletonTracker,
 ) {
     /**
@@ -88,9 +86,8 @@ constructor(
     private var inOverviewStateMap = SparseBooleanArray()
 
     init {
-        lifecycleTracker.addCloseable(
-            systemUiProxy.desktopTaskListeners.register(DesktopTaskListenerImpl(this))
-        )
+        // WM Shell owns desktop task callbacks. Standalone Launcher runs without that privileged
+        // service, so desktop-mode state intentionally remains disabled.
     }
 
     /**

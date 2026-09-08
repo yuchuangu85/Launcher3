@@ -21,7 +21,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
 import android.uilatencystats.UiLatencyStatsManager
-import android.view.CrossWindowBlurListeners
 import com.android.app.displaylib.PerDisplayRepository
 import com.android.extensions.computercontrol.ComputerControlExtensions
 import com.android.internal.R
@@ -57,11 +56,9 @@ import com.android.launcher3.testing.TestInformationHandler
 import com.android.launcher3.uioverrides.QuickstepProvidersUpdateDispatcher
 import com.android.launcher3.uioverrides.QuickstepWidgetHolder.QuickstepWidgetHolderFactory
 import com.android.launcher3.uioverrides.SystemApiWrapper
-import com.android.launcher3.uioverrides.plugins.PluginManagerWrapperImpl
 import com.android.launcher3.util.ApiWrapper
 import com.android.launcher3.util.BlurBackgroundHelper
 import com.android.launcher3.util.DaggerSingletonTracker
-import com.android.launcher3.util.Executors.IMMEDIATE_EXECUTOR
 import com.android.launcher3.util.InstantAppResolver
 import com.android.launcher3.util.ListenableRef
 import com.android.launcher3.util.MutableListenableRef
@@ -98,7 +95,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.multibindings.ElementsIntoSet
 import java.io.File
-import java.util.function.Consumer
 import javax.inject.Named
 
 private object Modules {}
@@ -192,9 +188,14 @@ abstract class WidgetModule {
 }
 
 @Module
-abstract class PluginManagerWrapperModule {
-    @Binds
-    abstract fun bindPluginManagerWrapper(impl: PluginManagerWrapperImpl): PluginManagerWrapper
+object PluginManagerWrapperModule {
+    /**
+     * SystemUI owns the plugin runtime used by the platform Launcher. A standalone APK cannot
+     * load that private runtime, so retain the no-op wrapper rather than constructing it.
+     */
+    @Provides
+    @LauncherAppSingleton
+    fun providePluginManagerWrapper(): PluginManagerWrapper = PluginManagerWrapper()
 }
 
 @Module
@@ -232,13 +233,9 @@ object StaticObjectModule {
     @LauncherAppSingleton
     @Named(WINDOW_BLUR_STATE)
     fun provideWindowBlurState(lifecycle: DaggerSingletonTracker): ListenableRef<Boolean> {
-        val blurListeners = CrossWindowBlurListeners.getInstance()
-        val value = MutableListenableRef(blurListeners.isCrossWindowBlurEnabled)
-
-        val callback = Consumer<Boolean> { value.dispatchValue(it) }
-        blurListeners.addListener(IMMEDIATE_EXECUTOR, callback)
-        lifecycle.addCloseable { blurListeners.removeListener(callback) }
-        return value.asListenable()
+        // CrossWindowBlurListeners is a hidden framework API whose vendor implementation does not
+        // expose the AOSP static factory. Disable optional blur rather than failing startup.
+        return MutableListenableRef(false).asListenable()
     }
 
     @Provides fun provideAbstractFloatingViewHelper() = AbstractFloatingViewHelper

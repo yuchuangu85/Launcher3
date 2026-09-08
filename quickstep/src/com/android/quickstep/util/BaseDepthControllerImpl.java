@@ -130,7 +130,9 @@ public class BaseDepthControllerImpl<
     /**
      * Info for early wakeup requests to SurfaceFlinger.
      */
-    private final EarlyWakeupInfo mEarlyWakeupInfo = new EarlyWakeupInfo();
+    // Vendor framework builds may expose EarlyWakeupInfo without the AOSP no-arg constructor.
+    // It is a jank optimization only, so leave it unavailable for standalone APKs.
+    @Nullable private final EarlyWakeupInfo mEarlyWakeupInfo = null;
 
     public BaseDepthControllerImpl(CONTAINER container, ListenableRef<Boolean> blurState) {
         mContainer = container;
@@ -152,9 +154,6 @@ public class BaseDepthControllerImpl<
         } else {
             folderZoom = null;
         }
-
-        mEarlyWakeupInfo.token = new Binder();
-        mEarlyWakeupInfo.trace = BaseDepthControllerImpl.class.getName();
 
         mContainer.closeOnDestroy(blurState.forEach(mContainer.getUiExecutor(), blurEnabled -> {
             if (mCrossWindowBlursEnabled == blurEnabled) {
@@ -322,7 +321,7 @@ public class BaseDepthControllerImpl<
      * @param start whether to start or end the early wakeup.
      */
     protected void setEarlyWakeup(@NonNull SurfaceControl.Transaction transaction, boolean start) {
-        if (mInEarlyWakeUp == start) {
+        if (mInEarlyWakeUp == start || mEarlyWakeupInfo == null) {
             return;
         }
         Log.d(TAG, "setEarlyWakeup: " + start);

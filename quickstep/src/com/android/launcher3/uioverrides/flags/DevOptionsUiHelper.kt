@@ -49,7 +49,6 @@ import com.android.launcher3.R
 import com.android.launcher3.dagger.LauncherComponentProvider.appComponent
 import com.android.launcher3.proxy.ProxyActivityStarter
 import com.android.launcher3.secondarydisplay.SecondaryDisplayLauncher
-import com.android.launcher3.uioverrides.plugins.PluginManagerWrapperImpl
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.ORDERED_BG_EXECUTOR
 import com.android.launcher3.util.OnboardingPrefs.ALL_APPS_VISITED_COUNT
@@ -253,7 +252,10 @@ class DevOptionsUiHelper(c: Context, attr: AttributeSet?) : PreferenceGroup(c, a
      * notify the pluginManager manually since the broadcast-mechanism only works in sysui process
      */
     private fun inflatePluginPrefs(parent: PreferenceGroup) {
-        val manager = PluginManagerWrapper.INSTANCE[context] as PluginManagerWrapperImpl
+        // Plugin management relies on SystemUI's private plugin runtime and is unavailable in
+        // standalone Launcher builds.
+        val manager = PluginManagerWrapper.INSTANCE[context]
+        if (manager !is com.android.launcher3.uioverrides.plugins.PluginManagerWrapperImpl) return
         val pm = context.packageManager
 
         val pluginPermissionApps =

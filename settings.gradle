@@ -28,6 +28,7 @@ sysui("dynamiccolors", "dynamiccolors")
 sysui("cuebarlib", "cuebarlib")
 sysui("displaylib", "displaylib")
 sysui("tracinglib", "tracinglib")
+sysui("msdllib", "msdllib")
 include ':pccore'
 include ':sysui_anim_stub'
 include ':ext_stub'
