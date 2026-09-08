@@ -96,12 +96,23 @@ public class ShortcutRequest {
         if (!WIDGETS_ENABLED || mFailed) {
             return QueryResult.DEFAULT;
         }
+        LauncherApps launcherApps = mContext.getSystemService(LauncherApps.class);
+        if (!launcherApps.hasShortcutHostPermission()) {
+            // Standalone installs are not shortcut hosts until the user selects this app as the
+            // default HOME app. Avoid an expected cross-process SecurityException while the
+            // model waits for ModelDelegate to observe the permission change and reload.
+            return QueryResult.DEFAULT;
+        }
         mQuery.setQueryFlags(flags);
 
         try {
-            return new QueryResult(mContext.getSystemService(LauncherApps.class)
-                    .getShortcuts(mQuery, mUserHandle));
-        } catch (SecurityException | IllegalStateException e) {
+            return new QueryResult(launcherApps.getShortcuts(mQuery, mUserHandle));
+        } catch (SecurityException e) {
+            // The role can be revoked between the permission check and getShortcuts(). This is
+            // an expected state transition for a user-installed launcher, not a loader failure.
+            FileLog.d(TAG, "Shortcut host permission was revoked before querying shortcuts");
+            return QueryResult.DEFAULT;
+        } catch (IllegalStateException e) {
             FileLog.e(TAG, "Failed to query for shortcuts", e);
             return QueryResult.DEFAULT;
         }
