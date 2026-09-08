@@ -84,6 +84,11 @@
          android:restoreAnyVersion="true"
          android:supportsRtl="true">
 
+        <!-- The Gradle plain flavor contributes Launcher; Quickstep owns this variant's HOME entry. -->
+        <activity
+            android:name="com.android.launcher3.Launcher"
+            tools:node="remove" />
+
         <!--
         The AOSP Soong target merges this declaration from
         quickstep/AndroidManifest-launcher.xml via additional_manifests. Gradle accepts only one

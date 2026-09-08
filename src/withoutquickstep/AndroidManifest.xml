@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Standalone entry-point overlay. Launcher3's HOME filter allows it to be selected as a
+     system launcher; this standard LAUNCHER filter additionally gives the installed APK an
+     ordinary app-drawer/home-screen entry on non-platform devices.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity android:name="com.android.launcher3.Launcher">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

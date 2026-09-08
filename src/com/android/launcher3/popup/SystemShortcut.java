@@ -50,6 +50,7 @@ import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.InstantAppResolver;
 import com.android.launcher3.util.PackageManagerHelper;
+import com.android.launcher3.util.SecurityFlagsCompat;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.Snackbar;
@@ -616,7 +617,7 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
 
     public static final Factory<ActivityContext> APP_LOCK =
             (activity, itemInfo, originalView) -> {
-                if (!android.security.Flags.appLockApis()) {
+                if (!SecurityFlagsCompat.areAppLockApisEnabled()) {
                     return null;
                 }
                 if (itemInfo instanceof ItemInfoWithIcon itemInfoWithIcon) {

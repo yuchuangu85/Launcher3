@@ -87,14 +87,17 @@ android {
     }
 
     // AOSP ships several launcher app targets (Android.bp: Launcher3 / Launcher3QuickStep /
-    // Launcher3Go / Launcher3QuickStepGo). This project models the quickstep-kernel variants
-    // as product flavors; soong's plain-Launcher3 (src_no_quickstep, no quickstep/platform
-    // deps) is not part of this Gradle setup.
+    // Launcher3Go / Launcher3QuickStepGo). Keep the plain Launcher3 source graph separate so
+    // a user-installable APK can be built without Quickstep's SystemUI/WMShell integration.
     flavorDimensions "launcher"
     productFlavors {
         withquickstep {
             dimension "launcher"
-            // Default/full Launcher3QuickStep equivalent (matches the current source layout).
+            // Default/full Launcher3QuickStep equivalent.
+        }
+        withoutquickstep {
+            dimension "launcher"
+            // Plain Launcher3 equivalent: no quickstep source, manifest, or quickstep resources.
         }
         go {
             dimension "launcher"
@@ -175,32 +178,57 @@ android {
 
     sourceSets {
         main {
-            proto.srcDirs = ['protos', 'quickstep/protos_overrides']
+            proto.srcDirs = ['protos']
             java.srcDirs = [
                 'src',
                 'dagger',
                 'src_plugins',
                 'shared/src',
-                'quickstep/src',
-                'quickstep/dagger',
-                'quickstep/src_protolog',
                 'modules/widgetpicker/src',
                 'modules/appfunctions/src',
                 'modules/concurrent/src'
             ]
-            res.srcDirs = ['res_merged', 'modules/widgetpicker/res', 'quickstep/res', 'platform_frameworks_libs/frameworks_libs_systemui/dynamiccolors/res', 'platform_frameworks_libs/settingslib_theme_res/res']
-            manifest.srcFile 'quickstep/AndroidManifest.xml'
+            // Match the Soong Launcher3ResLib plain resource graph. res_merged is a
+            // Quickstep-oriented preprocessed subset that omits several plain widget-picker
+            // colors; using the source resource set keeps withoutquickstep self-contained.
+            res.srcDirs = [
+                'res',
+                'modules/widgetpicker/res',
+                'platform_frameworks_libs/frameworks_libs_systemui/dynamiccolors/res',
+                'platform_frameworks_libs/settingslib_theme_res/res'
+            ]
+            manifest.srcFile 'AndroidManifest.xml'
         }
         // protobuf-gradle-plugin registers its per-variant output
         // (build/generated/source/proto/<variant>/java) on each variant's source set itself.
         // Flavor-specific BuildConfig (see tools/buildconfig.sh): generated-src holds the
         // quickstep defaults (widgets/dots enabled); generated-src-go the Android Go overrides.
         withquickstep {
-            java.srcDirs += ['generated-src']
+            proto.srcDirs += ['quickstep/protos_overrides']
+            java.srcDirs += ['quickstep/src', 'quickstep/dagger', 'quickstep/src_protolog', 'generated-src']
+            res.srcDirs += ['quickstep/res']
+            manifest.srcFile 'quickstep/AndroidManifest.xml'
+        }
+        withoutquickstep {
+            // launcher_atom.proto imports this shared statistics extension. It is generated code
+            // only and does not pull Quickstep runtime sources into the APK.
+            proto.srcDirs += ['quickstep/protos_overrides']
+            // Shared AOSP launcher-build-config; this is generated constants only, not
+            // Quickstep code. The plain Launcher3 target consumes the same source.
+            java.srcDirs += ['src_no_quickstep', 'generated-src']
+            manifest.srcFile 'src/withoutquickstep/AndroidManifest.xml'
         }
         go {
-            java.srcDirs += ['go/quickstep/src', 'generated-src-go']
-            res.srcDirs += ['go/quickstep/res']
+            proto.srcDirs += ['quickstep/protos_overrides']
+            java.srcDirs += [
+                'quickstep/src',
+                'quickstep/dagger',
+                'quickstep/src_protolog',
+                'go/quickstep/src',
+                'generated-src-go'
+            ]
+            res.srcDirs += ['quickstep/res', 'go/quickstep/res']
+            manifest.srcFile 'quickstep/AndroidManifest.xml'
         }
     }
 }
@@ -220,6 +248,20 @@ gradle.projectsEvaluated {
             def protoTask = "generate${m.group(1)}${m.group(2)}Proto"
             t.dependsOn(protoTask)
         }
+    }
+}
+
+// SystemUISharedLib is compileOnly for platform builds, but standalone APKs must package its
+// shared runtime classes. Keep the task-stack listener fallback in :ext_stub: it deliberately
+// avoids registering with a privileged system service, so filter the duplicate source classes.
+def standaloneSystemUiSharedRuntimeJar = tasks.register('packageStandaloneSystemUiSharedRuntime', Jar) {
+    archiveFileName = 'SystemUISharedLib-standalone-runtime.jar'
+    destinationDirectory = layout.buildDirectory.dir('standalone-runtime-libs')
+    from(zipTree("$FRAMEWORK_PREBUILTS_DIR/SystemUISharedLib.jar")) {
+        exclude 'com/android/systemui/shared/system/TaskStackChangeListener.class'
+        exclude 'com/android/systemui/shared/system/TaskStackChangeListeners*.class'
+        exclude 'com/android/systemui/shared/recents/utilities/PreviewPositionHelper.class'
+        exclude 'com/android/systemui/shared/system/ActivityManagerWrapper.class'
     }
 }
 
@@ -245,6 +287,7 @@ dependencies {
             "$FRAMEWORK_PREBUILTS_DIR/com_android_launcher3_flags_lib.jar",
             "$FRAMEWORK_PREBUILTS_DIR/com_android_systemui_shared_flags_lib.jar",
             "$FRAMEWORK_PREBUILTS_DIR/com_android_wm_shell_flags_lib.jar")
+    implementation files(standaloneSystemUiSharedRuntimeJar)
 
     implementation project(':iconloaderlib')
     implementation project(':animationlib')

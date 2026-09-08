@@ -39,6 +39,7 @@ import com.android.launcher3.pm.UserCache.CachedUserInfo;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.PackageManagerHelper;
+import com.android.launcher3.util.SecurityFlagsCompat;
 import com.android.launcher3.util.UserIconInfo;
 
 import java.util.Comparator;
@@ -212,7 +213,7 @@ public class AppInfo extends ItemInfoWithIcon implements WorkspaceItemFactory {
             info.runtimeStatusFlags &= ~FLAG_NOT_PINNABLE;
         }
 
-        if (android.security.Flags.appLockApis()) {
+        if (SecurityFlagsCompat.areAppLockApisEnabled()) {
             if (appInfo.isAppLockSupported()) {
                 info.runtimeStatusFlags |= FLAG_APP_LOCK_SUPPORTED;
             } else {
