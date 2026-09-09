@@ -5,6 +5,8 @@
      ordinary app-drawer/home-screen entry on non-platform devices.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- A launcher must enumerate every installed launchable activity for All Apps. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <application>
         <activity android:name="com.android.launcher3.Launcher">
             <intent-filter>
