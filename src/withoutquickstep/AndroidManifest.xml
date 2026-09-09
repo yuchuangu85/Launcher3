@@ -14,5 +14,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Workspace "Home settings" resolves this package-scoped action. -->
+        <activity
+            android:name="com.android.launcher3.settings.SettingsActivity"
+            android:label="@string/settings_button_text"
+            android:icon="@drawable/ic_setting"
+            android:theme="@style/HomeSettings.Theme"
+            android:exported="true"
+            android:autoRemoveFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
