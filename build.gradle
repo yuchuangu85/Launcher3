@@ -188,11 +188,10 @@ android {
                 'modules/appfunctions/src',
                 'modules/concurrent/src'
             ]
-            // Match the Soong Launcher3ResLib plain resource graph. res_merged is a
-            // Quickstep-oriented preprocessed subset that omits several plain widget-picker
-            // colors; using the source resource set keeps withoutquickstep self-contained.
+            // Keep common library resources here; each launcher flavor supplies its own base
+            // resource graph below. This mirrors Lawnchair/AOSP's separate Launcher3 and
+            // Launcher3QuickStep resource inputs instead of merging plain and Quickstep overlays.
             res.srcDirs = [
-                'res',
                 'modules/widgetpicker/res',
                 'platform_frameworks_libs/frameworks_libs_systemui/dynamiccolors/res',
                 'platform_frameworks_libs/settingslib_theme_res/res'
@@ -206,7 +205,7 @@ android {
         withquickstep {
             proto.srcDirs += ['quickstep/protos_overrides']
             java.srcDirs += ['quickstep/src', 'quickstep/dagger', 'quickstep/src_protolog', 'generated-src']
-            res.srcDirs += ['quickstep/res']
+            res.srcDirs += ['res_merged', 'quickstep/res']
             manifest.srcFile 'quickstep/AndroidManifest.xml'
         }
         withoutquickstep {
@@ -216,6 +215,7 @@ android {
             // Shared AOSP launcher-build-config; this is generated constants only, not
             // Quickstep code. The plain Launcher3 target consumes the same source.
             java.srcDirs += ['src_no_quickstep', 'generated-src']
+            res.srcDirs += ['res']
             manifest.srcFile 'src/withoutquickstep/AndroidManifest.xml'
         }
         go {
@@ -227,7 +227,7 @@ android {
                 'go/quickstep/src',
                 'generated-src-go'
             ]
-            res.srcDirs += ['quickstep/res', 'go/quickstep/res']
+            res.srcDirs += ['res_merged', 'quickstep/res', 'go/quickstep/res']
             manifest.srcFile 'quickstep/AndroidManifest.xml'
         }
     }
@@ -261,7 +261,6 @@ def standaloneSystemUiSharedRuntimeJar = tasks.register('packageStandaloneSystem
         exclude 'com/android/systemui/shared/system/TaskStackChangeListener.class'
         exclude 'com/android/systemui/shared/system/TaskStackChangeListeners*.class'
         exclude 'com/android/systemui/shared/recents/utilities/PreviewPositionHelper.class'
-        exclude 'com/android/systemui/shared/system/ActivityManagerWrapper.class'
     }
 }
 
