@@ -77,7 +77,7 @@ android {
     buildToolsVersion "37.0.0"
 
     defaultConfig {
-        applicationId "com.codemx.android.launcher3"
+        applicationId "com.android.launcher3"
         minSdk 31
         targetSdk 37
         versionCode 1
