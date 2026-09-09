@@ -1503,7 +1503,13 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                 final Point size = LauncherAppState.getIDP(getContext()).defaultWallpaperSize;
                 if (size.x != mWallpaperManager.getDesiredMinimumWidth()
                         || size.y != mWallpaperManager.getDesiredMinimumHeight()) {
-                    mWallpaperManager.suggestDesiredDimensions(size.x, size.y);
+                    try {
+                        mWallpaperManager.suggestDesiredDimensions(size.x, size.y);
+                    } catch (SecurityException e) {
+                        // Some third-party launcher implementations cannot hold the privileged
+                        // SET_WALLPAPER_HINTS permission. This is only a sizing optimization.
+                        Log.w(TAG, "Unable to suggest wallpaper dimensions", e);
+                    }
                 }
             }
         });
