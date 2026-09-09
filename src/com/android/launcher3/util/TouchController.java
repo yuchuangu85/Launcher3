@@ -18,6 +18,8 @@ package com.android.launcher3.util;
 
 import android.view.MotionEvent;
 
+import java.io.PrintWriter;
+
 public interface TouchController {
 
     /**
@@ -30,14 +32,5 @@ public interface TouchController {
      */
     boolean onControllerInterceptTouchEvent(MotionEvent ev);
 
-    /**
-     * @return a string that identifies the controller and useful information for debugging touch
-     * interactions with the Launcher's TouchControllers.
-     */
-    default String dump() {
-        return "Not implemented, class name is " + getClass().getName();
-    }
-
-    /** Called when touch controllers are destroyed during recreation. */
-    default void onTouchControllerDestroyed() { }
+    default void dump(String prefix, PrintWriter writer) { }
 }

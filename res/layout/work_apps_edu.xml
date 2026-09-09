@@ -31,7 +31,7 @@
         android:id="@+id/wrapper">
         <TextView
             style="@style/PrimaryHeadline"
-            android:textColor="@color/materialColorOnSurface"
+            android:textColor="?android:attr/textColorPrimary"
             android:id="@+id/work_apps_paused_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

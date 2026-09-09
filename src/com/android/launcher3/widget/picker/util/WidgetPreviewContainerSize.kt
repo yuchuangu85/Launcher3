@@ -23,21 +23,13 @@ import kotlin.math.abs
 /** Size of a preview container in terms of the grid spans. */
 data class WidgetPreviewContainerSize(@JvmField val spanX: Int, @JvmField val spanY: Int) {
     companion object {
-        /** Returns a template that can be used for presenting featured widgets in widget picker. */
-        fun pickTemplateForFeaturedWidgets(dp: DeviceProfile): List<WidgetPreviewContainerSize> =
-            if (dp.deviceProperties.isLargeScreen && !dp.deviceProperties.isTwoPanels) {
-                TABLET_FEATURED_CONTAINER_SIZES.random()
-            } else {
-                HANDHELD_FEATURED_CONTAINER_SIZES.random()
-            }
-
         /**
          * Returns the size of the preview container in which the given widget's preview should be
          * displayed (by scaling it if necessary).
          */
         fun forItem(item: WidgetItem, dp: DeviceProfile): WidgetPreviewContainerSize {
             val sizes =
-                if (dp.deviceProperties.isLargeScreen && !dp.deviceProperties.isTwoPanels) {
+                if (dp.isTablet && !dp.isTwoPanels) {
                     TABLET_WIDGET_PREVIEW_SIZES
                 } else {
                     HANDHELD_WIDGET_PREVIEW_SIZES
@@ -51,7 +43,7 @@ data class WidgetPreviewContainerSize(@JvmField val spanX: Int, @JvmField val sp
                     return findClosestFittingContainer(
                         containerSizes = sizes.toList(),
                         startIndex = index,
-                        item = item,
+                        item = item
                     )
                 }
             }
@@ -62,7 +54,7 @@ data class WidgetPreviewContainerSize(@JvmField val spanX: Int, @JvmField val sp
         private fun findClosestFittingContainer(
             containerSizes: List<WidgetPreviewContainerSize>,
             startIndex: Int,
-            item: WidgetItem,
+            item: WidgetItem
         ): WidgetPreviewContainerSize {
             // Checks if it's a smaller container, but close enough to keep the down-scale minimal.
             fun hasAcceptableSize(currentIndex: Int): Boolean {

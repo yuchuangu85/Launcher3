@@ -17,8 +17,6 @@
 package com.android.launcher3.allapps;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.content.res.Configuration;
 import android.util.AttributeSet;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -33,8 +31,6 @@ public class FloatingMaskView extends ConstraintLayout {
 
     private final ActivityContext mActivityContext;
     private ImageView mBottomBox;
-    private ImageView mLeftCorner;
-    private ImageView mRightCorner;
 
     public FloatingMaskView(Context context) {
         this(context, null, 0);
@@ -53,9 +49,6 @@ public class FloatingMaskView extends ConstraintLayout {
     protected void onFinishInflate() {
         super.onFinishInflate();
         mBottomBox = findViewById(R.id.bottom_box);
-        mLeftCorner = findViewById(R.id.left_corner);
-        mRightCorner = findViewById(R.id.right_corner);
-        updateColors();
     }
 
     @Override
@@ -63,19 +56,6 @@ public class FloatingMaskView extends ConstraintLayout {
         super.onLayout(changed, left, top, right, bottom);
         setParameters((ViewGroup.MarginLayoutParams) getLayoutParams(),
                 mActivityContext.getAppsView().getActiveRecyclerView());
-    }
-
-    @Override
-    protected void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        updateColors();
-    }
-
-    private void updateColors() {
-        int color = mActivityContext.getAppsView().getBackgroundColor();
-        mBottomBox.setBackgroundColor(color);
-        mLeftCorner.setBackgroundTintList(ColorStateList.valueOf(color));
-        mRightCorner.setBackgroundTintList(ColorStateList.valueOf(color));
     }
 
     @VisibleForTesting

@@ -32,10 +32,8 @@
     <string name="recent_task_option_aspect_ratio" msgid="7008605516391096989">"Změnit poměr stran"</string>
     <string name="split_app_info_accessibility" msgid="5475288491241414932">"Informace o aplikaci %1$s"</string>
     <string name="split_app_usage_settings" msgid="7214375263347964093">"Nastavení využití pro aplikaci %1$s"</string>
-    <string name="close_task_accessibility" msgid="4765872229211282647">"Zavřít %1$s"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"Nové okno"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"Spravovat okna"</string>
-    <string name="close_app_taskbar" msgid="3238979263877091273">"Zavřít"</string>
     <string name="save_app_pair" msgid="5647523853662686243">"Uložit dvojici aplikací"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"Tento pár aplikací není na tomto zařízení podporován"</string>
@@ -63,10 +61,12 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# zkratka}few{# zkratky}many{# zkratky}other{# zkratek}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"Widgety"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Vyhledávání"</string>
+    <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Vymazat text z vyhledávacího pole"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Widgety ani zkratky nejsou k dispozici"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Nebyly nalezeny žádné widgety ani zkratky"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Osobní"</string>
-    <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Pracovní"</string>
+    <string name="widgets_full_sheet_work_tab" msgid="3767150027110633765">"Práce"</string>
     <string name="widget_category_conversations" msgid="8894438636213590446">"Konverzace"</string>
     <string name="widget_category_note_taking" msgid="3469689394504266039">"Psaní poznámek"</string>
     <string name="widget_cell_tap_to_show_add_button_label" msgid="4354194214317043581">"Zobrazit tlačítko přidání"</string>
@@ -101,29 +101,7 @@
     <string name="install_drop_target_label" msgid="2539096853673231757">"Nainstalovat"</string>
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"Nenavrhovat aplikaci"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"Připnout předpověď"</string>
-    <string name="bubble" msgid="3072951361014076670">"Bublina"</string>
-    <string name="enable_app_lock" msgid="5606772593969266718">"Zámek aplikací"</string>
-    <string name="disable_app_lock" msgid="2252606435270354961">"Odstranit zámek aplikací"</string>
-    <string name="widget_settings" msgid="5280157748464495511">"Nastavení"</string>
-    <string name="add_to_taskbar" msgid="1442306985857150792">"Přidat na panel"</string>
-    <string name="remove_from_taskbar" msgid="5817026706030273018">"Odstranit z panelu"</string>
-    <string name="no_room_in_taskbar" msgid="6885243748717395469">"Na Panelu aplikací není místo"</string>
-    <string name="app_added_to_taskbar" msgid="6348755169793615171">"Aplikace byla přidána na panel aplikací"</string>
-    <string name="app_removed_from_taskbar" msgid="3471754847898675396">"Aplikace byla odstraněna z panelu aplikací"</string>
-    <string name="remove_system_shortcut_label" msgid="3991201411148073972">"Odstranit"</string>
-    <string name="home_screen_files_context_menu_copy_label" msgid="8769381168712216221">"Kopírovat"</string>
-    <string name="home_screen_files_context_menu_open_in_app_label" msgid="7930552598671791537">"Otevřít"</string>
-    <string name="home_screen_files_context_menu_rename_label" msgid="699579827537411711">"Přejmenovat"</string>
-    <string name="home_screen_files_context_menu_delete_permanently_label" msgid="8660443461874174185">"Trvale smazat"</string>
-    <string name="home_screen_files_context_menu_move_to_trash_label" msgid="1145655050674479315">"Přesunout do koše"</string>
-    <string name="home_screen_files_moved_to_trash_message" msgid="2848141584483641247">"Položka byla přesunuta do koše"</string>
-    <string name="home_screen_files_move_to_trash_error_message" msgid="3836240816166417826">"Nelze přesunout do koše. Něco se pokazilo."</string>
-    <string name="home_screen_files_restore_from_trash_error_message" msgid="994941644161090497">"Akci se nepodařilo vrátit. Pokud položky chcete obnovit, přejděte do aplikace Soubory."</string>
-    <string name="actions_popup_menu_button" msgid="2442187572711557413">"Akce"</string>
-    <string name="shortcuts_popup_menu_button" msgid="766598805805882499">"Zkratky"</string>
-    <string name="actions_popup_menu_button_description" msgid="4224192559473869722">"Zobrazit nabídku akcí"</string>
-    <string name="shortcuts_popup_menu_button_description" msgid="7566698511556454634">"Zobrazit nabídku zkratek do aplikací"</string>
-    <string name="pause_app_label" msgid="6796255881727695791">"Pozastavit aplikaci"</string>
+    <string name="bubble" msgid="3072951361014076670">"Bublat"</string>
     <string name="permlab_install_shortcut" msgid="5632423390354674437">"instalace zástupce"</string>
     <string name="permdesc_install_shortcut" msgid="923466509822011139">"Umožňuje aplikaci přidat zástupce bez zásahu uživatele."</string>
     <string name="permlab_read_settings" msgid="5136500343007704955">"čtení nastavení a zkratek plochy"</string>
@@ -135,11 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Klepnutím dokončíte konfiguraci"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Toto je systémová aplikace a nelze ji odinstalovat."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Upravit název"</string>
-    <string name="paginate_left" msgid="7915437358451360433">"Stránkovat vlevo"</string>
-    <string name="paginate_right" msgid="6701038155201975878">"Stránkovat vpravo"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"Aplikace <xliff:g id="APP_NAME">%1$s</xliff:g> je zakázána"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{Aplikace {app_name} má # oznámení}few{Aplikace {app_name} má # oznámení}many{Aplikace {app_name} má # oznámení}other{Aplikace {app_name} má # oznámení}}"</string>
-    <string name="hotseat_prediction_content_description" msgid="7680403232742709704">"Předpokládaná aplikace: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Strana %1$d z %2$d"</string>
     <string name="workspace_scroll_format" msgid="8458889198184077399">"Plocha %1$d z %2$d"</string>
     <string name="workspace_new_page" msgid="257366611030256142">"Nová stránka plochy"</string>
@@ -150,26 +125,18 @@
     <string name="folder_tap_to_rename" msgid="4017685068016979677">"Klepnutím změnu názvu uložíte"</string>
     <string name="folder_closed" msgid="4100806530910930934">"Složka je uzavřena"</string>
     <string name="folder_renamed" msgid="1794088362165669656">"Složka přejmenována na <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="folder_type_name" msgid="506043307348675355">"Složka"</string>
-    <string name="app_folder_type_name" msgid="149643408248060284">"Složka aplikace"</string>
-    <string name="apps_folder_name_format_exact" msgid="891345161390366700">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> položky"</string>
-    <string name="apps_folder_name_format_exact_with_dot" msgid="7729062268048931718">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> položky, má oznámení"</string>
-    <string name="apps_folder_name_format_overflow" msgid="4614729357510054194">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> nebo více položek"</string>
-    <string name="apps_folder_name_format_overflow_with_dot" msgid="4738681518782744688">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> nebo více položek, má oznámení"</string>
+    <string name="folder_name_format_exact" msgid="8626242716117004803">"Složka: <xliff:g id="NAME">%1$s</xliff:g>, počet položek: <xliff:g id="SIZE">%2$d</xliff:g>"</string>
+    <string name="folder_name_format_overflow" msgid="4270108890534995199">"Složka: <xliff:g id="NAME">%1$s</xliff:g>, počet položek: <xliff:g id="SIZE">%2$d</xliff:g> nebo více"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"Nepojmenovaná složka"</string>
-    <string name="files_folder_name" msgid="7712191128817533622">"Složka souborů: <xliff:g id="NAME">%1$s</xliff:g>"</string>
     <string name="app_pair_name_format" msgid="8134106404716224054">"Dvojice aplikací: <xliff:g id="APP1">%1$s</xliff:g> a <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"Tapety a styl"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"Upravit plochu"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"Nastavení plochy"</string>
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"Zakázáno administrátorem"</string>
-    <string name="settings_home_organizer" msgid="5184766349407080054">"Organizátor domácnosti"</string>
+    <string name="allow_rotation_title" msgid="7222049633713050106">"Povolit otáčení plochy"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Při otočení telefonu"</string>
-    <string name="compose_developer_options_section" msgid="8211460486549952595">"Jetpack Compose"</string>
-    <string name="enable_composition_tracing_title" msgid="8989606591739368424">"Povolit trasování kompozice"</string>
-    <string name="enable_composition_tracing_desc" msgid="7187566039216492405">"Povolit trasování kompozice při provádění trasování Perfetto v přehledu"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Režim na šířku"</string>
-    <string name="landscape_mode_desc" msgid="3085236452297838664">"Nastavit plochu do režimu na šířku"</string>
+    <string name="landscape_mode_desc" msgid="7372569859592816793">"Nastavit telefon do režimu na šířku"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Puntíky s oznámením"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Zapnuto"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Vypnuto"</string>
@@ -198,7 +165,7 @@
     <string name="widgets_list_closed" msgid="6141506579418771922">"Seznam widgetů zavřen"</string>
     <string name="action_add_to_workspace" msgid="215894119683164916">"Přidat na plochu"</string>
     <string name="action_move_here" msgid="2170188780612570250">"Přesunout položku sem"</string>
-    <string name="item_removed" msgid="851119963877842327">"Položka odstraněna"</string>
+    <string name="item_removed" msgid="851119963877842327">"Položka byla odstraněna"</string>
     <string name="undo" msgid="4151576204245173321">"Zpět"</string>
     <string name="action_move" msgid="4339390619886385032">"Přesunout položku"</string>
     <string name="move_to_empty_cell_description" msgid="5254852678218206889">"Přesunout na řádek <xliff:g id="NUMBER_0">%1$s</xliff:g>, sloupec <xliff:g id="NUMBER_1">%2$s</xliff:g> na ploše <xliff:g id="STRING">%3$s</xliff:g>"</string>
@@ -206,12 +173,9 @@
     <string name="move_to_hotseat_position" msgid="6295412897075147808">"Přesunout do oblíbených položek na pozici <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="item_moved" msgid="4606538322571412879">"Položka byla přesunuta"</string>
     <string name="add_to_folder" msgid="9040534766770853243">"Přidat do složky: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_position" msgid="4457486890869662">"Přidat do složky <xliff:g id="NAME">%1$s</xliff:g>. Řádek <xliff:g id="NUMBER_0">%2$s</xliff:g>, sloupec <xliff:g id="NUMBER_1">%3$s</xliff:g>, <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="add_to_folder_with_app" msgid="4534929978967147231">"Přidat do složky s aplikací <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_app_with_position" msgid="6670979489897093325">"Přidat do složky s aplikací <xliff:g id="NAME">%1$s</xliff:g>. Řádek <xliff:g id="NUMBER_0">%2$s</xliff:g>, sloupec <xliff:g id="NUMBER_1">%3$s</xliff:g>, <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="added_to_folder" msgid="4793259502305558003">"Položka byla přidána do složky"</string>
     <string name="create_folder_with" msgid="4050141361160214248">"Vytvořit složku s položkou <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="create_folder_with_position" msgid="3093164349445159115">"Vytvořit složku s aplikací <xliff:g id="NAME">%1$s</xliff:g>. Řádek <xliff:g id="NUMBER_0">%2$s</xliff:g>, sloupec <xliff:g id="NUMBER_1">%3$s</xliff:g>, <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="folder_created" msgid="6409794597405184510">"Složka byla vytvořena"</string>
     <string name="action_move_to_workspace" msgid="39528912300293768">"Přesunout na plochu"</string>
     <string name="action_resize" msgid="1802976324781771067">"Změnit velikost"</string>
@@ -219,11 +183,6 @@
     <string name="action_increase_height" msgid="459390020612501122">"Zvýšit výšku"</string>
     <string name="action_decrease_width" msgid="1374549771083094654">"Snížit šířku"</string>
     <string name="action_decrease_height" msgid="282377193880900022">"Snížit výšku"</string>
-    <string name="resize_handle_start" msgid="431073846880883794">"Levý úchyt pro změnu velikosti"</string>
-    <string name="resize_handle_top" msgid="280799523356834542">"Horní úchyt pro změnu velikosti"</string>
-    <string name="resize_handle_end" msgid="8411240534474246075">"Pravý úchyt pro změnu velikosti"</string>
-    <string name="resize_handle_bottom" msgid="4217171801060928429">"Spodní úchyt pro změnu velikosti"</string>
-    <string name="tap_to_show_resize_buttons" msgid="964815552123289232">"Zobrazit tlačítka změny velikosti"</string>
     <string name="widget_resized" msgid="9130327887929620">"Velikost widgetu upravena: šířka <xliff:g id="NUMBER_0">%1$s</xliff:g>, výška <xliff:g id="NUMBER_1">%2$s</xliff:g>"</string>
     <string name="action_deep_shortcut" msgid="4766835855579976045">"Nabídka zkratek"</string>
     <string name="widget_frame_name" msgid="8782828448471444270">"Rámec widgetu pro změnu velikosti pro <xliff:g id="STRING">%1$s</xliff:g>"</string>
@@ -236,6 +195,7 @@
     <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"Karta pracovních aplikací"</string>
     <string name="work_profile_toggle_label" msgid="3081029915775481146">"Pracovní profil"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"Pracovní aplikace jsou označené a váš administrátor IT je vidí"</string>
+    <string name="work_profile_edu_accept" msgid="6069788082535149071">"Rozumím"</string>
     <string name="work_apps_paused_title" msgid="3040901117349444598">"Pracovní aplikace jsou pozastaveny"</string>
     <string name="work_apps_paused_info_body" msgid="1687828929959237477">"Z pracovních aplikací nebudete dostávat oznámení."</string>
     <string name="work_apps_paused_body" msgid="261634750995824906">"Pracovní aplikace vám nemohou zasílat oznámení, používat vaši baterii ani získat přístup k vaší poloze"</string>
@@ -256,23 +216,6 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Zamknout"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Převádění soukromého prostoru"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Nainstalovat"</string>
-    <string name="ps_app_label_override" msgid="6876160706011676804">"Přidat"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Instalovat aplikace do soukromého prostoru"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Přidejte do soukromého prostoru soubory a další položky"</string>
-    <string name="circle_shape_title" msgid="3582075061179674565">"Kruh"</string>
-    <string name="square_shape_title" msgid="3085320803149569308">"Čtverec"</string>
-    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Čtyřstranný koláček"</string>
-    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Sedmistranný koláček"</string>
-    <string name="arch_shape_title" msgid="2213843822192871318">"Oblouk"</string>
-    <string name="create_new_folder_button_text" msgid="4037052463794735069">"Nová složka"</string>
-    <string name="default_new_folder_name" msgid="8821062664729412079">"Nová složka"</string>
-    <string name="home_screen_files_rename_dialog_clear_button" msgid="1516608063079626727">"Vymazat"</string>
-    <string name="home_screen_files_rename_dialog_neutral_button" msgid="961781261154618336">"Zrušit"</string>
-    <string name="home_screen_files_rename_dialog_positive_button" msgid="6506701192246379747">"Přejmenovat"</string>
-    <string name="home_screen_files_rename_dialog_file_title" msgid="3540941610992603887">"Přejmenovat soubor"</string>
-    <string name="home_screen_files_rename_dialog_folder_title" msgid="2453152990256864379">"Přejmenovat složku"</string>
-    <string name="something_went_wrong" msgid="1492883246069060632">"Něco se pokazilo"</string>
-    <string name="organizer_create_screen_title" msgid="1052454457895703433">"Vytvoření obrazovky"</string>
-    <string name="organizer_create_screen_description" msgid="3224132391919219061">"Vyberte kategorii k přidání aplikací a widgetů z telefonu"</string>
-    <string name="organizer_choose_layout_title" msgid="127228966942084947">"Vybrat rozvržení"</string>
 </resources>

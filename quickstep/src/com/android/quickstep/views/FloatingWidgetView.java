@@ -15,8 +15,6 @@
  */
 package com.android.quickstep.views;
 
-import static com.android.app.animation.Interpolators.LINEAR;
-
 import android.animation.Animator;
 import android.animation.Animator.AnimatorListener;
 import android.annotation.TargetApi;
@@ -28,6 +26,7 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Size;
 import android.view.GhostView;
+import android.view.RemoteAnimationTarget;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
@@ -35,7 +34,6 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
 
-import com.android.launcher3.Flags;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.dragndrop.DragLayer;
@@ -45,7 +43,6 @@ import com.android.launcher3.views.FloatingView;
 import com.android.launcher3.views.ListenerView;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.RoundedCornerEnforcement;
-import com.android.wm.shell.shared.compat.AnimatedSurface;
 
 /** A view that mimics an App Widget through a launch animation. */
 @TargetApi(Build.VERSION_CODES.S)
@@ -53,6 +50,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         OnGlobalLayoutListener, FloatingView {
     private static final Matrix sTmpMatrix = new Matrix();
 
+    private final QuickstepLauncher mLauncher;
     private final ListenerView mListenerView;
     private final FloatingWidgetBackgroundView mBackgroundView;
     private final RectF mBackgroundOffset = new RectF();
@@ -83,6 +81,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
 
     public FloatingWidgetView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        mLauncher = QuickstepLauncher.getLauncher(context);
         mListenerView = new ListenerView(context, attrs);
         mBackgroundView = new FloatingWidgetBackgroundView(context, attrs, defStyleAttr);
         addView(mBackgroundView);
@@ -156,16 +155,15 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         }
     }
 
-    private void init(QuickstepLauncher launcher, DragLayer dragLayer,
-            LauncherAppWidgetHostView originalView,
+    private void init(DragLayer dragLayer, LauncherAppWidgetHostView originalView,
             RectF widgetBackgroundPosition, Size windowSize, float windowCornerRadius,
             boolean appTargetIsTranslucent, int fallbackBackgroundColor) {
         mAppWidgetView = originalView;
         // Deferrals must begin before GhostView is created. See b/190818220
-        mAppWidgetView.setUpdatesDeferred(true);
+        mAppWidgetView.beginDeferringUpdates();
         mBackgroundPosition = widgetBackgroundPosition;
         mAppTargetIsTranslucent = appTargetIsTranslucent;
-        mEndRunnable = () -> finish(launcher, dragLayer);
+        mEndRunnable = () -> finish(dragLayer);
 
         mAppWidgetBackgroundView = RoundedCornerEnforcement.findBackground(mAppWidgetView);
         if (mAppWidgetBackgroundView == null) {
@@ -207,31 +205,6 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         mAppWidgetView.setAlpha(foregroundAlpha);
         mBackgroundPosition = backgroundPosition;
         positionViews();
-    }
-
-    /**
-     * Updates the position and opacity of the floating widget's components.
-     *
-     * @param backgroundPosition      the new position of the widget's background relative to the
-     *                                {@link FloatingWidgetView}'s parent
-     * @param floatingWidgetAlpha     the overall opacity of the {@link FloatingWidgetView}
-     * @param linearProgress          the linear translation progress along primary axis
-     * @param widgetAlphaLowerBound   threshold bound of linearProgress, after which
-     *                                alpha starts animating
-     * @param cornerRadiusProgress    progress of the corner radius animation, where 0 is the
-     *                                original radius and 1 is the window radius
-     */
-    public void update(float linearProgress, float widgetAlphaLowerBound, RectF backgroundPosition,
-            float floatingWidgetAlpha,  float cornerRadiusProgress) {
-        update(backgroundPosition, floatingWidgetAlpha,
-                Utilities.mapBoundToRange(linearProgress, 0.5f, 1f, 0f, 1f, LINEAR),
-                Utilities.mapBoundToRange(linearProgress,
-                        widgetAlphaLowerBound, 1f, 1f, 0f, LINEAR),
-                cornerRadiusProgress);
-    }
-
-    public float getOutlineRadius() {
-        return mBackgroundView.getOutlineRadius();
     }
 
     @Override
@@ -285,17 +258,8 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
             sTmpMatrix.setTranslate(-mBackgroundOffset.left - mAppWidgetView.getLeft(),
                     -mBackgroundOffset.top - mAppWidgetView.getTop());
             sTmpMatrix.postScale(foregroundScale, foregroundScale);
-
-            if (Flags.widgetReturnAnimationMinorFixes()) {
-                float foregroundWidth = mBackgroundPosition.width();
-                float foregroundHeight = mAppWidgetBackgroundView.getHeight() * foregroundScale;
-                float left = mBackgroundPosition.centerX() - (foregroundWidth / 2);
-                float top = mBackgroundPosition.centerY() - (foregroundHeight / 2);
-                sTmpMatrix.postTranslate(left, top + mIconOffsetY);
-            } else {
-                sTmpMatrix.postTranslate(mBackgroundPosition.left, mBackgroundPosition.top
-                        + mIconOffsetY);
-            }
+            sTmpMatrix.postTranslate(mBackgroundPosition.left, mBackgroundPosition.top
+                    + mIconOffsetY);
 
             // We use the animation matrix here, because calling setMatrix on the GhostView
             // actually sets the animation matrix, not the regular one.
@@ -307,16 +271,16 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
         return positionsChanged;
     }
 
-    private void finish(QuickstepLauncher launcher, DragLayer dragLayer) {
+    private void finish(DragLayer dragLayer) {
         mAppWidgetView.setAlpha(1f);
         GhostView.removeGhost(mAppWidgetView);
         ((ViewGroup) dragLayer.getParent()).removeView(this);
         dragLayer.removeView(mListenerView);
         mBackgroundView.finish();
         // Removing GhostView must occur before ending deferrals. See b/190818220
-        mAppWidgetView.setUpdatesDeferred(false);
+        mAppWidgetView.endDeferringUpdates();
         recycle();
-        launcher.getViewCache().recycleView(R.layout.floating_widget_view, this);
+        mLauncher.getViewCache().recycleView(R.layout.floating_widget_view, this);
     }
 
     public float getInitialCornerRadius() {
@@ -359,7 +323,7 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
                 launcher.getViewCache().getView(R.layout.floating_widget_view, launcher, parent);
         floatingView.recycle();
 
-        floatingView.init(launcher, dragLayer, originalView, widgetBackgroundPosition, windowSize,
+        floatingView.init(dragLayer, originalView, widgetBackgroundPosition, windowSize,
                 windowCornerRadius, appTargetsAreTranslucent, fallbackBackgroundColor);
         parent.addView(floatingView);
         return floatingView;
@@ -370,12 +334,12 @@ public class FloatingWidgetView extends FrameLayout implements AnimatorListener,
      * context's theme background color.
      */
     public static int getDefaultBackgroundColor(
-            Context context, @Nullable AnimatedSurface surface) {
+            Context context, @Nullable RemoteAnimationTarget target) {
         final int fallbackColor = Themes.getColorBackground(context);
-        if (surface == null) {
+        if (target == null) {
             return fallbackColor;
         }
-        final TaskInfo taskInfo = surface.taskInfo;
+        final TaskInfo taskInfo = target.taskInfo;
         if (taskInfo == null) {
             return fallbackColor;
         }

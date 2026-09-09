@@ -28,6 +28,7 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
     <uses-permission android:name="android.permission.START_TASKS_FROM_RECENTS"/>
     <uses-permission android:name="android.permission.REMOVE_TASKS"/>
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
     <uses-permission android:name="android.permission.MANAGE_ACTIVITY_TASKS"/>
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"/>
@@ -40,17 +41,8 @@
     <uses-permission android:name="android.permission.MONITOR_INPUT"/>
     <uses-permission android:name="android.permission.ALLOW_SLIPPERY_TOUCHES"/>
     <uses-permission android:name="android.permission.ACCESS_SHORTCUTS"/>
-    <uses-permission android:name="android.permission.READ_REMOTE_TASKS"/>
-    <uses-permission android:name="android.permission.REQUEST_TASK_HANDOFF"/>
 
-    <uses-permission android:name="android.permission.REPORT_UI_LATENCY_STATS" />
     <uses-permission android:name="android.permission.SYSTEM_APPLICATION_OVERLAY" />
-    <uses-permission android:name="android.permission.EXECUTE_APP_FUNCTIONS_SYSTEM"/>
-
-    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_PUBLISH_HINTS"/>
-    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_RECEIVE_INSIGHTS"/>
-    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_HOST_INSIGHT_SURFACE"/>
-    <uses-permission android:name="android.permission.PERSONAL_CONTEXT_READ_SETTINGS"/>
 
     <!--
     Permission required to access profiles which are otherwise hidden
@@ -58,25 +50,17 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES_FULL" />
 
-    <!-- Permission required to listen to recent, all app key gestures. -->
-    <uses-permission android:name="android.permission.MANAGE_KEY_GESTURES" />
-
     <!-- Permission required to start a WidgetPickerActivity. -->
     <permission android:name="${applicationId}.permission.START_WIDGET_PICKER_ACTIVITY"
         android:protectionLevel="signature|privileged" />
-
-    <!--
-        Permission required to send an intent to the file manager when attempting to click on a zip
-        file on the launcher home screen.
-    -->
-    <uses-permission
-        android:name="com.android.documentsui.LAUNCH_FILE_MANAGER" />
 
     <application android:backupAgent="com.android.launcher3.LauncherBackupAgent"
          android:enableOnBackInvokedCallback="true"
          android:fullBackupOnly="true"
          android:fullBackupContent="@xml/backupscheme"
          android:hardwareAccelerated="true"
+         android:directBootAware="true"
+         android:defaultToDeviceProtectedStorage="true"
          android:icon="@drawable/ic_launcher_home"
          android:label="@string/derived_app_name"
          android:theme="@style/AppTheme"
@@ -84,58 +68,12 @@
          android:restoreAnyVersion="true"
          android:supportsRtl="true">
 
-        <!-- The Gradle plain flavor contributes Launcher; Quickstep owns this variant's HOME entry. -->
-        <activity
-            android:name="com.android.launcher3.Launcher"
-            tools:node="remove" />
-
-        <!--
-        The AOSP Soong target merges this declaration from
-        quickstep/AndroidManifest-launcher.xml via additional_manifests. Gradle accepts only one
-        application manifest source, so keep the HOME activity in the manifest it packages.
-        -->
-        <activity
-            android:name="com.android.launcher3.uioverrides.QuickstepLauncher"
-            android:launchMode="singleTask"
-            android:clearTaskOnLaunch="true"
-            android:stateNotNeeded="true"
-            android:windowSoftInputMode="adjustPan"
-            android:screenOrientation="unspecified"
-            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
-            android:resizeableActivity="true"
-            android:resumeWhilePausing="true"
-            android:taskAffinity=""
-            android:exported="true"
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.SHOW_WORK_APPS" />
-                <action android:name="android.intent.action.ALL_APPS" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.MONKEY" />
-                <category android:name="android.intent.category.LAUNCHER_APP" />
-            </intent-filter>
-            <meta-data
-                android:name="com.android.launcher3.grid.control"
-                android:value="${packageName}.grid_control" />
-        </activity>
-
         <service android:name="com.android.quickstep.TouchInteractionService"
              android:permission="android.permission.STATUS_BAR_SERVICE"
              android:directBootAware="true"
              android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.QUICKSTEP_SERVICE"/>
-            </intent-filter>
-        </service>
-
-        <service
-            android:name="com.android.launcher3.taskbar.CueBarInsightRendererService"
-            android:exported="true"
-            android:permission="android.permission.BIND_CONTEXT_COMPONENT_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.personalcontext.renderer.InsightRendererService" />
             </intent-filter>
         </service>
 
@@ -203,7 +141,6 @@
             android:excludeFromRecents="true"
             android:permission="android.permission.REBOOT"
             android:theme="@style/AllSetTheme"
-            android:enableOnBackInvokedCallback="false"
             android:label="@string/allset_title"
             android:exported="true">
             <intent-filter>
@@ -212,13 +149,13 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.android.launcher3.QuickstepWidgetPickerActivity"
+        <activity android:name="com.android.launcher3.WidgetPickerActivity"
             android:theme="@style/WidgetPickerActivityTheme"
             android:excludeFromRecents="true"
             android:autoRemoveFromRecents="true"
+            android:showOnLockScreen="true"
             android:launchMode="singleTop"
             android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:permission="${applicationId}.permission.START_WIDGET_PICKER_ACTIVITY">
             <intent-filter>
                 <action android:name="android.intent.action.PICK" />
@@ -226,16 +163,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.android.launcher3.QuickstepAddItemActivity"
-            android:theme="@style/AddItemActivityTheme"
-            android:excludeFromRecents="true"
-            android:autoRemoveFromRecents="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
-                <action android:name="android.content.pm.action.CONFIRM_PIN_APPWIDGET" />
-            </intent-filter>
-        </activity>
     </application>
 
 </manifest>

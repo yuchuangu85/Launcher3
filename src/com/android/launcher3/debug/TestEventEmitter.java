@@ -23,12 +23,18 @@ package com.android.launcher3.debug;
  * behavior in tests.
  */
 public class TestEventEmitter {
+    public static void sendEvent(TestEvent event) {
+    }
 
     /** Events fired by the launcher. */
     public enum TestEvent {
-        RESIZE_FRAME_SHOWING("RESIZE_FRAME_SHOWING"),
 
-        FIXED_LANDSCAPE("FIXED_LANDSCAPE"),
+        LAUNCHER_ON_CREATE("LAUNCHER_ON_CREATE"),
+        WORKSPACE_ON_DROP("WORKSPACE_ON_DROP"),
+        RESIZE_FRAME_SHOWING("RESIZE_FRAME_SHOWING"),
+        WORKSPACE_FINISH_LOADING("WORKSPACE_FINISH_LOADING"),
+        SPRING_LOADED_STATE_STARTED("SPRING_LOADED_STATE_STARTED"),
+        SPRING_LOADED_STATE_COMPLETED("SPRING_LOADED_STATE_COMPLETED"),
 
         LAUNCHER_STATE_COMPLETED("LAUNCHER_STATE_COMPLETED");
 

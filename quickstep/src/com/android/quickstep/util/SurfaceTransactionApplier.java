@@ -25,14 +25,14 @@ import android.view.ViewRootImpl;
 
 import androidx.annotation.NonNull;
 
-import com.android.quickstep.SurfaceReleaseCheck;
+import com.android.quickstep.RemoteAnimationTargets.ReleaseCheck;
 
 /**
  * Helper class to apply surface transactions in sync with RenderThread similar to
  *   android.view.SyncRtSurfaceTransactionApplier
  * with some Launcher specific utility methods
  */
-public class SurfaceTransactionApplier extends SurfaceReleaseCheck {
+public class SurfaceTransactionApplier extends ReleaseCheck {
 
     private static final int MSG_UPDATE_SEQUENCE_NUMBER = 0;
 
@@ -107,8 +107,6 @@ public class SurfaceTransactionApplier extends SurfaceReleaseCheck {
         setCanRelease(false);
         mTargetViewRootImpl.registerRtFrameCallback(frame -> {
             if (mBarrierSurfaceControl == null || !mBarrierSurfaceControl.isValid()) {
-                // Won't sync with anything, but we still need to apply the transaction
-                t.apply();
                 Message.obtain(mApplyHandler, MSG_UPDATE_SEQUENCE_NUMBER, toApplySeqNo, 0)
                         .sendToTarget();
                 return;

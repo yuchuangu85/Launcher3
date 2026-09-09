@@ -16,34 +16,22 @@
 
 package com.android.quickstep.recents.viewmodel
 
-import com.android.launcher3.Flags.enableLowResThumbnailPreloading
-import com.android.launcher3.dagger.DisplayId
-import com.android.quickstep.recents.data.AppTimersRepository
 import com.android.quickstep.recents.data.RecentTasksRepository
 import com.android.systemui.shared.recents.model.ThumbnailData
-import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 
-class RecentsViewModel
-@Inject
-constructor(
+class RecentsViewModel(
     private val recentsTasksRepository: RecentTasksRepository,
     private val recentsViewData: RecentsViewData,
-    private val appTimersRepository: AppTimersRepository,
-    @DisplayId private val displayId: Int,
 ) {
-    var visibleTaskIds = emptySet<Int>()
-        private set
-
     fun refreshAllTaskData() {
-        recentsTasksRepository.getAllTaskData(displayId, true)
+        recentsTasksRepository.getAllTaskData(true)
     }
 
     fun updateVisibleTasks(visibleTaskIdList: List<Int>) {
-        visibleTaskIds = visibleTaskIdList.toSet()
-        recentsTasksRepository.setVisibleTasks(displayId, visibleTaskIds)
+        recentsTasksRepository.setVisibleTasks(visibleTaskIdList.toSet())
     }
 
     fun updateTasksFullyVisible(taskIds: Set<Int>) {
@@ -58,15 +46,10 @@ constructor(
         recentsViewData.overlayEnabled.value = isOverlayEnabled
     }
 
-    fun setHighResThumbnailsRequired(highResThumbnailsRequired: Boolean) {
-        recentsTasksRepository.setHighResThumbnailsRequired(highResThumbnailsRequired)
-    }
-
     suspend fun waitForThumbnailsToUpdate(updatedThumbnails: Map<Int, ThumbnailData>?) {
-        val visibleThumbnails = updatedThumbnails?.filterKeys { it in visibleTaskIds }
-        if (visibleThumbnails.isNullOrEmpty()) return
+        if (updatedThumbnails.isNullOrEmpty()) return
         combine(
-                visibleThumbnails.map {
+                updatedThumbnails.map {
                     recentsTasksRepository.getThumbnailById(it.key).filter { thumbnailData ->
                         thumbnailData?.snapshotId == it.value.snapshotId
                     }
@@ -81,9 +64,6 @@ constructor(
 
     fun onReset() {
         updateVisibleTasks(emptyList())
-        if (enableLowResThumbnailPreloading()) {
-            appTimersRepository.invalidateCache()
-        }
     }
 
     fun updateRunningTask(taskIds: Set<Int>) {

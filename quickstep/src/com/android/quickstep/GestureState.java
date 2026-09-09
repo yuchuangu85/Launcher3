@@ -16,7 +16,6 @@
 package com.android.quickstep;
 
 import static android.app.ActivityTaskManager.INVALID_TASK_ID;
-import static android.view.Display.DEFAULT_DISPLAY;
 
 import static com.android.launcher3.MotionEventsUtils.isTrackpadFourFingerSwipe;
 import static com.android.launcher3.MotionEventsUtils.isTrackpadThreeFingerSwipe;
@@ -24,9 +23,7 @@ import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_ALLAP
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_BACKGROUND;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_HOME;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_OVERVIEW;
-import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_UNCHANGED;
 import static com.android.quickstep.MultiStateCallback.DEBUG_STATES;
-import static com.android.quickstep.util.ActiveGestureErrorDetector.GestureEvent.INCORRECT_HOME_GESTURE_REQUEST;
 import static com.android.quickstep.util.ActiveGestureErrorDetector.GestureEvent.SET_END_TARGET_ALL_APPS;
 import static com.android.quickstep.util.ActiveGestureErrorDetector.GestureEvent.SET_END_TARGET_HOME;
 import static com.android.quickstep.util.ActiveGestureErrorDetector.GestureEvent.SET_END_TARGET_NEW_TASK;
@@ -44,11 +41,11 @@ import androidx.annotation.Nullable;
 import com.android.launcher3.statemanager.BaseState;
 import com.android.launcher3.statemanager.StatefulContainer;
 import com.android.quickstep.TopTaskTracker.CachedTaskInfo;
+import com.android.quickstep.fallback.window.RecentsWindowFlags;
 import com.android.quickstep.util.ActiveGestureErrorDetector;
 import com.android.quickstep.util.ActiveGestureLog;
 import com.android.quickstep.util.ActiveGestureProtoLogProxy;
 import com.android.quickstep.views.RecentsViewContainer;
-import com.android.quickstep.window.RecentsWindowManager;
 import com.android.systemui.shared.recents.model.ThumbnailData;
 
 import java.io.PrintWriter;
@@ -66,7 +63,7 @@ import java.util.function.Predicate;
  */
 public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationListener {
 
-    private final Predicate<RemoteAnimationTarget> mLastStartedTaskIdPredicate = new Predicate<>() {
+    final Predicate<RemoteAnimationTarget> mLastStartedTaskIdPredicate = new Predicate<>() {
         @Override
         public boolean test(RemoteAnimationTarget targetCompat) {
             for (int taskId : mLastStartedTaskId) {
@@ -90,9 +87,7 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
 
         LAST_TASK(false, LAUNCHER_STATE_BACKGROUND, true),
 
-        ALL_APPS(true, LAUNCHER_STATE_ALLAPPS, false),
-
-        REJECT_HOME(false, LAUNCHER_STATE_UNCHANGED, false);
+        ALL_APPS(true, LAUNCHER_STATE_ALLAPPS, false);
 
         GestureEndTarget(boolean isLauncher, int containerType,
                 boolean recentsAttachedToAppWindow) {
@@ -194,14 +189,12 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
     /** The time when the swipe up gesture is triggered. */
     private final long mSwipeUpStartTimeMs = SystemClock.uptimeMillis();
 
-    private GestureEndTarget mAtomicEndTarget;
+    private boolean mHandlingAtomicEvent;
     private boolean mIsInExtendedSlopRegion;
-    private boolean mIsTaskbarAlreadyOpen;
-    private boolean mIsTaskbarAllAppsOpen;
 
     public GestureState(OverviewComponentObserver componentObserver, int displayId, int gestureId) {
         mDisplayId = displayId;
-        mHomeIntent = componentObserver.getHomeIntent(displayId);
+        mHomeIntent = componentObserver.getHomeIntent();
         mOverviewIntent = componentObserver.getOverviewIntent();
         mContainerInterface = componentObserver.getContainerInterface(displayId);
         mStateCallback = new MultiStateCallback(
@@ -221,8 +214,6 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
         mLastAppearedTaskTargets = other.mLastAppearedTaskTargets;
         mPreviouslyAppearedTaskIds = other.mPreviouslyAppearedTaskIds;
         mLastStartedTaskId = other.mLastStartedTaskId;
-        mIsTaskbarAlreadyOpen = other.mIsTaskbarAlreadyOpen;
-        mIsTaskbarAllAppsOpen = other.mIsTaskbarAllAppsOpen;
     }
 
     public GestureState() {
@@ -236,34 +227,6 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
         mGestureId = -1;
     }
 
-    /**
-     * @return true if the taskbar was already open when the gesture started.
-     */
-    public boolean isTaskbarAlreadyOpen() {
-        return mIsTaskbarAlreadyOpen;
-    }
-
-    /**
-     * Sets whether the taskbar was already open when the gesture started.
-     */
-    public void setTaskbarAlreadyOpen(boolean taskbarAlreadyOpen) {
-        mIsTaskbarAlreadyOpen = taskbarAlreadyOpen;
-    }
-
-    /**
-     * @return true if the taskbar all apps was open when the gesture started.
-     */
-    public boolean isTaskbarAllAppsOpen() {
-        return mIsTaskbarAllAppsOpen;
-    }
-
-    /**
-     * Sets whether the taskbar all apps was open when the gesture started.
-     */
-    public void setTaskbarAllAppsOpen(boolean taskbarAllAppsOpen) {
-        mIsTaskbarAllAppsOpen = taskbarAllAppsOpen;
-    }
-
     @Nullable
     private static ActiveGestureErrorDetector.GestureEvent getTrackedEventForState(int stateFlag) {
         if (stateFlag == STATE_END_TARGET_ANIMATION_FINISHED) {
@@ -274,11 +237,6 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
             return ActiveGestureErrorDetector.GestureEvent.STATE_RECENTS_ANIMATION_CANCELED;
         }
         return null;
-    }
-
-    public static boolean displaySupportsHomeGesture(int displayId) {
-        // The reject home transition runs if home is invoked on a display which lacks a home.
-        return displayId == DEFAULT_DISPLAY;
     }
 
     /**
@@ -365,7 +323,7 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
      */
     public boolean useSyntheticRecentsTransition() {
         return mRunningTask.isHomeTask()
-                && mContainerInterface.getCreatedContainer() instanceof RecentsWindowManager;
+                && RecentsWindowFlags.Companion.getEnableOverviewInWindow();
     }
 
     /**
@@ -403,8 +361,7 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
      * @return the single top-most running taskId for this gesture
      */
     public int getTopRunningTaskId() {
-        var taskIds = getRunningTaskIds(/* getMultipleTasks = */ false);
-        return taskIds.length != 0 ? taskIds[0] : INVALID_TASK_ID;
+        return getRunningTaskIds(false /*getMultipleTasks*/)[0];
     }
 
     /**
@@ -487,14 +444,6 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
         switch (mEndTarget) {
             case HOME:
                 ActiveGestureLog.INSTANCE.trackEvent(SET_END_TARGET_HOME);
-                if (!displaySupportsHomeGesture(mDisplayId)) {
-                    ActiveGestureLog.INSTANCE.trackEvent(INCORRECT_HOME_GESTURE_REQUEST);
-                }
-                break;
-            case REJECT_HOME:
-                if (displaySupportsHomeGesture(mDisplayId)) {
-                    ActiveGestureLog.INSTANCE.trackEvent(INCORRECT_HOME_GESTURE_REQUEST);
-                }
                 break;
             case NEW_TASK:
                 ActiveGestureLog.INSTANCE.trackEvent(SET_END_TARGET_NEW_TASK);
@@ -516,8 +465,8 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
      * Indicates if the gesture is handling an atomic event like a click and not a
      * user controlled gesture.
      */
-    public void setHandlingAtomicEvent(GestureEndTarget target) {
-        mAtomicEndTarget = target;
+    public void setHandlingAtomicEvent(boolean handlingAtomicEvent) {
+        mHandlingAtomicEvent = handlingAtomicEvent;
     }
 
     /**
@@ -525,14 +474,7 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
      * user controlled gesture.
      */
     public boolean isHandlingAtomicEvent() {
-        return mAtomicEndTarget != null;
-    }
-
-    /**
-     * Returns the end target of the atomic event.  If not handling an atomic event, returns null.
-     */
-    public GestureEndTarget getAtomicEndTarget() {
-        return mAtomicEndTarget;
+        return mHandlingAtomicEvent;
     }
 
     /**
@@ -606,10 +548,6 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
             return data;
         }
         return null;
-    }
-
-    Predicate<RemoteAnimationTarget> getLastStartedTaskIdPredicate() {
-        return mLastStartedTaskIdPredicate;
     }
 
     long getSwipeUpStartTimeMs() {

@@ -17,12 +17,7 @@ package com.android.launcher3.tapl;
 
 import static android.view.KeyEvent.KEYCODE_META_RIGHT;
 
-import static com.android.launcher3.tapl.LauncherInstrumentation.KEYBOARD_QUICK_SWITCH_RES_ID;
-import static com.android.launcher3.tapl.LauncherInstrumentation.TASKBAR_DIVIDER_CONTAINER_RES_ID;
-import static com.android.launcher3.tapl.LauncherInstrumentation.TASKBAR_PINNING_SWITCH_RES_ID;
-import static com.android.launcher3.tapl.LauncherInstrumentation.TASKBAR_SWITCH_OPTION_RES_ID;
 import static com.android.launcher3.tapl.LauncherInstrumentation.TASKBAR_RES_ID;
-import static com.android.launcher3.tapl.TaskbarAppIcon.LONG_CLICK_EVENT;
 
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -46,20 +41,10 @@ import java.util.stream.Collectors;
  */
 public final class Taskbar {
 
-    /** The TaskbarLocation */
-    enum TaskbarLocation {
-        /** Launched application. */
-        LAUNCHED_APP,
-        /** Overview screen with recent apps. */
-        OVERVIEW,
-    }
-
     private final LauncherInstrumentation mLauncher;
-    private final TaskbarLocation mTaskbarLocation;
 
-    Taskbar(LauncherInstrumentation launcher, TaskbarLocation taskbarLocation) {
+    Taskbar(LauncherInstrumentation launcher) {
         mLauncher = launcher;
-        mTaskbarLocation = taskbarLocation;
         try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                 "expect new taskbar to be visible")) {
             mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID);
@@ -80,22 +65,7 @@ public final class Taskbar {
                 "want to get a taskbar icon")) {
             return new TaskbarAppIcon(mLauncher, mLauncher.waitForObjectInContainer(
                     mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID),
-                    AppIcon.getAppIconSelector(appName, mLauncher)), mTaskbarLocation, true);
-        }
-    }
-
-    /**
-     * Returns an app icon with the given name. This fails if the icon is not found.
-     * Should be used for app icons which when launched do not create a new activity - for example,
-     * icons that represent running tasks.
-     */
-    @NonNull
-    public TaskbarAppIcon getAppIconForRunningApp(String appName) {
-        try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
-                "want to get a taskbar icon")) {
-            return new TaskbarAppIcon(mLauncher, mLauncher.waitForObjectInContainer(
-                    mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID),
-                    AppIcon.getAppIconSelector(appName, mLauncher)), mTaskbarLocation, false);
+                    AppIcon.getAppIconSelector(appName, mLauncher)));
         }
     }
 
@@ -137,39 +107,11 @@ public final class Taskbar {
                 "want to open taskbar all apps");
              LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
 
-            mLauncher.waitForObjectInContainer(
+            mLauncher.clickLauncherObject(mLauncher.waitForObjectInContainer(
                     mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID),
-                    getAllAppsButtonSelector()).click();
+                    getAllAppsButtonSelector()));
 
             return getAllApps();
-        }
-    }
-
-    /**
-     * Toggles always show taskbar option
-     */
-    public void toggleAlwaysShowTaskbarOption() {
-        try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
-                "want to open taskbar divider menu and toggle always show taskbar option");
-             LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
-            mLauncher.showTaskbarIfHidden();
-            mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID);
-
-            // Retrieve the focusable layout and click on the switch.
-            UiObject2 taskbar_layout = mLauncher.clickAndGet(mLauncher.waitForLauncherObject(
-                    TASKBAR_DIVIDER_CONTAINER_RES_ID),
-                    TASKBAR_SWITCH_OPTION_RES_ID, LONG_CLICK_EVENT);
-            for (UiObject2 child : taskbar_layout.getChildren()) {
-                if (child.getResourceName() != null && child.getResourceName().contains(
-                        TASKBAR_PINNING_SWITCH_RES_ID)) {
-                    child.click();
-
-                    // Wait for the popup menu to disappear after the click
-                    mLauncher.waitUntilLauncherObjectGone(TASKBAR_PINNING_SWITCH_RES_ID);
-                    mLauncher.waitForIdle();
-                    return;
-                }
-            }
         }
     }
 
@@ -182,44 +124,11 @@ public final class Taskbar {
                 "want to open home all apps from taskbar");
              LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
 
-            mLauncher.waitForObjectInContainer(
+            mLauncher.clickLauncherObject(mLauncher.waitForObjectInContainer(
                     mLauncher.waitForSystemLauncherObject(TASKBAR_RES_ID),
-                    getAllAppsButtonSelector()).click();
+                    getAllAppsButtonSelector()));
 
             return mLauncher.getAllApps();
-        }
-    }
-
-    /**
-     * Opens taskbar overflow UI by clicking the taskbar overflow icon, and then opens a task in
-     * overflow UI at the provided index.
-     * Assumes that taskbar is currently visible, and in overflow (i.e. that the taskbar overflow
-     * icon is shown).
-     */
-    public LaunchedAppState launchTaskFromTaskbarOverflowByRecencyIndex(int index) {
-        try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
-                "Click on taskbar overflow button");
-             LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
-            mLauncher.waitForSystemLauncherObject(
-                    "taskbar_overflow_view").click();
-
-            UiObject2 kqs = mLauncher.waitForSystemLauncherObject(KEYBOARD_QUICK_SWITCH_RES_ID);
-
-            List<UiObject2> overflownApps =
-                    mLauncher.waitForObjectsInContainer(kqs,
-                            mLauncher.getLauncherObjectSelector("thumbnail_1"));
-            mLauncher.assertTrue("Task index out of bounds " + overflownApps.size() + " " + index,
-                    overflownApps.size() > index);
-            UiObject2 task = overflownApps.get(overflownApps.size() - 1 - index);
-
-            if (mLauncher.isLauncherActivityStarted()) {
-                mLauncher.executeAndWaitForLauncherStop(task::click, "clicking a task in overflow");
-            } else {
-                task.click();
-            }
-
-            mLauncher.waitUntilLauncherObjectGone(KEYBOARD_QUICK_SWITCH_RES_ID);
-            return new LaunchedAppState(mLauncher);
         }
     }
 
@@ -238,7 +147,7 @@ public final class Taskbar {
     public TaskbarAllApps getAllApps() {
         try (LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                 "want to get taskbar all apps object")) {
-            return new TaskbarAllApps(mLauncher, mTaskbarLocation);
+            return new TaskbarAllApps(mLauncher);
         }
     }
 

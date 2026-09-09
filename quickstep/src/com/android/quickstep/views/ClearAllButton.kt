@@ -31,14 +31,8 @@ import com.android.quickstep.util.BorderAnimator.Companion.createSimpleBorderAni
 import kotlin.math.abs
 import kotlin.math.min
 
-class ClearAllButton
-@JvmOverloads
-constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0,
-    defStyleRes: Int = 0,
-) : Button(context, attrs, defStyleAttr, defStyleRes) {
+class ClearAllButton @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
+    Button(context, attrs) {
 
     private val clearAllButtonAlpha =
         object : MultiValueAlpha(this, Alpha.entries.size) {
@@ -51,11 +45,6 @@ constructor(
     var contentAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.CONTENT)
     var visibilityAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.VISIBILITY)
     var dismissAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.DISMISS)
-    private var splitAlpha by MultiPropertyDelegate(clearAllButtonAlpha, Alpha.SPLIT)
-
-    fun setSplitSelectionActive(isActive: Boolean) {
-        splitAlpha = if (isActive) 0f else 1f
-    }
 
     var fullscreenProgress = 1f
         set(value) {
@@ -200,19 +189,20 @@ constructor(
             )
     }
 
-    fun getScrollAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean) =
-        getOffsetAdjustment(fullscreenEnabled, gridEnabled) + scrollOffsetPrimary
-
-    fun getOffsetAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean): Float {
-        var offsetAdjustment = 0f
+    fun getScrollAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean): Float {
+        var scrollAdjustment = 0f
         if (fullscreenEnabled) {
-            offsetAdjustment += fullscreenTranslationPrimary
+            scrollAdjustment += fullscreenTranslationPrimary
         }
         if (gridEnabled) {
-            offsetAdjustment += gridTranslationPrimary + gridScrollOffset
+            scrollAdjustment += gridTranslationPrimary + gridScrollOffset
         }
-        return offsetAdjustment
+        scrollAdjustment += scrollOffsetPrimary
+        return scrollAdjustment
     }
+
+    fun getOffsetAdjustment(fullscreenEnabled: Boolean, gridEnabled: Boolean) =
+        getScrollAdjustment(fullscreenEnabled, gridEnabled)
 
     private fun applyPrimaryTranslation() {
         val recentsView = recentsView ?: return
@@ -246,7 +236,6 @@ constructor(
             CONTENT,
             VISIBILITY,
             DISMISS,
-            SPLIT,
         }
 
         @JvmField

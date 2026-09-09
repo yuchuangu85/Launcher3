@@ -15,35 +15,20 @@
  */
 package com.android.launcher3.tapl;
 
-import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiObject2;
-
-import com.android.launcher3.Flags;
-import com.android.launcher3.tapl.Taskbar.TaskbarLocation;
-import com.android.launcher3.testing.shared.TestProtocol;
 
 import java.util.regex.Pattern;
 
 /**
  * App icon specifically on the Taskbar.
  */
-public final class TaskbarAppIcon extends AppIcon implements SplitscreenDragSource,
-        BubbleBarDragSource {
+public final class TaskbarAppIcon extends AppIcon implements SplitscreenDragSource {
 
-    static final Pattern LONG_CLICK_EVENT = Pattern.compile("onTaskbarItemLongClick");
+    private static final Pattern LONG_CLICK_EVENT = Pattern.compile("onTaskbarItemLongClick");
     private static final Pattern RIGHT_CLICK_EVENT = Pattern.compile("onTaskbarItemRightClick");
 
-    private final TaskbarLocation mTaskbarLocation;
-    // Whether launching the icon is expected to start a new activity. Should be false if launching
-    // the icon refocuses/opens an existing activity.
-    private final boolean mLaunchStartsNewActivity;
-
-    TaskbarAppIcon(LauncherInstrumentation launcher, UiObject2 icon,
-            TaskbarLocation taskbarLocation,
-            boolean launchStartsNewActivity) {
+    TaskbarAppIcon(LauncherInstrumentation launcher, UiObject2 icon) {
         super(launcher, icon);
-        this.mTaskbarLocation = taskbarLocation;
-        this.mLaunchStartsNewActivity = launchStartsNewActivity;
     }
 
     @Override
@@ -66,25 +51,14 @@ public final class TaskbarAppIcon extends AppIcon implements SplitscreenDragSour
     public TaskbarAppIconMenu openDeepShortcutMenuWithRightClick() {
         try (LauncherInstrumentation.Closable e = mLauncher.addContextLayer(
                 "want to return the shortcut menu when icon is right-clicked.")) {
-            if (Flags.expandableLongPressMenu()) {
-                final UiObject2 popupContainer = mLauncher.rightClickAndGet(
-                        mObject, "popup_container", getRightClickEvent());
-                return createMenu(popupContainer
-                        .findObject(By.desc(TestProtocol.DEEP_SHORTCUTS_CONTAINER)));
-            }
-            return createMenu(mLauncher.rightClickAndGet(mObject,
-                    /* resName= */ TestProtocol.DEEP_SHORTCUTS_CONTAINER, getRightClickEvent()));
+            return createMenu(mLauncher.rightClickAndGet(
+                    mObject, /* resName= */ "deep_shortcuts_container", getRightClickEvent()));
         }
     }
 
     @Override
     protected TaskbarAppIconMenu createMenu(UiObject2 menu) {
         return new TaskbarAppIconMenu(mLauncher, menu);
-    }
-
-    @Override
-    public TaskbarLocation getTaskbarLocation() {
-        return mTaskbarLocation;
     }
 
     @Override
@@ -96,12 +70,5 @@ public final class TaskbarAppIcon extends AppIcon implements SplitscreenDragSour
     protected boolean launcherStopsAfterLaunch() {
         // false because if taskbar is showing then launcher is already stopped.
         return false;
-    }
-
-    @Override
-    protected void expectActivityStartEvents() {
-        if (mLaunchStartsNewActivity) {
-            super.expectActivityStartEvents();
-        }
     }
 }

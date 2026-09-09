@@ -21,8 +21,10 @@ import static android.app.prediction.AppTargetEvent.ACTION_PIN;
 import static android.app.prediction.AppTargetEvent.ACTION_UNDISMISS;
 import static android.app.prediction.AppTargetEvent.ACTION_UNPIN;
 
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_PREDICTION;
+import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_PREDICTION;
+import static com.android.launcher3.logger.LauncherAtomExtensions.ExtendedContainers.ContainerCase.DEVICE_SEARCH_RESULT_CONTAINER;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_APP_LAUNCH_DRAGDROP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_APP_LAUNCH_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DISMISS_PREDICTION_UNDO;
@@ -39,8 +41,9 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCH
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SYSTEM_SHORTCUT_DONT_SUGGEST_APP_TAP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASK_LAUNCH_SWIPE_DOWN;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASK_LAUNCH_TAP;
-import static com.android.launcher3.model.PredictionHelper.getLocationString;
+import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGET_ADD_BUTTON_TAP;
 import static com.android.launcher3.model.PredictionHelper.isTrackedForHotseatPrediction;
+import static com.android.launcher3.model.PredictionHelper.isTrackedForWidgetPrediction;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 
 import android.app.prediction.AppTarget;
@@ -62,13 +65,18 @@ import androidx.annotation.WorkerThread;
 
 import com.android.launcher3.Utilities;
 import com.android.launcher3.logger.LauncherAtom;
+import com.android.launcher3.logger.LauncherAtom.ContainerInfo;
+import com.android.launcher3.logger.LauncherAtom.FolderContainer;
+import com.android.launcher3.logger.LauncherAtom.HotseatContainer;
+import com.android.launcher3.logger.LauncherAtom.WorkspaceContainer;
 import com.android.launcher3.logging.StatsLogManager.EventEnum;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.shortcuts.ShortcutRequest;
+import com.android.launcher3.util.UserIconInfo;
 import com.android.quickstep.logging.StatsLogCompatManager.StatsLogConsumer;
 import com.android.systemui.shared.system.SysUiStatsLog;
-import com.android.users.UserType;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.ObjIntConsumer;
 
@@ -93,9 +101,11 @@ public class AppEventProducer implements StatsLogConsumer {
 
     @WorkerThread
     private boolean handleMessage(Message msg) {
-        if (msg.what == MSG_LAUNCH) {
-            mCallback.accept((AppTargetEvent) msg.obj, msg.arg1);
-            return true;
+        switch (msg.what) {
+            case MSG_LAUNCH: {
+                mCallback.accept((AppTargetEvent) msg.obj, msg.arg1);
+                return true;
+            }
         }
         return false;
     }
@@ -111,10 +121,7 @@ public class AppEventProducer implements StatsLogConsumer {
         // TODO: remove the running test check when b/231648228 is fixed.
         if (target != null && !Utilities.isRunningInTestHarness()) {
             AppTargetEvent event = new AppTargetEvent.Builder(target, eventId)
-                    .setLaunchLocation(getLocationString(
-                            locationInfo.getContainerInfo(),
-                            locationInfo.getWidget().getSpanX(),
-                            locationInfo.getWidget().getSpanY()))
+                    .setLaunchLocation(getContainer(locationInfo))
                     .build();
             mMessageHandler.obtainMessage(MSG_LAUNCH, targetPredictor, 0, event).sendToTarget();
         }
@@ -128,10 +135,10 @@ public class AppEventProducer implements StatsLogConsumer {
                 || event == LAUNCHER_QUICKSWITCH_RIGHT
                 || event == LAUNCHER_QUICKSWITCH_LEFT
                 || event == LAUNCHER_APP_LAUNCH_DRAGDROP) {
-            sendEvent(atomInfo, ACTION_LAUNCH, CONTAINER_ALL_APPS_PREDICTION);
+            sendEvent(atomInfo, ACTION_LAUNCH, CONTAINER_PREDICTION);
         } else if (event == LAUNCHER_ITEM_DROPPED_ON_DONT_SUGGEST
                 || event == LAUNCHER_SYSTEM_SHORTCUT_DONT_SUGGEST_APP_TAP) {
-            sendEvent(atomInfo, ACTION_DISMISS, CONTAINER_ALL_APPS_PREDICTION);
+            sendEvent(atomInfo, ACTION_DISMISS, CONTAINER_PREDICTION);
         } else if (event == LAUNCHER_ITEM_DRAG_STARTED) {
             mLastDragItem = atomInfo;
         } else if (event == LAUNCHER_ITEM_DROP_COMPLETED) {
@@ -143,6 +150,9 @@ public class AppEventProducer implements StatsLogConsumer {
             }
             if (isTrackedForHotseatPrediction(atomInfo)) {
                 sendEvent(atomInfo, ACTION_PIN, CONTAINER_HOTSEAT_PREDICTION);
+            }
+            if (isTrackedForWidgetPrediction(atomInfo)) {
+                sendEvent(atomInfo, ACTION_PIN, CONTAINER_WIDGETS_PREDICTION);
             }
             mLastDragItem = null;
         } else if (event == LAUNCHER_ITEM_DROP_FOLDER_CREATED) {
@@ -161,6 +171,9 @@ public class AppEventProducer implements StatsLogConsumer {
             if (mLastDragItem != null && isTrackedForHotseatPrediction(mLastDragItem)) {
                 sendEvent(mLastDragItem, ACTION_UNPIN, CONTAINER_HOTSEAT_PREDICTION);
             }
+            if (mLastDragItem != null && isTrackedForWidgetPrediction(mLastDragItem)) {
+                sendEvent(mLastDragItem, ACTION_UNPIN, CONTAINER_WIDGETS_PREDICTION);
+            }
         } else if (event == LAUNCHER_HOTSEAT_PREDICTION_PINNED) {
             if (isTrackedForHotseatPrediction(atomInfo)) {
                 sendEvent(atomInfo, ACTION_PIN, CONTAINER_HOTSEAT_PREDICTION);
@@ -169,15 +182,19 @@ public class AppEventProducer implements StatsLogConsumer {
             AppTarget target = new AppTarget.Builder(new AppTargetId("launcher:launcher"),
                     mContext.getPackageName(), Process.myUserHandle())
                     .build();
-            sendEvent(target, atomInfo, ACTION_LAUNCH, CONTAINER_ALL_APPS_PREDICTION);
+            sendEvent(target, atomInfo, ACTION_LAUNCH, CONTAINER_PREDICTION);
         } else if (event == LAUNCHER_DISMISS_PREDICTION_UNDO) {
             sendEvent(atomInfo, ACTION_UNDISMISS, CONTAINER_HOTSEAT_PREDICTION);
+        } else if (event == LAUNCHER_WIDGET_ADD_BUTTON_TAP) {
+            if (isTrackedForWidgetPrediction(atomInfo)) {
+                sendEvent(atomInfo, ACTION_PIN, CONTAINER_WIDGETS_PREDICTION);
+            }
         }
     }
 
     @Nullable
     AppTarget toAppTarget(LauncherAtom.ItemInfo info) {
-        UserType iconInfoType = getIconInfoTypeFromItemInfo(info);
+        int iconInfoType = getIconInfoTypeFromItemInfo(info);
         UserCache userCache = UserCache.INSTANCE.get(mContext);
         UserHandle userHandle = userCache.getUserProfiles().stream()
                 .filter(user -> userCache.getUserInfo(user).type == iconInfoType)
@@ -230,8 +247,6 @@ public class AppEventProducer implements StatsLogConsumer {
             }
             case FOLDER_ICON:
                 return createTempFolderTarget();
-            default:
-                break;
         }
         if (id != null && cn != null) {
             if (shortcutInfo != null) {
@@ -251,20 +266,82 @@ public class AppEventProducer implements StatsLogConsumer {
                 .build();
     }
 
+    private String getContainer(LauncherAtom.ItemInfo info) {
+        ContainerInfo ci = info.getContainerInfo();
+        switch (ci.getContainerCase()) {
+            case WORKSPACE: {
+                // In case the item type is not widgets, the spaceX and spanY default to 1.
+                int spanX = info.getWidget().getSpanX();
+                int spanY = info.getWidget().getSpanY();
+                return getWorkspaceContainerString(ci.getWorkspace(), spanX, spanY);
+            }
+            case HOTSEAT: {
+                return getHotseatContainerString(ci.getHotseat());
+            }
+            case TASK_SWITCHER_CONTAINER: {
+                return "task-switcher";
+            }
+            case ALL_APPS_CONTAINER: {
+                return "all-apps";
+            }
+            case PREDICTED_HOTSEAT_CONTAINER: {
+                return "predictions/hotseat";
+            }
+            case PREDICTION_CONTAINER: {
+                return "predictions";
+            }
+            case SHORTCUTS_CONTAINER: {
+                return "deep-shortcuts";
+            }
+            case TASK_BAR_CONTAINER: {
+                return "taskbar";
+            }
+            case FOLDER: {
+                FolderContainer fc = ci.getFolder();
+                switch (fc.getParentContainerCase()) {
+                    case WORKSPACE:
+                        return "folder/" + getWorkspaceContainerString(fc.getWorkspace(), 1, 1);
+                    case HOTSEAT:
+                        return "folder/" + getHotseatContainerString(fc.getHotseat());
+                }
+                return "folder";
+            }
+            case SEARCH_RESULT_CONTAINER:
+                return "search-results";
+            case EXTENDED_CONTAINERS: {
+                if (ci.getExtendedContainers().getContainerCase()
+                        == DEVICE_SEARCH_RESULT_CONTAINER) {
+                    return "search-results";
+                }
+            }
+            default: // fall out
+        }
+        return "";
+    }
+
+    private static String getWorkspaceContainerString(WorkspaceContainer wc, int spanX, int spanY) {
+        return String.format(Locale.ENGLISH, "workspace/%d/[%d,%d]/[%d,%d]",
+                wc.getPageIndex(), wc.getGridX(), wc.getGridY(), spanX, spanY);
+    }
+
+    private static String getHotseatContainerString(HotseatContainer hc) {
+        return String.format(Locale.ENGLISH, "hotseat/%1$d/[%1$d,0]/[1,1]", hc.getIndex());
+    }
+
     private static ComponentName parseNullable(String componentNameString) {
         return TextUtils.isEmpty(componentNameString)
                 ? null : ComponentName.unflattenFromString(componentNameString);
     }
 
-    private UserType getIconInfoTypeFromItemInfo(LauncherAtom.ItemInfo info) {
+    private int getIconInfoTypeFromItemInfo(LauncherAtom.ItemInfo info) {
         int userType = info.getUserType();
         return switch (userType) {
-            case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_WORK -> UserType.WORK;
+            case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_WORK -> UserIconInfo.TYPE_WORK;
             case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_CLONED ->
-                    UserType.CLONED;
+                    UserIconInfo.TYPE_CLONED;
             case SysUiStatsLog.LAUNCHER_UICHANGED__USER_TYPE__TYPE_PRIVATE ->
-                    UserType.PRIVATE;
-            default -> UserType.MAIN;
+                    UserIconInfo.TYPE_PRIVATE;
+            default -> UserIconInfo.TYPE_MAIN;
         };
     }
 }

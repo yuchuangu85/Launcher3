@@ -18,6 +18,7 @@ package com.android.launcher3.accessibility;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -25,10 +26,11 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.DropTarget;
 import com.android.launcher3.LauncherSettings;
-import com.android.launcher3.UtilitiesKt;
 import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.dragndrop.DragOptions;
+import com.android.launcher3.model.data.CollectionInfo;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.views.ActivityContext;
@@ -44,7 +46,6 @@ public abstract class BaseAccessibilityDelegate<T extends Context & ActivityCont
         ICON,
         FOLDER,
         APP_PAIR,
-        FILESYSTEM_ICON,
         WIDGET
     }
 
@@ -102,7 +103,8 @@ public abstract class BaseAccessibilityDelegate<T extends Context & ActivityCont
             return item.screenId >= 0
                     && item.container != LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION;
         }
-        return UtilitiesKt.isPersistedModelItem(item);
+        return (item instanceof LauncherAppWidgetInfo)
+                || (item instanceof CollectionInfo);
     }
 
     @Override
@@ -135,7 +137,8 @@ public abstract class BaseAccessibilityDelegate<T extends Context & ActivityCont
      * @param dropLocation relative to {@param clickedTarget}. If provided, its center is used
      * as the actual drop location otherwise the views center is used.
      */
-    public void handleAccessibleDrop(View clickedTarget, Rect dropLocation) {
+    public void handleAccessibleDrop(View clickedTarget, Rect dropLocation,
+            String confirmation) {
         if (!isInAccessibleDrag()) return;
 
         int[] loc = new int[2];
@@ -149,6 +152,10 @@ public abstract class BaseAccessibilityDelegate<T extends Context & ActivityCont
 
         mContext.getDragLayer().getDescendantCoordRelativeToSelf(clickedTarget, loc);
         mContext.getDragController().completeAccessibleDrag(loc);
+
+        if (!TextUtils.isEmpty(confirmation)) {
+            announceConfirmation(confirmation);
+        }
     }
 
     protected abstract boolean beginAccessibleDrag(View item, ItemInfo info, boolean fromKeyboard);

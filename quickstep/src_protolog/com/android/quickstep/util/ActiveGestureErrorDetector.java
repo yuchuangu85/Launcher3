@@ -15,8 +15,6 @@
  */
 package com.android.quickstep.util;
 
-import static com.android.quickstep.util.ActiveGestureErrorDetector.GestureEvent.UNFINISHED_TASK_LAUNCH;
-
 import android.util.ArraySet;
 
 import androidx.annotation.NonNull;
@@ -38,12 +36,11 @@ public class ActiveGestureErrorDetector {
         SET_END_TARGET_NEW_TASK, SET_END_TARGET_ALL_APPS, ON_SETTLED_ON_END_TARGET,
         ON_START_RECENTS_ANIMATION, ON_FINISH_RECENTS_ANIMATION, ON_CANCEL_RECENTS_ANIMATION,
         START_RECENTS_ANIMATION, FINISH_RECENTS_ANIMATION, CANCEL_RECENTS_ANIMATION,
-        SET_ON_PAGE_TRANSITION_END_CALLBACK, CANCEL_CURRENT_ANIMATION, SCROLLER_ANIMATION_ABORTED,
-        TASK_APPEARED, EXPECTING_TASK_APPEARED, FLAG_USING_OTHER_ACTIVITY_INPUT_CONSUMER,
-        LAUNCHER_DESTROYED, RECENT_TASKS_MISSING, INVALID_VELOCITY_ON_SWIPE_UP,
-        RECENTS_ANIMATION_START_PENDING, QUICK_SWITCH_FROM_HOME_FALLBACK,
-        QUICK_SWITCH_FROM_HOME_FAILED, NAVIGATION_MODE_SWITCHED, RECENTS_ANIMATION_START_TIMEOUT,
-        INCORRECT_HOME_GESTURE_REQUEST, UNFINISHED_TASK_LAUNCH,
+        SET_ON_PAGE_TRANSITION_END_CALLBACK, CANCEL_CURRENT_ANIMATION, CLEANUP_SCREENSHOT,
+        SCROLLER_ANIMATION_ABORTED, TASK_APPEARED, EXPECTING_TASK_APPEARED,
+        FLAG_USING_OTHER_ACTIVITY_INPUT_CONSUMER, LAUNCHER_DESTROYED, RECENT_TASKS_MISSING,
+        INVALID_VELOCITY_ON_SWIPE_UP, RECENTS_ANIMATION_START_PENDING,
+        QUICK_SWITCH_FROM_HOME_FALLBACK, QUICK_SWITCH_FROM_HOME_FAILED, NAVIGATION_MODE_SWITCHED,
 
         /**
          * These GestureEvents are specifically associated to state flags that get set in
@@ -127,6 +124,15 @@ public class ActiveGestureErrorDetector {
                             prefix,
                             /* errorMessage= */ "cancelRecentsAnimation called "
                                     + "before/without startRecentsAnimation.",
+                            writer);
+                    break;
+                case CLEANUP_SCREENSHOT:
+                    errorDetected |= printErrorIfTrue(
+                            !encounteredEvents.contains(GestureEvent.STATE_SCREENSHOT_CAPTURED),
+                            prefix,
+                            /* errorMessage= */ "recents activity screenshot was "
+                                    + "cleaned up before/without STATE_SCREENSHOT_CAPTURED "
+                                    + "being set.",
                             writer);
                     break;
                 case SCROLLER_ANIMATION_ABORTED:
@@ -293,27 +299,11 @@ public class ActiveGestureErrorDetector {
                                     + "the current page index and index 0 were missing.",
                             writer);
                     break;
-                case INCORRECT_HOME_GESTURE_REQUEST:
-                    errorDetected |= printErrorIfTrue(
-                            true,
-                            prefix,
-                            /* errorMessage= */ "Home gesture request is unmatched to the display "
-                                    + "that the gesture is running on. (EG HOME detected on "
-                                    + "!Default, or REJECT_HOME detected on Default)",
-                            writer);
-                    break;
                 case NAVIGATION_MODE_SWITCHED:
                     errorDetected |= printErrorIfTrue(
                             true,
                             prefix,
                             /* errorMessage= */ "Navigation mode switched mid-gesture.",
-                            writer);
-                    break;
-                case RECENTS_ANIMATION_START_TIMEOUT:
-                    errorDetected |= printErrorIfTrue(
-                            true,
-                            prefix,
-                            /* errorMessage= */ "Recents animation start timed out.",
                             writer);
                     break;
                 case EXPECTING_TASK_APPEARED:
@@ -330,7 +320,6 @@ public class ActiveGestureErrorDetector {
                 case STATE_CAPTURE_SCREENSHOT:
                 case STATE_HANDLER_INVALIDATED:
                 case STATE_LAUNCHER_DRAWN:
-                case UNFINISHED_TASK_LAUNCH:
                 default:
                     // No-Op
             }
@@ -433,6 +422,15 @@ public class ActiveGestureErrorDetector {
 
         errorDetected |= printErrorIfTrue(
                 /* condition= */ encounteredEvents.contains(
+                        GestureEvent.STATE_RECENTS_ANIMATION_CANCELED)
+                        && !encounteredEvents.contains(GestureEvent.CLEANUP_SCREENSHOT),
+                prefix,
+                /* errorMessage= */ "STATE_RECENTS_ANIMATION_CANCELED was set but "
+                        + "the task screenshot wasn't cleaned up.",
+                writer);
+
+        errorDetected |= printErrorIfTrue(
+                /* condition= */ encounteredEvents.contains(
                         GestureEvent.EXPECTING_TASK_APPEARED)
                         && !encounteredEvents.contains(GestureEvent.TASK_APPEARED),
                 prefix,
@@ -461,12 +459,6 @@ public class ActiveGestureErrorDetector {
                 prefix,
                 /* errorMessage= */
                 "onRecentsAnimationCanceled was called but onAnimationCanceled was not",
-                writer);
-
-        errorDetected |= printErrorIfTrue(
-                /* condition= */ encounteredEvents.contains(UNFINISHED_TASK_LAUNCH),
-                prefix,
-                /* errorMessage= */ "Recents animation interrupted mid-task launch",
                 writer);
 
         if (!errorDetected) {

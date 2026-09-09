@@ -18,8 +18,6 @@ package com.android.launcher3;
 
 import static com.android.app.animation.Interpolators.SCROLL;
 import static com.android.launcher3.RemoveAnimationSettingsTracker.WINDOW_ANIMATION_SCALE_URI;
-import static com.android.launcher3.Utilities.shouldEnableMouseInteractionChanges;
-import static com.android.launcher3.MotionEventsUtils.isTrackpadMotionEvent;
 import static com.android.launcher3.compat.AccessibilityManagerCompat.isAccessibilityEnabled;
 import static com.android.launcher3.compat.AccessibilityManagerCompat.isObservedEventType;
 import static com.android.launcher3.testing.shared.TestProtocol.SCROLL_FINISHED_MESSAGE;
@@ -65,7 +63,6 @@ import com.android.launcher3.util.Thunk;
 import com.android.launcher3.views.ActivityContext;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -158,8 +155,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
 
     protected EdgeEffectCompat mEdgeGlowLeft;
     protected EdgeEffectCompat mEdgeGlowRight;
-
-    private List<PageSwitchListener> mPageSwitchListeners = new ArrayList<>();
 
     public PagedView(Context context) {
         this(context, null);
@@ -462,23 +457,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
      */
     protected void notifyPageSwitchListener(int prevPage) {
         updatePageIndicator();
-        for (PageSwitchListener listener : mPageSwitchListeners) {
-            listener.onPageSwitch();
-        }
-    }
-
-    /**
-     * Add a callback that is triggered when the page is switched.
-     */
-    public void addPageSwitchListener(PageSwitchListener listener) {
-        mPageSwitchListeners.add(listener);
-    }
-
-    /**
-     * Remove a page switch callback.
-     */
-    public void removePageSwitchListener(PageSwitchListener listener) {
-        mPageSwitchListeners.remove(listener);
     }
 
     private void updatePageIndicator() {
@@ -810,6 +788,13 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
         }
 
         if (mScroller.isFinished() && pageScrollChanged) {
+            // TODO(b/246283207): Remove logging once root cause of flake detected.
+            if (Utilities.isRunningInTestHarness() && !(this instanceof Workspace)) {
+                Log.d("b/246283207", TAG + "#onLayout() -> "
+                        + "if(mScroller.isFinished() && pageScrollChanged) -> getNextPage(): "
+                        + getNextPage() + ", getScrollForPage(getNextPage()): "
+                        + getScrollForPage(getNextPage()));
+            }
             setCurrentPage(getNextPage());
         }
         onPageScrollsInitialized();
@@ -1063,22 +1048,8 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
         super.requestDisallowInterceptTouchEvent(disallowIntercept);
     }
 
-    /**
-     * Returns whether this PagedView should ignore mouse click-and-drag events for scrolling.
-     */
-    protected boolean shouldIgnoreMouseClickAndDrag(MotionEvent ev) {
-        return shouldEnableMouseInteractionChanges(getContext())
-                && !isTrackpadMotionEvent(ev) && ev.isFromSource(InputDevice.SOURCE_MOUSE);
-    }
-
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        // Skip touch interception for mouse based click-and-drag scroll events, to allow mouse
-        // click-and-drag of items within the PagedView.
-        if (shouldIgnoreMouseClickAndDrag(ev)) {
-            return false;
-        }
-
         /*
          * This method JUST determines whether we want to intercept the motion.
          * If we return true, onTouchEvent will be called and we do the actual
@@ -1293,11 +1264,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        // Skip handling for mouse based click-and-drag scroll events.
-        if (shouldIgnoreMouseClickAndDrag(ev)) {
-            return false;
-        }
-
         // Skip touch handling if there are no pages to swipe
         if (getChildCount() <= 0) return false;
 
@@ -1463,7 +1429,7 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
                                 () -> snapToPageWithVelocity(finalPage, velocity));
                     } else if (((isSignificantMove && isDeltaLeft && !isFling) ||
                             (isFling && isVelocityLeft)) &&
-                            mCurrentPage < (getChildCount() - getPanelCount())) {
+                            mCurrentPage < getChildCount() - 1) {
                         finalPage = returnToOriginalPage
                                 ? mCurrentPage : mCurrentPage + getPanelCount();
                         runOnPageScrollsInitialized(
@@ -2033,15 +1999,5 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
                 canvas.restoreToCount(restoreCount);
             }
         }
-    }
-
-    /**
-     * Callback interface for page switches.
-     */
-    public interface PageSwitchListener {
-        /**
-         * Called when the workspace page is switched.
-         */
-        void onPageSwitch();
     }
 }

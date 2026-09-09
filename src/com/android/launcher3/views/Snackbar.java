@@ -18,7 +18,6 @@ package com.android.launcher3.views;
 
 import static android.view.accessibility.AccessibilityManager.FLAG_CONTENT_CONTROLS;
 import static android.view.accessibility.AccessibilityManager.FLAG_CONTENT_TEXT;
-import static android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -27,12 +26,9 @@ import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
 
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.AbstractFloatingView;
@@ -46,51 +42,12 @@ import com.android.launcher3.dragndrop.DragLayer;
  */
 public class Snackbar extends AbstractFloatingView {
 
-    static final long SHOW_DURATION_MS = 180;
-    static final long HIDE_DURATION_MS = 180;
-    static final long TIMEOUT_DURATION_LARGE_SCREEN_MS = 6000;
-    static final long TIMEOUT_DURATION_DEFAULT_MS = 4000;
-
-    private static SnackbarDismissTimer sSnackbarTestDismissTimer = null;
+    private static final long SHOW_DURATION_MS = 180;
+    private static final long HIDE_DURATION_MS = 180;
+    private static final int TIMEOUT_DURATION_MS = 4000;
 
     private final ActivityContext mActivity;
     private Runnable mOnDismissed;
-
-    // Hover count to track whether snackbar and its child views are being hovered. When the count
-    // is positive, it means we should pause the dismiss timeout; when the count is set back to 0,
-    // we can resume the timeout.
-    private int mHoveredCount = 0;
-
-    /** Interface for scheduling and cancelling dismiss actions for testing. */
-    @VisibleForTesting
-    public interface SnackbarDismissTimer {
-        /** Schedules a runnable to be executed after a timeout. */
-        void post(View snackbar, Runnable runnable, long timeout);
-
-        /** Cancels a previously scheduled runnable. */
-        void cancel(View snackbar, Runnable runnable);
-    }
-
-    @VisibleForTesting
-    static void setSnackbarTestDismissTimer(SnackbarDismissTimer timer) {
-        sSnackbarTestDismissTimer = timer;
-    }
-
-    private static void scheduleDismissAction(View snackbar, Runnable action, long timeout) {
-        if (sSnackbarTestDismissTimer != null) {
-            sSnackbarTestDismissTimer.post(snackbar, action, timeout);
-        } else {
-            snackbar.postDelayed(action, timeout);
-        }
-    }
-
-    private static void cancelDismissAction(View snackbar, Runnable action) {
-        if (sSnackbarTestDismissTimer != null) {
-            sSnackbarTestDismissTimer.cancel(snackbar, action);
-        } else {
-            snackbar.removeCallbacks(action);
-        }
-    }
 
     public Snackbar(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
@@ -160,55 +117,15 @@ public class Snackbar extends AbstractFloatingView {
         params.width = minWidth;
         DeviceProfile deviceProfile = activity.getDeviceProfile();
         params.setMargins(0, 0, 0, marginBottom
-                + (deviceProfile.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()
-                ? deviceProfile.getTaskbarProfile().getHeight() + deviceProfile.getTaskbarOffsetY()
+                + (deviceProfile.isTaskbarPresent
+                ? deviceProfile.taskbarHeight + deviceProfile.getTaskbarOffsetY()
                 : insets.bottom));
 
         TextView labelView = snackbar.findViewById(R.id.label);
         labelView.setText(labelString);
 
-        Button actionView = snackbar.findViewById(R.id.action);
+        TextView actionView = snackbar.findViewById(R.id.action);
         float actionWidth;
-
-        // When the user hovers over the snackbar, we want to pause the dismiss timeout so that it
-        // doesn't disappear. Once the user stops hovering, we want to resume the timeout. This
-        // hover listener should be added to both snackbar and action view.
-        // A typical flow is as follows:
-        //   - cursor moved into snackbar
-        //     - hover enters snackbar
-        //     - remove dismiss callback
-        //   - cursor moved into action view
-        //     - hover enters action view
-        //     - hover exits snackbar
-        //   - cursor moved out of action view
-        //     - hover exits action view
-        //     - hover enters snackbar
-        //   - cursor moved out of snackbar
-        //     - hover exits snackbar
-        //     - resume dismiss callback
-        long dismissTimeout = getDismissTimeout(activity);
-        final Runnable dismissRunnable = () -> snackbar.close(true);
-        final OnHoverListener hoverListener = (v, event) -> {
-            if (event.getAction() != MotionEvent.ACTION_HOVER_ENTER
-                    && event.getAction() != MotionEvent.ACTION_HOVER_EXIT) {
-                return false;
-            }
-
-            if (event.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
-                snackbar.mHoveredCount++;
-            } else {
-                snackbar.mHoveredCount--;
-            }
-
-            if (snackbar.mHoveredCount == 0) {
-                scheduleDismissAction(snackbar, dismissRunnable, dismissTimeout);
-            } else if (snackbar.mHoveredCount > 0) {
-                cancelDismissAction(snackbar, dismissRunnable);
-            }
-
-            return false;
-        };
-
         if (actionStringResId != NO_ID) {
             String actionText = res.getString(actionStringResId);
             actionWidth = actionView.getPaint().measureText(actionText)
@@ -221,7 +138,6 @@ public class Snackbar extends AbstractFloatingView {
                 snackbar.mOnDismissed = null;
                 snackbar.close(true);
             });
-            actionView.setOnHoverListener(hoverListener);
         } else {
             actionWidth = 0;
             actionView.setVisibility(GONE);
@@ -261,32 +177,10 @@ public class Snackbar extends AbstractFloatingView {
                 .scaleY(1)
                 .setDuration(SHOW_DURATION_MS)
                 .setInterpolator(Interpolators.ACCELERATE_DECELERATE)
-                .withEndAction(() -> {
-                    if (actionView.getVisibility() == VISIBLE) {
-                        actionView.performAccessibilityAction(ACTION_ACCESSIBILITY_FOCUS, null);
-                    }
-                })
                 .start();
-        scheduleDismissAction(snackbar, dismissRunnable, dismissTimeout);
-        snackbar.setOnHoverListener(hoverListener);
-    }
-
-    /**
-     * Returns the recommended timeout for dismissing the snackbar, taking into account device
-     * properties. The timeout is longer for large screen devices to give users more time to
-     * interact.
-     *
-     * @param activity the activity context used to access resources and device properties
-     * @return the recommended timeout in milliseconds
-     */
-    @VisibleForTesting
-    static long getDismissTimeout(ActivityContext activity) {
-        DeviceProfile deviceProfile = activity.getDeviceProfile();
-        return AccessibilityManagerCompat.getRecommendedTimeoutMillis(
-                (Context) activity,
-                (int) (deviceProfile.getDeviceProperties().isLargeScreen()
-                    ? TIMEOUT_DURATION_LARGE_SCREEN_MS : TIMEOUT_DURATION_DEFAULT_MS),
-                FLAG_CONTENT_TEXT | FLAG_CONTENT_CONTROLS);
+        int timeout = AccessibilityManagerCompat.getRecommendedTimeoutMillis(snackbar.getContext(),
+                TIMEOUT_DURATION_MS, FLAG_CONTENT_TEXT | FLAG_CONTENT_CONTROLS);
+        snackbar.postDelayed(() -> snackbar.close(true), timeout);
     }
 
     @Override

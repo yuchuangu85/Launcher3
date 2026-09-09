@@ -21,8 +21,7 @@ import kotlin.math.max
 class CellContentDimensions(
     var iconSizePx: Int,
     var iconDrawablePaddingPx: Int,
-    var iconTextSizePx: Int,
-    var maxLineCount: Int,
+    var iconTextSizePx: Int
 ) {
     /**
      * This method goes through some steps to reduce the padding between icon and label, icon size
@@ -33,13 +32,7 @@ class CellContentDimensions(
     fun resizeToFitCellHeight(cellHeightPx: Int, iconSizeSteps: IconSizeSteps): Int {
         var cellContentHeight = getCellContentHeight()
 
-        // Step 1, Decrease the number of lines of text that can be shown within the cell.
-        while (cellContentHeight > cellHeightPx && maxLineCount >= 2) {
-            --maxLineCount
-            cellContentHeight = getCellContentHeight()
-        }
-
-        // Step 2. Decrease drawable padding
+        // Step 1. Decrease drawable padding
         if (cellContentHeight > cellHeightPx) {
             val diff = cellContentHeight - cellHeightPx
             iconDrawablePaddingPx = max(0, iconDrawablePaddingPx - diff)
@@ -50,11 +43,11 @@ class CellContentDimensions(
             (iconTextSizePx > iconSizeSteps.minimumIconLabelSize ||
                 iconSizePx > iconSizeSteps.minimumIconSize()) && cellContentHeight > cellHeightPx
         ) {
-            // Step 3. Decrease icon size
+            // Step 2. Decrease icon size
             iconSizePx = iconSizeSteps.getNextLowerIconSize(iconSizePx)
             cellContentHeight = getCellContentHeight()
 
-            // Step 4. Decrease label size
+            // Step 3. Decrease label size
             if (
                 cellContentHeight > cellHeightPx &&
                     iconTextSizePx > iconSizeSteps.minimumIconLabelSize
@@ -62,7 +55,7 @@ class CellContentDimensions(
                 iconTextSizePx =
                     max(
                         iconSizeSteps.minimumIconLabelSize,
-                        iconTextSizePx - IconSizeSteps.TEXT_STEP,
+                        iconTextSizePx - IconSizeSteps.TEXT_STEP
                     )
                 cellContentHeight = getCellContentHeight()
             }
@@ -85,6 +78,6 @@ class CellContentDimensions(
     /** Calculate new cellContentHeight */
     fun getCellContentHeight(): Int {
         val iconTextHeight = Utilities.calculateTextHeight(iconTextSizePx.toFloat())
-        return iconSizePx + iconDrawablePaddingPx + iconTextHeight * maxLineCount
+        return iconSizePx + iconDrawablePaddingPx + iconTextHeight
     }
 }

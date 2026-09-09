@@ -31,10 +31,8 @@ import androidx.annotation.Nullable;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
-import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.popup.PopupData;
-import com.android.launcher3.popup.WorkspaceLongPressOptions;
 import com.android.launcher3.statemanager.StateManager.StateListener;
+import com.android.launcher3.views.OptionsPopupView.OptionItem;
 
 /**
  * Placeholder view to expose additional Launcher actions via accessibility actions
@@ -65,9 +63,8 @@ public class AccessibilityActionsView extends View implements StateListener<Laun
     @Override
     public AccessibilityNodeInfo createAccessibilityNodeInfo() {
         AccessibilityNodeInfo info = super.createAccessibilityNodeInfo();
-        for (PopupData item : WorkspaceLongPressOptions.getAll(getContext())) {
-            info.addAction(new AccessibilityAction(item.getIconResId(),
-                    getContext().getString(item.getLabelResId())));
+        for (OptionItem item : OptionsPopupView.getOptions(Launcher.getLauncher(getContext()))) {
+            info.addAction(new AccessibilityAction(item.labelRes, item.label));
         }
         return info;
     }
@@ -79,21 +76,18 @@ public class AccessibilityActionsView extends View implements StateListener<Laun
         }
         Launcher l = Launcher.getLauncher(getContext());
         if (action == R.string.all_apps_button_label) {
-            l.getActivityComponent().getKeyboardStateManager().setLaunchedFromA11y(true);
+            l.getStatsLogManager().keyboardStateManager().setLaunchedFromA11y(true);
             l.getStateManager().goToState(ALL_APPS);
             return true;
         }
-        for (PopupData item : WorkspaceLongPressOptions.getAll(l)) {
-            if (item.getLabelResId() == action) {
-                if (item.getEventId().getId() > 0) {
-                    l.getStatsLogManager().logger().log(item.getEventId());
+        for (OptionItem item : OptionsPopupView.getOptions(l)) {
+            if (item.labelRes == action) {
+                if (item.eventId.getId() > 0) {
+                    l.getStatsLogManager().logger().log(item.eventId);
                 }
-                item.getPopupAction().invoke(
-                        ActivityContext.lookupContext(getContext()),
-                        new ItemInfo(),
-                        this
-                );
-                return true;
+                if (item.clickListener.onLongClick(this)) {
+                    return true;
+                }
             }
         }
         return false;

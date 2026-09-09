@@ -25,15 +25,16 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.RawRes;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.SystemProperties;
 import android.provider.Settings;
-import android.provider.Settings.Secure;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,9 +53,11 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.annotation.StyleRes;
+import androidx.appcompat.app.AlertDialog;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatorListeners;
 import com.android.launcher3.util.SettingsCache;
 import com.android.launcher3.views.ClipIconView;
@@ -78,6 +81,9 @@ abstract class TutorialController implements BackGestureAttemptCallback,
     private static final float FINGER_DOT_SMALL_SCALE = 0.7f;
     private static final int FINGER_DOT_ANIMATION_DURATION_MILLIS = 500;
 
+    private static final String PIXEL_TIPS_APP_PACKAGE_NAME = "com.google.android.apps.tips";
+    private static final CharSequence DEFAULT_PIXEL_TIPS_APP_NAME = "Pixel Tips";
+
     private static final String SUW_THEME_SYSTEM_PROPERTY = "setupwizard.theme";
     private static final String GLIF_EXPRESSIVE_THEME = "glif_expressive";
     private static final String GLIF_EXPRESSIVE_LIGHT_THEME = "glif_expressive_light";
@@ -97,6 +103,7 @@ abstract class TutorialController implements BackGestureAttemptCallback,
     TutorialType mTutorialType;
     final Context mContext;
 
+    final TextView mSkipButton;
     final Button mDoneButton;
     final ViewGroup mFeedbackView;
     final TextView mFeedbackTitleView;
@@ -115,6 +122,7 @@ abstract class TutorialController implements BackGestureAttemptCallback,
     private final Rect mExitingAppRect = new Rect();
     protected View mExitingAppView;
     protected int mExitingAppRadius;
+    private final AlertDialog mSkipTutorialDialog;
     private final boolean mIsExpressiveThemeEnabledInSUW;
 
     private boolean mGestureCompleted = false;
@@ -135,6 +143,8 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mContext = mTutorialFragment.getContext();
 
         RootSandboxLayout rootView = tutorialFragment.getRootView();
+        mSkipButton = rootView.findViewById(R.id.gesture_tutorial_fragment_close_button);
+        mSkipButton.setOnClickListener(button -> showSkipTutorialDialog());
         mFeedbackView = rootView.findViewById(R.id.gesture_tutorial_fragment_feedback_view);
         mFeedbackTitleView = mFeedbackView.findViewById(
                 R.id.gesture_tutorial_fragment_feedback_title);
@@ -152,14 +162,15 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mRippleDrawable = (RippleDrawable) mRippleView.getBackground();
         mDoneButton = rootView.findViewById(R.id.gesture_tutorial_fragment_action_button);
         mFingerDotView = rootView.findViewById(R.id.gesture_tutorial_finger_dot);
+        mSkipTutorialDialog = createSkipTutorialDialog();
 
         mFullGestureDemonstration = rootView.findViewById(R.id.full_gesture_demonstration);
         mCheckmarkAnimation = rootView.findViewById(R.id.checkmark_animation);
         mAnimatedGestureDemonstration = rootView.findViewById(
                 R.id.gesture_demonstration_animations);
         mExitingAppView = rootView.findViewById(R.id.exiting_app_back);
-        mScreenWidth = mTutorialFragment.getDeviceProfile().getDeviceProperties().getWidthPx();
-        mScreenHeight = mTutorialFragment.getDeviceProfile().getDeviceProperties().getHeightPx();
+        mScreenWidth = mTutorialFragment.getDeviceProfile().widthPx;
+        mScreenHeight = mTutorialFragment.getDeviceProfile().heightPx;
         mExitingAppMargin = mContext.getResources().getDimensionPixelSize(
                 R.dimen.gesture_tutorial_back_gesture_exiting_app_margin);
         mExitingAppStartingCornerRadius = QuickStepContract.getWindowCornerRadius(mContext);
@@ -226,6 +237,12 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         scaleMatrix.postScale(scaleFactor, scaleFactor);
         scaleMatrix.postTranslate(0, heightTranslate);
         mAnimatedGestureDemonstration.setImageMatrix(scaleMatrix);
+    }
+
+    private void showSkipTutorialDialog() {
+        if (mSkipTutorialDialog != null) {
+            mSkipTutorialDialog.show();
+        }
     }
 
     public int getHotseatIconTop() {
@@ -330,16 +347,6 @@ abstract class TutorialController implements BackGestureAttemptCallback,
     }
 
     @StyleRes
-    public int getSubtitleTextAppearance() {
-        return NO_ID;
-    }
-
-    @StyleRes
-    public int getSuccessSubtitleTextAppearance() {
-        return NO_ID;
-    }
-
-    @StyleRes
     public int getDoneButtonTextAppearance() {
         return NO_ID;
     }
@@ -414,7 +421,7 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mFeedbackSubtitleView.setText(subtitleResId);
 
         boolean isUserSetupComplete = SettingsCache.INSTANCE.get(mContext).getValue(
-                Settings.Secure.getUriFor(Secure.USER_SETUP_COMPLETE));
+                Settings.Secure.getUriFor(Settings.Secure.USER_SETUP_COMPLETE), 0);
         boolean userSetupNotCompleteAndExpressiveThemeEnabled =
                 !isUserSetupComplete && mIsExpressiveThemeEnabledInSUW;
         boolean userSetupCompleteAndNewFontsEnabled = isUserSetupComplete && Flags.enableGsf();
@@ -452,7 +459,6 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mCheckmarkAnimation.setVisibility(View.VISIBLE);
         mCheckmarkAnimation.playAnimation();
         mFeedbackTitleView.setTextAppearance(getSuccessTitleTextAppearance());
-        mFeedbackSubtitleView.setTextAppearance(getSuccessSubtitleTextAppearance());
         maybeSetTitleTypefaces();
     }
 
@@ -501,16 +507,18 @@ abstract class TutorialController implements BackGestureAttemptCallback,
 
     @CallSuper
     void transitToController() {
+        updateCloseButton();
         updateDrawables();
         updateLayout();
 
         mFeedbackTitleView.setTextAppearance(getTitleTextAppearance());
-        mFeedbackSubtitleView.setTextAppearance(getSubtitleTextAppearance());
         mDoneButton.setTextAppearance(getDoneButtonTextAppearance());
 
         maybeSetTitleTypefaces();
         mDoneButton.getBackground().setTint(getDoneButtonColor());
-        mCheckmarkAnimation.setAnimation(R.raw.checkmark_animation);
+        mCheckmarkAnimation.setAnimation(mTutorialFragment.isAtFinalStep()
+                ? R.raw.checkmark_animation_end
+                : R.raw.checkmark_animation_in_progress);
         if (!isGestureCompleted()) {
             mCheckmarkAnimation.setVisibility(GONE);
             startGestureAnimation();
@@ -560,24 +568,16 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         mAnimatedGestureDemonstration.playAnimation();
     }
 
+    void updateCloseButton() {
+        mSkipButton.setTextAppearance(Utilities.isDarkTheme(mContext)
+                ? R.style.TextAppearance_GestureTutorial_Feedback_Subtext
+                : R.style.TextAppearance_GestureTutorial_Feedback_Subtext_Dark);
+    }
+
     void showActionButton() {
+        mSkipButton.setVisibility(GONE);
         mDoneButton.setVisibility(View.VISIBLE);
         mDoneButton.setOnClickListener(this::onActionButtonClicked);
-
-        mDoneButton.post(() -> {
-            int buttonOvershoot = mDoneButton.getBottom() - mScreenHeight;
-            if (buttonOvershoot > 0) {
-                // Calculate the amount of free space available to the contents of mFeedbackView.
-                // That free space can then be equally distributed above and below the visual
-                // contents of mFeedbackView.
-                int spaceAboveTitle = mFeedbackTitleView.getTop();
-                float freeSpace = spaceAboveTitle - buttonOvershoot;
-
-                for (int i = 0; i < mFeedbackView.getChildCount(); i++) {
-                    mFeedbackView.getChildAt(i).setTranslationY((freeSpace / 2f) - spaceAboveTitle);
-                }
-            }
-        });
     }
 
     void hideFakeTaskbar(boolean animateToHotseat) {
@@ -681,7 +681,7 @@ abstract class TutorialController implements BackGestureAttemptCallback,
         if (!mTutorialFragment.isLargeScreen()) {
             DeviceProfile dp = mTutorialFragment.getDeviceProfile();
 
-            hotseatLayoutParams.addRule(dp.getDeviceProperties().isLandscape()
+            hotseatLayoutParams.addRule(dp.isLandscape
                     ? (dp.isSeascape()
                             ? RelativeLayout.ALIGN_PARENT_START
                             : RelativeLayout.ALIGN_PARENT_END)
@@ -694,6 +694,68 @@ abstract class TutorialController implements BackGestureAttemptCallback,
             hotseatLayoutParams.removeRule(RelativeLayout.ALIGN_PARENT_END);
         }
         mFakeHotseatView.setLayoutParams(hotseatLayoutParams);
+    }
+
+    private AlertDialog createSkipTutorialDialog() {
+        if (!(mContext instanceof GestureSandboxActivity)) {
+            return null;
+        }
+        GestureSandboxActivity sandboxActivity = (GestureSandboxActivity) mContext;
+        View contentView = View.inflate(
+                sandboxActivity, R.layout.gesture_tutorial_dialog, null);
+        AlertDialog tutorialDialog = new AlertDialog
+                .Builder(sandboxActivity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setView(contentView)
+                .create();
+
+        PackageManager packageManager = mContext.getPackageManager();
+        CharSequence tipsAppName = DEFAULT_PIXEL_TIPS_APP_NAME;
+
+        try {
+            tipsAppName = packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(
+                            PIXEL_TIPS_APP_PACKAGE_NAME, PackageManager.GET_META_DATA));
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(LOG_TAG,
+                    "Could not find app label for package name: "
+                            + PIXEL_TIPS_APP_PACKAGE_NAME
+                            + ". Defaulting to 'Pixel Tips.'",
+                    e);
+        }
+
+        TextView subtitleTextView = (TextView) contentView.findViewById(
+                R.id.gesture_tutorial_dialog_subtitle);
+        if (subtitleTextView != null) {
+            subtitleTextView.setText(
+                    mContext.getString(R.string.skip_tutorial_dialog_subtitle, tipsAppName));
+        } else {
+            Log.w(LOG_TAG, "No subtitle view in the skip tutorial dialog to update.");
+        }
+
+        Button cancelButton = (Button) contentView.findViewById(
+                R.id.gesture_tutorial_dialog_cancel_button);
+        if (cancelButton != null) {
+            cancelButton.setOnClickListener(
+                    v -> tutorialDialog.dismiss());
+        } else {
+            Log.w(LOG_TAG, "No cancel button in the skip tutorial dialog to update.");
+        }
+
+        Button confirmButton = contentView.findViewById(
+                R.id.gesture_tutorial_dialog_confirm_button);
+        if (confirmButton != null) {
+            confirmButton.setOnClickListener(v -> {
+                mTutorialFragment.closeTutorialStep(true);
+                tutorialDialog.dismiss();
+            });
+        } else {
+            Log.w(LOG_TAG, "No confirm button in the skip tutorial dialog to update.");
+        }
+
+        tutorialDialog.getWindow().setBackgroundDrawable(
+                new ColorDrawable(sandboxActivity.getColor(android.R.color.transparent)));
+
+        return tutorialDialog;
     }
 
     protected AnimatorSet createFingerDotAppearanceAnimatorSet() {

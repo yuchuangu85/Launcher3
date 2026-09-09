@@ -29,12 +29,10 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.view.InsetsFrameProvider;
 
-import com.android.quickstep.util.GroupTask;
 import com.android.systemui.shared.system.QuickStepContract.SystemUiStateFlags;
 import com.android.wm.shell.shared.bubbles.BubbleBarLocation;
 import com.android.wm.shell.shared.bubbles.BubbleInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -49,8 +47,6 @@ public class TaskbarSharedState {
     // TaskbarManager#onSystemUiFlagsChanged
     @SystemUiStateFlags
     public long sysuiStateFlags;
-    // TaskBarStashController#init()
-    public boolean isTaskbarOnOverview;
 
     // TaskbarManager#disableNavBarElements()
     public int disableNavBarDisplayId;
@@ -71,27 +67,11 @@ public class TaskbarSharedState {
     public int mLumaSamplingDisplayId = DEFAULT_DISPLAY;
     public boolean mIsLumaSamplingEnabled = true;
 
-    /**
-     * Whether long pressing home should bring up assistant.
-     * @see TaskbarManagerImpl#onLongPressHomeEnabled(boolean)
-     */
-    public boolean assistantLongPressEnabled;
-
     public boolean setupUIVisible = false;
-
-    public boolean cueBarVisible = false;
 
     public boolean wallpaperVisible = false;
 
     public boolean allAppsVisible = false;
-
-    public boolean bubbleBarExpanded = false;
-
-    public boolean bubbleBarStashed = false;
-
-    public boolean bubbleBarHasOverflow;
-
-    public String selectedBubbleKey;
 
     public BubbleBarLocation bubbleBarLocation;
 
@@ -102,16 +82,6 @@ public class TaskbarSharedState {
     /** Returns whether there are a saved bubbles. */
     public boolean hasSavedBubbles() {
         return bubbleInfoItems != null && !bubbleInfoItems.isEmpty();
-    }
-
-    /** Clears stored bubble bar data. */
-    public void clearBubbleData() {
-        bubbleInfoItems = null;
-        selectedBubbleKey = null;
-        bubbleBarLocation = null;
-        bubbleBarExpanded = false;
-        bubbleBarStashed = false;
-        suppressedBubbleInfoItems = null;
     }
 
     // LauncherTaskbarUIController#mTaskbarInAppDisplayProgressMultiProp
@@ -151,8 +121,4 @@ public class TaskbarSharedState {
 
     // should show corner radius on persistent taskbar when in desktop mode.
     public boolean showCornerRadiusInDesktopMode = false;
-
-    public List<GroupTask> recentTasksBeforeTaskbarRecreate = new ArrayList<>();
-
-    public final List<Integer> recentOrderedRunningTaskIds = new ArrayList<>();
 }

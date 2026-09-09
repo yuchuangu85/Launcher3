@@ -43,11 +43,7 @@ class SetupNavLayoutter(
     startContextualContainer: ViewGroup,
     imeSwitcher: ImageView?,
     a11yButton: ImageView?,
-    moreOptionsButton: ImageView?,
     space: Space?,
-    backButton: ImageView?,
-    homeButton: ImageView?,
-    recentsButton: ImageView?,
 ) :
     AbstractNavButtonLayoutter(
         resources,
@@ -56,20 +52,14 @@ class SetupNavLayoutter(
         startContextualContainer,
         imeSwitcher,
         a11yButton,
-        moreOptionsButton,
         space,
-        backButton,
-        homeButton,
-        recentsButton,
     ) {
     // mNearestTouchFrame is a ViewGroup that contains start, end, nav button ViewGroups
     private val mNearestTouchFrame = nearestTouchFrame
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
         val SUWTheme = SystemProperties.get(SUW_THEME_SYSTEM_PROPERTY, "")
-        val expressiveThemeEnabled =
-            SUWTheme == GLIF_EXPRESSIVE_THEME || SUWTheme == GLIF_EXPRESSIVE_LIGHT_THEME
-        if (expressiveThemeEnabled && !context.isSimpleViewEnabled) {
+        if (SUWTheme == GLIF_EXPRESSIVE_THEME || SUWTheme == GLIF_EXPRESSIVE_LIGHT_THEME) {
             return
         }
         // Since setup wizard only has back button enabled, it looks strange to be
@@ -80,16 +70,15 @@ class SetupNavLayoutter(
         val deviceProfile: DeviceProfile = context.deviceProfile
 
         navButtonsLayoutParams.marginEnd = 0
-        navButtonsLayoutParams.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+        navButtonsLayoutParams.gravity = Gravity.START
         context.setTaskbarWindowSize(context.setupWindowSize)
 
         // If SUW is on a large screen device that is landscape (or has a square aspect
         // ratio) the back button has to be placed accordingly
         if (
-            deviceProfile.deviceProperties.isLargeScreen &&
-                deviceProfile.deviceProperties.isLandscape ||
-                (deviceProfile.deviceProperties.aspectRatio > SQUARE_ASPECT_RATIO_BOTTOM_BOUND &&
-                    deviceProfile.deviceProperties.aspectRatio < SQUARE_ASPECT_RATIO_UPPER_BOUND)
+            deviceProfile.isTablet && deviceProfile.isLandscape ||
+                (deviceProfile.aspectRatio > SQUARE_ASPECT_RATIO_BOTTOM_BOUND &&
+                    deviceProfile.aspectRatio < SQUARE_ASPECT_RATIO_UPPER_BOUND)
         ) {
             navButtonsLayoutParams.marginStart =
                 resources.getDimensionPixelSize(R.dimen.taskbar_back_button_suw_start_margin)
@@ -106,14 +95,12 @@ class SetupNavLayoutter(
         endContextualContainer.removeAllViews()
         startContextualContainer.removeAllViews()
 
-        val contextualButtonWidth =
-            resources.getDimensionPixelSize(R.dimen.taskbar_contextual_button_suw_width)
         val contextualMargin =
             resources.getDimensionPixelSize(R.dimen.taskbar_contextual_button_padding)
         repositionContextualContainer(endContextualContainer, WRAP_CONTENT, 0, 0, Gravity.END)
         repositionContextualContainer(
             startContextualContainer,
-            contextualButtonWidth,
+            WRAP_CONTENT,
             contextualMargin,
             contextualMargin,
             Gravity.START,
@@ -127,9 +114,5 @@ class SetupNavLayoutter(
             endContextualContainer.addView(a11yButton)
             a11yButton.layoutParams = getParamsToCenterView()
         }
-    }
-
-    override fun addThreeButtons() {
-        // No-op
     }
 }

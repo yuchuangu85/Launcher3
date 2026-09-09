@@ -16,13 +16,11 @@
 package com.android.quickstep.util
 
 import android.animation.Animator
-import android.animation.ObjectAnimator
 import android.annotation.ColorInt
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.util.IntProperty
 import android.view.View
 import android.view.View.OnLayoutChangeListener
 import android.view.animation.Interpolator
@@ -60,26 +58,12 @@ private constructor(
             alpha = 0
         }
     private var runningBorderAnimation: Animator? = null
-    private var runningColorAnimation: Animator? = null
 
     companion object {
         const val DEFAULT_BORDER_COLOR = Color.WHITE
-        const val DEFAULT_APPEARANCE_ANIMATION_DURATION_MS = 300L
-        const val DEFAULT_DISAPPEARANCE_ANIMATION_DURATION_MS = 133L
-        val DEFAULT_INTERPOLATOR = Interpolators.EMPHASIZED_DECELERATE
-
-        /** Property used to animate the border color change in `setBorderColor()`. */
-        private val BORDER_COLOR_PROPERTY: IntProperty<BorderAnimator> =
-            object : IntProperty<BorderAnimator>("color") {
-                override fun setValue(animator: BorderAnimator, color: Int) {
-                    animator.borderPaint.color = color
-                    animator.updateOutline()
-                }
-
-                override fun get(animator: BorderAnimator): Int {
-                    return animator.borderPaint.color
-                }
-            }
+        private const val DEFAULT_APPEARANCE_ANIMATION_DURATION_MS = 300L
+        private const val DEFAULT_DISAPPEARANCE_ANIMATION_DURATION_MS = 133L
+        private val DEFAULT_INTERPOLATOR = Interpolators.EMPHASIZED_DECELERATE
 
         /**
          * Creates a BorderAnimator that simply draws the border outside the bound of the target
@@ -131,7 +115,7 @@ private constructor(
          * @param borderRadiusPx the radius of the border's corners, in pixels
          * @param borderWidthPx the width of the border, in pixels
          * @param borderStrokePx the stroke width used to paint the border, in pixels. If smaller
-         *   than border width, it gets drawn at the outside edge of the border.
+         *     than border width, it gets drawn at the outside edge of the border.
          * @param boundsBuilder callback to update the border bounds
          * @param targetView the view that will be drawing the border
          * @param contentView the view around which the border will be drawn. this view will be
@@ -213,10 +197,6 @@ private constructor(
                 runningBorderAnimation = null
                 if (!isAppearing) {
                     borderAnimationParams.onHideBorder()
-
-                    // End the color border color animation immediately if the border is no longer
-                    // visible.
-                    runningColorAnimation?.end()
                 }
             }
         }
@@ -235,36 +215,6 @@ private constructor(
         borderAnimationProgress.updateValue(if (visible) 1f else 0f)
         if (!visible) {
             borderAnimationParams.onHideBorder()
-            runningColorAnimation?.end()
-        }
-    }
-
-    /**
-     * Updates the color to be used to draw the border controller by this animator. The color update
-     * is animated.
-     */
-    fun setBorderColor(@ColorInt borderColor: Int) {
-        if (borderPaint.color == borderColor) {
-            return
-        }
-
-        // If the border is hidden, just update the border paint color - the new color will be used
-        // once the border becomes visible.
-        if (borderAnimationParams.animationProgress == 0f) {
-            borderPaint.color = borderColor
-            return
-        }
-
-        // Animate the color change.
-        ObjectAnimator.ofArgb(this, BORDER_COLOR_PROPERTY, borderColor).apply {
-            duration = appearanceDurationMs
-            interpolator = this@BorderAnimator.interpolator
-            doOnStart {
-                runningColorAnimation?.cancel()
-                runningColorAnimation = this
-            }
-            doOnEnd { runningColorAnimation = null }
-            start()
         }
     }
 

@@ -15,9 +15,12 @@
  */
 package com.android.launcher3.model
 
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageInstaller.SessionInfo
 import android.os.Process
-import android.provider.Settings
+import android.util.Log
 import androidx.annotation.AnyThread
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
@@ -30,7 +33,6 @@ import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.PackageManagerHelper
 import com.android.launcher3.util.PackageUserKey
-import javax.inject.Inject
 
 /**
  * Helper class to send broadcasts to package installers that have:
@@ -41,9 +43,24 @@ import javax.inject.Inject
  * The packages are broken down by: folder items, workspace items, hotseat items, and widgets.
  * Package installers only receive data for items that they are installing or have installed.
  */
-class FirstScreenBroadcastHelper
-@Inject
-constructor(private val packageManagerHelper: PackageManagerHelper) {
+object FirstScreenBroadcastHelper {
+    @VisibleForTesting const val MAX_BROADCAST_SIZE = 70
+
+    private const val TAG = "FirstScreenBroadcastHelper"
+    private const val DEBUG = true
+    private const val ACTION_FIRST_SCREEN_ACTIVE_INSTALLS =
+        "com.android.launcher3.action.FIRST_SCREEN_ACTIVE_INSTALLS"
+    // String retained as "folderItem" for back-compatibility reasons.
+    private const val PENDING_COLLECTION_ITEM_EXTRA = "folderItem"
+    private const val PENDING_WORKSPACE_ITEM_EXTRA = "workspaceItem"
+    private const val PENDING_HOTSEAT_ITEM_EXTRA = "hotseatItem"
+    private const val PENDING_WIDGET_ITEM_EXTRA = "widgetItem"
+    // Extras containing all installed items, including Archived Apps.
+    private const val INSTALLED_WORKSPACE_ITEMS_EXTRA = "workspaceInstalledItems"
+    private const val INSTALLED_HOTSEAT_ITEMS_EXTRA = "hotseatInstalledItems"
+    // This includes installed widgets on all screens, not just first.
+    private const val ALL_INSTALLED_WIDGETS_ITEM_EXTRA = "widgetInstalledItems"
+    private const val VERIFICATION_TOKEN_EXTRA = "verificationToken"
 
     /**
      * Return list of [FirstScreenBroadcastModel] for each installer and their
@@ -51,16 +68,18 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
      * than [MAX_BROADCAST_SIZE], then we will truncate the data until it meets the size limit to
      * avoid overloading the broadcast.
      *
+     * @param packageManagerHelper helper for querying PackageManager
      * @param firstScreenItems every ItemInfo on first screen
      * @param userKeyToSessionMap map of pending SessionInfo's for installing items
      * @param allWidgets list of all Widgets added to every screen
      */
     @WorkerThread
+    @JvmStatic
     fun createModelsForFirstScreenBroadcast(
+        packageManagerHelper: PackageManagerHelper,
         firstScreenItems: List<ItemInfo>,
         userKeyToSessionMap: Map<PackageUserKey, SessionInfo>,
         allWidgets: List<ItemInfo>,
-        shouldAttachArchivingExtras: Boolean,
     ): List<FirstScreenBroadcastModel> {
 
         // installers for installing items
@@ -69,36 +88,84 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
 
         val installingPackages = pendingItemInstallerMap.values.flatten().toSet()
 
-        // Map of packageName to its installer packageName
-        val installerAppCache = mutableMapOf<String, String?>()
         // installers for installed items on first screen
         val installedItemInstallerMap: Map<String, List<ItemInfo>> =
-            createInstalledItemsMap(firstScreenItems, installingPackages, installerAppCache)
+            createInstalledItemsMap(firstScreenItems, installingPackages, packageManagerHelper)
 
         // installers for widgets on all screens
         val allInstalledWidgetsMap: Map<String, List<ItemInfo>> =
-            createInstalledItemsMap(allWidgets, installingPackages, installerAppCache)
+            createInstalledItemsMap(allWidgets, installingPackages, packageManagerHelper)
 
         val allInstallers: Set<String> =
             pendingItemInstallerMap.keys +
                 installedItemInstallerMap.keys +
                 allInstalledWidgetsMap.keys
-
+        val models = mutableListOf<FirstScreenBroadcastModel>()
         // create broadcast for each installer, with extras for each item category
-        return allInstallers.map { installer ->
-            FirstScreenBroadcastModel(
-                    installerPackage = installer,
-                    shouldAttachArchivingExtras = shouldAttachArchivingExtras,
-                )
-                .apply {
-                    addPendingItems(pendingItemInstallerMap[installer], firstScreenItems)
-
-                    if (shouldAttachArchivingExtras) {
-                        addInstalledItems(installer, installedItemInstallerMap)
-                        addAllScreenWidgets(installer, allInstalledWidgetsMap)
-                    }
-                    truncateModelForBroadcast()
+        allInstallers.forEach { installer ->
+            val installingItems = pendingItemInstallerMap[installer]
+            val broadcastModel =
+                FirstScreenBroadcastModel(installerPackage = installer).apply {
+                    addPendingItems(installingItems, firstScreenItems)
+                    addInstalledItems(installer, installedItemInstallerMap)
+                    addAllScreenWidgets(installer, allInstalledWidgetsMap)
                 }
+            broadcastModel.truncateModelForBroadcast()
+            models.add(broadcastModel)
+        }
+        return models
+    }
+
+    /** From the model data, create Intents to send broadcasts and fire them. */
+    @WorkerThread
+    @JvmStatic
+    fun sendBroadcastsForModels(context: Context, models: List<FirstScreenBroadcastModel>) {
+        for (model in models) {
+            model.printDebugInfo()
+            val intent =
+                Intent(ACTION_FIRST_SCREEN_ACTIVE_INSTALLS)
+                    .setPackage(model.installerPackage)
+                    .putExtra(
+                        VERIFICATION_TOKEN_EXTRA,
+                        PendingIntent.getActivity(
+                            context,
+                            0 /* requestCode */,
+                            Intent(),
+                            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE,
+                        ),
+                    )
+                    .putStringArrayListExtra(
+                        PENDING_COLLECTION_ITEM_EXTRA,
+                        ArrayList(model.pendingCollectionItems),
+                    )
+                    .putStringArrayListExtra(
+                        PENDING_WORKSPACE_ITEM_EXTRA,
+                        ArrayList(model.pendingWorkspaceItems),
+                    )
+                    .putStringArrayListExtra(
+                        PENDING_HOTSEAT_ITEM_EXTRA,
+                        ArrayList(model.pendingHotseatItems),
+                    )
+                    .putStringArrayListExtra(
+                        PENDING_WIDGET_ITEM_EXTRA,
+                        ArrayList(model.pendingWidgetItems),
+                    )
+                    .putStringArrayListExtra(
+                        INSTALLED_WORKSPACE_ITEMS_EXTRA,
+                        ArrayList(model.installedWorkspaceItems),
+                    )
+                    .putStringArrayListExtra(
+                        INSTALLED_HOTSEAT_ITEMS_EXTRA,
+                        ArrayList(model.installedHotseatItems),
+                    )
+                    .putStringArrayListExtra(
+                        ALL_INSTALLED_WIDGETS_ITEM_EXTRA,
+                        ArrayList(
+                            model.firstScreenInstalledWidgets +
+                                model.secondaryScreenInstalledWidgets
+                        ),
+                    )
+            context.sendBroadcast(intent)
         }
     }
 
@@ -108,7 +175,11 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
     ): Map<String, Set<String>> {
         val myUser = Process.myUserHandle()
         return userKeyToSessionMap.values
-            .filter { it.user == myUser && !it.installerPackageName.isNullOrEmpty() }
+            .filter {
+                it.user == myUser &&
+                    !it.installerPackageName.isNullOrEmpty() &&
+                    !it.appPackageName.isNullOrEmpty()
+            }
             .groupBy(
                 keySelector = { it.installerPackageName },
                 valueTransform = { it.appPackageName },
@@ -120,7 +191,7 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
     private fun createInstalledItemsMap(
         allItems: Iterable<ItemInfo>,
         installingPackages: Set<String>,
-        installerAppCache: MutableMap<String, String?>,
+        packageManagerHelper: PackageManagerHelper,
     ): Map<String, List<ItemInfo>> =
         allItems
             .sortedBy { it.screenId }
@@ -129,9 +200,7 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
                     if (installingPackages.contains(pkg)) {
                         null
                     } else {
-                        installerAppCache.getOrPut(pkg) {
-                            packageManagerHelper.getAppInstallerPackage(pkg)
-                        }
+                        packageManagerHelper.getAppInstallerPackage(pkg)
                     }
                 }
             }
@@ -181,9 +250,9 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
         allInstalledWidgetsMap[installer]?.forEach { widget ->
             val packageName: String = getPackageName(widget) ?: return@forEach
             if (widget.screenId == 0) {
-                installedWidgets.add(packageName)
+                firstScreenInstalledWidgets.add(packageName)
             } else {
-                installedWidgets.addLast(packageName)
+                secondaryScreenInstalledWidgets.add(packageName)
             }
         }
     }
@@ -200,6 +269,78 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
         )
     }
 
+    /**
+     * Creates a copy of [FirstScreenBroadcastModel] with items truncated to meet
+     * [MAX_BROADCAST_SIZE] in a prioritized order.
+     */
+    @VisibleForTesting
+    fun FirstScreenBroadcastModel.truncateModelForBroadcast() {
+        val totalItemCount = getTotalItemCount()
+        if (totalItemCount <= MAX_BROADCAST_SIZE) return
+        var extraItemCount = totalItemCount - MAX_BROADCAST_SIZE
+
+        while (extraItemCount > 0) {
+            // In this order, remove items until we meet the max size limit.
+            when {
+                pendingCollectionItems.isNotEmpty() ->
+                    pendingCollectionItems.apply { remove(last()) }
+                pendingHotseatItems.isNotEmpty() -> pendingHotseatItems.apply { remove(last()) }
+                installedHotseatItems.isNotEmpty() -> installedHotseatItems.apply { remove(last()) }
+                secondaryScreenInstalledWidgets.isNotEmpty() ->
+                    secondaryScreenInstalledWidgets.apply { remove(last()) }
+                pendingWidgetItems.isNotEmpty() -> pendingWidgetItems.apply { remove(last()) }
+                firstScreenInstalledWidgets.isNotEmpty() ->
+                    firstScreenInstalledWidgets.apply { remove(last()) }
+                pendingWorkspaceItems.isNotEmpty() -> pendingWorkspaceItems.apply { remove(last()) }
+                installedWorkspaceItems.isNotEmpty() ->
+                    installedWorkspaceItems.apply { remove(last()) }
+            }
+            extraItemCount--
+        }
+    }
+
+    /** Returns count of all Items held by [FirstScreenBroadcastModel]. */
+    @VisibleForTesting
+    fun FirstScreenBroadcastModel.getTotalItemCount() =
+        pendingCollectionItems.size +
+            pendingWorkspaceItems.size +
+            pendingHotseatItems.size +
+            pendingWidgetItems.size +
+            installedWorkspaceItems.size +
+            installedHotseatItems.size +
+            firstScreenInstalledWidgets.size +
+            secondaryScreenInstalledWidgets.size
+
+    private fun FirstScreenBroadcastModel.printDebugInfo() {
+        if (DEBUG) {
+            Log.d(
+                TAG,
+                "Sending First Screen Broadcast for installer=$installerPackage" +
+                    ", total packages=${getTotalItemCount()}",
+            )
+            pendingCollectionItems.forEach {
+                Log.d(TAG, "$installerPackage:Pending Collection item:$it")
+            }
+            pendingWorkspaceItems.forEach {
+                Log.d(TAG, "$installerPackage:Pending Workspace item:$it")
+            }
+            pendingHotseatItems.forEach { Log.d(TAG, "$installerPackage:Pending Hotseat item:$it") }
+            pendingWidgetItems.forEach { Log.d(TAG, "$installerPackage:Pending Widget item:$it") }
+            installedWorkspaceItems.forEach {
+                Log.d(TAG, "$installerPackage:Installed Workspace item:$it")
+            }
+            installedHotseatItems.forEach {
+                Log.d(TAG, "$installerPackage:Installed Hotseat item:$it")
+            }
+            firstScreenInstalledWidgets.forEach {
+                Log.d(TAG, "$installerPackage:Installed Widget item (first screen):$it")
+            }
+            secondaryScreenInstalledWidgets.forEach {
+                Log.d(TAG, "$installerPackage:Installed Widget item (secondary screens):$it")
+            }
+        }
+    }
+
     private fun getPackageName(info: ItemInfo): String? = info.targetComponent?.packageName
 
     /**
@@ -207,47 +348,12 @@ constructor(private val packageManagerHelper: PackageManagerHelper) {
      * always modified on UI thread.
      */
     @AnyThread
-    private fun cloneOnMainThread(list: List<WorkspaceItemInfo>): List<WorkspaceItemInfo> {
+    private fun cloneOnMainThread(list: ArrayList<WorkspaceItemInfo>): List<WorkspaceItemInfo> {
         return try {
             return Executors.MAIN_EXECUTOR.submit<ArrayList<WorkspaceItemInfo>> { ArrayList(list) }
                 .get()
         } catch (e: Exception) {
             emptyList()
         }
-    }
-
-    companion object {
-        @VisibleForTesting const val MAX_BROADCAST_SIZE = 70
-
-        /**
-         * Creates a copy of [FirstScreenBroadcastModel] with items truncated to meet
-         * [MAX_BROADCAST_SIZE] in a prioritized order.
-         */
-        @VisibleForTesting
-        fun FirstScreenBroadcastModel.truncateModelForBroadcast() {
-            val totalItemCount = getTotalItemCount()
-            if (totalItemCount <= MAX_BROADCAST_SIZE) return
-            var extraItemCount = totalItemCount - MAX_BROADCAST_SIZE
-
-            while (extraItemCount > 0) {
-                // In this order, remove items until we meet the max size limit.
-                when {
-                    pendingCollectionItems.isNotEmpty() -> pendingCollectionItems.removeLast()
-                    pendingHotseatItems.isNotEmpty() -> pendingHotseatItems.removeLast()
-                    installedHotseatItems.isNotEmpty() -> installedHotseatItems.removeLast()
-                    installedWidgets.isNotEmpty() -> installedWidgets.removeLast()
-                    pendingWidgetItems.isNotEmpty() -> pendingWidgetItems.removeLast()
-                    pendingWorkspaceItems.isNotEmpty() -> pendingWorkspaceItems.removeLast()
-                    installedWorkspaceItems.isNotEmpty() -> installedWorkspaceItems.removeLast()
-                }
-                extraItemCount--
-            }
-        }
-
-        private fun MutableSet<String>.removeLast() = remove(last())
-
-        @JvmField
-        val DISABLE_INSTALLED_APPS_BROADCAST =
-            Settings.Secure.getUriFor("disable_launcher_broadcast_installed_apps")
     }
 }

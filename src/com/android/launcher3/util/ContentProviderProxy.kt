@@ -35,7 +35,7 @@ abstract class ContentProviderProxy : ContentProvider() {
     override fun getType(uri: Uri): String? = null
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? =
-        values?.let { checkGetProxy()?.insert(uri, values) }
+        checkGetProxy()?.insert(uri, values)
 
     override fun query(
         uri: Uri,
@@ -50,10 +50,7 @@ abstract class ContentProviderProxy : ContentProvider() {
         values: ContentValues?,
         selection: String?,
         selectionArgs: Array<out String>?,
-    ): Int = values?.let { checkGetProxy()?.update(uri, it, selection, selectionArgs, null) } ?: 0
-
-    override fun update(uri: Uri, values: ContentValues?, extras: Bundle?): Int =
-        values?.let { checkGetProxy()?.update(uri, it, null, null, extras) } ?: 0
+    ): Int = checkGetProxy()?.update(uri, values, selection, selectionArgs) ?: 0
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? =
         checkGetProxy()?.call(method, arg, extras)
@@ -67,7 +64,7 @@ abstract class ContentProviderProxy : ContentProvider() {
 
         fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
 
-        fun insert(uri: Uri, values: ContentValues): Uri? = null
+        fun insert(uri: Uri, values: ContentValues?): Uri? = null
 
         fun query(
             uri: Uri,
@@ -79,10 +76,9 @@ abstract class ContentProviderProxy : ContentProvider() {
 
         fun update(
             uri: Uri,
-            values: ContentValues,
+            values: ContentValues?,
             selection: String?,
             selectionArgs: Array<out String>?,
-            extras: Bundle?,
         ): Int = 0
 
         fun call(method: String, arg: String?, extras: Bundle?): Bundle? = null

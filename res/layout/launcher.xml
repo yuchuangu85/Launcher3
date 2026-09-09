@@ -52,16 +52,12 @@
 
         <!-- Keep these behind the workspace so that they are not visible when
          we go into AllApps -->
-
-
-        <com.android.launcher3.pageindicators.PageIndicatorDotsWithArrows
+        <com.android.launcher3.pageindicators.PageIndicatorDots
             android:id="@+id/page_indicator"
             android:layout_width="match_parent"
             android:layout_height="@dimen/workspace_page_indicator_height"
             android:layout_gravity="bottom|center_horizontal"
-            android:gravity="center"
-            android:orientation="horizontal">
-        </com.android.launcher3.pageindicators.PageIndicatorDotsWithArrows>
+            android:theme="@style/HomeScreenElementTheme" />
 
         <include
             android:id="@+id/drop_target_bar"

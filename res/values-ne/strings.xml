@@ -32,10 +32,8 @@
     <string name="recent_task_option_aspect_ratio" msgid="7008605516391096989">"एस्पेक्ट रेसियो परिवर्तन गर्नुहोस्"</string>
     <string name="split_app_info_accessibility" msgid="5475288491241414932">"%1$s का हकमा एपसम्बन्धी जानकारी"</string>
     <string name="split_app_usage_settings" msgid="7214375263347964093">"%1$s को प्रयोगसम्बन्धी सेटिङ"</string>
-    <string name="close_task_accessibility" msgid="4765872229211282647">"%1$s बन्द गर्नुहोस्"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"नयाँ विन्डो"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"विन्डोहरू व्यवस्थापन गर्नुहोस्"</string>
-    <string name="close_app_taskbar" msgid="3238979263877091273">"बन्द गर्नुहोस्"</string>
     <string name="save_app_pair" msgid="5647523853662686243">"एपको पेयर सेभ गर्नुहोस्"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"यस डिभाइसमा यो एप पेयर प्रयोग गर्न मिल्दैन"</string>
@@ -63,6 +61,8 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# सर्टकट}other{# वटा सर्टकट}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"विजेटहरू"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"खोज्नुहोस्"</string>
+    <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"खोज बाकसमा भएको पाठ हटाउनुहोस्"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"विजेट र सर्टकटहरू उपलब्ध छन्"</string>
     <string name="no_search_results" msgid="3787956167293097509">"कुनै पनि विजेट वा सर्टकट फेला परेन"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"व्यक्तिगत"</string>
@@ -102,28 +102,6 @@
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"एप सिफारिस नगर्नुहोस्"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"सिफारिस गरिएको एप पिन गर्नुहोस्"</string>
     <string name="bubble" msgid="3072951361014076670">"बबल"</string>
-    <string name="enable_app_lock" msgid="5606772593969266718">"एप लक"</string>
-    <string name="disable_app_lock" msgid="2252606435270354961">"एप लक हटाउनुहोस्"</string>
-    <string name="widget_settings" msgid="5280157748464495511">"सेटिङ"</string>
-    <string name="add_to_taskbar" msgid="1442306985857150792">"टास्कबारमा हाल्नुहोस्"</string>
-    <string name="remove_from_taskbar" msgid="5817026706030273018">"टास्कबारबाट हटाउनुहोस्"</string>
-    <string name="no_room_in_taskbar" msgid="6885243748717395469">"टास्कबारमा ठाउँ छैन"</string>
-    <string name="app_added_to_taskbar" msgid="6348755169793615171">"टास्कबारमा एप हालियो"</string>
-    <string name="app_removed_from_taskbar" msgid="3471754847898675396">"टास्कबारबाट एप हटाइयो"</string>
-    <string name="remove_system_shortcut_label" msgid="3991201411148073972">"हटाउनुहोस्"</string>
-    <string name="home_screen_files_context_menu_copy_label" msgid="8769381168712216221">"कपी गर्नुहोस्"</string>
-    <string name="home_screen_files_context_menu_open_in_app_label" msgid="7930552598671791537">"खोल्नुहोस्"</string>
-    <string name="home_screen_files_context_menu_rename_label" msgid="699579827537411711">"नाम बदल्नुहोस्"</string>
-    <string name="home_screen_files_context_menu_delete_permanently_label" msgid="8660443461874174185">"सदाका लागि मेटाउनुहोस्"</string>
-    <string name="home_screen_files_context_menu_move_to_trash_label" msgid="1145655050674479315">"ट्र्यासमा सार्नुहोस्"</string>
-    <string name="home_screen_files_moved_to_trash_message" msgid="2848141584483641247">"यो सामग्री सारेर ट्र्यासमा लगिएको छ"</string>
-    <string name="home_screen_files_move_to_trash_error_message" msgid="3836240816166417826">"सारेर ट्र्यासमा लैजान सकिएन। कुनै समस्या आयो।"</string>
-    <string name="home_screen_files_restore_from_trash_error_message" msgid="994941644161090497">"अन्डू गर्न सकिएन। रिस्टोर गर्न Files एपमा जानुहोस्।"</string>
-    <string name="actions_popup_menu_button" msgid="2442187572711557413">"कारबाहीहरू"</string>
-    <string name="shortcuts_popup_menu_button" msgid="766598805805882499">"सर्टकटहरू"</string>
-    <string name="actions_popup_menu_button_description" msgid="4224192559473869722">"एक्सन मेनु देखाउनुहोस्"</string>
-    <string name="shortcuts_popup_menu_button_description" msgid="7566698511556454634">"एपका सर्टकटहरूको मेनु देखाउनुहोस्"</string>
-    <string name="pause_app_label" msgid="6796255881727695791">"एप पज गर्नुहोस्"</string>
     <string name="permlab_install_shortcut" msgid="5632423390354674437">"सर्टकट स्थापना गर्नेहोस्"</string>
     <string name="permdesc_install_shortcut" msgid="923466509822011139">"प्रयोगकर्ताको हस्तक्षेप बिना एउटा एपलाई सर्टकटमा थप्नको लागि अनुमति दिनुहोस्।"</string>
     <string name="permlab_read_settings" msgid="5136500343007704955">"होम स्क्रिनका सेटिङ र सर्टकटहरू रिड गर्नुहोस्"</string>
@@ -135,11 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"सेटअप पूरा गर्न ट्याप गर्नुहोस्"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"यो सिस्टम एप हो र यसलाई स्थापना रद्द गर्न सकिँदैन।"</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"नाम सम्पादन गर्नुहोस्"</string>
-    <string name="paginate_left" msgid="7915437358451360433">"बायाँतिर पेजिनेट गर्नुहोस्"</string>
-    <string name="paginate_right" msgid="6701038155201975878">"दायाँतिर पेजिनेट गर्नुहोस्"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"असक्षम पारिएको <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
-    <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} सँग सम्बन्धित # नोटिफिकेसन छ}other{{app_name} सँग सम्बन्धित # वटा नोटिफिकेसन छन्}}"</string>
-    <string name="hotseat_prediction_content_description" msgid="7680403232742709704">"पूर्वानुमान गरिएको एप: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
+    <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} सँग सम्बन्धित # सूचना छ}other{{app_name} सँग सम्बन्धित # वटा सूचना छन्}}"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"पृष्ठ %2$d को %1$d"</string>
     <string name="workspace_scroll_format" msgid="8458889198184077399">"होम स्क्रिन %1$d को %2$d"</string>
     <string name="workspace_new_page" msgid="257366611030256142">"नयाँ होम स्क्रिन पृष्ठ"</string>
@@ -150,29 +125,21 @@
     <string name="folder_tap_to_rename" msgid="4017685068016979677">"पुनःनामाकरणलाई सुरक्षित गर्न ट्याप गर्नुहोस्"</string>
     <string name="folder_closed" msgid="4100806530910930934">"फोल्डर बन्द भयो"</string>
     <string name="folder_renamed" msgid="1794088362165669656">"फोल्डर <xliff:g id="NAME">%1$s</xliff:g> मा पुनःनामाकरण गरियो।"</string>
-    <string name="folder_type_name" msgid="506043307348675355">"फोल्डर"</string>
-    <string name="app_folder_type_name" msgid="149643408248060284">"एप फोल्डर"</string>
-    <string name="apps_folder_name_format_exact" msgid="891345161390366700">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> वटा वस्तु"</string>
-    <string name="apps_folder_name_format_exact_with_dot" msgid="7729062268048931718">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> वटा वस्तु, नोटिफिकेसनहरू प्राप्त भएका छन्"</string>
-    <string name="apps_folder_name_format_overflow" msgid="4614729357510054194">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> वा सोभन्दा बढी वस्तु"</string>
-    <string name="apps_folder_name_format_overflow_with_dot" msgid="4738681518782744688">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> वा सोभन्दा बढी वस्तु, नोटिफिकेसनहरू प्राप्त भएका छन्"</string>
+    <string name="folder_name_format_exact" msgid="8626242716117004803">"फोल्डर: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> वस्तुहरू"</string>
+    <string name="folder_name_format_overflow" msgid="4270108890534995199">"फोल्डर: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> वा सोभन्दा बढी वस्तुहरू"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"नामरहित फोल्डर"</string>
-    <string name="files_folder_name" msgid="7712191128817533622">"फाइल फोल्डर: <xliff:g id="NAME">%1$s</xliff:g>"</string>
     <string name="app_pair_name_format" msgid="8134106404716224054">"एप पेयर: <xliff:g id="APP1">%1$s</xliff:g> र <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"वालपेपर तथा शैली"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"होम स्क्रिन बदल्नुहोस्"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"होम पेजका सेटिङहरू"</string>
-    <string name="msg_disabled_by_admin" msgid="6898038085516271325">"तपाईँको एडमिनद्वारा असक्षम गरिएको"</string>
-    <string name="settings_home_organizer" msgid="5184766349407080054">"होम अर्गनाइजर"</string>
+    <string name="msg_disabled_by_admin" msgid="6898038085516271325">"तपाईँको प्रशासकद्वारा असक्षम गरिएको"</string>
+    <string name="allow_rotation_title" msgid="7222049633713050106">"होम स्क्रिन रोटेट हुन दिइयोस्"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"फोन घुमाउँदा"</string>
-    <string name="compose_developer_options_section" msgid="8211460486549952595">"Jetpack कम्पोज"</string>
-    <string name="enable_composition_tracing_title" msgid="8989606591739368424">"कम्पोजिसन ट्रेसिङ अन गर्नुहोस्"</string>
-    <string name="enable_composition_tracing_desc" msgid="7187566039216492405">"ओभरभ्यूमा perfetto ट्रेस लिँदा कम्पोजिसन ट्रेसिङ अन गर्नुहोस्"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"ल्यान्डस्केप मोड"</string>
-    <string name="landscape_mode_desc" msgid="3085236452297838664">"होम स्क्रिनलाई ल्यान्डस्केप मोडमा सेट गर्नुहोस्"</string>
+    <string name="landscape_mode_desc" msgid="7372569859592816793">"फोनमा ल्यान्डस्केप मोड अन गर्नुहोस्"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"नोटिफिकेसन डट"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"अन छ"</string>
-    <string name="notification_dots_desc_off" msgid="1760796511504341095">"अफ"</string>
+    <string name="notification_dots_desc_off" msgid="1760796511504341095">"निष्क्रिय"</string>
     <string name="title_missing_notification_access" msgid="7503287056163941064">"सूचनासम्बन्धी पहुँच आवश्यक हुन्छ"</string>
     <string name="msg_missing_notification_access" msgid="281113995110910548">"नोटिफिकेसन डट देखाउन <xliff:g id="NAME">%1$s</xliff:g> को एपसम्बन्धी सूचनाहरूलाई अन गर्नुहोस्"</string>
     <string name="title_change_settings" msgid="1376365968844349552">"सेटिङहरू बदल्नुहोस्"</string>
@@ -206,12 +173,9 @@
     <string name="move_to_hotseat_position" msgid="6295412897075147808">"मन पर्ने स्थिति <xliff:g id="NUMBER">%1$s</xliff:g> मा सार्नुहोस्"</string>
     <string name="item_moved" msgid="4606538322571412879">"वस्तु सारियो"</string>
     <string name="add_to_folder" msgid="9040534766770853243">"फोल्डर: <xliff:g id="NAME">%1$s</xliff:g> मा थप्नुहोस्"</string>
-    <string name="add_to_folder_with_position" msgid="4457486890869662">"<xliff:g id="NAME">%1$s</xliff:g> फोल्डरमा हाल्नुहोस्। <xliff:g id="STRING">%4$s</xliff:g> मा भएको रो <xliff:g id="NUMBER_0">%2$s</xliff:g>, कोलम <xliff:g id="NUMBER_1">%3$s</xliff:g>"</string>
     <string name="add_to_folder_with_app" msgid="4534929978967147231">"फोल्डरमा <xliff:g id="NAME">%1$s</xliff:g> सँग थप्नुहोस्"</string>
-    <string name="add_to_folder_with_app_with_position" msgid="6670979489897093325">"<xliff:g id="NAME">%1$s</xliff:g> भएको फोल्डरमा हाल्नुहोस्। <xliff:g id="STRING">%4$s</xliff:g> मा भएको रो <xliff:g id="NUMBER_0">%2$s</xliff:g>, कोलम <xliff:g id="NUMBER_1">%3$s</xliff:g>"</string>
     <string name="added_to_folder" msgid="4793259502305558003">"वस्तु फोल्डरमा थपियो"</string>
     <string name="create_folder_with" msgid="4050141361160214248">"<xliff:g id="NAME">%1$s</xliff:g>: मार्फत फोल्डर सिर्जना गर्नुहोस्"</string>
-    <string name="create_folder_with_position" msgid="3093164349445159115">"<xliff:g id="NAME">%1$s</xliff:g> भएको फोल्डर बनाउनुहोस्। <xliff:g id="STRING">%4$s</xliff:g> मा भएको रो <xliff:g id="NUMBER_0">%2$s</xliff:g>, कोलम <xliff:g id="NUMBER_1">%3$s</xliff:g>"</string>
     <string name="folder_created" msgid="6409794597405184510">"फोल्डर सिर्जना गरियो"</string>
     <string name="action_move_to_workspace" msgid="39528912300293768">"होम स्क्रिनमा सार्नुहोस्"</string>
     <string name="action_resize" msgid="1802976324781771067">"पुनःआकार मिलाउनुहोस्"</string>
@@ -219,11 +183,6 @@
     <string name="action_increase_height" msgid="459390020612501122">"उँचाइ बढाउनुहोस्"</string>
     <string name="action_decrease_width" msgid="1374549771083094654">"चौडाइ घटाउनुहोस्"</string>
     <string name="action_decrease_height" msgid="282377193880900022">"उँचाइ घटाउनुहोस्"</string>
-    <string name="resize_handle_start" msgid="431073846880883794">"बायाँतिरको रिसाइज ह्यान्डल"</string>
-    <string name="resize_handle_top" msgid="280799523356834542">"सिरानको रिसाइज ह्यान्डल"</string>
-    <string name="resize_handle_end" msgid="8411240534474246075">"दायाँतिरको रिसाइज ह्यान्डल"</string>
-    <string name="resize_handle_bottom" msgid="4217171801060928429">"पुछारको रिसाइज ह्यान्डल"</string>
-    <string name="tap_to_show_resize_buttons" msgid="964815552123289232">"आकार बदल्ने बटनहरू देखाउनुहोस्"</string>
     <string name="widget_resized" msgid="9130327887929620">"विजेट चौडाइ <xliff:g id="NUMBER_0">%1$s</xliff:g> उचाइ <xliff:g id="NUMBER_1">%2$s</xliff:g> मा पुनः आकार मिलाइयो"</string>
     <string name="action_deep_shortcut" msgid="4766835855579976045">"सर्टकटसम्बन्धी मेनु"</string>
     <string name="widget_frame_name" msgid="8782828448471444270">"<xliff:g id="STRING">%1$s</xliff:g> एपको विजेटको आकार बदल्ने फ्रेम"</string>
@@ -233,16 +192,17 @@
     <string name="all_apps_personal_tab" msgid="4190252696685155002">"व्यक्तिगत"</string>
     <string name="all_apps_work_tab" msgid="4884822796154055118">"कामसम्बन्धी"</string>
     <string name="all_apps_personal_tab_content_description" msgid="6286808898381807242">"\"व्यक्तिगत एपहरू\" ट्याब"</string>
-    <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"\"वर्क एपहरू\" ट्याब"</string>
-    <string name="work_profile_toggle_label" msgid="3081029915775481146">"वर्क प्रोफाइल"</string>
+    <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"\"कामसम्बन्धी एपहरू\" ट्याब"</string>
+    <string name="work_profile_toggle_label" msgid="3081029915775481146">"कार्य प्रोफाइल"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"कामसम्बन्धी एपहरूमा ब्याज अङ्कित हुन्छ र तपाईंका IT एड्मिन ती एप हेर्न सक्छन्"</string>
-    <string name="work_apps_paused_title" msgid="3040901117349444598">"वर्क एपहरू पज गरिएका छन्"</string>
+    <string name="work_profile_edu_accept" msgid="6069788082535149071">"बुझेँ"</string>
+    <string name="work_apps_paused_title" msgid="3040901117349444598">"कामसम्बन्धी एपहरू पज गरिएका छन्"</string>
     <string name="work_apps_paused_info_body" msgid="1687828929959237477">"तपाईं कामसम्बन्धी एपबाट सूचनाहरू प्राप्त गर्नु हुने छैन"</string>
-    <string name="work_apps_paused_body" msgid="261634750995824906">"तपाईंका कामसम्बन्धी एपहरूले तपाईंलाई नोटिफिकेसन पठाउन, तपाईंको डिभाइसको ब्याट्री प्रयोग गर्न वा तपाईंको लोकेसन हेर्न सक्दैनन्"</string>
+    <string name="work_apps_paused_body" msgid="261634750995824906">"तपाईंका कामसम्बन्धी एपहरूले तपाईंलाई सूचना पठाउन, तपाईंको डिभाइसको ब्याट्री प्रयोग गर्न वा तपाईंको लोकेसन हेर्न सक्दैनन्"</string>
     <string name="work_apps_paused_telephony_unavailable_body" msgid="8358872357502756790">"तपाईं कामसम्बन्धी एपबाट फोन कल, टेक्स्ट म्यासेज वा सूचनाहरू प्राप्त गर्नु हुने छैन"</string>
     <string name="work_apps_paused_edu_banner" msgid="8872412121608402058">"कामसम्बन्धी एपमा ब्याज अङ्कित हुन्छ र तपाईंका IT एड्मिन ती एप हेर्न सक्नुहुन्छ"</string>
     <string name="work_apps_paused_edu_accept" msgid="6377476824357318532">"बुझेँ"</string>
-    <string name="work_apps_pause_btn_text" msgid="4669288269140620646">"वर्क एपहरू पज गर्नुहोस्"</string>
+    <string name="work_apps_pause_btn_text" msgid="4669288269140620646">"कामसम्बन्धी एपहरू पज गर्नुहोस्"</string>
     <string name="work_apps_enable_btn_text" msgid="1736198302467317371">"सुचारु गर्नुहोस्"</string>
     <string name="work_scheduler_button_content_description" msgid="917340740986764967">"कामसम्बन्धी एपहरूको समयतालिका"</string>
     <string name="developer_options_filter_hint" msgid="5896817443635989056">"फिल्टर"</string>
@@ -256,23 +216,6 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"लक गर्नुहोस्"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"निजी स्पेस ट्रान्जिसन गरिँदै छ"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"इन्स्टल गर्नुहोस्"</string>
-    <string name="ps_app_label_override" msgid="6876160706011676804">"हाल्नुहोस्"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"निजी स्पेसमा एपहरू इन्स्टल गर्नुहोस्"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"निजी स्पेसमा फाइल र अन्य कुरा हाल्नुहोस्"</string>
-    <string name="circle_shape_title" msgid="3582075061179674565">"वृत्त"</string>
-    <string name="square_shape_title" msgid="3085320803149569308">"वर्ग"</string>
-    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"४ वटा साइड भएको कुकी"</string>
-    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"७ वटा साइड भएको कुकी"</string>
-    <string name="arch_shape_title" msgid="2213843822192871318">"आर्क"</string>
-    <string name="create_new_folder_button_text" msgid="4037052463794735069">"नयाँ फोल्डर"</string>
-    <string name="default_new_folder_name" msgid="8821062664729412079">"नयाँ फोल्डर"</string>
-    <string name="home_screen_files_rename_dialog_clear_button" msgid="1516608063079626727">"हटाउनुहोस्"</string>
-    <string name="home_screen_files_rename_dialog_neutral_button" msgid="961781261154618336">"रद्द गर्नुहोस्"</string>
-    <string name="home_screen_files_rename_dialog_positive_button" msgid="6506701192246379747">"नाम बदल्नुहोस्"</string>
-    <string name="home_screen_files_rename_dialog_file_title" msgid="3540941610992603887">"फाइलको नाम बदल्नुहोस्"</string>
-    <string name="home_screen_files_rename_dialog_folder_title" msgid="2453152990256864379">"फोल्डरको नाम बदल्नुहोस्"</string>
-    <string name="something_went_wrong" msgid="1492883246069060632">"कुनै समस्या आयो"</string>
-    <string name="organizer_create_screen_title" msgid="1052454457895703433">"स्क्रिन बनाउनुहोस्"</string>
-    <string name="organizer_create_screen_description" msgid="3224132391919219061">"आफ्नो फोनबाट एप तथा विजेटहरू हाल्न कुनै कोटी छनौट गर्नुहोस्"</string>
-    <string name="organizer_choose_layout_title" msgid="127228966942084947">"लेआउट छान्नुहोस्"</string>
 </resources>

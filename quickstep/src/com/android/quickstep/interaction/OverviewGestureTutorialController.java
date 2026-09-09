@@ -50,20 +50,17 @@ final class OverviewGestureTutorialController extends SwipeUpGestureTutorialCont
         // Set the Lottie animation colors specifically for the Overview gesture
         LottieAnimationColorUtils.updateToArgbColors(
                 mAnimatedGestureDemonstration,
-                Map.of(".secondaryContainer", fragment.mRootView.mColorContainerOverview,
-                        ".onSecondaryContainer", fragment.mRootView.mColorOnContainerOverview));
-
-        mAnimatedGestureDemonstration.setBackgroundColor(
-                fragment.mRootView.mColorContainerOverview);
+                Map.of(".onSurfaceOverview", fragment.mRootView.mColorOnSurfaceOverview,
+                        ".surfaceOverview", fragment.mRootView.mColorSurfaceOverview,
+                        ".secondaryOverview", fragment.mRootView.mColorSecondaryOverview));
 
         LottieAnimationColorUtils.updateToArgbColors(
                 mCheckmarkAnimation,
-                Map.of(".onCheckmarkContainer", Utilities.isDarkTheme(mContext)
-                                ? fragment.mRootView.mColorOnContainerOverview
-                                : fragment.mRootView.mColorContainerOverview,
-                        ".checkmarkContainer", Utilities.isDarkTheme(mContext)
-                                ? fragment.mRootView.mColorContainerOverview
-                                : fragment.mRootView.mColorOnContainerOverview));
+                Map.of(".checkmark",
+                        Utilities.isDarkTheme(mContext)
+                                ? fragment.mRootView.mColorOnSurfaceOverview
+                                : fragment.mRootView.mColorSecondaryOverview,
+                        ".checkmarkBackground", fragment.mRootView.mColorSurfaceOverview));
     }
     @Override
     public int getIntroductionTitle() {
@@ -98,25 +95,15 @@ final class OverviewGestureTutorialController extends SwipeUpGestureTutorialCont
     }
 
     @Override
-    public int getSubtitleTextAppearance() {
-        return R.style.TextAppearance_GestureTutorial_Subtitle_Overview;
-    }
-
-    @Override
     public int getDoneButtonTextAppearance() {
         return R.style.TextAppearance_GestureTutorial_ButtonLabel_Overview;
     }
 
     @Override
-    public int getSuccessSubtitleTextAppearance() {
-        return R.style.TextAppearance_GestureTutorial_Subtitle_Success_Overview;
-    }
-
-    @Override
     public int getDoneButtonColor() {
         return Utilities.isDarkTheme(mContext)
-                ? mTutorialFragment.mRootView.mColorContainerOverview
-                : mTutorialFragment.mRootView.mColorOnContainerOverview;
+                ? mTutorialFragment.mRootView.mColorOnSurfaceOverview
+                : mTutorialFragment.mRootView.mColorSecondaryOverview;
     }
 
     @Override
@@ -137,7 +124,7 @@ final class OverviewGestureTutorialController extends SwipeUpGestureTutorialCont
 
     @ColorInt
     private int getFakeTaskViewStartColor() {
-        return mTutorialFragment.mRootView.mColorContainerOverview;
+        return mTutorialFragment.mRootView.mColorSurfaceOverview;
     }
 
     @ColorInt
@@ -156,15 +143,13 @@ final class OverviewGestureTutorialController extends SwipeUpGestureTutorialCont
     protected int getFakeLauncherColor() {
         return ColorUtils.blendARGB(
                 mTutorialFragment.mRootView.mColorSurfaceContainer,
-                mTutorialFragment.mRootView.mColorOnContainerOverview,
+                mTutorialFragment.mRootView.mColorOnSurfaceOverview,
                 LAUNCHER_COLOR_BLENDING_RATIO);
     }
 
     @Override
     protected int getHotseatIconColor() {
-        return Utilities.isDarkTheme(mContext)
-                ? mTutorialFragment.mRootView.mColorContainerOverview
-                : mTutorialFragment.mRootView.mColorOnContainerOverview;
+        return mTutorialFragment.mRootView.mColorOnSurfaceOverview;
     }
 
     @Override

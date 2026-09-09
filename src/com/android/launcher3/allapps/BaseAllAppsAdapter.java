@@ -25,6 +25,7 @@ import static com.android.launcher3.allapps.SectionDecorationInfo.ROUND_TOP_RIGH
 import static com.android.launcher3.allapps.UserProfileManager.STATE_DISABLED;
 import static com.android.launcher3.allapps.UserProfileManager.STATE_ENABLED;
 
+import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -42,15 +43,15 @@ import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.search.SearchAdapterProvider;
 import com.android.launcher3.model.data.AppInfo;
-import com.android.launcher3.popup.PopupContainerWithArrow;
-import com.android.launcher3.touch.CustomActionsListener;
 import com.android.launcher3.views.ActivityContext;
 
 /**
  * Adapter for all the apps.
+ *
+ * @param <T> Type of context inflating all apps.
  */
-public abstract class BaseAllAppsAdapter
-        extends RecyclerView.Adapter<BaseAllAppsAdapter.ViewHolder> {
+public abstract class BaseAllAppsAdapter<T extends Context & ActivityContext> extends
+        RecyclerView.Adapter<BaseAllAppsAdapter.ViewHolder> {
 
     public static final String TAG = "BaseAllAppsAdapter";
 
@@ -66,12 +67,11 @@ public abstract class BaseAllAppsAdapter
     public static final int VIEW_TYPE_PRIVATE_SPACE_HEADER = 1 << 6;
     public static final int VIEW_TYPE_PRIVATE_SPACE_SYS_APPS_DIVIDER = 1 << 7;
     public static final int VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO = 1 << 8;
-    public static final int VIEW_TYPE_PRIVATE_SPACE_APP_ICON = 1 << 9;
-    public static final int NEXT_ID = 10;
+    public static final int NEXT_ID = 9;
 
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
-    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON | VIEW_TYPE_PRIVATE_SPACE_APP_ICON;
+    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON;
 
     public static final int VIEW_TYPE_MASK_PRIVATE_SPACE_HEADER =
             VIEW_TYPE_PRIVATE_SPACE_HEADER;
@@ -123,10 +123,8 @@ public abstract class BaseAllAppsAdapter
         }
 
         public static AdapterItem asAppWithDecorationInfo(AppInfo appInfo,
-                SectionDecorationInfo decorationInfo, boolean isPrivateSpaceApp) {
-            AdapterItem item = new AdapterItem(isPrivateSpaceApp ? VIEW_TYPE_PRIVATE_SPACE_APP_ICON
-                    : VIEW_TYPE_ICON);
-            item.itemInfo = appInfo;
+                SectionDecorationInfo decorationInfo) {
+            AdapterItem item = asApp(appInfo);
             item.decorationInfo = decorationInfo;
             return item;
         }
@@ -139,19 +137,7 @@ public abstract class BaseAllAppsAdapter
          * Returns true if the items represent the same object
          */
         public boolean isSameAs(AdapterItem other) {
-            if (other == null || other.viewType != viewType || other.getClass() != getClass()) {
-                return false;
-            }
-            if (viewType == VIEW_TYPE_ICON || viewType == VIEW_TYPE_PRIVATE_SPACE_APP_ICON) {
-                if (itemInfo == null || other.itemInfo == null) {
-                    return itemInfo == other.itemInfo;
-                }
-                // Both itemInfo and other.itemInfo are non-null here
-                return java.util.Objects.equals(itemInfo.user, other.itemInfo.user)
-                        && java.util.Objects.equals(itemInfo.getTargetComponent(),
-                                other.itemInfo.getTargetComponent());
-            }
-            return true;
+            return (other.viewType == viewType) && (other.getClass() == getClass());
         }
 
         /**
@@ -176,26 +162,24 @@ public abstract class BaseAllAppsAdapter
         }
     }
 
-    protected final ActivityContext mActivityContext;
-    protected final AlphabeticalAppsList mApps;
+    protected final T mActivityContext;
+    protected final AlphabeticalAppsList<T> mApps;
     // The text to show when there are no search results and no market search handler.
     protected int mAppsPerRow;
 
     protected final LayoutInflater mLayoutInflater;
     protected final OnClickListener mOnIconClickListener;
     protected final OnLongClickListener mOnIconLongClickListener;
-    protected final CustomActionsListener mIconCustomActionsListener;
     protected OnFocusChangeListener mIconFocusListener;
 
-    public BaseAllAppsAdapter(ActivityContext activityContext, LayoutInflater inflater,
-            AlphabeticalAppsList apps, SearchAdapterProvider<?> adapterProvider) {
+    public BaseAllAppsAdapter(T activityContext, LayoutInflater inflater,
+            AlphabeticalAppsList<T> apps, SearchAdapterProvider<?> adapterProvider) {
         mActivityContext = activityContext;
         mApps = apps;
         mLayoutInflater = inflater;
 
         mOnIconClickListener = mActivityContext.getItemOnClickListener();
         mOnIconLongClickListener = mActivityContext.getAllAppsItemLongClickListener();
-        mIconCustomActionsListener = mActivityContext.getAllAppsItemCustomActionsListener();
 
         mAdapterProvider = adapterProvider;
     }
@@ -233,15 +217,17 @@ public abstract class BaseAllAppsAdapter
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         switch (viewType) {
             case VIEW_TYPE_ICON:
-                return new ViewHolder(getIconOnCreateSetup(parent));
-            case VIEW_TYPE_PRIVATE_SPACE_APP_ICON:
-                BubbleTextView icon = getIconOnCreateSetup(parent);
-                icon.setOnClickListener(v ->
-                        PopupContainerWithArrow.showForPrivateSpaceApp(icon));
-                icon.setOnLongClickListener(v -> {
-                    PopupContainerWithArrow.showForPrivateSpaceApp(icon);
-                    return true;
-                });
+                int layout = mActivityContext.getDeviceProfile().inv.enableTwoLinesInAllApps
+                        ? R.layout.all_apps_icon_twoline : R.layout.all_apps_icon;
+                BubbleTextView icon = (BubbleTextView) mLayoutInflater.inflate(
+                        layout, parent, false);
+                icon.setLongPressTimeoutFactor(1f);
+                icon.setOnFocusChangeListener(mIconFocusListener);
+                icon.setOnClickListener(mOnIconClickListener);
+                icon.setOnLongClickListener(mOnIconLongClickListener);
+                // Ensure the all apps icon height matches the workspace icons in portrait mode.
+                icon.getLayoutParams().height =
+                        mActivityContext.getDeviceProfile().allAppsCellHeightPx;
                 return new ViewHolder(icon);
             case VIEW_TYPE_EMPTY_SEARCH:
                 return new ViewHolder(mLayoutInflater.inflate(R.layout.all_apps_empty_search,
@@ -259,7 +245,7 @@ public abstract class BaseAllAppsAdapter
                 return new ViewHolder(mLayoutInflater.inflate(
                         R.layout.private_space_header, parent, false));
             case VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO:
-                return new ViewHolder(new View(mActivityContext.asContext()));
+                return new ViewHolder(new View(mActivityContext));
             default:
                 if (mAdapterProvider.isViewSupported(viewType)) {
                     return mAdapterProvider.onCreateViewHolder(mLayoutInflater, parent, viewType);
@@ -272,15 +258,12 @@ public abstract class BaseAllAppsAdapter
     public void onBindViewHolder(ViewHolder holder, int position) {
         holder.itemView.setVisibility(View.VISIBLE);
         switch (holder.getItemViewType()) {
-            case VIEW_TYPE_PRIVATE_SPACE_APP_ICON:
             case VIEW_TYPE_ICON: {
                 AdapterItem adapterItem = mApps.getAdapterItems().get(position);
                 BubbleTextView icon = (BubbleTextView) holder.itemView;
                 icon.reset();
                 icon.applyFromApplicationInfo(adapterItem.itemInfo);
                 icon.setOnFocusChangeListener(mIconFocusListener);
-                icon.configureMinimalPopup(
-                        holder.getItemViewType() == VIEW_TYPE_PRIVATE_SPACE_APP_ICON);
                 PrivateProfileManager privateProfileManager = mApps.getPrivateProfileManager();
                 if (privateProfileManager != null) {
                     // Set the alpha of the private space icon to 0 upon expanding the header so the
@@ -316,7 +299,7 @@ public abstract class BaseAllAppsAdapter
             case VIEW_TYPE_EMPTY_SEARCH: {
                 AppInfo info = mApps.getAdapterItems().get(position).itemInfo;
                 if (info != null) {
-                    ((TextView) holder.itemView).setText(mActivityContext.asContext().getString(
+                    ((TextView) holder.itemView).setText(mActivityContext.getString(
                             R.string.all_apps_no_search_results, info.title));
                 }
                 break;
@@ -331,15 +314,14 @@ public abstract class BaseAllAppsAdapter
                     roundRegions |= (ROUND_BOTTOM_LEFT | ROUND_BOTTOM_RIGHT);
                 }
                 adapterItem.decorationInfo =
-                        new SectionDecorationInfo(mActivityContext.asContext(), roundRegions);
+                        new SectionDecorationInfo(mActivityContext, roundRegions,
+                                false /* decorateTogether */);
                 break;
             case VIEW_TYPE_PRIVATE_SPACE_SYS_APPS_DIVIDER:
                 adapterItem = mApps.getAdapterItems().get(position);
-                adapterItem.decorationInfo =
-                        mApps.getPrivateProfileManager().getCurrentState() == STATE_DISABLED
-                                ? null
-                                : new SectionDecorationInfo(
-                                        mActivityContext.asContext(), ROUND_NOTHING);
+                adapterItem.decorationInfo = mApps.getPrivateProfileManager().getCurrentState()
+                        == STATE_DISABLED ? null : new SectionDecorationInfo(mActivityContext,
+                        ROUND_NOTHING, true /* decorateTogether */);
                 break;
             case VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO:
             case VIEW_TYPE_ALL_APPS_DIVIDER:
@@ -354,22 +336,6 @@ public abstract class BaseAllAppsAdapter
                     mAdapterProvider.onBindView(holder, position);
                 }
         }
-    }
-
-    private BubbleTextView getIconOnCreateSetup(ViewGroup parent) {
-        int layout = mActivityContext.getDeviceProfile().inv.enableTwoLinesInAllApps
-                ? R.layout.all_apps_icon_twoline : R.layout.all_apps_icon;
-        BubbleTextView icon = (BubbleTextView) mLayoutInflater.inflate(
-                layout, parent, false);
-        icon.setLongPressTimeoutFactor(1f);
-        icon.setOnFocusChangeListener(mIconFocusListener);
-        icon.setOnClickListener(mOnIconClickListener);
-        icon.setOnLongClickListener(mOnIconLongClickListener);
-        icon.setCustomActionsListener(mIconCustomActionsListener);
-        // Ensure the all apps icon height matches the workspace icons in portrait mode.
-        icon.getLayoutParams().height =
-                mActivityContext.getDeviceProfile().getAllAppsProfile().getCellHeightPx();
-        return icon;
     }
 
     @Override

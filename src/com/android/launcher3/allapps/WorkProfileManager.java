@@ -15,8 +15,6 @@
  */
 package com.android.launcher3.allapps;
 
-import static android.view.View.GONE;
-
 import static com.android.launcher3.LauncherPrefs.WORK_EDU_STEP;
 import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.MAIN;
 import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.SEARCH;
@@ -24,12 +22,13 @@ import static com.android.launcher3.allapps.ActivityAllAppsContainerView.Adapter
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_WORK_DISABLED_CARD;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_WORK_EDU_CARD;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TURN_OFF_WORK_APPS_TAP;
-import static com.android.launcher3.model.data.AppsListData.FLAG_HAS_SHORTCUT_PERMISSION;
-import static com.android.launcher3.model.data.AppsListData.FLAG_QUIET_MODE_CHANGE_PERMISSION;
-import static com.android.launcher3.model.data.AppsListData.FLAG_QUIET_MODE_ENABLED;
-import static com.android.launcher3.model.data.AppsListData.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
+import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_HAS_SHORTCUT_PERMISSION;
+import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_QUIET_MODE_CHANGE_PERMISSION;
+import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_QUIET_MODE_ENABLED;
+import static com.android.launcher3.model.BgDataModel.Callbacks.FLAG_WORK_PROFILE_QUIET_MODE_ENABLED;
 
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.util.Log;
 import android.view.View;
 
@@ -62,9 +61,10 @@ public class WorkProfileManager extends UserProfileManager
     private WorkUtilityView mWorkUtilityView;
     private final Predicate<UserHandle> mWorkProfileMatcher;
 
-    public WorkProfileManager(ActivityAllAppsContainerView allApps,
+    public WorkProfileManager(
+            UserManager userManager, ActivityAllAppsContainerView allApps,
             StatsLogManager statsLogManager, UserCache userCache) {
-        super(statsLogManager, userCache);
+        super(userManager, statsLogManager, userCache);
         mAllApps = allApps;
         mWorkProfileMatcher = (user) -> userCache.getUserInfo(user).isWork();
     }
@@ -143,7 +143,7 @@ public class WorkProfileManager extends UserProfileManager
             mAllApps.addView(mWorkUtilityView);
         }
         if (mAllApps.getCurrentPage() != WORK) {
-            mWorkUtilityView.setVisibility(GONE);
+            mWorkUtilityView.animateVisibility(false);
         }
         if (getAH() != null) {
             getAH().applyPadding();

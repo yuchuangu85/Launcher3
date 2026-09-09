@@ -19,15 +19,11 @@ package com.android.launcher3.anim;
 import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.TimeInterpolator;
-import android.graphics.drawable.ColorDrawable;
 import android.util.FloatProperty;
 import android.util.IntProperty;
 import android.view.View;
 
 import androidx.annotation.NonNull;
-
-import com.android.launcher3.views.ScrimColors;
-import com.android.launcher3.views.ScrimView;
 
 import java.util.function.Consumer;
 
@@ -63,14 +59,12 @@ public abstract class PropertySetter {
     }
 
     /**
-     * Sets the background and foreground color of the provided view using the provided
-     * interpolator.
+     * Sets the background color of the provided view using the provided interpolator.
      */
     @NonNull
-    public Animator setScrimColors(ScrimView view, ScrimColors scrimColors,
-            TimeInterpolator interpolator) {
+    public Animator setViewBackgroundColor(View view, int color, TimeInterpolator interpolator) {
         if (view != null) {
-            view.setScrimColors(scrimColors);
+            view.setBackgroundColor(color);
         }
         return NO_OP;
     }

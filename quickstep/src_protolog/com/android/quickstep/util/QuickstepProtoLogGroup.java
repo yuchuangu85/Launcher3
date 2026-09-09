@@ -28,23 +28,30 @@ import java.util.UUID;
 /** Enums used to interface with the ProtoLog API. */
 public enum QuickstepProtoLogGroup implements IProtoLogGroup {
 
-    ACTIVE_GESTURE_LOG(true, Constants.DEBUG_ACTIVE_GESTURE, "ActiveGestureLog"),
-    RECENTS_WINDOW(true, Constants.DEBUG_RECENTS_WINDOW, "RecentsWindow"),
-    LAUNCHER_STATE_MANAGER(true, Constants.DEBUG_STATE_MANAGER, "LauncherStateManager"),
-    OVERVIEW_COMMAND_HELPER(true, Constants.DEBUG_OVERVIEW_COMMAND_HELPER, "OverviewCommandHelper"),
-    BUBBLES(true, Constants.DEBUG_BUBBLES, "Bubbles");
+    ACTIVE_GESTURE_LOG(true, true, Constants.DEBUG_ACTIVE_GESTURE, "ActiveGestureLog"),
+    RECENTS_WINDOW(true, true, Constants.DEBUG_RECENTS_WINDOW, "RecentsWindow"),
+    LAUNCHER_STATE_MANAGER(true, true, Constants.DEBUG_STATE_MANAGER, "LauncherStateManager");
 
     private final boolean mEnabled;
+    private volatile boolean mLogToProto;
     private volatile boolean mLogToLogcat;
     private final @NonNull String mTag;
 
     public static boolean isProtoLogInitialized() {
+        if (!Variables.sIsInitialized) {
+            Log.w(Constants.TAG,
+                    "Attempting to log to ProtoLog before initializing it.",
+                    new IllegalStateException());
+        }
         return Variables.sIsInitialized;
     }
 
     public static void initProtoLog() {
-        if (Variables.sIsInitialized) return;
-
+        if (Variables.sIsInitialized) {
+            Log.e(Constants.TAG,
+                    "Attempting to re-initialize ProtoLog.", new IllegalStateException());
+            return;
+        }
         Log.i(Constants.TAG, "Initializing ProtoLog.");
         Variables.sIsInitialized = true;
         ProtoLog.init(QuickstepProtoLogGroup.values());
@@ -54,11 +61,14 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
      * @param enabled     set to false to exclude all log statements for this group from
      *                    compilation,
      *                    they will not be available in runtime.
+     * @param logToProto  enable binary logging for the group
      * @param logToLogcat enable text logging for the group
      * @param tag         name of the source of the logged message
      */
-    QuickstepProtoLogGroup(boolean enabled, boolean logToLogcat, @NonNull String tag) {
+    QuickstepProtoLogGroup(
+            boolean enabled, boolean logToProto, boolean logToLogcat, @NonNull String tag) {
         this.mEnabled = enabled;
+        this.mLogToProto = logToProto;
         this.mLogToLogcat = logToLogcat;
         this.mTag = tag;
     }
@@ -69,8 +79,18 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
     }
 
     @Override
+    public boolean isLogToProto() {
+        return mLogToProto;
+    }
+
+    @Override
     public boolean isLogToLogcat() {
         return mLogToLogcat;
+    }
+
+    @Override
+    public boolean isLogToAny() {
+        return mLogToLogcat || mLogToProto;
     }
 
     @Override
@@ -81,6 +101,11 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
     @Override
     public @NonNull String getTag() {
         return mTag;
+    }
+
+    @Override
+    public void setLogToProto(boolean logToProto) {
+        this.mLogToProto = logToProto;
     }
 
     @Override
@@ -99,9 +124,7 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
 
         private static final boolean DEBUG_ACTIVE_GESTURE = false;
         private static final boolean DEBUG_RECENTS_WINDOW = false;
-        private static final boolean DEBUG_STATE_MANAGER = false; // b/279059025, b/325463989
-        private static final boolean DEBUG_OVERVIEW_COMMAND_HELPER = false;
-        private static final boolean DEBUG_BUBBLES = true;
+        private static final boolean DEBUG_STATE_MANAGER = true; // b/279059025, b/325463989
 
         private static final int LOG_START_ID =
                 (int) (UUID.nameUUIDFromBytes(QuickstepProtoLogGroup.class.getName().getBytes())

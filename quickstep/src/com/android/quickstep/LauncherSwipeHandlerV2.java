@@ -17,10 +17,11 @@ package com.android.quickstep;
 
 import static com.android.app.animation.Interpolators.EXAGGERATED_EASE;
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.Utilities.mapBoundToRange;
 import static com.android.launcher3.views.FloatingIconView.SHAPE_PROGRESS_DURATION;
-import static com.android.quickstep.util.FloatingIconViewHelper.getFloatingIconView;
+import static com.android.launcher3.views.FloatingIconView.getFloatingIconView;
 
 import android.animation.AnimatorSet;
 import android.content.Context;
@@ -35,9 +36,6 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.app.animation.Interpolators;
-import com.android.launcher3.Flags;
-import com.android.launcher3.LauncherAnimUtils;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.model.data.ItemInfo;
@@ -50,20 +48,19 @@ import com.android.launcher3.views.ClipIconView;
 import com.android.launcher3.views.FloatingIconView;
 import com.android.launcher3.views.FloatingView;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
-import com.android.quickstep.util.ActiveGestureLog;
 import com.android.quickstep.util.RectFSpringAnim;
 import com.android.quickstep.util.ScalingWorkspaceRevealAnim;
+import com.android.quickstep.util.StaggeredWorkspaceAnim;
 import com.android.quickstep.util.TaskViewSimulator;
 import com.android.quickstep.views.FloatingWidgetView;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.TaskView;
+import com.android.systemui.animation.TransitionAnimator;
 import com.android.systemui.shared.recents.model.Task;
 import com.android.systemui.shared.system.InputConsumerController;
-import com.android.wm.shell.shared.compat.AnimatedSurfaceUtils;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Temporary class to allow easier refactoring
@@ -71,24 +68,11 @@ import java.util.function.Function;
 public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
         QuickstepLauncher, RecentsView<QuickstepLauncher, LauncherState>, LauncherState> {
 
-    public LauncherSwipeHandlerV2(Context context,
-            TaskAnimationManager taskAnimationManager,
-            RecentsAnimationDeviceState deviceState,
-            RotationTouchHelper rotationTouchHelper,
-            GestureState gestureState,
-            boolean continuingLastGesture,
-            InputConsumerController inputConsumer,
-            MSDLPlayerWrapper msdlPlayerWrapper,
-            int displayId) {
-        super(context,
-                taskAnimationManager,
-                deviceState,
-                rotationTouchHelper,
-                gestureState,
-                continuingLastGesture,
-                inputConsumer,
-                msdlPlayerWrapper,
-                displayId);
+    public LauncherSwipeHandlerV2(Context context, TaskAnimationManager taskAnimationManager,
+            GestureState gestureState, long touchTimeMs, boolean continuingLastGesture,
+            InputConsumerController inputConsumer, MSDLPlayerWrapper msdlPlayerWrapper) {
+        super(context, taskAnimationManager, gestureState, touchTimeMs,
+                continuingLastGesture, inputConsumer, msdlPlayerWrapper);
     }
 
 
@@ -101,13 +85,8 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
             RemoteAnimationTarget runningTaskTarget,
             @Nullable TaskView targetTaskView) {
         if (mContainer == null) {
-            mStateCallback.addChangeListener(
-                    STATE_LAUNCHER_PRESENT | STATE_HANDLER_INVALIDATED,
-                    isPresent -> {
-                        if (mRecentsView != null) {
-                            mRecentsView.startHome();
-                        }
-                    });
+            mStateCallback.addChangeListener(STATE_LAUNCHER_PRESENT | STATE_HANDLER_INVALIDATED,
+                    isPresent -> mRecentsView.startHome());
             return new HomeAnimationFactory() {
                 @Override
                 public AnimatorPlaybackController createActivityAnimationToHome() {
@@ -132,7 +111,9 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
 
         mContainer.getRootView().setForceHideBackArrow(true);
 
-        if (mHandOffAnimationToHome || !canUseWorkspaceView || appCanEnterPip || mIsSwipeForSplit) {
+        boolean handOffAnimation = TransitionAnimator.Companion.longLivedReturnAnimationsEnabled()
+                && mHandOffAnimationToHome;
+        if (handOffAnimation || !canUseWorkspaceView || appCanEnterPip || mIsSwipeForSplit) {
             return new LauncherHomeAnimationFactory() {
 
                 @Nullable
@@ -153,13 +134,13 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
             View workspaceView, @Nullable TaskView targetTaskView) {
         RectF iconLocation = new RectF();
         FloatingIconView floatingIconView = getFloatingIconView(mContainer, workspaceView, null,
-                mContainer.getTaskbarInteractor() == null
+                mContainer.getTaskbarUIController() == null
                         ? null
-                        : mContainer.getTaskbarInteractor().findMatchingAsyncView(workspaceView),
+                        : mContainer.getTaskbarUIController().findMatchingView(workspaceView),
                 true /* hideOriginal */, iconLocation, false /* isOpening */);
 
         // We want the window alpha to be 0 once this threshold is met, so that the
-        // FloatingIconView can be seen morphing into the icon shape.
+        // FolderIconView can be seen morphing into the icon shape.
         float windowAlphaThreshold = 1f - SHAPE_PROGRESS_DURATION;
 
         return new FloatingViewHomeAnimationFactory(floatingIconView) {
@@ -181,10 +162,14 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
             @NonNull
             @Override
             public RectF getWindowTargetRect() {
-                if (mTargetRect == null) {
-                    mTargetRect = new RectF(iconLocation);
+                if (enableScalingRevealHomeAnimation()) {
+                    if (mTargetRect == null) {
+                        mTargetRect = new RectF(iconLocation);
+                    }
+                    return mTargetRect;
+                } else {
+                    return iconLocation;
                 }
-                return mTargetRect;
             }
 
             @Override
@@ -203,11 +188,7 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
                     float progress,
                     float radius,
                     int overlayAlpha) {
-                // We want the icon alpha to be 1 once this threshold is met, so that it can be
-                // seen morphing into the icon shape. But before the threshold, we want to limit
-                // the alpha to reduce the blur effect behind the window.
-                float iconAlpha = Interpolators.clampToProgress(progress, 0f, windowAlphaThreshold);
-                floatingIconView.update(iconAlpha, currentRect, progress, windowAlphaThreshold,
+                floatingIconView.update(1f /* alpha */, currentRect, progress, windowAlphaThreshold,
                         radius, false, overlayAlpha);
             }
 
@@ -250,33 +231,12 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
         tvs.getCurrentCropRect().roundOut(crop);
         Size windowSize = new Size(crop.width(), crop.height());
         int fallbackBackgroundColor =
-                FloatingWidgetView.getDefaultBackgroundColor(mContext,
-                        AnimatedSurfaceUtils.from(runningTaskTarget));
+                FloatingWidgetView.getDefaultBackgroundColor(mContext, runningTaskTarget);
         FloatingWidgetView floatingWidgetView = FloatingWidgetView.getFloatingWidgetView(mContainer,
-                hostView, backgroundLocation, windowSize, tvs.getScaledCornerRadius(),
+                hostView, backgroundLocation, windowSize, tvs.getCurrentCornerRadius(),
                 isTargetTranslucent, fallbackBackgroundColor);
 
-        final Function<RectF, Float> posProvider;
-        final float totalDiff;
-        final float startPos;
-
-        if (Flags.widgetReturnAnimationMinorFixes()) {
-            RectF startRect = new RectF(crop);
-            RectF targetRect = new RectF(backgroundLocation);
-
-            posProvider = LauncherAnimUtils.getPosProviderForRect(startRect, targetRect);
-            totalDiff = Math.abs(posProvider.apply(targetRect) - posProvider.apply(startRect));
-            startPos = posProvider.apply(startRect);
-        } else {
-            posProvider = null;
-            totalDiff = 0;
-            startPos = 0;
-        }
-
         return new FloatingViewHomeAnimationFactory(floatingWidgetView) {
-            private float mWidgetAlphaLowerBound = 1f;
-            private boolean mThresholdCaptured = false;
-
             @Nullable
             private RectF mTargetRect;
 
@@ -288,10 +248,14 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
 
             @Override
             public RectF getWindowTargetRect() {
-                if (mTargetRect == null) {
-                    mTargetRect = new RectF(backgroundLocation);
+                if (enableScalingRevealHomeAnimation()) {
+                    if (mTargetRect == null) {
+                        mTargetRect = new RectF(backgroundLocation);
+                    }
+                    return mTargetRect;
+                } else {
+                    return backgroundLocation;
                 }
-                return mTargetRect;
             }
 
             @Override
@@ -312,53 +276,17 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
             @Override
             public void update(RectF currentRect, float progress, float radius, int overlayAlpha) {
                 super.update(currentRect, progress, radius, overlayAlpha);
-
-                if (Flags.widgetReturnAnimationMinorFixes()) {
-
-                    // The progress parameter represents the scaling progress (closing
-                    // window down to the size of FloatingWidget). currentPosProgress is
-                    // used to capture the progress for the primary axis(the axis with
-                    // longer distance between initial to final position).
-                    float currentPosProgress = totalDiff > 0
-                            ? Math.abs(posProvider.apply(currentRect) - startPos) / totalDiff
-                            : 1f;
-
-                    // Capture the lower threshold for revealing the widget only once when
-                    // the scaling is nearly finished.
-                    if (!mThresholdCaptured && progress >= 0.99f) {
-                        mWidgetAlphaLowerBound = currentPosProgress;
-                        mThresholdCaptured = true;
-                    }
-
-                    floatingWidgetView.update(currentPosProgress, mWidgetAlphaLowerBound,
-                            currentRect, floatingWidgetAlpha, 1 - progress);
-                } else {
-                    final float fallbackBackgroundAlpha =
-                            1 - mapBoundToRange(progress, 0.8f, 1, 0, 1, EXAGGERATED_EASE);
-                    final float foregroundAlpha =
-                            mapBoundToRange(progress, 0.5f, 1, 0, 1, EXAGGERATED_EASE);
-                    floatingWidgetView.update(currentRect, floatingWidgetAlpha, foregroundAlpha,
-                            fallbackBackgroundAlpha, 1 - progress);
-                }
-            }
-
-            @Override
-            public boolean isWidget() {
-                return Flags.widgetReturnAnimationMinorFixes();
+                final float fallbackBackgroundAlpha =
+                        1 - mapBoundToRange(progress, 0.8f, 1, 0, 1, EXAGGERATED_EASE);
+                final float foregroundAlpha =
+                        mapBoundToRange(progress, 0.5f, 1, 0, 1, EXAGGERATED_EASE);
+                floatingWidgetView.update(currentRect, floatingWidgetAlpha, foregroundAlpha,
+                        fallbackBackgroundAlpha, 1 - progress);
             }
 
             @Override
             protected float getWindowAlpha(float progress) {
                 return 1 - mapBoundToRange(progress, 0, 0.5f, 0, 1, LINEAR);
-            }
-
-            @Override
-            protected float getWindowCornerRadius(float progress) {
-                if (Flags.widgetReturnAnimationMinorFixes()) {
-                    return floatingWidgetView.getOutlineRadius();
-                }
-
-                return -1f;
             }
         };
     }
@@ -388,38 +316,25 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
 
     @Override
     protected void finishRecentsControllerToHome(Runnable callback) {
-        if (mRecentsView != null) {
-            mRecentsView.cleanupRemoteTargets();
-        }
+        mRecentsView.cleanupRemoteTargets();
         mRecentsAnimationController.finish(
-                /* toHome= */true,
-                callback,
-                /* sendUserLeaveHint= */ true,
-                /* reason= */ new ActiveGestureLog.CompoundString(
-                        "LauncherSwipeHandlerV2.finishRecentsControllerToHome"));
+                true /* toRecents */, callback, true /* sendUserLeaveHint */);
     }
 
     private class FloatingViewHomeAnimationFactory extends LauncherHomeAnimationFactory {
-        // The progress at which a window closing into a widget becomes fully transparent.
-        private static final float ALPHA_END_PROGRESS_WIDGET = 0.4f;
-
         private final FloatingView mFloatingView;
         @Nullable
         protected RectFSpringAnim mSiblingAnimation;
 
         FloatingViewHomeAnimationFactory(FloatingView floatingView) {
             mFloatingView = floatingView;
-            if (isWidget()) {
-                mAlphaEndProgress = ALPHA_END_PROGRESS_WIDGET;
-            }
         }
 
         @Override
         protected void playScalingRevealAnimation() {
             if (mContainer != null) {
                 new ScalingWorkspaceRevealAnim(mContainer, mSiblingAnimation,
-                        getWindowTargetRect(), true /* playAlphaReveal */,
-                        true /* playBlur */).start();
+                        getWindowTargetRect(), true /* playAlphaReveal */).start();
             }
         }
 
@@ -445,14 +360,20 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
         public AnimatorPlaybackController createActivityAnimationToHome() {
             // Return an empty APC here since we have an non-user controlled animation
             // to home.
-            long accuracy = 2 * Math.max(mDp.getDeviceProperties().getWidthPx(), mDp.getDeviceProperties().getHeightPx());
+            long accuracy = 2 * Math.max(mDp.widthPx, mDp.heightPx);
             return mContainer.getStateManager().createAnimationToNewWorkspace(
                     NORMAL, accuracy, StateAnimationConfig.SKIP_ALL_ANIMATIONS);
         }
 
         @Override
         public void playAtomicAnimation(float velocity) {
-            playScalingRevealAnimation();
+            if (enableScalingRevealHomeAnimation()) {
+                playScalingRevealAnimation();
+            } else {
+                new StaggeredWorkspaceAnim(mContainer, velocity, true /* animateOverviewScrim */,
+                        getViewIgnoredInWorkspaceRevealAnimation())
+                        .start();
+            }
         }
 
         /**
@@ -462,8 +383,8 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
         protected void playScalingRevealAnimation() {
             if (mContainer != null) {
                 new ScalingWorkspaceRevealAnim(
-                        mContainer, null /* siblingAnimation */, null /* windowTargetRect */,
-                        true /* playAlphaReveal */, true /* playBlur */).start();
+                        mContainer, null /* siblingAnimation */,
+                        null /* windowTargetRect */, true /* playAlphaReveal */).start();
             }
         }
     }

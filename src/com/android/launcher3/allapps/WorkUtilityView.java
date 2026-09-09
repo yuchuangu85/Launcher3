@@ -46,6 +46,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.Flags;
 import com.android.launcher3.Insettable;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
@@ -132,6 +133,7 @@ public class WorkUtilityView extends LinearLayout implements Insettable,
         mWorkFAB = findViewById(R.id.work_mode_toggle);
         mSchedulerButton = findViewById(R.id.work_scheduler);
         mWorkUtilityView = findViewById(R.id.work_utility_view);
+        setSelected(true);
         KeyboardInsetAnimationCallback keyboardInsetAnimationCallback =
                 new KeyboardInsetAnimationCallback(this);
         setWindowInsetsAnimationCallback(keyboardInsetAnimationCallback);
@@ -159,14 +161,12 @@ public class WorkUtilityView extends LinearLayout implements Insettable,
         if (lp != null) {
             int bottomMargin = getResources().getDimensionPixelSize(R.dimen.work_fab_margin_bottom);
             DeviceProfile dp = ActivityContext.lookupContext(getContext()).getDeviceProfile();
-            if (mActivityContext.getAppsView() != null
-                    && mActivityContext.getAppsView().isSearchBarFloating()) {
-                bottomMargin += dp.getHotseatProfile().getQsbHeight();
+            if (mActivityContext.getAppsView().isSearchBarFloating()) {
+                bottomMargin += dp.hotseatQsbHeight;
             }
 
-            if (!dp.getDeviceProperties().getDeviceConfiguration().isGestureMode()
-                    && dp.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()) {
-                bottomMargin += dp.getTaskbarProfile().getHeight();
+            if (!dp.isGestureMode && dp.isTaskbarPresent) {
+                bottomMargin += dp.taskbarHeight;
             }
 
             lp.bottomMargin = bottomMargin;
@@ -186,18 +186,15 @@ public class WorkUtilityView extends LinearLayout implements Insettable,
         return super.isEnabled() && getVisibility() == VISIBLE;
     }
 
-    public void animateVisibility(boolean toVisible) {
+    public void animateVisibility(boolean visible) {
         clearAnimation();
-        if (toVisible) {
+        if (visible) {
             addFlag(FLAG_FADE_ONGOING);
-            // Set alpha to 0 so that it always fades in.
-            setAlpha(0);
             setVisibility(VISIBLE);
             extend();
             animate().alpha(1).withEndAction(() -> removeFlag(FLAG_FADE_ONGOING)).start();
         } else if (getVisibility() != GONE) {
             addFlag(FLAG_FADE_ONGOING);
-            setAlpha(1);
             animate().alpha(0).withEndAction(() -> {
                 removeFlag(FLAG_FADE_ONGOING);
                 setVisibility(GONE);
@@ -439,20 +436,11 @@ public class WorkUtilityView extends LinearLayout implements Insettable,
 
     @VisibleForTesting
     boolean shouldUseScheduler() {
-        return !mWorkSchedulerIntentAction.isEmpty();
+        return Flags.workSchedulerInWorkProfile() && !mWorkSchedulerIntentAction.isEmpty();
     }
 
     @VisibleForTesting
     ImageButton getSchedulerButton() {
         return mSchedulerButton;
-    }
-
-    /**
-     * Returns the measured height of this view containing the workFAB and the scheduler button.
-     */
-    int getTotalHeight() {
-        // Measure the parent layout so the child views have a measure height.
-        mWorkUtilityView.measure(0,0);
-        return mWorkFAB.getMeasuredHeight() + mSchedulerButton.getMeasuredHeight();
     }
 }

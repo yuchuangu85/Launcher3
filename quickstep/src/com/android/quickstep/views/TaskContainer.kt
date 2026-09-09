@@ -18,11 +18,12 @@ package com.android.quickstep.views
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.util.Log
 import android.view.View
 import android.view.View.OnClickListener
-import androidx.core.view.isVisible
 import com.android.app.tracing.traceSection
-import com.android.launcher3.Flags.enableRefactorDigitalWellbeingToast
+import com.android.launcher3.Flags.enableOverviewIconMenu
+import com.android.launcher3.Flags.enableRefactorTaskThumbnail
 import com.android.launcher3.model.data.TaskViewItemInfo
 import com.android.launcher3.util.SplitConfigurationOptions
 import com.android.launcher3.util.TransformingTouchDelegate
@@ -31,7 +32,6 @@ import com.android.quickstep.ViewUtils.addAccessibleChildToList
 import com.android.quickstep.recents.domain.usecase.ThumbnailPosition
 import com.android.quickstep.recents.ui.mapper.TaskUiStateMapper
 import com.android.quickstep.recents.ui.viewmodel.TaskData
-import com.android.quickstep.task.thumbnail.TaskContentView
 import com.android.quickstep.task.thumbnail.TaskThumbnailView
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
@@ -40,9 +40,8 @@ import com.android.systemui.shared.recents.model.ThumbnailData
 class TaskContainer(
     val taskView: TaskView,
     val task: Task,
-    val taskContentView: TaskContentView,
-    val snapshotView: TaskThumbnailView,
-    val iconView: IconAppChipView,
+    val snapshotView: View,
+    val iconView: TaskViewIcon,
     /**
      * This technically can be a vanilla [android.view.TouchDelegate] class, however that class
      * requires setting the touch bounds at construction, so we'd repeatedly be created many
@@ -53,24 +52,49 @@ class TaskContainer(
     /** Defaults to STAGE_POSITION_UNDEFINED if in not a split screen task view */
     @SplitConfigurationOptions.StagePosition val stagePosition: Int,
     val digitalWellBeingToast: DigitalWellBeingToast?,
+    val showWindowsView: View?,
     taskOverlayFactory: TaskOverlayFactory,
 ) {
     val overlay: TaskOverlayFactory.TaskOverlay<*> = taskOverlayFactory.createOverlay(this)
     var thumbnailPosition: ThumbnailPosition? = null
     private var overlayEnabledStatus = false
 
+    init {
+        if (enableRefactorTaskThumbnail()) {
+            require(snapshotView is TaskThumbnailView)
+        } else {
+            require(snapshotView is TaskThumbnailViewDeprecated)
+        }
+    }
+
     internal var thumbnailData: ThumbnailData? = null
         private set
 
     val thumbnail: Bitmap?
         /** If possible don't use this. It should be replaced as part of b/331753115. */
-        get() = thumbnailData?.thumbnail
+        get() =
+            if (enableRefactorTaskThumbnail()) thumbnailData?.thumbnail
+            else thumbnailViewDeprecated.thumbnail
+
+    val thumbnailView: TaskThumbnailView
+        get() {
+            require(enableRefactorTaskThumbnail())
+            return snapshotView as TaskThumbnailView
+        }
+
+    val thumbnailViewDeprecated: TaskThumbnailViewDeprecated
+        get() {
+            require(!enableRefactorTaskThumbnail())
+            return snapshotView as TaskThumbnailViewDeprecated
+        }
 
     var isThumbnailValid: Boolean = false
         internal set
 
     val shouldShowSplashView: Boolean
-        get() = taskView.shouldShowSplash()
+        get() =
+            if (enableRefactorTaskThumbnail()) taskView.shouldShowSplash()
+            else thumbnailViewDeprecated.shouldShowSplashView()
 
     /** Builds proto for logging */
     val itemInfo: TaskViewItemInfo
@@ -79,60 +103,87 @@ class TaskContainer(
     fun bind() =
         traceSection("TaskContainer.bind") {
             digitalWellBeingToast?.bind(task, taskView, snapshotView, stagePosition)
+            if (!enableRefactorTaskThumbnail()) {
+                thumbnailViewDeprecated.bind(task, overlay, taskView)
+            }
         }
 
     fun destroy() =
         traceSection("TaskContainer.destroy") {
             digitalWellBeingToast?.destroy()
-            taskContentView.scaleX = 1f
-            taskContentView.scaleY = 1f
+            snapshotView.scaleX = 1f
+            snapshotView.scaleY = 1f
             overlay.reset()
-            isThumbnailValid = false
-            thumbnailData = null
-            snapshotView.onRecycle()
+            if (enableRefactorTaskThumbnail()) {
+                isThumbnailValid = false
+                thumbnailData = null
+                thumbnailView.onRecycle()
+            } else {
+                thumbnailViewDeprecated.setShowSplashForSplitSelection(false)
+            }
+
+            if (enableOverviewIconMenu()) {
+                (iconView as IconAppChipView).reset()
+            }
         }
 
-    fun setOverlayEnabled(enabled: Boolean, thumbnailPosition: ThumbnailPosition) {
-        if (overlayEnabledStatus != enabled || this.thumbnailPosition != thumbnailPosition) {
-            overlayEnabledStatus = enabled
-
-            refreshOverlay(thumbnailPosition)
+    fun setOverlayEnabled(enabled: Boolean) {
+        if (!enableRefactorTaskThumbnail()) {
+            thumbnailViewDeprecated.setOverlayEnabled(enabled)
         }
     }
 
-    fun refreshOverlay(thumbnailPosition: ThumbnailPosition) =
+    fun setOverlayEnabled(enabled: Boolean, thumbnailPosition: ThumbnailPosition?) {
+        if (enableRefactorTaskThumbnail()) {
+            if (overlayEnabledStatus != enabled || this.thumbnailPosition != thumbnailPosition) {
+                overlayEnabledStatus = enabled
+
+                refreshOverlay(thumbnailPosition)
+            }
+        }
+    }
+
+    fun refreshOverlay(thumbnailPosition: ThumbnailPosition?) =
         traceSection("TaskContainer.refreshOverlay") {
             this.thumbnailPosition = thumbnailPosition
-            if (overlayEnabledStatus) {
-                overlay.initOverlay(
-                    task,
-                    thumbnailData?.thumbnail,
-                    thumbnailPosition.matrix,
-                    thumbnailPosition.isRotated,
-                )
-            } else {
-                overlay.reset()
+            when {
+                !overlayEnabledStatus -> overlay.reset()
+                thumbnailPosition == null -> {
+                    Log.e(TAG, "Thumbnail position was null during overlay refresh", Exception())
+                    overlay.reset()
+                }
+                else ->
+                    overlay.initOverlay(
+                        task,
+                        thumbnailData?.thumbnail,
+                        thumbnailPosition.matrix,
+                        thumbnailPosition.isRotated,
+                    )
             }
         }
 
     fun addChildForAccessibility(outChildren: ArrayList<View>) {
-        addAccessibleChildToList(iconView, outChildren)
-        addAccessibleChildToList(taskContentView, outChildren)
+        addAccessibleChildToList(iconView.asView(), outChildren)
+        addAccessibleChildToList(snapshotView, outChildren)
+        showWindowsView?.let { addAccessibleChildToList(it, outChildren) }
         digitalWellBeingToast?.let { addAccessibleChildToList(it, outChildren) }
         overlay.addChildForAccessibility(outChildren)
     }
 
     fun setState(
         state: TaskData?,
+        liveTile: Boolean,
         hasHeader: Boolean,
-        canShowAppTimer: Boolean,
         clickCloseListener: OnClickListener?,
     ) =
         traceSection("TaskContainer.setState") {
-            taskContentView.setState(
-                TaskUiStateMapper.toTaskHeaderState(state, hasHeader, clickCloseListener),
-                TaskUiStateMapper.toTaskThumbnailUiState(state),
-                TaskUiStateMapper.toTaskAppTimerUiState(canShowAppTimer, stagePosition, state),
+            thumbnailView.setState(
+                TaskUiStateMapper.toTaskThumbnailUiState(
+                    state,
+                    liveTile,
+                    hasHeader,
+                    clickCloseListener,
+                ),
                 state?.taskId,
             )
             thumbnailData = if (state is TaskData.Data) state.thumbnailData else null
@@ -140,7 +191,7 @@ class TaskContainer(
         }
 
     fun updateTintAmount(tintAmount: Float) {
-        snapshotView.updateTintAmount(tintAmount)
+        thumbnailView.updateTintAmount(tintAmount)
     }
 
     /**
@@ -153,7 +204,7 @@ class TaskContainer(
      * @param progress The progress of the menu opening animation (from closed=0 to fully open=1)
      */
     fun updateMenuOpenProgress(progress: Float) {
-        snapshotView.updateMenuOpenProgress(progress)
+        thumbnailView.updateMenuOpenProgress(progress)
     }
 
     /**
@@ -167,34 +218,15 @@ class TaskContainer(
      * @param progress The progress of the operation, ranging from 0.0 to 1.0
      */
     fun updateThumbnailSplashProgress(progress: Float) {
-        snapshotView.updateSplashAlpha(progress)
+        if (enableRefactorTaskThumbnail()) {
+            thumbnailView.updateSplashAlpha(progress)
+        } else {
+            thumbnailViewDeprecated.setSplashAlpha(progress)
+        }
     }
 
     fun updateThumbnailMatrix(matrix: Matrix) {
-        snapshotView.setImageMatrix(matrix)
-    }
-
-    fun onTaskViewDisplayConfigChanged() {
-        taskContentView.onTaskViewDisplayConfigChanged(
-            taskView.layoutParams.width,
-            taskView.layoutParams.height,
-            taskView is GroupedTaskView,
-            (taskView as? GroupedTaskView)?.splitBoundsConfig,
-            taskView.pagedOrientationHandler,
-            stagePosition,
-        )
-    }
-
-    fun digitalWellBeingBannerHeight(): Int {
-        if (enableRefactorDigitalWellbeingToast()) {
-            return taskContentView.getTaskAppTimerToastHeight() ?: 0
-        }
-
-        if (digitalWellBeingToast?.isVisible == true) {
-            return digitalWellBeingToast.height
-        }
-
-        return 0
+        thumbnailView.setImageMatrix(matrix)
     }
 
     companion object {

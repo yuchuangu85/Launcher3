@@ -33,7 +33,6 @@ public class CachedEventDispatcher {
     private ArrayList<MotionEvent> mCache;
     private MotionEvent mLastEvent;
 
-    /** Dispatches the event to the consumer, or caches it if no consumer is set yet. */
     public void dispatchEvent(MotionEvent event) {
         if (mConsumer != null) {
             mConsumer.accept(event);
@@ -49,7 +48,6 @@ public class CachedEventDispatcher {
         }
     }
 
-    /** Sets the consumer for future events and immediately dispatches all cached events. */
     public void setConsumer(Consumer<MotionEvent> consumer) {
         if (consumer == null) {
             return;
@@ -65,10 +63,9 @@ public class CachedEventDispatcher {
         mLastEvent = null;
     }
 
-    /** Should be called once this dispatcher is no longer needed. */
-    public void clearConsumerAndCache() {
+    /** Clear the consumer. */
+    public void clearConsumer() {
         mConsumer = null;
-        mCache = null;
     }
 
     public boolean hasConsumer() {

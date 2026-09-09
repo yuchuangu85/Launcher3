@@ -19,30 +19,47 @@ import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_NOSENSOR;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE;
+import static android.util.DisplayMetrics.DENSITY_DEVICE_STABLE;
 
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
+import static com.android.launcher3.LauncherPrefs.ALLOW_ROTATION;
+import static com.android.launcher3.Utilities.dpiFromPx;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
+import static com.android.launcher3.util.window.WindowManagerProxy.MIN_TABLET_WIDTH;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 
 import com.android.launcher3.BaseActivity;
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.display.DisplayController;
-import com.android.launcher3.display.LauncherDisplayInfo;
+import com.android.launcher3.LauncherPrefChangeListener;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.util.ContextTracker;
-import com.android.launcher3.util.ListenableDiffAwareRef;
-import com.android.launcher3.util.SafeCloseable;
+import com.android.launcher3.util.DisplayController;
 
 /**
  * Utility class to manage launcher rotation
  */
-public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListener {
+public class RotationHelper implements LauncherPrefChangeListener,
+        DeviceProfile.OnDeviceProfileChangeListener,
+        DisplayController.DisplayInfoChangeListener {
+
+    public static final String ALLOW_ROTATION_PREFERENCE_KEY = "pref_allowRotation";
+
+    /**
+     * Returns the default value of {@link #ALLOW_ROTATION_PREFERENCE_KEY} preference.
+     */
+    public static boolean getAllowRotationDefaultValue(DisplayController.Info info) {
+        // If the device's pixel density was scaled (usually via settings for A11y), use the
+        // original dimensions to determine if rotation is allowed of not.
+        float originalSmallestWidth = dpiFromPx(Math.min(info.currentSize.x, info.currentSize.y),
+                DENSITY_DEVICE_STABLE);
+        return originalSmallestWidth >= MIN_TABLET_WIDTH;
+    }
 
     public static final int REQUEST_NONE = 0;
     public static final int REQUEST_ROTATE = 1;
@@ -54,10 +71,9 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
     private final BaseActivity mActivity;
     private final Handler mRequestOrientationHandler;
 
-    private @Nullable SafeCloseable mDisplayInfoChangesSafeCloseable;
-
     private boolean mIgnoreAutoRotateSettings;
     private boolean mForceAllowRotationForTesting;
+    private boolean mHomeRotationEnabled;
 
     /**
      * Rotation request made by
@@ -91,6 +107,22 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
         if (mDestroyed) return;
         // On large devices we do not handle auto-rotate differently.
         mIgnoreAutoRotateSettings = ignoreAutoRotateSettings;
+        if (!mIgnoreAutoRotateSettings) {
+            mHomeRotationEnabled = LauncherPrefs.get(mActivity).get(ALLOW_ROTATION);
+            LauncherPrefs.get(mActivity).addListener(this, ALLOW_ROTATION);
+        } else {
+            LauncherPrefs.get(mActivity).removeListener(this, ALLOW_ROTATION);
+        }
+    }
+
+    @Override
+    public void onPrefChanged(String s) {
+        if (mDestroyed || mIgnoreAutoRotateSettings) return;
+        boolean wasRotationEnabled = mHomeRotationEnabled;
+        mHomeRotationEnabled = LauncherPrefs.get(mActivity).get(ALLOW_ROTATION);
+        if (mHomeRotationEnabled != wasRotationEnabled) {
+            notifyChange();
+        }
     }
 
     /**
@@ -99,13 +131,14 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
      * the foreground. When in the background, we can still rely on onDisplayInfoChanged to update,
      * assuming that the delay is tolerable since it takes time to change to foreground.
      */
-    private void onDisplayInfoChanged(LauncherDisplayInfo info) {
-        onIgnoreAutoRotateChanged(info.isLargeScreen(info.realBounds));
+    @Override
+    public void onDisplayInfoChanged(Context context, DisplayController.Info info, int flags) {
+        onIgnoreAutoRotateChanged(info.isTablet(info.realBounds));
     }
 
     @Override
     public void onDeviceProfileChanged(DeviceProfile dp) {
-        onIgnoreAutoRotateChanged(dp.getDeviceProperties().isLargeScreen());
+        onIgnoreAutoRotateChanged(dp.isTablet);
     }
 
     private void onIgnoreAutoRotateChanged(boolean ignoreAutoRotateSettings) {
@@ -157,18 +190,9 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
         if (mInitialized) return;
         mInitialized = true;
         DisplayController displayController = DisplayController.INSTANCE.get(mActivity);
-        LauncherDisplayInfo info = displayController.getInfo();
-        setIgnoreAutoRotateSettings(info.isLargeScreen(info.realBounds));
-        ListenableDiffAwareRef<LauncherDisplayInfo, Integer> listenable =
-                displayController.getListenable();
-        if (listenable != null) {
-            mDisplayInfoChangesSafeCloseable =
-                    listenable.forEach(
-                            MAIN_EXECUTOR, (newInfo) -> {
-                                onDisplayInfoChanged(newInfo);
-                                return null;
-                            });
-        }
+        DisplayController.Info info = displayController.getInfo();
+        setIgnoreAutoRotateSettings(info.isTablet(info.realBounds));
+        displayController.addChangeListener(this);
         mActivity.addOnDeviceProfileChangeListener(this);
         notifyChange();
     }
@@ -177,10 +201,8 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
         if (mDestroyed) return;
         mDestroyed = true;
         mActivity.removeOnDeviceProfileChangeListener(this);
-        if (mDisplayInfoChangesSafeCloseable != null) {
-            mDisplayInfoChangesSafeCloseable.close();
-            mDisplayInfoChangesSafeCloseable = null;
-        }
+        DisplayController.INSTANCE.get(mActivity).removeChangeListener(this);
+        LauncherPrefs.get(mActivity).removeListener(this, ALLOW_ROTATION);
     }
 
     private void notifyChange() {
@@ -199,10 +221,8 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
                     SCREEN_ORIENTATION_LOCKED : SCREEN_ORIENTATION_UNSPECIFIED;
         } else if (mCurrentStateRequest == REQUEST_LOCK) {
             activityFlags = SCREEN_ORIENTATION_LOCKED;
-        } else if (mIgnoreAutoRotateSettings
-                || mCurrentStateRequest == REQUEST_ROTATE
-                || mForceAllowRotationForTesting
-        ) {
+        } else if (mIgnoreAutoRotateSettings || mCurrentStateRequest == REQUEST_ROTATE
+                || mHomeRotationEnabled || mForceAllowRotationForTesting) {
             activityFlags = SCREEN_ORIENTATION_UNSPECIFIED;
         } else {
             // If auto rotation is off, allow rotation on the activity, in case the user is using
@@ -211,9 +231,9 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
         }
         if (activityFlags != mLastActivityFlags) {
             mLastActivityFlags = activityFlags;
+            Log.d("b/380940677", toString());
             mRequestOrientationHandler.sendEmptyMessage(activityFlags);
         }
-        Log.d("b/475447538", "Rotation Helper = " + this);
     }
 
     @WorkerThread
@@ -238,9 +258,10 @@ public class RotationHelper implements DeviceProfile.OnDeviceProfileChangeListen
     public String toString() {
         return String.format("[mStateHandlerRequest=%d, mCurrentStateRequest=%d, "
                         + "mLastActivityFlags=%d, mIgnoreAutoRotateSettings=%b, "
-                        + "mForceAllowRotationForTesting=%b, mDestroyed=%b, mIsFixedLandscape=%b]",
+                        + "mHomeRotationEnabled=%b, mForceAllowRotationForTesting=%b,"
+                        + " mDestroyed=%b, mIsFixedLandscape=%b]",
                 mStateHandlerRequest, mCurrentStateRequest, mLastActivityFlags,
-                mIgnoreAutoRotateSettings, mForceAllowRotationForTesting,
+                mIgnoreAutoRotateSettings, mHomeRotationEnabled, mForceAllowRotationForTesting,
                 mDestroyed, mIsFixedLandscape);
     }
 }

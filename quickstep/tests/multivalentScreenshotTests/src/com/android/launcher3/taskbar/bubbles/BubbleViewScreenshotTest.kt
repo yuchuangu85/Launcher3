@@ -17,18 +17,24 @@ package com.android.launcher3.taskbar.bubbles
 
 import android.content.Context
 import android.graphics.Color
-import com.android.launcher3.imagecomparison.ViewBasedImageTest
+import androidx.test.core.app.ApplicationProvider
+import com.android.launcher3.taskbar.bubbles.testing.FakeBubbleViewFactory
+import com.google.android.apps.nexuslauncher.imagecomparison.goldenpathmanager.ViewScreenshotGoldenPathManager
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import platform.test.runner.parameterized.ParameterizedAndroidJunit4
 import platform.test.runner.parameterized.Parameters
 import platform.test.screenshot.DeviceEmulationSpec
 import platform.test.screenshot.Displays
+import platform.test.screenshot.ViewScreenshotTestRule
+import platform.test.screenshot.getEmulatedDevicePathConfig
 
 /** Screenshot tests for [BubbleView]. */
 @RunWith(ParameterizedAndroidJunit4::class)
-class BubbleViewScreenshotTest(emulationSpec: DeviceEmulationSpec) :
-    ViewBasedImageTest(emulationSpec) {
+class BubbleViewScreenshotTest(emulationSpec: DeviceEmulationSpec) {
+
+    private val context = ApplicationProvider.getApplicationContext<Context>()
 
     companion object {
         @Parameters(name = "{0}")
@@ -41,34 +47,44 @@ class BubbleViewScreenshotTest(emulationSpec: DeviceEmulationSpec) :
             )
     }
 
+    @get:Rule
+    val screenshotRule =
+        ViewScreenshotTestRule(
+            emulationSpec,
+            ViewScreenshotGoldenPathManager(getEmulatedDevicePathConfig(emulationSpec)),
+        )
+
     @Test
     fun bubbleView_hasUnseenContent() {
-        screenshotRule.screenshotTest("hasUnseenContent") { activity -> setupBubbleView(activity) }
+        screenshotRule.screenshotTest("bubbleView_hasUnseenContent") { activity ->
+            activity.actionBar?.hide()
+            setupBubbleView()
+        }
     }
 
     @Test
     fun bubbleView_seen() {
-        screenshotRule.screenshotTest("seen") { activity ->
-            setupBubbleView(activity, suppressNotification = true)
+        screenshotRule.screenshotTest("bubbleView_seen") { activity ->
+            activity.actionBar?.hide()
+            setupBubbleView(suppressNotification = true)
         }
     }
 
     @Test
     fun bubbleView_badgeHidden() {
-        screenshotRule.screenshotTest("badgeHidden") { activity ->
-            setupBubbleView(activity).apply { setBadgeScale(0f) }
+        screenshotRule.screenshotTest("bubbleView_badgeHidden") { activity ->
+            activity.actionBar?.hide()
+            setupBubbleView().apply { setBadgeScale(0f) }
         }
     }
 
-    private fun setupBubbleView(
-        context: Context,
-        suppressNotification: Boolean = false,
-    ): BubbleView {
+    private fun setupBubbleView(suppressNotification: Boolean = false): BubbleView {
         val bubbleView =
             FakeBubbleViewFactory.createBubble(
                 context,
                 key = "key",
                 parent = null,
+                iconSize = 100,
                 iconColor = Color.LTGRAY,
                 suppressNotification = suppressNotification,
             )

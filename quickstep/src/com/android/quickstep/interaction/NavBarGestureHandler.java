@@ -34,8 +34,8 @@ import android.view.View.OnTouchListener;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.testing.shared.ResourceUtils;
+import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.util.VibratorWrapper;
 import com.android.quickstep.util.MotionPauseDetector;
@@ -60,7 +60,7 @@ public class NavBarGestureHandler implements OnTouchListener,
 
     NavBarGestureHandler(Context context, DeviceProfile deviceProfile) {
         mContext = context;
-        mDisplaySize.set(deviceProfile.getDeviceProperties().getWidthPx(), deviceProfile.getDeviceProperties().getHeightPx());
+        mDisplaySize.set(deviceProfile.widthPx, deviceProfile.heightPx);
         mSwipeUpTouchTracker = new TriggerSwipeUpTouchTracker(
                 context,
                 /* disableHorizontalSwipe= */ true,

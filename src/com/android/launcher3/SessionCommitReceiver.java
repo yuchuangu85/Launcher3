@@ -29,10 +29,8 @@ import androidx.annotation.WorkerThread;
 
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.model.ItemInstallQueue;
-import com.android.launcher3.model.SerializedItemItem;
 import com.android.launcher3.pm.InstallSessionHelper;
 import com.android.launcher3.pm.UserCache;
-import com.android.launcher3.util.DefaultsValueProvider;
 import com.android.launcher3.util.Executors;
 
 import java.util.Locale;
@@ -67,11 +65,6 @@ public class SessionCommitReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (info.getSessionId() == -1) {
-            FileLog.d(LOG, "Session id for " + info.getAppPackageName() + " is -1");
-            return;
-        }
-
         InstallSessionHelper packageInstallerCompat = InstallSessionHelper.INSTANCE.get(context);
         boolean alreadyAddedPromiseIcon =
                 packageInstallerCompat.promiseIconAddedForId(info.getSessionId());
@@ -97,21 +90,21 @@ public class SessionCommitReceiver extends BroadcastReceiver {
                         + ", has app icon: " + (info.getAppIcon() != null)
                         + ", has app label: " + !TextUtils.isEmpty(info.getAppLabel()));
 
-        ItemInstallQueue.INSTANCE.get(context).queueItem(
-                new SerializedItemItem(info.getAppPackageName(), user));
+        ItemInstallQueue.INSTANCE.get(context)
+                .queueItem(info.getAppPackageName(), user);
     }
 
     /**
      * Returns whether adding Installed App Icons to home screen is allowed or not.
      * Not allowed when:
-     * - User belongs to {@link com.android.launcher3.util.UserType.PRIVATE} or
+     * - User belongs to {@link com.android.launcher3.util.UserIconInfo.TYPE_PRIVATE} or
      * - Home Settings preference to add App Icons on Home Screen is set as disabled
      */
     public static boolean isEnabled(Context context, UserHandle user) {
-        if (user != null && UserCache.getInstance(context).getUserInfo(user).isPrivate()) {
+        if (Flags.privateSpaceRestrictItemDrag() && user != null
+                && UserCache.getInstance(context).getUserInfo(user).isPrivate()) {
             return false;
         }
-        return LauncherPrefs.getPrefs(context).getBoolean(ADD_ICON_PREFERENCE_KEY,
-                DefaultsValueProvider.get(context).getAddIconToHome());
+        return LauncherPrefs.getPrefs(context).getBoolean(ADD_ICON_PREFERENCE_KEY, true);
     }
 }

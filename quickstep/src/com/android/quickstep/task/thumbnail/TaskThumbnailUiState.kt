@@ -19,6 +19,7 @@ package com.android.quickstep.task.thumbnail
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.view.Surface
+import android.view.View.OnClickListener
 import androidx.annotation.ColorInt
 
 sealed class TaskThumbnailUiState {
@@ -26,16 +27,37 @@ sealed class TaskThumbnailUiState {
 
     data class BackgroundOnly(@ColorInt val backgroundColor: Int) : TaskThumbnailUiState()
 
-    data class AppLocked(@ColorInt val backgroundColor: Int) : TaskThumbnailUiState()
-
-    data object LiveTile : TaskThumbnailUiState()
-
     data class SnapshotSplash(val snapshot: Snapshot, val splash: Drawable?) :
         TaskThumbnailUiState()
 
-    data class Snapshot(
-        val bitmap: Bitmap,
-        @Surface.Rotation val thumbnailRotation: Int,
-        @ColorInt val backgroundColor: Int,
+    sealed class LiveTile : TaskThumbnailUiState() {
+        data class WithHeader(val header: ThumbnailHeader) : LiveTile()
+
+        data object WithoutHeader : LiveTile()
+    }
+
+    sealed class Snapshot {
+        abstract val bitmap: Bitmap
+        abstract val thumbnailRotation: Int
+        abstract val backgroundColor: Int
+
+        data class WithHeader(
+            override val bitmap: Bitmap,
+            @Surface.Rotation override val thumbnailRotation: Int,
+            @ColorInt override val backgroundColor: Int,
+            val header: ThumbnailHeader,
+        ) : Snapshot()
+
+        data class WithoutHeader(
+            override val bitmap: Bitmap,
+            @Surface.Rotation override val thumbnailRotation: Int,
+            @ColorInt override val backgroundColor: Int,
+        ) : Snapshot()
+    }
+
+    data class ThumbnailHeader(
+        val icon: Drawable,
+        val title: String,
+        val clickCloseListener: OnClickListener,
     )
 }

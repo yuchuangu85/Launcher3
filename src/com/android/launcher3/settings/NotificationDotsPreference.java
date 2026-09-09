@@ -31,23 +31,20 @@ import android.provider.Settings;
 import android.util.AttributeSet;
 import android.view.View;
 
-import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
 import com.android.launcher3.R;
 import com.android.launcher3.notification.NotificationListener;
-import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.SettingsCache;
-
-import kotlin.Unit;
 
 /**
  * A {@link Preference} for indicating notification dots status.
  * Also has utility methods for updating UI based on dots status changes.
  */
-public class NotificationDotsPreference extends Preference {
+public class NotificationDotsPreference extends Preference
+        implements SettingsCache.OnChangeListener {
 
     private boolean mWidgetFrameVisible = false;
 
@@ -59,8 +56,7 @@ public class NotificationDotsPreference extends Preference {
             new ContentObserver(MAIN_EXECUTOR.getHandler()) {
         @Override
         public void onChange(boolean selfChange) {
-            onSettingsChanged(
-                    SettingsCache.INSTANCE.get(getContext()).getValue(NOTIFICATION_BADGING_URI));
+            updateUI();
         }
     };
 
@@ -81,17 +77,14 @@ public class NotificationDotsPreference extends Preference {
         super(context);
     }
 
-    private @Nullable SafeCloseable mSettingCacheSafeCloseable;
-
     @Override
     public void onAttached() {
         super.onAttached();
-        mSettingCacheSafeCloseable = SettingsCache.INSTANCE.get(getContext())
-                .getListenableRef(NOTIFICATION_BADGING_URI).forEach(
-                        MAIN_EXECUTOR, this::onSettingsChanged);
+        SettingsCache.INSTANCE.get(getContext()).register(NOTIFICATION_BADGING_URI, this);
         getContext().getContentResolver().registerContentObserver(
                 Settings.Secure.getUriFor(NOTIFICATION_ENABLED_LISTENERS),
                 false, mListenerListObserver);
+        updateUI();
 
         // Update intent
         Bundle extras = new Bundle();
@@ -101,13 +94,15 @@ public class NotificationDotsPreference extends Preference {
                 .putExtra(EXTRA_SHOW_FRAGMENT_ARGS, extras));
     }
 
+    private void updateUI() {
+        onSettingsChanged(SettingsCache.INSTANCE.get(getContext())
+                .getValue(NOTIFICATION_BADGING_URI));
+    }
+
     @Override
     public void onDetached() {
         super.onDetached();
-        if (mSettingCacheSafeCloseable != null) {
-            mSettingCacheSafeCloseable.close();
-            mSettingCacheSafeCloseable = null;
-        }
+        SettingsCache.INSTANCE.get(getContext()).unregister(NOTIFICATION_BADGING_URI, this);
         getContext().getContentResolver().unregisterContentObserver(mListenerListObserver);
 
     }
@@ -129,7 +124,8 @@ public class NotificationDotsPreference extends Preference {
         }
     }
 
-    public Unit onSettingsChanged(boolean enabled) {
+    @Override
+    public void onSettingsChanged(boolean enabled) {
         int summary = enabled
                 ? R.string.notification_dots_desc_on
                 : R.string.notification_dots_desc_off;
@@ -151,7 +147,6 @@ public class NotificationDotsPreference extends Preference {
         setWidgetFrameVisible(!serviceEnabled);
         setFragment(serviceEnabled ? null : NotificationAccessConfirmation.class.getName());
         setSummary(summary);
-        return null;
     }
 
     public static class NotificationAccessConfirmation

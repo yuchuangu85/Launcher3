@@ -26,11 +26,16 @@ import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 
+import com.android.launcher3.LauncherAppState;
+import com.android.launcher3.LauncherModel.ModelUpdateTask;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.model.AllAppsList;
 import com.android.launcher3.model.BgDataModel;
+import com.android.launcher3.model.ModelTaskController;
 import com.android.launcher3.model.StringCache;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.CollectionInfo;
@@ -38,20 +43,20 @@ import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.IntSparseArrayMap;
 import com.android.launcher3.util.Preconditions;
+import com.android.launcher3.util.ResourceBasedOverride;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.inject.Inject;
-
 /**
  * Locates provider for the folder name.
  */
-public class FolderNameProvider {
+public class FolderNameProvider implements ResourceBasedOverride {
 
     private static final String TAG = "FolderNameProvider";
     private static final boolean DEBUG = false;
@@ -65,17 +70,34 @@ public class FolderNameProvider {
     protected List<AppInfo> mAppInfos;
 
     /**
-     * FolderNameProvider should be constructed on a background thread always.
-     * If you want to inject FolderNameProvider, use {@link FolderNameSuggestionLoader} or use
-     * {@link javax.inject.Provider} to create the FolderNameProvider in background thread
+     * Retrieve instance of this object that can be overridden in runtime based on the build
+     * variant of the application.
      */
-    @Inject
-    public FolderNameProvider() {
+    public static FolderNameProvider newInstance(Context context) {
+        FolderNameProvider fnp = Overrides.getObject(FolderNameProvider.class,
+                context.getApplicationContext(), R.string.folder_name_provider_class);
         Preconditions.assertWorkerThread();
+        fnp.load(context);
+
+        return fnp;
     }
 
-    public void load(List<AppInfo> appInfos, IntSparseArrayMap<CollectionInfo> folderInfos) {
+    public static FolderNameProvider newInstance(Context context, List<AppInfo> appInfos,
+            IntSparseArrayMap<CollectionInfo> folderInfos) {
         Preconditions.assertWorkerThread();
+        FolderNameProvider fnp = Overrides.getObject(FolderNameProvider.class,
+                context.getApplicationContext(), R.string.folder_name_provider_class);
+        fnp.load(appInfos, folderInfos);
+
+        return fnp;
+    }
+
+    private void load(Context context) {
+        LauncherAppState.getInstance(context).getModel().enqueueModelUpdateTask(
+                new FolderNameWorker());
+    }
+
+    private void load(List<AppInfo> appInfos, IntSparseArrayMap<CollectionInfo> folderInfos) {
         mAppInfos = appInfos;
         mCollectionInfos = folderInfos;
     }
@@ -171,6 +193,16 @@ public class FolderNameProvider {
         }
         // Overwrite the last suggestion.
         nameInfos.setLabel(labels.length - 1, label, 1.0f);
+    }
+
+    private class FolderNameWorker implements ModelUpdateTask {
+
+        @Override
+        public void execute(@NonNull ModelTaskController taskController,
+                @NonNull BgDataModel dataModel, @NonNull AllAppsList apps) {
+            mCollectionInfos = getCollectionForSuggestions(dataModel);
+            mAppInfos = Arrays.asList(apps.copyData());
+        }
     }
 
     public static IntSparseArrayMap<CollectionInfo> getCollectionForSuggestions(

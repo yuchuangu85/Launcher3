@@ -1,0 +1,34 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdk 36
+    namespace "com.android.launcher3.flags"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = '21'
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src']
+            java.includes = [
+                'com/android/launcher3/**',
+                'com/android/quickstep/**',
+                'com/android/wm/shell/**',
+                'com/android/systemui/**',
+                'com/android/window/**'
+            ]
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.annotation:annotation:1.7.1'
+    compileOnly fileTree(dir: "${rootDir}/prebuilts/libs", include: ['*.jar'])
+}

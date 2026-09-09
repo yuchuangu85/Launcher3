@@ -27,6 +27,7 @@ import android.view.SurfaceControl.Transaction
 import android.view.WindowManager.TRANSIT_CLOSE
 import android.view.WindowManager.TRANSIT_OPEN
 import android.view.WindowManager.TRANSIT_TO_BACK
+import android.window.DesktopModeFlags
 import android.window.TransitionInfo
 import android.window.TransitionInfo.Change
 import androidx.core.animation.addListener
@@ -34,10 +35,9 @@ import androidx.core.util.Supplier
 import com.android.app.animation.Interpolators
 import com.android.internal.jank.Cuj
 import com.android.internal.jank.InteractionJankMonitor
-import com.android.launcher3.R
+import com.android.internal.policy.ScreenDecorationsUtils
 import com.android.launcher3.desktop.DesktopAppLaunchTransition.AppLaunchType
 import com.android.launcher3.desktop.DesktopAppLaunchTransition.Companion.LAUNCH_CHANGE_MODES
-import com.android.launcher3.display.DisplayController
 import com.android.wm.shell.shared.animation.MinimizeAnimator
 import com.android.wm.shell.shared.animation.WindowAnimator
 
@@ -55,7 +55,6 @@ import com.android.wm.shell.shared.animation.WindowAnimator
  */
 class DesktopAppLaunchAnimatorHelper(
     private val context: Context,
-    private val displayController: DisplayController,
     private val launchType: AppLaunchType,
     @Cuj.CujType private val cujType: Int,
     private val transactionSupplier: Supplier<Transaction>,
@@ -111,7 +110,10 @@ class DesktopAppLaunchAnimatorHelper(
         }
 
     private fun getTrampolineCloseChange(info: TransitionInfo): Change? {
-        if (info.changes.size < 2) {
+        if (
+            info.changes.size < 2 ||
+            !DesktopModeFlags.ENABLE_DESKTOP_TRAMPOLINE_CLOSE_ANIMATION_BUGFIX.isTrue
+        ) {
             return null
         }
         val openChange =
@@ -157,13 +159,10 @@ class DesktopAppLaunchAnimatorHelper(
             }
         val clipRect = Rect(change.endAbsBounds).apply { offsetTo(0, 0) }
         transaction.setCrop(change.leash, clipRect)
-        val displayContext = displayController.getInfoForDisplay(change.endDisplayId)?.context
-        val animatorContext = displayContext ?: context
-        val taskCornerRadiusInPx =
-            animatorContext.resources.getDimension(
-                R.dimen.desktop_windowing_freeform_task_rounded_corner_radius
-            )
-        transaction.setCornerRadius(change.leash, taskCornerRadiusInPx)
+        transaction.setCornerRadius(
+            change.leash,
+            ScreenDecorationsUtils.getWindowCornerRadius(context),
+        )
         return AnimatorSet().apply {
             interactionJankMonitor.begin(change.leash, context, context.mainThreadHandler, cujType)
             if (isTrampoline) {
@@ -206,7 +205,11 @@ class DesktopAppLaunchAnimatorHelper(
             addUpdateListener { animation ->
                 transaction.setAlpha(change.leash, animation.animatedValue as Float).apply()
             }
-            addListener(onEnd = { animation -> onAnimFinish(animation) })
+            addListener(
+                onEnd = { animation ->
+                    onAnimFinish(animation)
+                }
+            )
         }
     }
 

@@ -19,7 +19,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.android.launcher3.BubbleTextView;
-import com.android.launcher3.Flags;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.R;
 import com.android.launcher3.model.data.ItemInfo;
@@ -46,17 +45,9 @@ public class LauncherPopupLiveUpdateHandler extends PopupLiveUpdateHandler<Launc
 
     @Override
     public void onWidgetsBound() {
-        if (Flags.expandableLongPressMenu()) {
-            return;
-        }
-
-        View originalIcon = mPopupContainerWithArrow.getOriginalIcon();
-        if (!(originalIcon instanceof BubbleTextView
-                && originalIcon.getTag() instanceof ItemInfo info)) {
-            return;
-        }
-        SystemShortcut widgetInfo = SystemShortcut.WIDGETS.getShortcut(mContext, info,
-                originalIcon);
+        BubbleTextView originalIcon = mPopupContainerWithArrow.getOriginalIcon();
+        SystemShortcut widgetInfo = SystemShortcut.WIDGETS.getShortcut(mContext,
+                (ItemInfo) originalIcon.getTag(), originalIcon);
         View widgetsView = getWidgetsView(mPopupContainerWithArrow);
         if (widgetsView == null && mPopupContainerWithArrow.getWidgetContainer() != null) {
             widgetsView = getWidgetsView(mPopupContainerWithArrow.getWidgetContainer());
@@ -82,8 +73,7 @@ public class LauncherPopupLiveUpdateHandler extends PopupLiveUpdateHandler<Launc
                 // flicker as the animation restarts partway through, and this is a very rare
                 // edge case anyway.
                 mPopupContainerWithArrow.close(false);
-                mContext.getPopupControllerForAppIcons()
-                        .show(originalIcon);
+                PopupContainerWithArrow.showForIcon(mPopupContainerWithArrow.getOriginalIcon());
             }
         } else if (widgetInfo == null && widgetsView != null) {
             // No widgets exist, but we previously added the shortcut so remove it.
@@ -93,8 +83,7 @@ public class LauncherPopupLiveUpdateHandler extends PopupLiveUpdateHandler<Launc
                 mPopupContainerWithArrow.getWidgetContainer().removeView(widgetsView);
             } else {
                 mPopupContainerWithArrow.close(false);
-                mContext.getPopupControllerForAppIcons()
-                        .show(originalIcon);
+                PopupContainerWithArrow.showForIcon(mPopupContainerWithArrow.getOriginalIcon());
             }
         }
     }

@@ -17,7 +17,6 @@
 package com.android.launcher3.util;
 
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
-import static com.android.launcher3.util.Executors.getTaskbarUiThread;
 
 import android.os.Looper;
 
@@ -43,20 +42,6 @@ public class Preconditions {
     public static void assertUIThread() {
         if (FeatureFlags.IS_STUDIO_BUILD && !isSameLooper(Looper.getMainLooper())) {
             throw new IllegalStateException();
-        }
-    }
-
-    public static void assertThreadOnExecutor(LooperExecutor looperExecutor) {
-        if (FeatureFlags.IS_STUDIO_BUILD && !isSameLooper(looperExecutor.getLooper())) {
-            throw new IllegalStateException();
-        }
-    }
-
-    public static void assertTaskbarUiThread() {
-        final Looper taskbarUiThreadLooper = getTaskbarUiThread().getLooper();
-        if (!isSameLooper(taskbarUiThreadLooper)) {
-            throw new IllegalStateException("Called from wrong thread. Expected thread: "
-                    + taskbarUiThreadLooper + " calling thread: " + Looper.myLooper());
         }
     }
 

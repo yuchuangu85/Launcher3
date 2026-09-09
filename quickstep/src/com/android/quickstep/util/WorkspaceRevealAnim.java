@@ -39,7 +39,7 @@ import com.android.launcher3.Launcher;
 import com.android.launcher3.R;
 import com.android.launcher3.Workspace;
 import com.android.launcher3.anim.PendingAnimation;
-import com.android.launcher3.statehandlers.LauncherDepthController;
+import com.android.launcher3.statehandlers.DepthController;
 import com.android.launcher3.states.StateAnimationConfig;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.util.DynamicResource;
@@ -87,9 +87,9 @@ public class WorkspaceRevealAnim {
         }
 
         // Add depth controller animation.
-        if (launcher instanceof QuickstepLauncher quickstepLauncher) {
+        if (launcher instanceof QuickstepLauncher) {
             PendingAnimation depthBuilder = new PendingAnimation(DURATION_MS);
-            LauncherDepthController depth = quickstepLauncher.getDepthController();
+            DepthController depth = ((QuickstepLauncher) launcher).getDepthController();
             depth.setStateWithAnimation(NORMAL, new StateAnimationConfig(), depthBuilder);
             mAnimators.play(depthBuilder.buildAnim());
         }

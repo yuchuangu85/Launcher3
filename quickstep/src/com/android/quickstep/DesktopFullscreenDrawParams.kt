@@ -27,7 +27,7 @@ constructor(context: Context, cornerRadiusProvider: (Context) -> Float = ::compu
     companion object {
         // computeCornerRadius is used as cornerRadiusProvider, so
         // QuickStepContract::getWindowCornerRadius can be mocked properly.
-        fun computeCornerRadius(context: Context): Float =
+        private fun computeCornerRadius(context: Context): Float =
             context.resources.getDimension(R.dimen.desktop_windowing_freeform_rounded_corner_radius)
     }
 }

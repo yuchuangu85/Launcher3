@@ -21,7 +21,6 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -32,10 +31,11 @@ import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.Flags;
 import com.android.launcher3.Insettable;
 import com.android.launcher3.R;
 import com.android.launcher3.anim.AnimatedFloat;
-import com.android.launcher3.display.DisplayController;
+import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.MultiValueAlpha;
 import com.android.launcher3.util.NavigationMode;
 import com.android.quickstep.TaskOverlayFactory.OverlayUICallbacks;
@@ -54,34 +54,6 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         implements OnClickListener, Insettable {
     public static final String TAG = "OverviewActionsView";
     private final Rect mInsets = new Rect();
-
-    /**
-     * We need to over-ride here due to liveTile mode, the [OverviewInputConsumer] is added, which
-     * consumes all [InputEvent]'s and focus isn't moved correctly.
-     */
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event);
-
-        View currentFocus = findFocus();
-        if (currentFocus == null) return super.dispatchKeyEvent(event);
-
-        View nextFocus = null;
-        switch (event.getKeyCode()) {
-            case KeyEvent.KEYCODE_DPAD_LEFT -> nextFocus = focusSearch(currentFocus,
-                    FOCUS_BACKWARD);
-            case KeyEvent.KEYCODE_DPAD_RIGHT -> nextFocus = focusSearch(currentFocus,
-                    FOCUS_FORWARD);
-            case KeyEvent.KEYCODE_TAB -> nextFocus = focusSearch(currentFocus,
-                    event.isShiftPressed() ? FOCUS_BACKWARD : FOCUS_FORWARD);
-        }
-
-        if (nextFocus != null) {
-            return nextFocus.requestFocus();
-        }
-
-        return super.dispatchKeyEvent(event);
-    }
 
     @IntDef(flag = true, value = {
             HIDDEN_NON_ZERO_ROTATION,
@@ -118,7 +90,6 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     private static final int INDEX_VISIBILITY_ALPHA = 1;
     private static final int INDEX_FULLSCREEN_ALPHA = 2;
     private static final int INDEX_HIDDEN_FLAGS_ALPHA = 3;
-    // The alpha on the actions view as a result of the share targets being present
     private static final int INDEX_SHARE_TARGET_ALPHA = 4;
     private static final int INDEX_SCROLL_ALPHA = 5;
     private static final int INDEX_GROUPED_ALPHA = 6;
@@ -301,8 +272,7 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     private void updateForIsTablet() {
         assert mDp != null;
         // Update flags to see if split button should be hidden.
-        updateSplitButtonHiddenFlags(FLAG_SMALL_SCREEN_HIDE_SPLIT,
-                !mDp.getDeviceProperties().isLargeScreen());
+        updateSplitButtonHiddenFlags(FLAG_SMALL_SCREEN_HIDE_SPLIT, !mDp.isTablet);
         updateActionButtonsVisibility();
     }
 
@@ -311,8 +281,7 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
             return;
         }
         boolean showSingleTaskActions = !mIsGroupedTask;
-        boolean showGroupActions = mIsGroupedTask && mDp.getDeviceProperties().isLargeScreen()
-                && mCanSaveAppPair;
+        boolean showGroupActions = mIsGroupedTask && mDp.isTablet && mCanSaveAppPair;
         Log.d(TAG, "updateActionButtonsVisibility() called: showSingleTaskActions = ["
                 + showSingleTaskActions + "], showGroupActions = [" + showGroupActions + "]");
         getActionsAlphas().get(INDEX_GROUPED_ALPHA).setValue(showSingleTaskActions ? 1 : 0);
@@ -405,7 +374,7 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
 
         LayoutParams actionParams = (LayoutParams) actionBar.getLayoutParams();
         actionParams.setMargins(
-                actionParams.leftMargin, mDp.getOverviewProfile().getActionsTopMarginPx(),
+                actionParams.leftMargin, mDp.overviewActionsTopMarginPx,
                 actionParams.rightMargin, getBottomMargin());
     }
 
@@ -414,18 +383,13 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
             return 0;
         }
 
-        if (mDp.getDeviceProperties().isLargeScreen()) {
-            int modalTaskbarHeight = mDp.getTaskbarProfile().isTransientTaskbar()
-                    ? mDp.getTaskbarProfile().getStashedTaskbarHeight()
-                    : mDp.getTaskbarProfile().getHeight();
-            return modalTaskbarHeight + mDp.getOverviewProfile().getActionsTopMarginPx();
+        if (mDp.isTablet && Flags.enableGridOnlyOverview()) {
+            return mDp.stashedTaskbarHeight;
         }
 
         // Align to bottom of task Rect.
-        return mDp.getDeviceProperties().getHeightPx()
-                - mTaskSize.bottom
-                - mDp.getOverviewProfile().getActionsTopMarginPx()
-                - mDp.getOverviewProfile().getActionsHeight();
+        return mDp.heightPx - mTaskSize.bottom - mDp.overviewActionsTopMarginPx
+                - mDp.overviewActionsHeight;
     }
 
     /**
@@ -439,12 +403,12 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
 
         requestLayout();
 
-        int splitIconRes = dp.getSysuiProfile().isLeftRightSplit()
+        int splitIconRes = dp.isLeftRightSplit
                 ? R.drawable.ic_split_horizontal
                 : R.drawable.ic_split_vertical;
         mSplitButton.setCompoundDrawablesRelativeWithIntrinsicBounds(splitIconRes, 0, 0, 0);
 
-        int appPairIconRes = dp.getSysuiProfile().isLeftRightSplit()
+        int appPairIconRes = dp.isLeftRightSplit
                 ? R.drawable.ic_save_app_pair_left_right
                 : R.drawable.ic_save_app_pair_up_down;
         mSaveAppPairButton.setCompoundDrawablesRelativeWithIntrinsicBounds(

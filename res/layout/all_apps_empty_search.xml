@@ -25,6 +25,6 @@
     android:paddingRight="16dp"
     android:fontFamily="sans-serif-medium"
     android:textSize="14sp"
-    android:textColor="@color/materialColorOutline"
+    android:textColor="?android:attr/textColorTertiary"
     android:focusable="false" />
 

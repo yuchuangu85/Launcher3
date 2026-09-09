@@ -26,6 +26,8 @@ sealed interface Action {
 
 sealed class Image {
     data class ResourceId(val resId: Int) : Image()
+
+    data class Url(val url: String) : Image()
 }
 
 data class ButtonPayload(val label: String, val actions: List<Action>)

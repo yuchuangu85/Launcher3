@@ -24,8 +24,7 @@ package com.android.quickstep.util;
 public final class SystemActionConstants {
 
     public static final int SYSTEM_ACTION_ID_TASKBAR = 499;
-    public static final int SYSTEM_ACTION_ID_BUBBLE_BAR = 500;
-    public static final int SYSTEM_ACTION_ID_SEARCH_SCREEN = 501;
+    public static final int SYSTEM_ACTION_ID_SEARCH_SCREEN = 500;
 
     /**
      * For Taskbar broadcast intent filter.
@@ -36,9 +35,6 @@ public final class SystemActionConstants {
      * For Search Screen broadcast intent filter.
      */
     public static final String ACTION_SEARCH_SCREEN = "ACTION_SEARCH_SCREEN";
-
-    /** For Bubble Bar broadcast intent filter. */
-    public static final String ACTION_SHOW_BUBBLE_BAR = "ACTION_SHOW_BUBBLE_BAR";
 
     private SystemActionConstants() {}
 }

@@ -3,14 +3,14 @@ package com.android.launcher3.backuprestore
 import android.content.Context
 import androidx.annotation.StringDef
 import com.android.launcher3.LauncherSettings.Favorites
-import com.android.launcher3.dagger.LauncherComponentProvider
-import javax.inject.Inject
+import com.android.launcher3.R
+import com.android.launcher3.util.ResourceBasedOverride
 
 /**
  * Wrapper for logging Restore event metrics for both success and failure to restore the Launcher
  * workspace from a backup.
  */
-open class LauncherRestoreEventLogger @Inject constructor() {
+open class LauncherRestoreEventLogger : ResourceBasedOverride {
 
     /** Enumeration of potential errors returned to calls of pause/resume app updates. */
     @Retention(AnnotationRetention.SOURCE)
@@ -62,16 +62,18 @@ open class LauncherRestoreEventLogger @Inject constructor() {
             const val UNSPECIFIED_WIDGET_INFLATION_RESULT = "unspecified_widget_inflation_result"
             const val UNRESTORED_PENDING_WIDGET = "unrestored_pending_widget"
             const val INVALID_CUSTOM_WIDGET_ID = "invalid_custom_widget_id"
-            const val FILE_SYSTEM_ITEM_FROM_BACKUP = "file_system_item_from_backup"
-            const val FILE_SYSTEM_ITEM_NO_LONGER_EXISTS = "file_system_item_no_longer_exists"
         }
     }
 
     companion object {
         const val TAG = "LauncherRestoreEventLogger"
 
-        fun newInstance(context: Context): LauncherRestoreEventLogger {
-            return LauncherComponentProvider.get(context).launcherRestoreEventLogger
+        fun newInstance(context: Context?): LauncherRestoreEventLogger {
+            return ResourceBasedOverride.Overrides.getObject(
+                LauncherRestoreEventLogger::class.java,
+                context,
+                R.string.launcher_restore_event_logger_class,
+            )
         }
     }
 

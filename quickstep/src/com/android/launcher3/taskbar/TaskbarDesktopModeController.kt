@@ -16,43 +16,23 @@
 
 package com.android.launcher3.taskbar
 
-import com.android.launcher3.display.DisplayController
+import android.content.Context
 import com.android.launcher3.statehandlers.DesktopVisibilityController
-import com.android.launcher3.statehandlers.DesktopVisibilityController.DesktopVisibilityListener
+import com.android.launcher3.statehandlers.DesktopVisibilityController.TaskbarDesktopModeListener
 import com.android.launcher3.taskbar.TaskbarBackgroundRenderer.Companion.MAX_ROUNDNESS
-import com.android.launcher3.util.Executors.getTaskbarUiThread
-import com.android.launcher3.util.SafeCloseable
 
 /** Handles Taskbar in Desktop Windowing mode. */
 class TaskbarDesktopModeController(
-    private val taskbarActivityContext: TaskbarActivityContext,
+    private val context: Context,
     private val desktopVisibilityController: DesktopVisibilityController,
-) : DesktopVisibilityListener {
-
-    private var displayInfoChangeSafeCloseable: SafeCloseable? = null
-
+) : TaskbarDesktopModeListener {
     private lateinit var taskbarControllers: TaskbarControllers
     private lateinit var taskbarSharedState: TaskbarSharedState
-    private lateinit var taskbarUiState: TaskbarUiState
 
-    val isLauncherAnimationRunning: Boolean
-        get() = desktopVisibilityController.launcherAnimationRunning
-
-    fun init(
-        controllers: TaskbarControllers,
-        sharedState: TaskbarSharedState,
-        uiState: TaskbarUiState,
-    ) {
+    fun init(controllers: TaskbarControllers, sharedState: TaskbarSharedState) {
         taskbarControllers = controllers
         taskbarSharedState = sharedState
-        taskbarUiState = uiState
-        desktopVisibilityController.registerDesktopVisibilityListener(this)
-        displayInfoChangeSafeCloseable =
-            DisplayController.INSTANCE.get(taskbarActivityContext).listenable?.forEach(
-                getTaskbarUiThread()
-            ) { _ ->
-                updateTaskbarUiState()
-            }
+        desktopVisibilityController.registerTaskbarDesktopModeListener(this)
     }
 
     fun isInDesktopMode(displayId: Int) = desktopVisibilityController.isInDesktopMode(displayId)
@@ -60,25 +40,19 @@ class TaskbarDesktopModeController(
     fun isInDesktopModeAndNotInOverview(displayId: Int) =
         desktopVisibilityController.isInDesktopModeAndNotInOverview(displayId)
 
-    override fun onTaskbarCornerRoundingUpdate(
-        doesAnyTaskRequireTaskbarRounding: Boolean,
-        displayId: Int,
-    ) {
-        if (displayId != taskbarActivityContext.displayId) return
+    override fun onTaskbarCornerRoundingUpdate(doesAnyTaskRequireTaskbarRounding: Boolean) {
         if (taskbarControllers.taskbarActivityContext.isDestroyed) return
-
         taskbarSharedState.showCornerRadiusInDesktopMode = doesAnyTaskRequireTaskbarRounding
         val cornerRadius = getTaskbarCornerRoundness(doesAnyTaskRequireTaskbarRounding)
         taskbarControllers.taskbarCornerRoundness.animateToValue(cornerRadius).start()
     }
 
     fun shouldShowDesktopTasksInTaskbar(): Boolean {
-        return shouldShowDesktopTasksInTaskbar(taskbarActivityContext.displayId)
-    }
-
-    fun shouldShowDesktopTasksInTaskbar(displayId: Int): Boolean {
-        return isInDesktopMode(displayId) ||
-            taskbarActivityContext.showDesktopTaskbarForFreeformDisplay()
+        val activityContext = taskbarControllers.taskbarActivityContext
+        return isInDesktopMode(context.displayId) ||
+            activityContext.showDesktopTaskbarForFreeformDisplay() ||
+            (activityContext.showLockedTaskbarOnHome() &&
+                taskbarControllers.taskbarStashController.isOnHome)
     }
 
     fun getTaskbarCornerRoundness(doesAnyTaskRequireTaskbarRounding: Boolean): Float {
@@ -89,15 +63,5 @@ class TaskbarDesktopModeController(
         }
     }
 
-    fun onDestroy() {
-        desktopVisibilityController.unregisterDesktopVisibilityListener(this)
-        displayInfoChangeSafeCloseable?.close()
-        displayInfoChangeSafeCloseable = null
-    }
-
-    private fun updateTaskbarUiState() {
-        val info = DisplayController.getInfo(taskbarActivityContext)
-        taskbarUiState.showDesktopTaskbarForFreeformDisplay =
-            info.showDesktopTaskbarForFreeformDisplay
-    }
+    fun onDestroy() = desktopVisibilityController.unregisterTaskbarDesktopModeListener(this)
 }

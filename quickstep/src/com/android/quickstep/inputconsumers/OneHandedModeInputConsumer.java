@@ -30,8 +30,8 @@ import android.graphics.PointF;
 import android.view.MotionEvent;
 
 import com.android.launcher3.R;
-import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.testing.shared.ResourceUtils;
+import com.android.launcher3.util.DisplayController;
 import com.android.quickstep.InputConsumer;
 import com.android.quickstep.RecentsAnimationDeviceState;
 import com.android.quickstep.SystemUiProxy;

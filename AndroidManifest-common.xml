@@ -20,7 +20,8 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.android.launcher3">
+    package="com.android.launcher3"
+    android:sharedUserId="android.uid.system">
 
     <!--
     The manifest defines the common entries that should be present in any derivative of Launcher3.
@@ -45,16 +46,25 @@
     <uses-permission android:name="android.permission.ROTATE_SURFACE_FLINGER" />
     <uses-permission android:name="android.permission.WAKEUP_SURFACE_FLINGER" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.LOCK_APPS"
-                     android:featureFlag="android.security.app_lock_apis" />
-    <uses-permission android:name="com.android.systemui.permission.LAUNCH_ACCESSIBILITY_SHORTCUT_CHOOSER_DIALOG" />
 
+    <!--
+    Permissions required for read/write access to the workspace data. These permission name
+    should not conflict with that defined in other apps, as such an app should embed its package
+    name in the permissions. eq com.mypackage.permission.READ_SETTINGS
+    -->
     <permission
-        android:name="${applicationId}.permission.GRID_CONTROL"
-        android:knownCerts="@array/grid_control_known_signers"
-        android:protectionLevel="signature|knownSigner"/>
+        android:name="${applicationId}.permission.READ_SETTINGS"
+        android:protectionLevel="signatureOrSystem"
+        android:label="@string/permlab_read_settings"
+        android:description="@string/permdesc_read_settings"/>
+    <permission
+        android:name="${applicationId}.permission.WRITE_SETTINGS"
+        android:protectionLevel="signatureOrSystem"
+        android:label="@string/permlab_write_settings"
+        android:description="@string/permdesc_write_settings"/>
 
-    <uses-permission android:name="${applicationId}.permission.GRID_CONTROL" />
+    <uses-permission android:name="${applicationId}.permission.READ_SETTINGS" />
+    <uses-permission android:name="${applicationId}.permission.WRITE_SETTINGS" />
 
     <application
         android:backupAgent="com.android.launcher3.LauncherBackupAgent"
@@ -119,18 +129,14 @@
             android:name="com.android.launcher3.LauncherProvider"
             android:authorities="${applicationId}.settings"
             android:exported="true"
-            android:writePermission="android.permission.ACCESS_LAUNCHER_DATA"
-            android:readPermission="android.permission.ACCESS_LAUNCHER_DATA" />
+            android:writePermission="${applicationId}.permission.WRITE_SETTINGS"
+            android:readPermission="${applicationId}.permission.READ_SETTINGS" />
 
-        <!--
-          The content provider for exposing various launcher grid options.
-          The caller should hold one of the following permissions:
-             - android.permission.BIND_WALLPAPER
-             - ${applicationId}.permission.GRID_CONTROL
-         -->
+        <!-- The content provider for exposing various launcher grid options. -->
         <provider
             android:name="com.android.launcher3.graphics.LauncherCustomizationProvider"
             android:authorities="${applicationId}.grid_control"
+            android:permission="android.permission.BIND_WALLPAPER"
             android:exported="true" />
 
         <!--
@@ -139,7 +145,6 @@
         <activity
             android:name="com.android.launcher3.settings.SettingsActivity"
             android:label="@string/settings_button_text"
-            android:icon="@drawable/ic_setting"
             android:theme="@style/HomeSettings.Theme"
             android:exported="true"
             android:autoRemoveFromRecents="true">
@@ -182,30 +187,5 @@
         <property
             android:name="android.window.PROPERTY_ACTIVITY_EMBEDDING_SPLITS_ENABLED"
             android:value="true" />
-
-        <activity
-            android:name="com.android.launcher3.organizer.creation.screen.ui.OrganizerActivity"
-            android:autoRemoveFromRecents="true"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:theme="@style/OrganizerTheme">
-            <intent-filter>
-                <action android:name="com.android.launcher3.ORGANIZER" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name="com.android.launcher3.organizer.creation.screen.ui.foldercreator.FolderCreatorActivity"
-            android:autoRemoveFromRecents="true"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:theme="@style/FolderCreatorTheme">
-            <intent-filter>
-                <action android:name="com.android.launcher3.FOLDER_CREATION" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
     </application>
 </manifest>

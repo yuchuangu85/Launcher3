@@ -20,12 +20,10 @@ import static android.app.WindowConfiguration.ACTIVITY_TYPE_RECENTS;
 import static android.view.WindowManager.LayoutParams.TYPE_NAVIGATION_BAR;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.RemoteAnimationTarget;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -33,10 +31,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class RemoteAnimationTargets {
 
-    private static final String TAG = "RemoteAnimationTargets";
-
-    private final CopyOnWriteArrayList<SurfaceReleaseCheck> mReleaseChecks =
-            new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<ReleaseCheck> mReleaseChecks = new CopyOnWriteArrayList<>();
 
     public final RemoteAnimationTarget[] unfilteredApps;
     public final RemoteAnimationTarget[] apps;
@@ -84,8 +79,6 @@ public class RemoteAnimationTargets {
                 return target;
             }
         }
-        Log.e(TAG, "taskId: " + taskId + " not found. apps contains: "
-                + Arrays.stream(apps).map(target -> target.taskId).toList());
         return null;
     }
 
@@ -125,8 +118,7 @@ public class RemoteAnimationTargets {
         return false;
     }
 
-    /** Adds a {@link SurfaceReleaseCheck} to the list of release checks */
-    public void addReleaseCheck(SurfaceReleaseCheck check) {
+    public void addReleaseCheck(ReleaseCheck check) {
         mReleaseChecks.add(check);
     }
 
@@ -134,8 +126,8 @@ public class RemoteAnimationTargets {
         if (mReleased) {
             return;
         }
-        for (SurfaceReleaseCheck check : mReleaseChecks) {
-            if (!check.canRelease()) {
+        for (ReleaseCheck check : mReleaseChecks) {
+            if (!check.mCanRelease) {
                 check.addOnSafeToReleaseCallback(this::release);
                 return;
             }
@@ -164,5 +156,42 @@ public class RemoteAnimationTargets {
         pw.println(prefix + "\ttargetMode=" + targetMode);
         pw.println(prefix + "\thasRecents=" + hasRecents);
         pw.println(prefix + "\tmReleased=" + mReleased);
+    }
+
+    /**
+     * Interface for intercepting surface release method
+     */
+    public static class ReleaseCheck {
+
+        boolean mCanRelease = false;
+        private Runnable mAfterApplyCallback;
+
+        protected void setCanRelease(boolean canRelease) {
+            mCanRelease = canRelease;
+            if (mCanRelease && mAfterApplyCallback != null) {
+                Runnable r = mAfterApplyCallback;
+                mAfterApplyCallback = null;
+                r.run();
+            }
+        }
+
+        /**
+         * Adds a callback to notify when the surface can safely be released
+         */
+        void addOnSafeToReleaseCallback(Runnable callback) {
+            if (mCanRelease) {
+                callback.run();
+            } else {
+                if (mAfterApplyCallback == null) {
+                    mAfterApplyCallback = callback;
+                } else {
+                    final Runnable oldCallback = mAfterApplyCallback;
+                    mAfterApplyCallback = () -> {
+                        callback.run();
+                        oldCallback.run();
+                    };
+                }
+            }
+        }
     }
 }

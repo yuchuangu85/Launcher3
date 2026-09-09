@@ -15,37 +15,20 @@
  */
 package com.android.launcher3.taskbar;
 
-import static com.android.launcher3.LauncherModel.useModelRepositoryBinding;
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION;
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT;
-import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION;
-import static com.android.launcher3.util.Executors.getTaskbarUiThread;
-
+import android.util.SparseArray;
 import android.view.View;
-import android.view.ViewGroup;
 
-import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 
-import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherSettings.Favorites;
-import com.android.launcher3.celllayout.CellInfo;
-import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.model.BgDataModel;
+import com.android.launcher3.model.BgDataModel.FixedContainerItems;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.model.data.PredictedContainerInfo;
-import com.android.launcher3.model.data.WorkspaceChangeEvent.AddEvent;
-import com.android.launcher3.model.data.WorkspaceChangeEvent.FullRefresh;
-import com.android.launcher3.model.data.WorkspaceChangeEvent.RemoveEvent;
-import com.android.launcher3.model.data.WorkspaceChangeEvent.UpdateEvent;
-import com.android.launcher3.model.data.WorkspaceData;
-import com.android.launcher3.taskbar.TaskbarView.TaskbarLayoutParams;
-import com.android.launcher3.taskbar.customization.util.TaskbarIconContainerLayoutParams;
-import com.android.launcher3.taskbar.handoff.HandoffSuggestion;
-import com.android.launcher3.util.IntSparseArrayMap;
+import com.android.launcher3.util.ComponentKey;
+import com.android.launcher3.util.IntArray;
+import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.ItemInfoMatcher;
 import com.android.launcher3.util.LauncherBindableItemsContainer;
 import com.android.launcher3.util.PackageUserKey;
@@ -53,7 +36,9 @@ import com.android.launcher3.util.Preconditions;
 import com.android.quickstep.util.GroupTask;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +50,7 @@ import java.util.function.Predicate;
 public class TaskbarModelCallbacks implements
         BgDataModel.Callbacks, LauncherBindableItemsContainer {
 
-    private final IntSparseArrayMap<ItemInfo> mHotseatItems = new IntSparseArrayMap<>();
+    private final SparseArray<ItemInfo> mHotseatItems = new SparseArray<>();
     private List<ItemInfo> mPredictedItems = Collections.emptyList();
 
     private final TaskbarActivityContext mContext;
@@ -77,6 +62,7 @@ public class TaskbarModelCallbacks implements
     // Used to defer any UI updates during the SUW unstash animation.
     private boolean mDeferUpdatesForSUW;
     private Runnable mDeferredUpdates;
+    private boolean mBindingItems = false;
 
     public TaskbarModelCallbacks(
             TaskbarActivityContext context, TaskbarView container) {
@@ -88,74 +74,37 @@ public class TaskbarModelCallbacks implements
         mControllers = controllers;
     }
 
-    /** Starts listening for model repository changes to update the UI */
-    @UiThread
-    public void bindWorkspaceRepository() {
-        if (!useModelRepositoryBinding()) return;
-        Preconditions.assertTaskbarUiThread();
-        var repo = LauncherComponentProvider.get(mContext).getHomeScreenRepository();
-        var state = repo.getWorkspaceState();
-
-        mContext.closeOnDestroy(state.getChanges().forEach(getTaskbarUiThread(), ev -> {
-            switch (ev) {
-                case AddEvent ae -> bindWorkspaceItemsAdded(ae.getItems());
-                case UpdateEvent ue ->  {
-                    // Items may get updated in response to drag and drop within taskbar - taskbar's
-                    // view of hotseat model updates get handled directly using
-                    // [updateItemsForDragAndDrop] so all updates that drop event produces get
-                    // handled in one swoop.
-                    if (ev.isSource(mContext)) return null;
-                    bindWorkspaceItemsUpdated(ue.getItems());
-                }
-                case RemoveEvent re -> bindWorkspaceItemsRemoved(re.getItems());
-                case FullRefresh fr -> bindCompleteModel(state.getValue());
-                default -> { }
-            }
-            return null;
-        }));
-        if (state.getValue().getVersion() > 0) {
-            bindCompleteModel(state.getValue());
-        }
-    }
-
-    @AnyThread
     @Override
-    public void bindCompleteModel(WorkspaceData itemIdMap, boolean isBindingSync) {
-        if (useModelRepositoryBinding()) return;
-        getTaskbarUiThread().execute(() -> bindCompleteModel(itemIdMap));
-    }
-
-    @UiThread
-    private void bindCompleteModel(WorkspaceData itemIdMap) {
-        Preconditions.assertTaskbarUiThread();
+    public void startBinding() {
+        mBindingItems = true;
         mHotseatItems.clear();
-        mPredictedItems = itemIdMap.getPredictedContents(CONTAINER_HOTSEAT_PREDICTION);
-        handleItemsAdded(itemIdMap);
-
-        if (itemIdMap.get(CONTAINER_ALL_APPS_PREDICTION)
-                instanceof PredictedContainerInfo pci) {
-            mControllers.taskbarAllAppsController.setPredictedApps(pci.getContents());
-        }
-        commitItemsToUI(/* forceUpdateHotseat = */ true);
+        mPredictedItems = Collections.emptyList();
     }
 
-    @AnyThread
     @Override
-    public void bindItemsAdded(List<ItemInfo> items) {
-        if (useModelRepositoryBinding()) return;
-        getTaskbarUiThread().execute(() -> bindWorkspaceItemsAdded(items));
+    public void finishBindingItems(IntSet pagesBoundFirst) {
+        mBindingItems = false;
+        commitItemsToUI();
     }
 
-    @UiThread
-    private void bindWorkspaceItemsAdded(List<ItemInfo> items) {
-        Preconditions.assertTaskbarUiThread();
-        if (handleItemsAdded(items)) {
+    @Override
+    public void bindAppsAdded(IntArray newScreens, ArrayList<ItemInfo> addNotAnimated,
+            ArrayList<ItemInfo> addAnimated) {
+        boolean add1 = handleItemsAdded(addNotAnimated);
+        boolean add2 = handleItemsAdded(addAnimated);
+        if (add1 || add2) {
             commitItemsToUI();
         }
     }
 
-    private boolean handleItemsAdded(Iterable<ItemInfo> items) {
-        Preconditions.assertTaskbarUiThread();
+    @Override
+    public void bindItems(List<ItemInfo> shortcuts, boolean forceAnimateIcons) {
+        if (handleItemsAdded(shortcuts)) {
+            commitItemsToUI();
+        }
+    }
+
+    private boolean handleItemsAdded(List<ItemInfo> items) {
         boolean modified = false;
         for (ItemInfo item : items) {
             if (item.container == Favorites.CONTAINER_HOTSEAT) {
@@ -166,93 +115,31 @@ public class TaskbarModelCallbacks implements
         return modified;
     }
 
-    @AnyThread
     @Override
-    public void bindItemsUpdated(@NonNull Set<ItemInfo> updates) {
-        if (useModelRepositoryBinding()) return;
-        getTaskbarUiThread().execute(() -> bindWorkspaceItemsUpdated(updates));
-    }
-
-    /**
-     * Updates the model with updates produced by an item drop event in taskbar.
-     * @param updates List of item updates to be applied.
-     */
-    public void updateItemsForDragAndDrop(@NonNull Set<ItemInfo> updates) {
-        getTaskbarUiThread().execute(() -> bindWorkspaceItemsUpdated(updates));
-    }
-
-    @UiThread
-    private void bindWorkspaceItemsUpdated(@NonNull Set<ItemInfo> updates) {
-        Preconditions.assertTaskbarUiThread();
-        Set<ItemInfo> itemsToRebind = updateContainerItems(updates, mContext);
-        boolean removed = handleItemsRemoved(ItemInfoMatcher.ofItems(itemsToRebind));
-        boolean added = handleItemsAdded(itemsToRebind);
-
-        boolean predictionsUpdated = false;
-        for (ItemInfo update: updates) {
-            if (update instanceof PredictedContainerInfo pci) {
-                if (pci.id == Favorites.CONTAINER_HOTSEAT_PREDICTION) {
-                    mPredictedItems = pci.getContents();
-                    predictionsUpdated = true;
-                } else if (pci.id == CONTAINER_ALL_APPS_PREDICTION) {
-                    mControllers.taskbarAllAppsController.setPredictedApps(pci.getContents());
-                }
-            }
-        }
-        if (removed || added || (predictionsUpdated
-                // Avoid committing for prediction updates if they are not shown.
-                && !mControllers.taskbarRecentAppsController.isReplacingPredictions())) {
-            commitItemsToUI();
-        }
-    }
-
-    @Nullable
-    @Override
-    public CellInfo getCellInfoForView(@NonNull View view) {
-        // This method is passed as ItemOperator to mapOverItems(), which is already run on taskbar
-        // ui thread.
-        Preconditions.assertTaskbarUiThread();
-        ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
-        if (Flags.enableTaskbarIconContainer()) {
-            return layoutParams instanceof TaskbarIconContainerLayoutParams tlp
-                    ? tlp.getBindInfo()
-                    : null;
-
-        }
-        return layoutParams instanceof TaskbarLayoutParams tlp
-                ? tlp.bindInfo
-                : null;
-    }
-
-    @AnyThread
-    @Override
-    public boolean isContainerSupported(int container) {
-        return container == CONTAINER_HOTSEAT || container == CONTAINER_HOTSEAT_PREDICTION;
+    public void bindItemsUpdated(Set<ItemInfo> updates) {
+        updateContainerItems(updates, mContext);
     }
 
     @Override
     public View mapOverItems(@NonNull ItemOperator op) {
-        // This method should only be called on mModelCallbacks.getFirstMatch from
-        // TaskbarViewController
-        Preconditions.assertTaskbarUiThread();
-        return mContainer.mapOverItems(mContainer, op);
+        final int itemCount = mContainer.getChildCount();
+        for (int itemIdx = 0; itemIdx < itemCount; itemIdx++) {
+            View item = mContainer.getChildAt(itemIdx);
+            if (item.getTag() instanceof ItemInfo itemInfo && op.evaluate(itemInfo, item)) {
+                return item;
+            }
+        }
+        return null;
     }
 
-    @AnyThread
     @Override
     public void bindWorkspaceComponentsRemoved(Predicate<ItemInfo> matcher) {
-        if (useModelRepositoryBinding()) return;
-        getTaskbarUiThread().execute(() -> bindWorkspaceItemsRemoved(matcher));
-    }
-
-    @UiThread
-    private void bindWorkspaceItemsRemoved(Predicate<ItemInfo> matcher) {
-        Preconditions.assertTaskbarUiThread();
-        if (handleItemsRemoved(matcher)) commitItemsToUI();
+        if (handleItemsRemoved(matcher)) {
+            commitItemsToUI();
+        }
     }
 
     private boolean handleItemsRemoved(Predicate<ItemInfo> matcher) {
-        Preconditions.assertTaskbarUiThread();
         boolean modified = false;
         for (int i = mHotseatItems.size() - 1; i >= 0; i--) {
             if (matcher.test(mHotseatItems.valueAt(i))) {
@@ -263,14 +150,32 @@ public class TaskbarModelCallbacks implements
         return modified;
     }
 
-    private void commitItemsToUI() {
-        commitItemsToUI(/* forceUpdateHotseat = */ false);
+    @Override
+    public void bindItemsModified(List<ItemInfo> items) {
+        boolean removed = handleItemsRemoved(ItemInfoMatcher.ofItems(items));
+        boolean added = handleItemsAdded(items);
+        if (removed || added) {
+            commitItemsToUI();
+        }
     }
 
-    private void commitItemsToUI(boolean forceUpdateHotseat) {
-        Preconditions.assertTaskbarUiThread();
-        int taskbarSize = mContext.getTaskbarSpecsEvaluator().getMaxPinnableCount();
-        ItemInfo[] hotseatItemInfos = new ItemInfo[taskbarSize];
+    @Override
+    public void bindExtraContainerItems(FixedContainerItems item) {
+        if (item.containerId == Favorites.CONTAINER_HOTSEAT_PREDICTION) {
+            mPredictedItems = item.items;
+            commitItemsToUI();
+        } else if (item.containerId == Favorites.CONTAINER_PREDICTION) {
+            mControllers.taskbarAllAppsController.setPredictedApps(item.items);
+        }
+    }
+
+    private void commitItemsToUI() {
+        if (mBindingItems) {
+            return;
+        }
+
+        ItemInfo[] hotseatItemInfos =
+                new ItemInfo[mContext.getDeviceProfile().numShownHotseatIcons];
         int predictionSize = mPredictedItems.size();
         int predictionNextIndex = 0;
 
@@ -287,42 +192,21 @@ public class TaskbarModelCallbacks implements
                 mControllers.taskbarRecentAppsController;
         hotseatItemInfos = recentAppsController.updateHotseatItemInfos(hotseatItemInfos);
 
-        final List<HandoffSuggestion> handoffSuggestions
-            = android.companion.Flags.taskContinuity()
-                ? mControllers.taskbarHandoffController.getSuggestions()
-                : Collections.emptyList();
-
         if (mDeferUpdatesForSUW) {
             ItemInfo[] finalHotseatItemInfos = hotseatItemInfos;
             mDeferredUpdates = () ->
                     commitHotseatItemUpdates(finalHotseatItemInfos,
-                            recentAppsController.getShownTasks(),
-                            handoffSuggestions,
-                            forceUpdateHotseat);
+                            recentAppsController.getShownTasks());
         } else {
-            commitHotseatItemUpdates(
-                    hotseatItemInfos,
-                    recentAppsController.getShownTasks(),
-                    handoffSuggestions,
-                    forceUpdateHotseat);
+            commitHotseatItemUpdates(hotseatItemInfos, recentAppsController.getShownTasks());
         }
     }
 
-    /**
-     * Commits all updates throughout Taskbar.
-     *
-     * @param forceUpdateHotseat Whether to force update every hotseat icon.
-     */
     private void commitHotseatItemUpdates(
-            ItemInfo[] hotseatItemInfos,
-            List<GroupTask> recentTasks,
-            List<HandoffSuggestion> handoffSuggestions,
-            boolean forceUpdateHotseat) {
-        Preconditions.assertTaskbarUiThread();
-        mContainer.updateItems(
-                hotseatItemInfos, recentTasks, handoffSuggestions, forceUpdateHotseat);
+            ItemInfo[] hotseatItemInfos, List<GroupTask> recentTasks) {
+        mContainer.updateItems(hotseatItemInfos, recentTasks);
         mControllers.taskbarViewController.updateIconViewsRunningStates();
-        mControllers.taskbarPopupController.setTaskbarInfoList(mHotseatItems);
+        mControllers.taskbarPopupController.setHotseatInfosList(mHotseatItems);
     }
 
     /**
@@ -331,8 +215,6 @@ public class TaskbarModelCallbacks implements
      *              if false, posts updates (if any) to the UI
      */
     public void setDeferUpdatesForSUW(boolean defer) {
-        // This API is only exposed to taskbar
-        Preconditions.assertTaskbarUiThread();
         mDeferUpdatesForSUW = defer;
 
         if (!mDeferUpdatesForSUW) {
@@ -345,42 +227,24 @@ public class TaskbarModelCallbacks implements
 
     /** Called when there's a change in running apps to update the UI. */
     public void commitRunningAppsToUI() {
-        // This API is only exposed to taskbar
-        Preconditions.assertTaskbarUiThread();
         commitItemsToUI();
     }
 
-    /** Called when there's a change in handoff suggestions to update the UI. */
-    public void commitHandoffSuggestionsToUI() {
-        // This API is only exposed to taskbar
-        Preconditions.assertTaskbarUiThread();
-        if (!android.companion.Flags.taskContinuity()) {
-            return;
-        }
-
-        commitItemsToUI();
+    @Override
+    public void bindDeepShortcutMap(HashMap<ComponentKey, Integer> deepShortcutMapCopy) {
+        mControllers.taskbarPopupController.setDeepShortcutMap(deepShortcutMapCopy);
     }
 
-    /** Returns the current hotseat items in Taskbar. */
-    public IntSparseArrayMap<ItemInfo> getHotseatItems() {
-        return mHotseatItems;
-    }
-
-    @AnyThread
+    @UiThread
     @Override
     public void bindAllApplications(AppInfo[] apps, int flags,
             Map<PackageUserKey, Integer> packageUserKeytoUidMap) {
-        if (useModelRepositoryBinding()) return;
-        getTaskbarUiThread().execute(() -> {
-            mContext.getActivityComponent().getAppsStore().setApps(
-                    apps, flags, packageUserKeytoUidMap);
-            mControllers.taskbarAllAppsController.setApps(apps, flags, packageUserKeytoUidMap);
-            mControllers.taskbarPopupController.setApps(apps);
-        });
+        Preconditions.assertUIThread();
+        mControllers.taskbarAllAppsController.setApps(apps, flags, packageUserKeytoUidMap);
+        mControllers.taskbarPopupController.setApps(apps);
     }
 
     protected void dumpLogs(String prefix, PrintWriter pw) {
-        // This API is only exposed to taskbar
         pw.println(prefix + "TaskbarModelCallbacks:");
 
         pw.println(String.format("%s\thotseat items count=%s", prefix, mHotseatItems.size()));

@@ -22,6 +22,7 @@ import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_PIN_WID
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_PREDICTION;
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_WIDGETS_TRAY;
 
+import android.appwidget.AppWidgetHostView;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -34,12 +35,16 @@ import androidx.annotation.Nullable;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.util.ContentWriter;
+import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 
 /**
  * Represents a widget (either instantiated or about to be) in the Launcher.
  */
 public class LauncherAppWidgetInfo extends ItemInfo {
+
+    public static final int OPTION_SEARCH_WIDGET = 1;
+
 
     public static final int RESTORE_COMPLETED = 0;
 
@@ -95,11 +100,6 @@ public class LauncherAppWidgetInfo extends ItemInfo {
     public static final int FEATURE_TARGET_CELL_SIZE = 1 << 3;
     public static final int FEATURE_MIN_SIZE = 1 << 4;
     public static final int FEATURE_MAX_SIZE = 1 << 5;
-    /**
-     * @deprecated rounded corners can only be determined during rendering which is not complete at
-     * the time of logging, which ends up providing wrong state
-     */
-    @Deprecated
     public static final int FEATURE_ROUNDED_CORNERS = 1 << 6;
 
     /**
@@ -166,10 +166,10 @@ public class LauncherAppWidgetInfo extends ItemInfo {
         restoreStatus = RESTORE_COMPLETED;
     }
 
-    public LauncherAppWidgetInfo(
-            int appWidgetId, @NonNull LauncherAppWidgetProviderInfo providerInfo) {
-        this(appWidgetId, providerInfo.provider);
-        updateWidgetFeatures(providerInfo);
+    public LauncherAppWidgetInfo(int appWidgetId, ComponentName providerName,
+            LauncherAppWidgetProviderInfo providerInfo, AppWidgetHostView hostView) {
+        this(appWidgetId, providerName);
+        widgetFeatures = computeWidgetFeatures(providerInfo, hostView);
     }
 
     /** Used for testing **/
@@ -223,16 +223,10 @@ public class LauncherAppWidgetInfo extends ItemInfo {
         return (options & option) != 0;
     }
 
-    /**
-     * @return true if the widget is reconfigurable.
-     */
-    public boolean isReconfigurable() {
-        return widgetFeatures != -1 && (widgetFeatures & FEATURE_RECONFIGURABLE) != 0;
-    }
-
     @SuppressWarnings("NewApi")
-    public void updateWidgetFeatures(LauncherAppWidgetProviderInfo providerInfo) {
-        widgetFeatures = 0;
+    private static int computeWidgetFeatures(
+            LauncherAppWidgetProviderInfo providerInfo, AppWidgetHostView hostView) {
+        int widgetFeatures = 0;
         if (providerInfo.isReconfigurable()) {
             widgetFeatures |= FEATURE_RECONFIGURABLE;
         }
@@ -251,12 +245,10 @@ public class LauncherAppWidgetInfo extends ItemInfo {
         if (providerInfo.maxResizeWidth > 0 || providerInfo.maxResizeHeight > 0) {
             widgetFeatures |= FEATURE_MAX_SIZE;
         }
-    }
-
-    /**
-     * Contains a binary representation indicating which widget features are enabled.
-     */
-    public final int getWidgetFeatures() {
+        if (hostView instanceof LauncherAppWidgetHostView &&
+                ((LauncherAppWidgetHostView) hostView).hasEnforcedCornerRadius()) {
+            widgetFeatures |= FEATURE_ROUNDED_CORNERS;
+        }
         return widgetFeatures;
     }
 

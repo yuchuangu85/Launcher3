@@ -37,7 +37,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.util.FloatProperty;
-import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.animation.Interpolator;
@@ -56,6 +55,7 @@ import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.anim.PropertySetter;
 import com.android.launcher3.statemanager.StateManager.StateHandler;
 import com.android.launcher3.states.StateAnimationConfig;
+import com.android.launcher3.touch.AllAppsSwipeController;
 import com.android.launcher3.util.MSDLPlayerWrapper;
 import com.android.launcher3.util.MultiPropertyFactory;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
@@ -78,15 +78,17 @@ import com.google.android.msdl.data.model.MSDLToken;
  */
 public class AllAppsTransitionController
         implements StateHandler<LauncherState>, OnDeviceProfileChangeListener {
-    private static final String TAG = "AllAppsTransitionController";
     // This constant should match the second derivative of the animator interpolator.
     public static final float INTERP_COEFF = 1.7f;
     public static final int REVERT_SWIPE_ALL_APPS_TO_HOME_ANIMATION_DURATION_MS = 200;
 
     private static final float NAV_BAR_COLOR_FORCE_UPDATE_THRESHOLD = 0.1f;
+    private static final float SWIPE_DRAG_COMMIT_THRESHOLD =
+            1 - AllAppsSwipeController.ALL_APPS_STATE_TRANSITION_MANUAL;
 
     public static final FloatProperty<AllAppsTransitionController> ALL_APPS_PROGRESS =
-            new FloatProperty<>("allAppsProgress") {
+            new FloatProperty<AllAppsTransitionController>("allAppsProgress") {
+
                 @Override
                 public Float get(AllAppsTransitionController controller) {
                     return controller.mProgress;
@@ -98,8 +100,65 @@ public class AllAppsTransitionController
                 }
             };
 
+    private static final float ALL_APPS_PULL_BACK_TRANSLATION_DEFAULT = 0f;
+
+    public static final FloatProperty<AllAppsTransitionController> ALL_APPS_PULL_BACK_TRANSLATION =
+            new FloatProperty<AllAppsTransitionController>("allAppsPullBackTranslation") {
+
+                @Override
+                public Float get(AllAppsTransitionController controller) {
+                    if (controller.mShouldShowAllAppsOnSheet) {
+                        return controller.mAppsView.getActiveRecyclerView().getTranslationY();
+                    } else {
+                        return controller.getAppsViewPullbackTranslationY().getValue();
+                    }
+                }
+
+                @Override
+                public void setValue(AllAppsTransitionController controller, float translation) {
+                    if (controller.mShouldShowAllAppsOnSheet) {
+                        controller.mAppsView.getActiveRecyclerView().setTranslationY(translation);
+                        controller.getAppsViewPullbackTranslationY().setValue(
+                                ALL_APPS_PULL_BACK_TRANSLATION_DEFAULT);
+                    } else {
+                        controller.getAppsViewPullbackTranslationY().setValue(translation);
+                        controller.mAppsView.getActiveRecyclerView().setTranslationY(
+                                ALL_APPS_PULL_BACK_TRANSLATION_DEFAULT);
+                    }
+                }
+            };
+
+    private static final float ALL_APPS_PULL_BACK_ALPHA_DEFAULT = 1f;
+
+    public static final FloatProperty<AllAppsTransitionController> ALL_APPS_PULL_BACK_ALPHA =
+            new FloatProperty<AllAppsTransitionController>("allAppsPullBackAlpha") {
+
+                @Override
+                public Float get(AllAppsTransitionController controller) {
+                    if (controller.mShouldShowAllAppsOnSheet) {
+                        return controller.mAppsView.getActiveRecyclerView().getAlpha();
+                    } else {
+                        return controller.getAppsViewPullbackAlpha().getValue();
+                    }
+                }
+
+                @Override
+                public void setValue(AllAppsTransitionController controller, float alpha) {
+                    if (controller.mShouldShowAllAppsOnSheet) {
+                        controller.mAppsView.getActiveRecyclerView().setAlpha(alpha);
+                        controller.getAppsViewPullbackAlpha().setValue(
+                                ALL_APPS_PULL_BACK_ALPHA_DEFAULT);
+                    } else {
+                        controller.getAppsViewPullbackAlpha().setValue(alpha);
+                        controller.mAppsView.getActiveRecyclerView().setAlpha(
+                                ALL_APPS_PULL_BACK_ALPHA_DEFAULT);
+                    }
+                }
+            };
+
     private static final int INDEX_APPS_VIEW_PROGRESS = 0;
-    private static final int APPS_VIEW_INDEX_COUNT = 1;
+    private static final int INDEX_APPS_VIEW_PULLBACK = 1;
+    private static final int APPS_VIEW_INDEX_COUNT = 2;
 
     private ActivityAllAppsContainerView<Launcher> mAppsView;
 
@@ -110,6 +169,7 @@ public class AllAppsTransitionController
     @Nullable private Animator.AnimatorListener mAllAppsSearchBackAnimationListener;
 
     private boolean mIsVerticalLayout;
+    private boolean mShouldShowAllAppsOnSheet;
 
     // Animation in this class is controlled by a single variable {@link mProgress}.
     // Visually, it represents top y coordinate of the all apps container if multiplied with
@@ -127,18 +187,17 @@ public class AllAppsTransitionController
 
     private boolean mHasScaleEffect;
     private final MSDLPlayerWrapper mMSDLPlayerWrapper;
-    // Indicates whether this transition should scale the allapps header in addition to its content.
-    private boolean mShouldScaleHeader;
 
     public AllAppsTransitionController(Launcher l) {
         mLauncher = l;
         DeviceProfile dp = mLauncher.getDeviceProfile();
         mProgress = 1f;
         mIsVerticalLayout = dp.isVerticalBarLayout();
+        mShouldShowAllAppsOnSheet = dp.shouldShowAllAppsOnSheet();
         mNavScrimFlag = Themes.getAttrBoolean(l, R.attr.isMainColorDark)
                 ? FLAG_DARK_NAV : FLAG_LIGHT_NAV;
 
-        setShiftRange(dp.getAllAppsProfile().getShiftRange());
+        setShiftRange(dp.allAppsShiftRange);
         mAllAppScale.value = 1;
         mLauncher.addOnDeviceProfileChangeListener(this);
         mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(mLauncher.getApplicationContext());
@@ -151,12 +210,14 @@ public class AllAppsTransitionController
     @Override
     public void onDeviceProfileChanged(DeviceProfile dp) {
         mIsVerticalLayout = dp.isVerticalBarLayout();
-        setShiftRange(dp.getAllAppsProfile().getShiftRange());
+        setShiftRange(dp.allAppsShiftRange);
 
         if (mIsVerticalLayout) {
             mLauncher.getHotseat().setTranslationY(0);
             mLauncher.getWorkspace().getPageIndicator().setTranslationY(0);
         }
+
+        mShouldShowAllAppsOnSheet = dp.shouldShowAllAppsOnSheet();
     }
 
     /**
@@ -168,14 +229,11 @@ public class AllAppsTransitionController
      * @see #setStateWithAnimation(LauncherState, StateAnimationConfig, PendingAnimation)
      */
     public void setProgress(float progress) {
-        if (Float.compare(mProgress, progress) == 0) {
-            return;
-        }
         mProgress = progress;
         boolean fromBackground =
                 mLauncher.getStateManager().getCurrentStableState() == BACKGROUND_APP;
         // Allow apps panel to shift the full screen if coming from another app.
-        float shiftRange = fromBackground ? mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx() : mShiftRange;
+        float shiftRange = fromBackground ? mLauncher.getDeviceProfile().heightPx : mShiftRange;
         getAppsViewProgressTranslationY().setValue(mProgress * shiftRange);
         mLauncher.onAllAppsTransition(1 - progress);
 
@@ -193,10 +251,17 @@ public class AllAppsTransitionController
         return mAppsViewTranslationY.get(INDEX_APPS_VIEW_PROGRESS);
     }
 
+    private MultiProperty getAppsViewPullbackTranslationY() {
+        return mAppsViewTranslationY.get(INDEX_APPS_VIEW_PULLBACK);
+    }
+
     private MultiProperty getAppsViewProgressAlpha() {
         return mAppsViewAlpha.get(INDEX_APPS_VIEW_PROGRESS);
     }
 
+    private MultiProperty getAppsViewPullbackAlpha() {
+        return mAppsViewAlpha.get(INDEX_APPS_VIEW_PULLBACK);
+    }
 
     /**
      * Sets the vertical transition progress to {@param state} and updates all the dependent UI
@@ -206,11 +271,6 @@ public class AllAppsTransitionController
     public void setState(LauncherState state) {
         setProgress(state.getVerticalProgress(mLauncher));
         setAlphas(state, new StateAnimationConfig(), NO_ANIM_PROPERTY_SETTER);
-    }
-
-    @Override
-    public void onBackStarted(LauncherState toState) {
-        setShouldScaleHeader(!mLauncher.getAppsView().shouldBackExitSearch());
     }
 
     @Override
@@ -230,8 +290,8 @@ public class AllAppsTransitionController
     private void onScaleProgressChanged() {
         final float scaleProgress = mAllAppScale.value;
         SCALE_PROPERTY.set(mLauncher.getAppsView(), scaleProgress);
-
-        if (mShouldScaleHeader) {
+        if (!mLauncher.getAppsView().isSearching()
+                || !mLauncher.getDeviceProfile().shouldShowAllAppsOnSheet()) {
             mLauncher.getScrimView().setScrimHeaderScale(scaleProgress);
         }
 
@@ -253,21 +313,6 @@ public class AllAppsTransitionController
         }
     }
 
-    /**
-     * @return AnimatedFloat for all apps scale. This will scale the allapps content by default.
-     * @see #setShouldScaleHeader(boolean)
-     */
-    public AnimatedFloat getAllAppScale() {
-        return mAllAppScale;
-    }
-
-    /**
-     * Specify whether this transition should scale the allapps header in addition to its content.
-     */
-    public void setShouldScaleHeader(boolean shouldScaleHeader) {
-        mShouldScaleHeader = shouldScaleHeader;
-    }
-
     /** Set {@link Animator.AnimatorListener} for scaling all apps scale to 1 animation. */
     public void setAllAppsSearchBackAnimationListener(Animator.AnimatorListener listener) {
         mAllAppsSearchBackAnimationListener = listener;
@@ -279,7 +324,7 @@ public class AllAppsTransitionController
      */
     public void animateAllAppsToNoScale() {
         if (mAllAppScale.isAnimating()) {
-            mAllAppScale.cancelAnimation();
+            return;
         }
         Animator animator = mAllAppScale.animateToValue(1f)
                 .setDuration(REVERT_SWIPE_ALL_APPS_TO_HOME_ANIMATION_DURATION_MS);
@@ -302,8 +347,13 @@ public class AllAppsTransitionController
     public void setStateWithAnimation(LauncherState toState,
             StateAnimationConfig config, PendingAnimation builder) {
         if (mLauncher.isInState(ALL_APPS) && !ALL_APPS.equals(toState)) {
-            // Reset scale after switching states.
-            builder.addEndListener(success -> mAllAppScale.updateValue(1f));
+            builder.addEndListener(success -> {
+                // Reset pull back progress and alpha after switching states.
+                ALL_APPS_PULL_BACK_TRANSLATION.set(this, ALL_APPS_PULL_BACK_TRANSLATION_DEFAULT);
+                ALL_APPS_PULL_BACK_ALPHA.set(this, ALL_APPS_PULL_BACK_ALPHA_DEFAULT);
+
+                mAllAppScale.updateValue(1f);
+            });
         }
 
         float targetProgress = toState.getVerticalProgress(mLauncher);
@@ -350,22 +400,17 @@ public class AllAppsTransitionController
      * Updates the property for the provided state
      */
     public void setAlphas(LauncherState state, StateAnimationConfig config, PropertySetter setter) {
-        if (!isAllAppsRenderedByLauncher()) {
-            return;
-        }
-        int visibleElements = state.getVisibleElements(mLauncher.getLauncherUiState());
+        int visibleElements = state.getVisibleElements(mLauncher);
         boolean hasAllAppsContent = (visibleElements & ALL_APPS_CONTENT) != 0;
 
         Interpolator allAppsFade = config.getInterpolator(ANIM_ALL_APPS_FADE, LINEAR);
         setter.setFloat(getAppsViewProgressAlpha(), MultiPropertyFactory.MULTI_PROPERTY_VALUE,
                 hasAllAppsContent ? 1 : 0, allAppsFade);
+        setter.setFloat(getAppsViewPullbackAlpha(), MultiPropertyFactory.MULTI_PROPERTY_VALUE,
+                hasAllAppsContent ? 1 : 0, allAppsFade);
 
         boolean shouldProtectHeader = !config.hasAnimationFlag(StateAnimationConfig.SKIP_SCRIM)
                 && (ALL_APPS == state || mLauncher.getStateManager().getState() == ALL_APPS);
-        Log.d(TAG, "shouldProtectHeader: " + shouldProtectHeader
-                + " skipScrim: " + config.hasAnimationFlag(StateAnimationConfig.SKIP_SCRIM)
-                + " state: " + state
-                + " stateManager.getState(): " + mLauncher.getStateManager().getState());
         mScrimView.setDrawingController(shouldProtectHeader ? mAppsView : null);
     }
 
@@ -375,21 +420,12 @@ public class AllAppsTransitionController
     public void setupViews(ScrimView scrimView, ActivityAllAppsContainerView<Launcher> appsView) {
         mScrimView = scrimView;
         mAppsView = appsView;
-        if (isAllAppsRenderedByLauncher()) {
-            mAppsView.setScrimView(scrimView);
-        } else {
-            appsView.setVisibility(View.GONE);
-        }
+        mAppsView.setScrimView(scrimView);
 
         mAppsViewAlpha = new MultiValueAlpha(mAppsView, APPS_VIEW_INDEX_COUNT, View.GONE);
         mAppsViewAlpha.setUpdateVisibility(true);
         mAppsViewTranslationY = new MultiPropertyFactory<>(
                 mAppsView, VIEW_TRANSLATE_Y, APPS_VIEW_INDEX_COUNT, Float::sum);
-    }
-
-    /** This might return {@code false} if All Apps is rendered in a separate window. */
-    private boolean isAllAppsRenderedByLauncher() {
-        return ALL_APPS.areElementsVisible(mLauncher.getLauncherUiState(), ALL_APPS_CONTENT);
     }
 
     /**

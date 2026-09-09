@@ -50,7 +50,8 @@ public class SelectModeButtons {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
              LauncherInstrumentation.Closable c =
                      mLauncher.addContextLayer("want to click close button")) {
-            mLauncher.waitForObjectInContainer(mSelectModeButtons, "close").click();
+            UiObject2 close = mLauncher.waitForObjectInContainer(mSelectModeButtons, "close");
+            mLauncher.clickLauncherObject(close);
             try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
                     "clicked close button")) {
                 return new Overview(mLauncher);

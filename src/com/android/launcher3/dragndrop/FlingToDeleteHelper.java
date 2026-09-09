@@ -90,14 +90,12 @@ public class FlingToDeleteHelper {
         PointF vel = new PointF(mVelocityTracker.getXVelocity(), mVelocityTracker.getYVelocity());
         float theta = MAX_FLING_DEGREES + 1;
         DeviceProfile deviceProfile = mLauncher.getDeviceProfile();
-        if (mVelocityTracker.getYVelocity()
-                < deviceProfile.getWorkspaceProfile().getFlingToDeleteThresholdVelocity()) {
+        if (mVelocityTracker.getYVelocity() < deviceProfile.flingToDeleteThresholdVelocity) {
             // Do a quick dot product test to ensure that we are flinging upwards
             PointF upVec = new PointF(0f, -1f);
             theta = getAngleBetweenVectors(vel, upVec);
         } else if (mLauncher.getDeviceProfile().isVerticalBarLayout() &&
-                mVelocityTracker.getXVelocity()
-                        < deviceProfile.getWorkspaceProfile().getFlingToDeleteThresholdVelocity()) {
+                mVelocityTracker.getXVelocity() < deviceProfile.flingToDeleteThresholdVelocity) {
             // Remove icon is on left side instead of top, so check if we are flinging to the left.
             PointF leftVec = new PointF(-1f, 0f);
             theta = getAngleBetweenVectors(vel, leftVec);

@@ -16,7 +16,6 @@
 package com.android.launcher3.util
 
 import android.util.Xml
-import androidx.annotation.VisibleForTesting
 import com.android.launcher3.AutoInstallsLayout.ATTR_CLASS_NAME
 import com.android.launcher3.AutoInstallsLayout.ATTR_CONTAINER
 import com.android.launcher3.AutoInstallsLayout.ATTR_PACKAGE_NAME
@@ -31,13 +30,10 @@ import com.android.launcher3.AutoInstallsLayout.ATTR_USER_TYPE
 import com.android.launcher3.AutoInstallsLayout.ATTR_X
 import com.android.launcher3.AutoInstallsLayout.ATTR_Y
 import com.android.launcher3.AutoInstallsLayout.TAG_APPWIDGET
-import com.android.launcher3.AutoInstallsLayout.TAG_APP_PAIR
 import com.android.launcher3.AutoInstallsLayout.TAG_AUTO_INSTALL
 import com.android.launcher3.AutoInstallsLayout.TAG_FOLDER
 import com.android.launcher3.AutoInstallsLayout.TAG_SHORTCUT
 import com.android.launcher3.AutoInstallsLayout.TAG_WORKSPACE
-import com.android.launcher3.GridSizeUtil.Companion.COLUMN_ATTR
-import com.android.launcher3.GridSizeUtil.Companion.ROW_ATTR
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_HOTSEAT
 import com.android.launcher3.LauncherSettings.Favorites.containerToString
@@ -47,14 +43,14 @@ import java.io.Writer
 import org.xmlpull.v1.XmlSerializer
 
 /** Helper class to build xml for Launcher Layout */
-class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: Int? = null) {
+class LauncherLayoutBuilder {
     private val nodes = ArrayList<Node>()
 
     fun atHotseat(rank: Int) =
         ItemTarget(
             mapOf(
                 ATTR_CONTAINER to containerToString(CONTAINER_HOTSEAT),
-                ATTR_RANK to rank.toString(),
+                ATTR_RANK to rank.toString()
             )
         )
 
@@ -64,15 +60,11 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
                 ATTR_CONTAINER to containerToString(CONTAINER_DESKTOP),
                 ATTR_X to x.toString(),
                 ATTR_Y to y.toString(),
-                ATTR_SCREEN to screen.toString(),
+                ATTR_SCREEN to screen.toString()
             )
         )
 
-    @VisibleForTesting fun withBaseValues(baseValues: Map<String, String>) = ItemTarget(baseValues)
-
     @Throws(IOException::class) fun build() = StringWriter().apply { build(this) }.toString()
-
-    fun isEmpty() = nodes.isEmpty()
 
     @Throws(IOException::class)
     fun build(writer: Writer) {
@@ -81,8 +73,6 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
             setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true)
             startDocument("UTF-8", true)
             startTag(null, TAG_WORKSPACE)
-            rows?.let { attribute(null, ROW_ATTR, it.toString()) }
-            columns?.let { attribute(null, COLUMN_ATTR, it.toString()) }
             writeNodes(nodes)
             endTag(null, TAG_WORKSPACE)
             endDocument()
@@ -98,8 +88,8 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
                 userType,
                 mapOf(
                     ATTR_PACKAGE_NAME to packageName,
-                    ATTR_CLASS_NAME to (className ?: packageName),
-                ),
+                    ATTR_CLASS_NAME to (className ?: packageName)
+                )
             )
 
         @JvmOverloads
@@ -107,7 +97,7 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
             addItem(
                 TAG_SHORTCUT,
                 userType,
-                mapOf(ATTR_PACKAGE_NAME to packageName, ATTR_SHORTCUT_ID to shortcutId),
+                mapOf(ATTR_PACKAGE_NAME to packageName, ATTR_SHORTCUT_ID to shortcutId)
             )
 
         @JvmOverloads
@@ -116,7 +106,7 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
             className: String,
             spanX: Int,
             spanY: Int,
-            userType: String? = null,
+            userType: String? = null
         ) =
             addItem(
                 TAG_APPWIDGET,
@@ -125,24 +115,19 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
                     ATTR_PACKAGE_NAME to packageName,
                     ATTR_CLASS_NAME to className,
                     ATTR_SPAN_X to spanX.toString(),
-                    ATTR_SPAN_Y to spanY.toString(),
-                ),
+                    ATTR_SPAN_Y to spanY.toString()
+                )
             )
 
         fun putFolder(titleResId: Int) = putFolder(ATTR_TITLE, titleResId.toString())
 
         fun putFolder(title: String?) = putFolder(ATTR_TITLE_TEXT, title)
 
-        open fun putAppPair(title: String) =
-            AppPairBuilder().also {
-                addItem(TAG_APP_PAIR, null, mapOf(ATTR_TITLE_TEXT to title), it.childNodes)
-            }
-
         protected open fun addItem(
             tag: String,
             userType: String?,
             props: Map<String, String>,
-            children: List<Node>? = null,
+            children: List<Node>? = null
         ): LauncherLayoutBuilder {
             nodes.add(
                 Node(
@@ -151,20 +136,22 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
                         putAll(props)
                         userType?.let { put(ATTR_USER_TYPE, it) }
                     },
-                    children,
+                    children
                 )
             )
             return this@LauncherLayoutBuilder
         }
 
-        protected open fun putFolder(titleKey: String, titleValue: String?) =
-            FolderBuilder().also {
-                addItem(TAG_FOLDER, null, mapOf(titleKey to (titleValue ?: "")), it.childNodes)
-            }
+        protected open fun putFolder(titleKey: String, titleValue: String?): FolderBuilder {
+            val folderBuilder = FolderBuilder()
+            addItem(TAG_FOLDER, null, mapOf(titleKey to (titleValue ?: "")), folderBuilder.children)
+            return folderBuilder
+        }
     }
 
-    open inner class FolderBuilder : ItemTarget(mapOf()) {
-        val childNodes = ArrayList<Node>()
+    inner class FolderBuilder : ItemTarget(mapOf()) {
+
+        val children = ArrayList<Node>()
 
         fun addApp(packageName: String, className: String?): FolderBuilder {
             putApp(packageName, className)
@@ -180,41 +167,19 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
             tag: String,
             userType: String?,
             props: Map<String, String>,
-            children: List<Node>?,
+            childrenIgnored: List<Node>?
         ): LauncherLayoutBuilder {
-            childNodes.add(
-                Node(
-                    tag,
-                    HashMap(props).apply { userType?.let { put(ATTR_USER_TYPE, it) } },
-                    children,
-                )
+            children.add(
+                Node(tag, HashMap(props).apply { userType?.let { put(ATTR_USER_TYPE, it) } })
             )
             return this@LauncherLayoutBuilder
         }
 
         override fun putFolder(titleKey: String, titleValue: String?): FolderBuilder {
-            throw IllegalArgumentException("Can't have folder inside a $javaClass")
+            throw IllegalArgumentException("Can't have folder inside a folder")
         }
 
         fun build() = this@LauncherLayoutBuilder
-    }
-
-    inner class AppPairBuilder : FolderBuilder() {
-        override fun putAppPair(title: String): AppPairBuilder {
-            throw IllegalArgumentException("Can't have app pair inside an app pair")
-        }
-
-        override fun addItem(
-            tag: String,
-            userType: String?,
-            props: Map<String, String>,
-            children: List<Node>?,
-        ): LauncherLayoutBuilder {
-            if (childNodes.size == 2) {
-                throw IllegalStateException("can't have more than 2 items in an app pair")
-            }
-            return super.addItem(tag, userType, props, children)
-        }
     }
 
     @Throws(IOException::class)
@@ -230,6 +195,6 @@ class LauncherLayoutBuilder(private val rows: Int? = null, private val columns: 
     data class Node(
         val name: String,
         val attrs: Map<String, String>,
-        val children: List<Node>? = null,
+        val children: List<Node>? = null
     )
 }

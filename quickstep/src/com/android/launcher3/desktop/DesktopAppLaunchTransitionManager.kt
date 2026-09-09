@@ -19,23 +19,20 @@ package com.android.launcher3.desktop
 import android.app.WindowConfiguration.ACTIVITY_TYPE_STANDARD
 import android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM
 import android.content.Context
-import android.window.IRemoteTransition
+import android.window.DesktopModeFlags
 import android.window.RemoteTransition
 import android.window.TransitionFilter
-import android.window.TransitionInfo
+import android.window.TransitionFilter.CONTAINER_ORDER_TOP
 import com.android.internal.jank.Cuj
 import com.android.launcher3.desktop.DesktopAppLaunchTransition.AppLaunchType
-import com.android.launcher3.display.DisplayController
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.quickstep.SystemUiProxy
-import com.android.window.flags.Flags
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus
 
 /** Manages transitions related to app launches in Desktop Mode. */
 class DesktopAppLaunchTransitionManager(
     private val context: Context,
     private val systemUiProxy: SystemUiProxy,
-    private val displayController: DisplayController,
 ) {
     private var remoteWindowLimitUnminimizeTransition: RemoteTransition? = null
 
@@ -51,16 +48,16 @@ class DesktopAppLaunchTransitionManager(
             RemoteTransition(
                 DesktopAppLaunchTransition(
                     context,
-                    displayController,
                     AppLaunchType.UNMINIMIZE,
                     Cuj.CUJ_DESKTOP_MODE_APP_LAUNCH_FROM_INTENT,
                     MAIN_EXECUTOR,
                 ),
-                null /* appThread */,
                 "DesktopWindowLimitUnminimize",
-                buildAppLaunchFilter(),
             )
-        systemUiProxy.registerRemoteTransition(remoteWindowLimitUnminimizeTransition)
+        systemUiProxy.registerRemoteTransition(
+            remoteWindowLimitUnminimizeTransition,
+            buildAppLaunchFilter(),
+        )
     }
 
     /**
@@ -76,33 +73,10 @@ class DesktopAppLaunchTransitionManager(
     }
 
     private fun shouldRegisterTransitions(): Boolean =
-        DesktopModeStatus.canEnterDesktopMode(context)
+        DesktopModeStatus.canEnterDesktopMode(context) &&
+            DesktopModeFlags.ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX.isTrue
 
     companion object {
-        /** Returns whether the given transition is a Desktop app launch. */
-        @JvmStatic
-        fun isDesktopAppLaunch(context: Context, info: TransitionInfo): Boolean =
-            DesktopModeStatus.canEnterDesktopMode(context) &&
-                Flags.desktopHomescreenIconsApplaunchTransitions() &&
-                (DesktopAppLaunchTransition.getDesktopLaunchChange(info) != null)
-
-        /** Returns an [IRemoteTransition] to animate a Desktop app launch. */
-        @JvmStatic
-        fun createDesktopAppLaunchRemoteTransition(
-            context: Context,
-            launchType: AppLaunchType,
-            cujType: Int,
-            onEndCallback: Runnable? = null,
-        ): IRemoteTransition =
-            DesktopAppLaunchTransition(
-                context,
-                DisplayController.INSTANCE.get(context),
-                launchType,
-                cujType,
-                MAIN_EXECUTOR,
-                onEndCallback = onEndCallback,
-            )
-
         private fun buildAppLaunchFilter(): TransitionFilter {
             val openRequirement =
                 TransitionFilter.Requirement().apply {
@@ -110,23 +84,11 @@ class DesktopAppLaunchTransitionManager(
                     mWindowingMode = WINDOWING_MODE_FREEFORM
                     mModes = DesktopAppLaunchTransition.LAUNCH_CHANGE_MODES
                     mMustBeTask = true
+                    mOrder = CONTAINER_ORDER_TOP
                 }
-
-            val requirements =
-                if (Flags.crossDisplayTransitionV2()) {
-                    val notCrossDisplayRequirement =
-                        TransitionFilter.Requirement().apply {
-                            mNot = true
-                            mIsCrossDisplayMove = true
-                        }
-                    arrayOf(openRequirement, notCrossDisplayRequirement)
-                } else {
-                    arrayOf(openRequirement)
-                }
-
             return TransitionFilter().apply {
                 mTypeSet = DesktopAppLaunchTransition.LAUNCH_CHANGE_MODES
-                mRequirements = requirements
+                mRequirements = arrayOf(openRequirement)
             }
         }
     }

@@ -40,11 +40,7 @@ public class Overview extends BaseOverview {
         super.dismissAllTasks();
         try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
                 "dismissed all tasks")) {
-            if (mLauncher.isInDesktopFirstMode()) {
-                new Overview(mLauncher);
-            } else {
-                new Workspace(mLauncher);
-            }
+            new Workspace(mLauncher);
         }
     }
 }

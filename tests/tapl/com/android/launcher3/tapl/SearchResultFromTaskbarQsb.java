@@ -22,12 +22,8 @@ import androidx.test.uiautomator.UiObject2;
  */
 public class SearchResultFromTaskbarQsb extends SearchResultFromQsb {
 
-    private final Taskbar.TaskbarLocation mTaskbarLocation;
-
-    SearchResultFromTaskbarQsb(LauncherInstrumentation launcher,
-            Taskbar.TaskbarLocation taskbarLocation) {
+    SearchResultFromTaskbarQsb(LauncherInstrumentation launcher) {
         super(launcher);
-        mTaskbarLocation = taskbarLocation;
     }
 
     @Override
@@ -37,7 +33,7 @@ public class SearchResultFromTaskbarQsb extends SearchResultFromQsb {
 
     @Override
     protected TaskbarAppIcon createAppIcon(UiObject2 icon) {
-        return new TaskbarAppIcon(mLauncher, icon, mTaskbarLocation, true);
+        return new TaskbarAppIcon(mLauncher, icon);
     }
 
     @Override

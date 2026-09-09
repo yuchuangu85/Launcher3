@@ -15,9 +15,6 @@
  */
 package com.android.launcher3.taskbar;
 
-import static com.android.launcher3.util.Executors.getTaskbarUiThread;
-
-import android.os.SystemClock;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -79,9 +76,7 @@ public class TaskbarUnfoldAnimationController implements
         mScopedUnfoldTransitionProgressProvider.setReadyToHandleTransition(false);
         mNaturalUnfoldTransitionProgressProvider.removeCallback(mTransitionListener);
         mNaturalUnfoldTransitionProgressProvider.destroy();
-        getTaskbarUiThread().getHandler().removeCallbacksAndMessages(mTransitionListener);
         mTaskbarViewController = null;
-        mTaskbarDragLayerController = null;
     }
 
     @Override
@@ -93,41 +88,29 @@ public class TaskbarUnfoldAnimationController implements
 
         @Override
         public void onTransitionStarted() {
-            getTaskbarUiThread().getHandler().postAtTime(() -> {
-                mMoveFromCenterAnimator.updateDisplayProperties();
-                if (mTaskbarViewController != null) {
-                    View[] icons = mTaskbarViewController.getIconViews();
-                    for (View icon : icons) {
-                        // TODO(b/193794563) we should re-register views if they are
-                        //  re-bound/re-inflated during the animation
-                        mMoveFromCenterAnimator.registerViewForAnimation(icon);
-                    }
-                }
+            mMoveFromCenterAnimator.updateDisplayProperties();
+            View[] icons = mTaskbarViewController.getIconViews();
+            for (View icon : icons) {
+                // TODO(b/193794563) we should re-register views if they are re-bound/re-inflated
+                //                   during the animation
+                mMoveFromCenterAnimator.registerViewForAnimation(icon);
+            }
 
-                mMoveFromCenterAnimator.onTransitionStarted();
-            }, mTransitionListener, SystemClock.uptimeMillis());
+            mMoveFromCenterAnimator.onTransitionStarted();
         }
 
         @Override
         public void onTransitionFinished() {
-            getTaskbarUiThread().getHandler().postAtTime(() -> {
-                mMoveFromCenterAnimator.onTransitionFinished();
-                mMoveFromCenterAnimator.clearRegisteredViews();
-                if (mTaskbarDragLayerController != null) {
-                    mTaskbarDragLayerController.setBackgroundHorizontalInsets(0f);
-                }
-            }, mTransitionListener, SystemClock.uptimeMillis());
+            mMoveFromCenterAnimator.onTransitionFinished();
+            mMoveFromCenterAnimator.clearRegisteredViews();
+            mTaskbarDragLayerController.setBackgroundHorizontalInsets(0f);
         }
 
         @Override
         public void onTransitionProgress(float progress) {
-            getTaskbarUiThread().getHandler().postAtTime(() -> {
-                mMoveFromCenterAnimator.onTransitionProgress(progress);
-                float insetPercentage = (1 - progress) * MAX_WIDTH_INSET_FRACTION;
-                if (mTaskbarDragLayerController != null) {
-                    mTaskbarDragLayerController.setBackgroundHorizontalInsets(insetPercentage);
-                }
-            }, mTransitionListener, SystemClock.uptimeMillis());
+            mMoveFromCenterAnimator.onTransitionProgress(progress);
+            float insetPercentage = (1 - progress) * MAX_WIDTH_INSET_FRACTION;
+            mTaskbarDragLayerController.setBackgroundHorizontalInsets(insetPercentage);
         }
     }
 }

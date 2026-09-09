@@ -26,16 +26,12 @@ import android.util.Pair
 import android.view.Gravity
 import android.view.Surface
 import android.view.View
-import android.view.View.LAYOUT_DIRECTION_INHERIT
 import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
 import androidx.core.view.updateLayoutParams
 import com.android.launcher3.DeviceProfile
+import com.android.launcher3.Flags.enableOverviewIconMenu
 import com.android.launcher3.LauncherAnimUtils
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -48,7 +44,6 @@ import com.android.launcher3.util.SplitConfigurationOptions
 import com.android.launcher3.util.SplitConfigurationOptions.SplitPositionOption
 import com.android.launcher3.util.SplitConfigurationOptions.StagePosition
 import com.android.quickstep.views.IconAppChipView
-import com.android.wm.shell.shared.split.SplitBounds
 import kotlin.math.max
 import kotlin.math.min
 
@@ -67,9 +62,9 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
     }
 
     override fun fixBoundsForHomeAnimStartRect(outStartRect: RectF, deviceProfile: DeviceProfile) {
-        if (outStartRect.left > deviceProfile.deviceProperties.widthPx) {
+        if (outStartRect.left > deviceProfile.widthPx) {
             outStartRect.offsetTo(0f, outStartRect.top)
-        } else if (outStartRect.left < -deviceProfile.deviceProperties.widthPx) {
+        } else if (outStartRect.left < -deviceProfile.widthPx) {
             outStartRect.offsetTo(0f, outStartRect.top)
         }
     }
@@ -87,8 +82,6 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
     override fun getPrimarySize(view: View): Int = view.width
 
     override fun getPrimarySize(rect: RectF): Float = rect.width()
-
-    override fun getSecondarySize(rect: RectF): Float = rect.height()
 
     override fun getStart(rect: RectF): Float = rect.left
 
@@ -125,7 +118,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         deviceProfile: DeviceProfile,
     ): Int =
         if (
-            deviceProfile.sysuiProfile.isLeftRightSplit &&
+            deviceProfile.isLeftRightSplit &&
                 stagePosition == SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
         ) {
             -1
@@ -133,16 +126,54 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
             1
         }
 
-    override fun getTaskMenuX(x: Float, appChip: IconAppChipView): Float = x
+    override fun getTaskMenuX(
+        x: Float,
+        thumbnailView: View,
+        deviceProfile: DeviceProfile,
+        taskInsetMargin: Float,
+        taskViewIcon: View,
+    ): Float =
+        if (deviceProfile.isLandscape) {
+            (x +
+                taskInsetMargin +
+                (thumbnailView.measuredWidth - thumbnailView.measuredHeight) / 2f)
+        } else {
+            x + taskInsetMargin
+        }
 
-    override fun getTaskMenuY(y: Float, taskMenuView: View, appChip: IconAppChipView): Float =
-        y - appChip.menuToCollapsedChipGap
+    override fun getTaskMenuY(
+        y: Float,
+        thumbnailView: View,
+        stagePosition: Int,
+        taskMenuView: View,
+        taskInsetMargin: Float,
+        taskViewIcon: View,
+    ): Float = y + taskInsetMargin
 
-    override fun getAppChipMenuMarginX(appChipView: IconAppChipView, isRtl: Boolean): Int =
-        if (isRtl) -appChipView.backgroundMarginTopStart else appChipView.backgroundMarginTopStart
+    override fun getTaskMenuWidth(
+        thumbnailView: View,
+        deviceProfile: DeviceProfile,
+        @StagePosition stagePosition: Int,
+    ): Int =
+        when {
+            enableOverviewIconMenu() -> {
+                thumbnailView.resources.getDimensionPixelSize(
+                    R.dimen.task_thumbnail_icon_menu_expanded_width
+                )
+            }
 
-    override fun getAppChipMenuMarginY(appChipView: IconAppChipView, isRtl: Boolean): Int =
-        appChipView.menuToCollapsedChipGap
+            (deviceProfile.isLandscape && !deviceProfile.isTablet) -> {
+                val padding =
+                    thumbnailView.resources.getDimensionPixelSize(R.dimen.task_menu_edge_padding)
+                thumbnailView.measuredHeight - (2 * padding)
+            }
+
+            else -> {
+                val padding =
+                    thumbnailView.resources.getDimensionPixelSize(R.dimen.task_menu_edge_padding)
+                thumbnailView.measuredWidth - (2 * padding)
+            }
+        }
 
     override fun getTaskMenuHeight(
         taskInsetMargin: Float,
@@ -150,7 +181,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         taskMenuX: Float,
         taskMenuY: Float,
     ): Int =
-        deviceProfile.deviceProperties.heightPx -
+        deviceProfile.heightPx -
             deviceProfile.insets.top -
             taskMenuY.toInt() -
             deviceProfile.overviewActionsClaimedSpaceBelow
@@ -192,71 +223,47 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
             if (isGroupedTaskView) {
                 gravity =
                     Gravity.BOTTOM or
-                        (if (deviceProfile.sysuiProfile.isLeftRightSplit) Gravity.START
+                        (if (deviceProfile.isLeftRightSplit) Gravity.START
                         else Gravity.CENTER_HORIZONTAL)
                 width = snapshotViewWidth
             } else {
-                width = MATCH_PARENT
+                width = ViewGroup.LayoutParams.MATCH_PARENT
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             }
         }
     }
 
-    override fun updateAppTimerLayout(
-        taskViewWidth: Int,
-        taskViewHeight: Int,
-        isGroupedTaskView: Boolean,
-        deviceProfile: DeviceProfile,
-        snapshotViewWidth: Int,
-        snapshotViewHeight: Int,
-        appTimerToast: View,
-    ) {
-        appTimerToast.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            appTimerToast.layoutDirection = LAYOUT_DIRECTION_INHERIT
-            startToStart = PARENT_ID
-            endToEnd = PARENT_ID
-            bottomToBottom = PARENT_ID
-            topToTop = UNSET
-            width =
-                if (isGroupedTaskView) {
-                    snapshotViewWidth
-                } else {
-                    MATCH_PARENT
-                }
-        }
-
-        appTimerToast.pivotX = 0f
-        appTimerToast.pivotY = 0f
-        appTimerToast.rotation = degreesRotated
-
-        appTimerToast.translationX = 0f
-        appTimerToast.translationY = 0f
-    }
-
     override fun getDwbBannerTranslations(
         taskViewWidth: Int,
         taskViewHeight: Int,
-        splitBounds: SplitBounds?,
+        splitBounds: SplitConfigurationOptions.SplitBounds?,
         deviceProfile: DeviceProfile,
+        thumbnailViews: Array<View>,
         desiredTaskId: Int,
         banner: View,
     ): Pair<Float, Float> {
-        if (splitBounds == null) return Pair(0f, 0f)
-
-        val translationX =
-            if (
-                deviceProfile.sysuiProfile.isLeftRightSplit &&
-                    desiredTaskId == splitBounds.rightBottomTaskId
-            ) {
-                taskViewWidth * (splitBounds.leftTopTaskPercent + splitBounds.dividerPercent)
-            } else 0f
-        val translationY =
-            if (
-                !deviceProfile.sysuiProfile.isLeftRightSplit &&
-                    desiredTaskId == splitBounds.leftTopTaskId
-            ) {
-                -taskViewHeight * (splitBounds.rightBottomTaskPercent + splitBounds.dividerPercent)
-            } else 0f
+        var translationX = 0f
+        var translationY = 0f
+        if (splitBounds != null) {
+            if (deviceProfile.isLeftRightSplit) {
+                if (desiredTaskId == splitBounds.rightBottomTaskId) {
+                    val leftTopTaskPercent = splitBounds.leftTopTaskPercent
+                    val dividerThicknessPercent = splitBounds.dividerPercent
+                    translationX =
+                        ((taskViewWidth * leftTopTaskPercent) +
+                            (taskViewWidth * dividerThicknessPercent))
+                }
+            } else {
+                if (desiredTaskId == splitBounds.leftTopTaskId) {
+                    val snapshotParams = thumbnailViews[0].layoutParams as FrameLayout.LayoutParams
+                    val bottomRightTaskPlusDividerPercent =
+                        (splitBounds.rightBottomTaskPercent + splitBounds.dividerPercent)
+                    translationY =
+                        -((taskViewHeight - snapshotParams.topMargin) *
+                            bottomRightTaskPlusDividerPercent)
+                }
+            }
+        }
         return Pair(translationX, translationY)
     }
 
@@ -285,30 +292,14 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
     override fun getTaskLaunchLength(secondaryDimension: Int, taskThumbnailBounds: Rect): Int =
         secondaryDimension - taskThumbnailBounds.bottom
 
-    override fun extendRectForPrimaryTranslation(rect: Rect, translation: Int) {
-        if (translation < 0) {
-            rect.left += translation
-        } else {
-            rect.right += translation
-        }
-    }
-
-    override fun extendRectForSecondaryTranslation(rect: Rect, translation: Int) {
-        if (translation < 0) {
-            rect.top += translation
-        } else {
-            rect.bottom += translation
-        }
-    }
-
     /* -------------------- */
 
     override fun getDistanceToBottomOfRect(dp: DeviceProfile, rect: Rect): Int =
-        dp.deviceProperties.heightPx - rect.bottom
+        dp.heightPx - rect.bottom
 
     override fun getSplitPositionOptions(dp: DeviceProfile): List<SplitPositionOption> =
         when {
-            dp.deviceProperties.isLargeScreen -> {
+            dp.isTablet -> {
                 Utilities.getSplitPositionOptions(dp)
             }
 
@@ -323,7 +314,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
                 )
             }
 
-            dp.sysuiProfile.isLeftRightSplit -> {
+            dp.isLeftRightSplit -> {
                 listOf(
                     SplitPositionOption(
                         R.drawable.ic_split_horizontal,
@@ -354,13 +345,13 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         @StagePosition stagePosition: Int,
         out: Rect,
     ) {
-        val screenWidth = dp.deviceProperties.widthPx
-        val screenHeight = dp.deviceProperties.heightPx
+        val screenWidth = dp.widthPx
+        val screenHeight = dp.heightPx
         val pinToRight = stagePosition == SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
         val insetSizeAdjustment = getPlaceholderSizeAdjustment(dp, pinToRight)
 
         out.set(0, 0, screenWidth, placeholderHeight + insetSizeAdjustment)
-        if (!dp.sysuiProfile.isLeftRightSplit) {
+        if (!dp.isLeftRightSplit) {
             // portrait, phone or tablet - spans width of screen, nothing else to do
             out.inset(placeholderInset, 0)
 
@@ -414,7 +405,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
     ) {
         val pinToRight = stagePosition == SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
         val insetAdjustment = getPlaceholderSizeAdjustment(dp, pinToRight) / 2f
-        if (!dp.sysuiProfile.isLeftRightSplit) {
+        if (!dp.isLeftRightSplit) {
             out.x = (onScreenRectCenterX / fullscreenScaleX - 1.0f * drawableWidth / 2)
             out.y =
                 ((onScreenRectCenterY + insetAdjustment) / fullscreenScaleY -
@@ -439,12 +430,12 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
      */
     private fun getPlaceholderSizeAdjustment(dp: DeviceProfile, pinToRight: Boolean): Int {
         val insetThickness =
-            if (!dp.deviceProperties.isLandscape) {
+            if (!dp.isLandscape) {
                 dp.insets.top
             } else {
                 if (pinToRight) dp.insets.right else dp.insets.left
             }
-        return max((insetThickness - dp.sysuiProfile.splitPlaceholderInset).toDouble(), 0.0).toInt()
+        return max((insetThickness - dp.splitPlaceholderInset).toDouble(), 0.0).toInt()
     }
 
     override fun setSplitInstructionsParams(
@@ -457,8 +448,8 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         out.pivotY = splitInstructionsHeight.toFloat()
         out.rotation = degreesRotated
         val distanceToEdge =
-            if (dp.deviceProperties.isPhone) {
-                if (dp.deviceProperties.isLandscape) {
+            if (dp.isPhone) {
+                if (dp.isLandscape) {
                     out.resources.getDimensionPixelSize(
                         R.dimen.split_instructions_bottom_margin_phone_landscape
                     )
@@ -489,11 +480,11 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         out1: Rect,
         out2: Rect,
     ) {
-        val screenHeight = dp.deviceProperties.heightPx
-        val screenWidth = dp.deviceProperties.widthPx
+        val screenHeight = dp.heightPx
+        val screenWidth = dp.widthPx
         out1.set(0, 0, screenWidth, screenHeight / 2 - splitDividerSize)
         out2.set(0, screenHeight / 2 + splitDividerSize, screenWidth, screenHeight)
-        if (!dp.sysuiProfile.isLeftRightSplit) {
+        if (!dp.isLeftRightSplit) {
             // Portrait - the window bounds are always top and bottom half
             return
         }
@@ -522,29 +513,27 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
     override fun setSplitTaskSwipeRect(
         dp: DeviceProfile,
         outRect: Rect,
-        splitInfo: SplitBounds,
+        splitInfo: SplitConfigurationOptions.SplitBounds,
         desiredStagePosition: Int,
     ) {
         val topLeftTaskPercent = splitInfo.leftTopTaskPercent
         val dividerBarPercent = splitInfo.dividerPercent
 
-        val taskbarHeight =
-            if (dp.taskbarProfile.isTransientTaskbar) 0 else dp.taskbarProfile.height
-        val scale =
-            outRect.height().toFloat() / (dp.deviceProperties.availableHeightPx - taskbarHeight)
-        val topTaskHeight = dp.deviceProperties.availableHeightPx * topLeftTaskPercent
+        val taskbarHeight = if (dp.isTransientTaskbar) 0 else dp.taskbarHeight
+        val scale = outRect.height().toFloat() / (dp.availableHeightPx - taskbarHeight)
+        val topTaskHeight = dp.availableHeightPx * topLeftTaskPercent
         val scaledTopTaskHeight = topTaskHeight * scale
-        val dividerHeight = dp.deviceProperties.availableHeightPx * dividerBarPercent
+        val dividerHeight = dp.availableHeightPx * dividerBarPercent
         val scaledDividerHeight = dividerHeight * scale
 
         if (desiredStagePosition == SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT) {
-            if (dp.sysuiProfile.isLeftRightSplit) {
+            if (dp.isLeftRightSplit) {
                 outRect.right = outRect.left + Math.round(outRect.width() * topLeftTaskPercent)
             } else {
                 outRect.bottom = Math.round(outRect.top + scaledTopTaskHeight)
             }
         } else {
-            if (dp.sysuiProfile.isLeftRightSplit) {
+            if (dp.isLeftRightSplit) {
                 outRect.left +=
                     Math.round(outRect.width() * (topLeftTaskPercent + dividerBarPercent))
             } else {
@@ -563,11 +552,22 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         secondarySnapshot: View,
         parentWidth: Int,
         parentHeight: Int,
-        splitBoundsConfig: SplitBounds,
+        splitBoundsConfig: SplitConfigurationOptions.SplitBounds,
         dp: DeviceProfile,
         isRtl: Boolean,
         inSplitSelection: Boolean,
     ) {
+        val spaceAboveSnapshot = dp.overviewTaskThumbnailTopMarginPx
+
+        val primaryParams = primarySnapshot.layoutParams as FrameLayout.LayoutParams
+        val secondaryParams = secondarySnapshot.layoutParams as FrameLayout.LayoutParams
+
+        // Reset margins that aren't used in this method, but are used in other
+        // `RecentsPagedOrientationHandler` variants.
+        secondaryParams.topMargin = 0
+        primaryParams.topMargin = spaceAboveSnapshot
+
+        val totalThumbnailHeight = parentHeight - spaceAboveSnapshot
         val dividerScale = splitBoundsConfig.dividerPercent
         val taskViewSizes =
             getGroupedTaskViewSizes(dp, splitBoundsConfig, parentWidth, parentHeight)
@@ -576,7 +576,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
             // `RecentsPagedOrientationHandler` variants.
             primarySnapshot.translationY = 0f
 
-            if (dp.sysuiProfile.isLeftRightSplit) {
+            if (dp.isLeftRightSplit) {
                 val scaledDividerBar = Math.round(parentWidth * dividerScale)
                 if (isRtl) {
                     val translationX = taskViewSizes.second.x + scaledDividerBar
@@ -587,10 +587,10 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
                     secondarySnapshot.translationX = translationX.toFloat()
                     primarySnapshot.translationX = 0f
                 }
-                secondarySnapshot.translationY = 0f
+                secondarySnapshot.translationY = spaceAboveSnapshot.toFloat()
             } else {
-                val finalDividerHeight = Math.round(parentHeight * dividerScale).toFloat()
-                val translationY = taskViewSizes.first.y + finalDividerHeight
+                val finalDividerHeight = Math.round(totalThumbnailHeight * dividerScale).toFloat()
+                val translationY = taskViewSizes.first.y + spaceAboveSnapshot + finalDividerHeight
                 secondarySnapshot.translationY = translationY
 
                 // Reset unused translations.
@@ -611,37 +611,37 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
 
     override fun getGroupedTaskViewSizes(
         dp: DeviceProfile,
-        splitBoundsConfig: SplitBounds,
+        splitBoundsConfig: SplitConfigurationOptions.SplitBounds,
         parentWidth: Int,
         parentHeight: Int,
     ): Pair<Point, Point> {
+        val spaceAboveSnapshot = dp.overviewTaskThumbnailTopMarginPx
+        val totalThumbnailHeight = parentHeight - spaceAboveSnapshot
         val dividerScale = splitBoundsConfig.dividerPercent
         val taskPercent = splitBoundsConfig.leftTopTaskPercent
 
         val firstTaskViewSize = Point()
         val secondTaskViewSize = Point()
 
-        if (dp.sysuiProfile.isLeftRightSplit) {
+        if (dp.isLeftRightSplit) {
             val scaledDividerBar = Math.round(parentWidth * dividerScale)
             firstTaskViewSize.x = Math.round(parentWidth * taskPercent)
-            firstTaskViewSize.y = parentHeight
+            firstTaskViewSize.y = totalThumbnailHeight
 
             secondTaskViewSize.x = parentWidth - firstTaskViewSize.x - scaledDividerBar
-            secondTaskViewSize.y = parentHeight
+            secondTaskViewSize.y = totalThumbnailHeight
         } else {
-            val taskbarHeight =
-                if (dp.taskbarProfile.isTransientTaskbar) 0 else dp.taskbarProfile.height
-            val scale =
-                parentHeight.toFloat() / (dp.deviceProperties.availableHeightPx - taskbarHeight)
-            val topTaskHeight = dp.deviceProperties.availableHeightPx * taskPercent
-            val finalDividerHeight = Math.round(parentHeight * dividerScale).toFloat()
+            val taskbarHeight = if (dp.isTransientTaskbar) 0 else dp.taskbarHeight
+            val scale = totalThumbnailHeight.toFloat() / (dp.availableHeightPx - taskbarHeight)
+            val topTaskHeight = dp.availableHeightPx * taskPercent
+            val finalDividerHeight = Math.round(totalThumbnailHeight * dividerScale).toFloat()
             val scaledTopTaskHeight = topTaskHeight * scale
             firstTaskViewSize.x = parentWidth
             firstTaskViewSize.y = Math.round(scaledTopTaskHeight)
 
             secondTaskViewSize.x = parentWidth
             secondTaskViewSize.y =
-                Math.round((parentHeight - firstTaskViewSize.y - finalDividerHeight))
+                Math.round((totalThumbnailHeight - firstTaskViewSize.y - finalDividerHeight))
         }
 
         return Pair(firstTaskViewSize, secondTaskViewSize)
@@ -651,6 +651,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         iconParams: FrameLayout.LayoutParams,
         taskIconMargin: Int,
         taskIconHeight: Int,
+        thumbnailTopMargin: Int,
         isRtl: Boolean,
     ) {
         iconParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -694,62 +695,172 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
      *   we'll skip setting translations here.
      */
     override fun setSplitIconParams(
-        primaryAppChipView: IconAppChipView,
-        secondaryAppChipView: IconAppChipView,
+        primaryIconView: View,
+        secondaryIconView: View,
+        taskIconHeight: Int,
         primarySnapshotWidth: Int,
         primarySnapshotHeight: Int,
         groupedTaskViewHeight: Int,
         groupedTaskViewWidth: Int,
         isRtl: Boolean,
         deviceProfile: DeviceProfile,
-        splitConfig: SplitBounds,
+        splitConfig: SplitConfigurationOptions.SplitBounds,
         inSplitSelection: Boolean,
+        oneIconHiddenDueToSmallWidth: Boolean,
     ) {
-        val primaryIconParams = primaryAppChipView.layoutParams as FrameLayout.LayoutParams
-        val secondaryIconParams = secondaryAppChipView.layoutParams as FrameLayout.LayoutParams
+        val primaryIconParams = primaryIconView.layoutParams as FrameLayout.LayoutParams
+        val secondaryIconParams =
+            if (enableOverviewIconMenu()) secondaryIconView.layoutParams as FrameLayout.LayoutParams
+            else FrameLayout.LayoutParams(primaryIconParams)
 
-        primaryIconParams.gravity = Gravity.TOP or Gravity.START
-        secondaryIconParams.gravity = Gravity.TOP or Gravity.START
-        secondaryIconParams.topMargin = primaryIconParams.topMargin
-        secondaryIconParams.marginStart = primaryIconParams.marginStart
-        if (!inSplitSelection) {
-            if (deviceProfile.sysuiProfile.isLeftRightSplit) {
-                if (isRtl) {
-                    val secondarySnapshotWidth = groupedTaskViewWidth - primarySnapshotWidth
-                    primaryAppChipView.setSplitTranslationX(-secondarySnapshotWidth.toFloat())
+        if (enableOverviewIconMenu()) {
+            val primaryAppChipView = primaryIconView as IconAppChipView
+            val secondaryAppChipView = secondaryIconView as IconAppChipView
+            primaryIconParams.gravity = Gravity.TOP or Gravity.START
+            secondaryIconParams.gravity = Gravity.TOP or Gravity.START
+            secondaryIconParams.topMargin = primaryIconParams.topMargin
+            secondaryIconParams.marginStart = primaryIconParams.marginStart
+            if (!inSplitSelection) {
+                if (deviceProfile.isLeftRightSplit) {
+                    if (isRtl) {
+                        val secondarySnapshotWidth = groupedTaskViewWidth - primarySnapshotWidth
+                        primaryAppChipView.setSplitTranslationX(-secondarySnapshotWidth.toFloat())
+                    } else {
+                        val dividerSize =
+                            Math.round(groupedTaskViewWidth * splitConfig.dividerPercent)
+                        secondaryAppChipView.setSplitTranslationX(
+                            primarySnapshotWidth.toFloat() + dividerSize
+                        )
+                    }
                 } else {
-                    val dividerSize = Math.round(groupedTaskViewWidth * splitConfig.dividerPercent)
-                    secondaryAppChipView.setSplitTranslationX(
-                        primarySnapshotWidth.toFloat() + dividerSize
+                    primaryAppChipView.setSplitTranslationX(0f)
+                    secondaryAppChipView.setSplitTranslationX(0f)
+                    val dividerThickness =
+                        min(
+                                splitConfig.visualDividerBounds.width().toDouble(),
+                                splitConfig.visualDividerBounds.height().toDouble(),
+                            )
+                            .toInt()
+                    secondaryAppChipView.setSplitTranslationY(
+                        (primarySnapshotHeight +
+                                (if (deviceProfile.isTablet) 0 else dividerThickness))
+                            .toFloat()
                     )
                 }
+            }
+        } else if (deviceProfile.isLeftRightSplit) {
+            // We calculate the "midpoint" of the thumbnail area, and place the icons there.
+            // This is the place where the thumbnail area splits by default, in a near-50/50 split.
+            // It is usually not exactly 50/50, due to insets/screen cutouts.
+            val fullscreenInsetThickness =
+                if (deviceProfile.isSeascape) deviceProfile.insets.right
+                else deviceProfile.insets.left
+            val fullscreenMidpointFromBottom =
+                ((deviceProfile.widthPx - fullscreenInsetThickness) / 2)
+            val midpointFromEndPct = fullscreenMidpointFromBottom.toFloat() / deviceProfile.widthPx
+            val insetPct = fullscreenInsetThickness.toFloat() / deviceProfile.widthPx
+            val spaceAboveSnapshots = 0
+            val overviewThumbnailAreaThickness = groupedTaskViewWidth - spaceAboveSnapshots
+            val bottomToMidpointOffset =
+                (overviewThumbnailAreaThickness * midpointFromEndPct).toInt()
+            val insetOffset = (overviewThumbnailAreaThickness * insetPct).toInt()
+
+            if (deviceProfile.isSeascape) {
+                primaryIconParams.gravity =
+                    Gravity.TOP or (if (isRtl) Gravity.END else Gravity.START)
+                secondaryIconParams.gravity =
+                    Gravity.TOP or (if (isRtl) Gravity.END else Gravity.START)
+                if (!inSplitSelection) {
+                    if (splitConfig.initiatedFromSeascape) {
+                        if (oneIconHiddenDueToSmallWidth) {
+                            // Center both icons
+                            val centerX = bottomToMidpointOffset - (taskIconHeight / 2f)
+                            primaryIconView.translationX = centerX
+                            secondaryIconView.translationX = centerX
+                        } else {
+                            // the task on the right (secondary) is slightly larger
+                            primaryIconView.translationX =
+                                (bottomToMidpointOffset - taskIconHeight).toFloat()
+                            secondaryIconView.translationX = bottomToMidpointOffset.toFloat()
+                        }
+                    } else {
+                        if (oneIconHiddenDueToSmallWidth) {
+                            // Center both icons
+                            val centerX =
+                                bottomToMidpointOffset + insetOffset - (taskIconHeight / 2f)
+                            primaryIconView.translationX = centerX
+                            secondaryIconView.translationX = centerX
+                        } else {
+                            // the task on the left (primary) is slightly larger
+                            primaryIconView.translationX =
+                                (bottomToMidpointOffset + insetOffset - taskIconHeight).toFloat()
+                            secondaryIconView.translationX =
+                                (bottomToMidpointOffset + insetOffset).toFloat()
+                        }
+                    }
+                }
             } else {
-                primaryAppChipView.setSplitTranslationX(0f)
-                secondaryAppChipView.setSplitTranslationX(0f)
-                val dividerThickness =
-                    min(
-                            splitConfig.visualDividerBounds.width().toDouble(),
-                            splitConfig.visualDividerBounds.height().toDouble(),
-                        )
-                        .toInt()
-                secondaryAppChipView.setSplitTranslationY(
-                    (primarySnapshotHeight +
-                            (if (deviceProfile.deviceProperties.isLargeScreen) 0
-                            else dividerThickness))
-                        .toFloat()
-                )
+                primaryIconParams.gravity =
+                    Gravity.TOP or (if (isRtl) Gravity.START else Gravity.END)
+                secondaryIconParams.gravity =
+                    Gravity.TOP or (if (isRtl) Gravity.START else Gravity.END)
+                if (!inSplitSelection) {
+                    if (!splitConfig.initiatedFromSeascape) {
+                        if (oneIconHiddenDueToSmallWidth) {
+                            // Center both icons
+                            val centerX = -bottomToMidpointOffset + (taskIconHeight / 2f)
+                            primaryIconView.translationX = centerX
+                            secondaryIconView.translationX = centerX
+                        } else {
+                            // the task on the left (primary) is slightly larger
+                            primaryIconView.translationX = -bottomToMidpointOffset.toFloat()
+                            secondaryIconView.translationX =
+                                (-bottomToMidpointOffset + taskIconHeight).toFloat()
+                        }
+                    } else {
+                        if (oneIconHiddenDueToSmallWidth) {
+                            // Center both icons
+                            val centerX =
+                                -bottomToMidpointOffset - insetOffset + (taskIconHeight / 2f)
+                            primaryIconView.translationX = centerX
+                            secondaryIconView.translationX = centerX
+                        } else {
+                            // the task on the right (secondary) is slightly larger
+                            primaryIconView.translationX =
+                                (-bottomToMidpointOffset - insetOffset).toFloat()
+                            secondaryIconView.translationX =
+                                (-bottomToMidpointOffset - insetOffset + taskIconHeight).toFloat()
+                        }
+                    }
+                }
+            }
+        } else {
+            primaryIconParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            secondaryIconParams.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            if (!inSplitSelection) {
+                if (oneIconHiddenDueToSmallWidth) {
+                    // Center both icons
+                    primaryIconView.translationX = 0f
+                    secondaryIconView.translationX = 0f
+                } else {
+                    // shifts icon half a width left (height is used here since icons are square)
+                    primaryIconView.translationX = -(taskIconHeight / 2f)
+                    secondaryIconView.translationX = taskIconHeight / 2f
+                }
             }
         }
+        if (!enableOverviewIconMenu() && !inSplitSelection) {
+            primaryIconView.translationY = 0f
+            secondaryIconView.translationY = 0f
+        }
 
-        primaryAppChipView.layoutParams = primaryIconParams
-        secondaryAppChipView.layoutParams = secondaryIconParams
+        primaryIconView.layoutParams = primaryIconParams
+        secondaryIconView.layoutParams = secondaryIconParams
     }
 
     override fun getDefaultSplitPosition(deviceProfile: DeviceProfile): Int {
-        check(deviceProfile.deviceProperties.isLargeScreen) {
-            "Default position available only for large screens"
-        }
-        return if (deviceProfile.sysuiProfile.isLeftRightSplit) {
+        check(deviceProfile.isTablet) { "Default position available only for large screens" }
+        return if (deviceProfile.isLeftRightSplit) {
             SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
         } else {
             SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT
@@ -761,7 +872,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         secondary: FloatProperty<T>,
         deviceProfile: DeviceProfile,
     ): Pair<FloatProperty<T>, FloatProperty<T>> =
-        if (deviceProfile.sysuiProfile.isLeftRightSplit) { // or seascape
+        if (deviceProfile.isLeftRightSplit) { // or seascape
             Pair(primary, secondary)
         } else {
             Pair(secondary, primary)
@@ -773,7 +884,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         @StagePosition stagePosition: Int,
         dp: DeviceProfile,
     ): Float {
-        if (dp.sysuiProfile.isLeftRightSplit) {
+        if (dp.isLeftRightSplit) {
             val currentTranslationX = floatingTask.translationX
             return if (stagePosition == SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT)
                 currentTranslationX - onScreenRect.width()
@@ -789,7 +900,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
         translation: Float,
         dp: DeviceProfile,
     ) {
-        if (dp.sysuiProfile.isLeftRightSplit) {
+        if (dp.isLeftRightSplit) {
             floatingTask.translationX = translation
         } else {
             floatingTask.translationY = translation
@@ -797,8 +908,7 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
     }
 
     override fun getFloatingTaskPrimaryTranslation(floatingTask: View, dp: DeviceProfile): Float =
-        if (dp.sysuiProfile.isLeftRightSplit) floatingTask.translationX
-        else floatingTask.translationY
+        if (dp.isLeftRightSplit) floatingTask.translationX else floatingTask.translationY
 
     override fun getHandlerTypeForLogging(): LauncherAtom.TaskSwitcherContainer.OrientationHandler =
         LauncherAtom.TaskSwitcherContainer.OrientationHandler.PORTRAIT

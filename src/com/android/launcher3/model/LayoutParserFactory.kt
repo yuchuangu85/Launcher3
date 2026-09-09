@@ -19,24 +19,20 @@ package com.android.launcher3.model
 import android.app.blob.BlobHandle
 import android.app.blob.BlobStoreManager
 import android.content.Context
-import android.content.res.Resources
 import android.os.ParcelFileDescriptor.AutoCloseInputStream
 import android.provider.Settings.Secure
+import android.text.TextUtils
 import android.util.Base64
 import android.util.Log
 import android.util.Xml
 import com.android.launcher3.AutoInstallsLayout
 import com.android.launcher3.AutoInstallsLayout.SourceResources
-import com.android.launcher3.AutoInstallsLayout.TAG_WORKSPACE
 import com.android.launcher3.DefaultLayoutParser
 import com.android.launcher3.DefaultLayoutParser.RES_PARTNER_DEFAULT_LAYOUT
 import com.android.launcher3.LauncherSettings.Settings
 import com.android.launcher3.dagger.ApplicationContext
-import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.IOUtils
 import com.android.launcher3.util.Partner
-import com.android.launcher3.util.SafeCloseable
-import com.android.launcher3.util.XmlElement.Companion.getRootElement
 import com.android.launcher3.widget.LauncherWidgetHolder
 import java.io.StringReader
 import javax.inject.Inject
@@ -44,33 +40,14 @@ import javax.inject.Inject
 private const val TAG = "LayoutParserFactory"
 
 /** Utility class for providing default layout parsers */
-@LauncherAppSingleton
-class LayoutParserFactory @Inject constructor(@ApplicationContext private val context: Context) {
+open class LayoutParserFactory
+@Inject
+constructor(@ApplicationContext private val context: Context) {
 
-    private var xmlOverride: String? = null
-
-    /** Overrides the default xml layout with the provided xml */
-    fun overrideXmlLayout(xml: String): SafeCloseable {
-        val old = xmlOverride
-        xmlOverride = xml
-
-        return SafeCloseable {
-            // Restore old value if it's not already overwritten
-            if (xmlOverride == xml) xmlOverride = old
-        }
-    }
-
-    fun createExternalLayoutParser(
+    open fun createExternalLayoutParser(
         widgetHolder: LauncherWidgetHolder,
         openHelper: DatabaseHelper,
     ): AutoInstallsLayout? {
-        xmlOverride?.let {
-            try {
-                return getAutoInstallsLayoutFromIS(widgetHolder, openHelper, it)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error getting layout from provided xml", e)
-            }
-        }
 
         createWorkspaceLoaderFromAppRestriction(widgetHolder, openHelper)?.let {
             return it
@@ -106,7 +83,9 @@ class LayoutParserFactory @Inject constructor(@ApplicationContext private val co
     ): AutoInstallsLayout? {
         val systemLayoutProvider =
             Secure.getString(context.contentResolver, Settings.LAYOUT_PROVIDER_KEY)
-        if (systemLayoutProvider.isNullOrEmpty()) return null
+        if (TextUtils.isEmpty(systemLayoutProvider)) {
+            return null
+        }
 
         // Try the blob store first
         val blobManager = context.getSystemService(BlobStoreManager::class.java)
@@ -165,17 +144,38 @@ class LayoutParserFactory @Inject constructor(@ApplicationContext private val co
     }
 
     @Throws(Exception::class)
-    private fun getAutoInstallsLayoutFromIS(
+    protected fun getAutoInstallsLayoutFromIS(
         widgetHolder: LauncherWidgetHolder,
         openHelper: DatabaseHelper,
         xml: String,
-        res: SourceResources = SourceResources.wrap(Resources.getSystem()),
+        res: SourceResources = object : SourceResources {},
     ): AutoInstallsLayout {
         val parser = Xml.newPullParser()
         parser.setInput(StringReader(xml))
 
-        return AutoInstallsLayout(context, widgetHolder, openHelper, res) {
-            parser.getRootElement(TAG_WORKSPACE)
+        return AutoInstallsLayout(
+            context,
+            widgetHolder,
+            openHelper,
+            res,
+            { parser },
+            AutoInstallsLayout.TAG_WORKSPACE,
+        )
+    }
+
+    /** Layout parser factory with fixed xml */
+    class XmlLayoutParserFactory(ctx: Context, private val xml: String) : LayoutParserFactory(ctx) {
+
+        override fun createExternalLayoutParser(
+            widgetHolder: LauncherWidgetHolder,
+            openHelper: DatabaseHelper,
+        ): AutoInstallsLayout? {
+            try {
+                return getAutoInstallsLayoutFromIS(widgetHolder, openHelper, xml)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting layout from provided xml", e)
+                return super.createExternalLayoutParser(widgetHolder, openHelper)
+            }
         }
     }
 }

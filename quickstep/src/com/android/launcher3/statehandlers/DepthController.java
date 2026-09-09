@@ -19,68 +19,64 @@ package com.android.launcher3.statehandlers;
 import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.launcher3.states.StateAnimationConfig.ANIM_DEPTH;
 import static com.android.launcher3.states.StateAnimationConfig.SKIP_DEPTH_CONTROLLER;
+import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 import static com.android.launcher3.util.MultiPropertyFactory.MULTI_PROPERTY_VALUE;
 
-import android.content.Context;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
+import android.view.CrossWindowBlurListeners;
 import android.view.View;
 import android.view.ViewRootImpl;
 import android.view.ViewTreeObserver;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.android.launcher3.BaseActivity;
+import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherState;
 import com.android.launcher3.anim.PendingAnimation;
-import com.android.launcher3.statemanager.BaseState;
 import com.android.launcher3.statemanager.StateManager.StateHandler;
-import com.android.launcher3.statemanager.StatefulContainer;
 import com.android.launcher3.states.StateAnimationConfig;
-import com.android.launcher3.util.ListenableRef;
-import com.android.quickstep.util.BaseDepthControllerImpl;
+import com.android.quickstep.util.BaseDepthController;
 
 import java.io.PrintWriter;
+import java.util.function.Consumer;
 
 /**
- * Controls blur and wallpaper zoom.
- * @param <STATE> state associated with the container.
- * @param <CONTAINER> the StatefulContainer.
+ * Controls blur and wallpaper zoom, for the Launcher surface only.
  */
-public class DepthController<
-        STATE extends BaseState<STATE>,
-        CONTAINER extends Context & StatefulContainer<STATE>>
-        extends BaseDepthControllerImpl<STATE, CONTAINER>
-        implements StateHandler<STATE> {
-    public static final float DEPTH_0_PERCENT = 0f;
-    public static final float DEPTH_70_PERCENT = 0.7f;
-
+public class DepthController extends BaseDepthController implements StateHandler<LauncherState>,
+        BaseActivity.MultiWindowModeChangedListener {
     @VisibleForTesting
-    final ViewTreeObserver.OnDrawListener mOnDrawListener = this::onContainerDraw;
+    final ViewTreeObserver.OnDrawListener mOnDrawListener = this::onLauncherDraw;
+
+    private final Consumer<Boolean> mCrossWindowBlurListener = this::setCrossWindowBlursEnabled;
 
     private final Runnable mOpaquenessListener = this::applyDepthAndBlur;
+
+    // Workaround for animating the depth when multiwindow mode changes.
+    private boolean mIgnoreStateChangesDuringMultiWindowAnimation = false;
 
     private View.OnAttachStateChangeListener mOnAttachListener;
 
     // Ensure {@link mOnDrawListener} is added only once to avoid spamming DragLayer's mRunQueue
     // via {@link View#post(Runnable)}
     private boolean mIsOnDrawListenerAdded = false;
-    private boolean mRemoveOnDrawListenerCancelled = false;
 
-    public DepthController(CONTAINER container, ListenableRef<Boolean> blurState) {
-        super(container, blurState);
+    public DepthController(Launcher l) {
+        super(l);
     }
 
-    private void onContainerDraw() {
-        View view = mContainer.getDragLayer();
+    private void onLauncherDraw() {
+        View view = mLauncher.getDragLayer();
         ViewRootImpl viewRootImpl = view.getViewRootImpl();
         setBaseSurface(viewRootImpl != null ? viewRootImpl.getSurfaceControl() : null);
-        mRemoveOnDrawListenerCancelled = false;
-        view.post(() -> {
-            if (!mRemoveOnDrawListenerCancelled) {
-                removeOnDrawListener();
-            }
-        });
+        view.post(this::removeOnDrawListener);
     }
 
     private void ensureDependencies() {
-        View rootView = mContainer.getRootView();
+        View rootView = mLauncher.getRootView();
         if (rootView == null) {
             return;
         }
@@ -90,18 +86,44 @@ public class DepthController<
         mOnAttachListener = new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View view) {
-                mContainer.getScrimView().addOpaquenessListener(mOpaquenessListener);
+                UI_HELPER_EXECUTOR.execute(() ->
+                        CrossWindowBlurListeners.getInstance().addListener(
+                                mLauncher.getMainExecutor(), mCrossWindowBlurListener));
+                mLauncher.getScrimView().addOpaquenessListener(mOpaquenessListener);
 
                 // To handle the case where window token is invalid during last setDepth call.
                 applyDepthAndBlur();
             }
 
             @Override
-            public void onViewDetachedFromWindow(View view) { }
+            public void onViewDetachedFromWindow(View view) {
+                removeSecondaryListeners();
+            }
         };
         rootView.addOnAttachStateChangeListener(mOnAttachListener);
         if (rootView.isAttachedToWindow()) {
             mOnAttachListener.onViewAttachedToWindow(rootView);
+        }
+    }
+
+    /**
+     * Cleans up after this controller so it can be garbage collected without leaving traces.
+     */
+    public void dispose() {
+        removeSecondaryListeners();
+
+        if (mLauncher.getRootView() != null && mOnAttachListener != null) {
+            mLauncher.getRootView().removeOnAttachStateChangeListener(mOnAttachListener);
+            mOnAttachListener = null;
+        }
+    }
+
+    private void removeSecondaryListeners() {
+        UI_HELPER_EXECUTOR.execute(() ->
+                CrossWindowBlurListeners.getInstance()
+                        .removeListener(mCrossWindowBlurListener));
+        if (mOpaquenessListener != null) {
+            mLauncher.getScrimView().removeOpaquenessListener(mOpaquenessListener);
         }
     }
 
@@ -114,26 +136,30 @@ public class DepthController<
         } else {
             removeOnDrawListener();
             setBaseSurface(null);
-            setEarlyWakeup(false);
         }
     }
 
     @Override
-    public void setState(STATE toState) {
-        stateDepth.setValue(toState.getDepth(mContainer));
-        if (toState == mContainer.getBackgroundAppState()) {
+    public void setState(LauncherState toState) {
+        if (mIgnoreStateChangesDuringMultiWindowAnimation) {
+            return;
+        }
+
+        stateDepth.setValue(toState.getDepth(mLauncher));
+        if (toState == LauncherState.BACKGROUND_APP) {
             addOnDrawListener();
         }
     }
 
     @Override
-    public void setStateWithAnimation(STATE toState, StateAnimationConfig config,
+    public void setStateWithAnimation(LauncherState toState, StateAnimationConfig config,
             PendingAnimation animation) {
-        if (config.hasAnimationFlag(SKIP_DEPTH_CONTROLLER)) {
+        if (config.hasAnimationFlag(SKIP_DEPTH_CONTROLLER)
+                || mIgnoreStateChangesDuringMultiWindowAnimation) {
             return;
         }
 
-        float toDepth = toState.getDepth(mContainer);
+        float toDepth = toState.getDepth(mLauncher);
         animation.setFloat(stateDepth, MULTI_PROPERTY_VALUE, toDepth,
                 config.getInterpolator(ANIM_DEPTH, LINEAR));
     }
@@ -151,21 +177,36 @@ public class DepthController<
     }
 
     private void addOnDrawListener() {
-        mRemoveOnDrawListenerCancelled = true;
         if (mIsOnDrawListenerAdded) {
             return;
         }
-        mContainer.getDragLayer().getViewTreeObserver().addOnDrawListener(mOnDrawListener);
+        mLauncher.getDragLayer().getViewTreeObserver().addOnDrawListener(mOnDrawListener);
         mIsOnDrawListenerAdded = true;
     }
 
     private void removeOnDrawListener() {
-        mRemoveOnDrawListenerCancelled = true;
         if (!mIsOnDrawListenerAdded) {
             return;
         }
-        mContainer.getDragLayer().getViewTreeObserver().removeOnDrawListener(mOnDrawListener);
+        mLauncher.getDragLayer().getViewTreeObserver().removeOnDrawListener(mOnDrawListener);
         mIsOnDrawListenerAdded = false;
+    }
+
+    @Override
+    public void onMultiWindowModeChanged(boolean isInMultiWindowMode) {
+        mIgnoreStateChangesDuringMultiWindowAnimation = true;
+
+        ObjectAnimator mwAnimation = ObjectAnimator.ofFloat(stateDepth, MULTI_PROPERTY_VALUE,
+                mLauncher.getStateManager().getState().getDepth(mLauncher, isInMultiWindowMode))
+                .setDuration(300);
+        mwAnimation.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mIgnoreStateChangesDuringMultiWindowAnimation = false;
+            }
+        });
+        mwAnimation.setAutoCancel(true);
+        mwAnimation.start();
     }
 
     public void dump(String prefix, PrintWriter writer) {
@@ -178,6 +219,8 @@ public class DepthController<
         writer.println(prefix + "\tmWidgetDepth=" + widgetDepth.getValue());
         writer.println(prefix + "\tmCurrentBlur=" + mCurrentBlur);
         writer.println(prefix + "\tmInEarlyWakeUp=" + mInEarlyWakeUp);
+        writer.println(prefix + "\tmIgnoreStateChangesDuringMultiWindowAnimation="
+                + mIgnoreStateChangesDuringMultiWindowAnimation);
         writer.println(prefix + "\tmPauseBlurs=" + mPauseBlurs);
         writer.println(prefix + "\tmWaitingOnSurfaceValidity=" + mWaitingOnSurfaceValidity);
     }

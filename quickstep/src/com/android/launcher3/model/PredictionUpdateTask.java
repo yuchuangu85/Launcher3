@@ -18,6 +18,7 @@ package com.android.launcher3.model;
 import static com.android.launcher3.EncryptionType.ENCRYPTED;
 import static com.android.launcher3.LauncherPrefs.nonRestorableItem;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
+import static com.android.launcher3.icons.cache.CacheLookupFlag.DEFAULT_LOOKUP_FLAG;
 import static com.android.quickstep.InstantAppResolverImpl.COMPONENT_CLASS_MARKER;
 
 import android.app.prediction.AppTarget;
@@ -34,15 +35,13 @@ import com.android.launcher3.ConstantItem;
 import com.android.launcher3.LauncherModel.ModelUpdateTask;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.icons.IconCache;
-import com.android.launcher3.model.BgDataModel.ModificationSource.ModelTask;
+import com.android.launcher3.model.BgDataModel.FixedContainerItems;
+import com.android.launcher3.model.QuickstepModelDelegate.PredictorState;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.model.data.PredictedContainerInfo;
-import com.android.launcher3.model.data.PredictedItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,10 +57,7 @@ public class PredictionUpdateTask implements ModelUpdateTask {
     private final List<AppTarget> mTargets;
     private final PredictorState mPredictorState;
 
-    PredictionUpdateTask(
-            PredictorState predictorState,
-            List<AppTarget> targets
-    ) {
+    PredictionUpdateTask(PredictorState predictorState, List<AppTarget> targets) {
         mPredictorState = predictorState;
         mTargets = targets;
     }
@@ -76,9 +72,8 @@ public class PredictionUpdateTask implements ModelUpdateTask {
         LauncherPrefs.get(context).put(LAST_PREDICTION_ENABLED, !mTargets.isEmpty());
 
         Set<UserHandle> usersForChangedShortcuts =
-                dataModel.itemsIdMap.getPredictedContents(mPredictorState.containerId).stream()
-                        .filter(info -> info != null &&
-                                info.itemType == ITEM_TYPE_DEEP_SHORTCUT)
+                dataModel.extraItems.get(mPredictorState.containerId).items.stream()
+                        .filter(info -> info.itemType == ITEM_TYPE_DEEP_SHORTCUT)
                         .map(info -> info.user)
                         .collect(Collectors.toSet());
 
@@ -112,7 +107,7 @@ public class PredictionUpdateTask implements ModelUpdateTask {
                                 return null;
                             }
                             AppInfo ai = new AppInfo(context, lai, user);
-                            iconCache.getTitleAndIcon(ai, lai, mPredictorState.lookupFlag);
+                            iconCache.getTitleAndIcon(ai, lai, DEFAULT_LOOKUP_FLAG);
                             return ai.makeWorkspaceItem(context);
                         });
 
@@ -122,15 +117,15 @@ public class PredictionUpdateTask implements ModelUpdateTask {
             }
 
             itemInfo.container = mPredictorState.containerId;
-            items.add(new PredictedItemInfo(itemInfo));
+            items.add(itemInfo);
         }
 
-        PredictedContainerInfo pci = new PredictedContainerInfo(mPredictorState.containerId, items);
-        dataModel.updateAndDispatchItem(pci /* item */, ModelTask.INSTANCE /* owner */);
-        taskController.bindUpdatedWorkspaceItems(Collections.singleton(pci));
+        FixedContainerItems fci = new FixedContainerItems(mPredictorState.containerId, items);
+        dataModel.extraItems.put(fci.containerId, fci);
+        taskController.bindExtraContainerItems(fci);
         usersForChangedShortcuts.forEach(u -> dataModel.updateShortcutPinnedState(context, u));
 
         // Save to disk
-        mPredictorState.storage.write(context, pci.getContents());
+        mPredictorState.storage.write(context, fci.items);
     }
 }

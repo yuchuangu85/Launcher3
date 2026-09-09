@@ -37,7 +37,6 @@ import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.FloatingHeaderRow;
 import com.android.launcher3.allapps.FloatingHeaderView;
-import com.android.launcher3.util.Themes;
 
 /**
  * A view which shows a horizontal divider
@@ -85,8 +84,9 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
                 getResources().getDimensionPixelSize(R.dimen.all_apps_divider_height)
         };
 
-        mStrokeColor = Themes.getAttrColor(context, R.attr.bottomSheetDragHandleColor);
-        mAllAppsLabelTextColor = context.getColor(R.color.materialColorOnSurface);
+        mStrokeColor = context.getColor(R.color.materialColorOutlineVariant);
+
+        mAllAppsLabelTextColor = context.getColor(R.color.materialColorOnSurfaceVariant);
 
         mAccessibilityManager = AccessibilityManager.getInstance(context);
         setShowAllAppsLabel(!ALL_APPS_VISITED_COUNT.hasReachedMax(context));
@@ -160,7 +160,6 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
                     bottomPadding = getResources()
                             .getDimensionPixelSize(R.dimen.all_apps_prediction_row_divider_height);
                     mPaint.setColor(mStrokeColor);
-                    setAccessibilityHeading(false);
                     break;
                 case ALL_APPS_LABEL:
                     topPadding = getAllAppsLabelLayout().getHeight() + getResources()
@@ -169,7 +168,6 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
                             .getDimensionPixelSize(R.dimen.all_apps_label_bottom_padding);
                     mPaint.setColor(mAllAppsLabelTextColor);
                     setContentDescription(mAllAppsLabelLayout.getText());
-                    setAccessibilityHeading(true);
                     break;
                 case NONE:
                 default:
@@ -213,7 +211,7 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
     private Layout getAllAppsLabelLayout() {
         if (mAllAppsLabelLayout == null) {
             mPaint.setAntiAlias(true);
-            mPaint.setTypeface(Typeface.create("variable-title-small", Typeface.NORMAL));
+            mPaint.setTypeface(Typeface.create("google-sans", Typeface.NORMAL));
             mPaint.setTextSize(
                     getResources().getDimensionPixelSize(R.dimen.all_apps_label_text_size));
 

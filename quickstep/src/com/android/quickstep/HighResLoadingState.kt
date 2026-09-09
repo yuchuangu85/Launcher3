@@ -18,10 +18,8 @@ package com.android.quickstep
 
 import android.content.res.Resources
 import com.android.quickstep.recents.data.HighResLoadingStateNotifier
-import java.util.concurrent.CopyOnWriteArrayList
 
 /** Determines when high res or low res thumbnails should be loaded. */
-@Deprecated("will be removed with flag: enable_low_res_thumbnail_preloading")
 class HighResLoadingState : HighResLoadingStateNotifier {
     // If the device does not support low-res thumbnails, only attempt to load high-res thumbnails
     private val forceHighResThumbnails = !supportsLowResThumbnails()
@@ -40,7 +38,7 @@ class HighResLoadingState : HighResLoadingStateNotifier {
     var isEnabled: Boolean = false
         private set
 
-    private val callbacks = CopyOnWriteArrayList<HighResLoadingStateChangedCallback>()
+    private val callbacks = ArrayList<HighResLoadingStateChangedCallback>()
 
     interface HighResLoadingStateChangedCallback {
         fun onHighResLoadingStateChanged(enabled: Boolean)
@@ -58,7 +56,7 @@ class HighResLoadingState : HighResLoadingStateNotifier {
         val prevState = isEnabled
         isEnabled = forceHighResThumbnails || (visible && !flingingFast)
         if (prevState != isEnabled) {
-            for (callback in callbacks) {
+            for (callback in callbacks.asReversed()) {
                 callback.onHighResLoadingStateChanged(isEnabled)
             }
         }

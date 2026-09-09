@@ -16,7 +16,7 @@
 -->
 
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/materialColorSecondaryContainer" />
+    <solid android:color="@color/materialColorSurfaceBright" />
     <corners android:topLeftRadius="@dimen/task_thumbnail_header_round_corner_radius"
         android:topRightRadius="@dimen/task_thumbnail_header_round_corner_radius"/>
 </shape>

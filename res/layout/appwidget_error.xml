@@ -23,6 +23,6 @@
     android:theme="@style/WidgetContainerTheme"
     android:background="@drawable/round_rect_primary"
     android:textAppearance="?android:attr/textAppearanceMediumInverse"
-    android:textColor="@color/materialColorOnSurfaceVariant"
+    android:textColor="?android:attr/textColorSecondary"
     android:text="@string/gadget_error_text"
     />

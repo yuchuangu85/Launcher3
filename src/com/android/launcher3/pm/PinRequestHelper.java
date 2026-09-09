@@ -79,9 +79,8 @@ public class PinRequestHelper {
             // Apply the unbadged icon synchronously using the caching logic directly and
             // fetch the actual icon asynchronously.
             LauncherAppState app = LauncherAppState.getInstance(context);
-            info.bitmap = app.getIconCache().getIconLoadRequest(
-                    new CacheableShortcutInfo(si, context),
-                    CacheableShortcutCachingLogic.INSTANCE).evaluate();
+            info.bitmap = CacheableShortcutCachingLogic.INSTANCE.loadIcon(
+                    context, app.getIconCache(), new CacheableShortcutInfo(si, context));
             app.getModel().updateAndBindWorkspaceItem(info, si);
             return info;
         } else {

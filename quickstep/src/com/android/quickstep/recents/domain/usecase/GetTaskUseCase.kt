@@ -16,56 +16,26 @@
 
 package com.android.quickstep.recents.domain.usecase
 
-import android.os.UserHandle
-import com.android.launcher3.Flags.enableRefactorDigitalWellbeingToast
-import com.android.launcher3.util.OverviewReleaseFlags.enableLaterIsLockedCheck
 import com.android.quickstep.recents.data.RecentTasksRepository
-import com.android.quickstep.recents.data.UserLockedStateRepository
 import com.android.quickstep.recents.domain.model.TaskModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class GetTaskUseCase
-@Inject
-constructor(
-    private val tasksRepository: RecentTasksRepository,
-    private val getRemainingAppTimerDurationUseCase: GetRemainingAppTimerDurationUseCase,
-    private val userLockedStateRepository: UserLockedStateRepository,
-) {
+class GetTaskUseCase(private val repository: RecentTasksRepository) {
     operator fun invoke(taskId: Int): Flow<TaskModel?> =
-        tasksRepository.getTaskDataById(taskId).map { task ->
-            if (task == null) return@map null
-
-            val packageName = task.topComponent.packageName
-
-            val remainingDuration =
-                if (enableRefactorDigitalWellbeingToast()) {
-                    getRemainingAppTimerDurationUseCase(
-                        packageName = packageName,
-                        userHandle = UserHandle(task.key.userId),
-                    )
-                } else {
-                    null
-                }
-
-            val isLocked =
-                if (enableLaterIsLockedCheck())
-                    userLockedStateRepository.getIsUserLocked(task.key.userId)
-                else task.isLocked
-
-            TaskModel(
-                id = task.key.id,
-                packageName = packageName,
-                title = task.title,
-                titleDescription = task.titleDescription,
-                icon = task.icon,
-                thumbnail = task.thumbnail,
-                backgroundColor = task.colorBackground,
-                isLocked = isLocked,
-                isMinimized = task.isMinimized,
-                remainingAppDuration = remainingDuration,
-                isAppLocked = task.isAppLockEnabled,
-            )
+        repository.getTaskDataById(taskId).map { task ->
+            if (task != null) {
+                TaskModel(
+                    id = task.key.id,
+                    title = task.title,
+                    titleDescription = task.titleDescription,
+                    icon = task.icon,
+                    thumbnail = task.thumbnail,
+                    backgroundColor = task.colorBackground,
+                    isLocked = task.isLocked,
+                )
+            } else {
+                null
+            }
         }
 }

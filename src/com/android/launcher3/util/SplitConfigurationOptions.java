@@ -114,6 +114,125 @@ public final class SplitConfigurationOptions {
         }
     }
 
+    /**
+     * NOTE: Engineers complained about too little ambiguity in the last survey, so there is a class
+     * with the same name/functionality in wm.shell.util (which launcher3 cannot be built against)
+     *
+     * If you make changes here, consider making the same changes there
+     * TODO(b/254378592): We really need to consolidate this
+     */
+    public static class SplitBounds {
+        public final Rect leftTopBounds;
+        public final Rect rightBottomBounds;
+        /** This rect represents the actual gap between the two apps */
+        public final Rect visualDividerBounds;
+        // This class is orientation-agnostic, so we compute both for later use
+        private final float topTaskPercent;
+        private final float leftTaskPercent;
+        private final float dividerWidthPercent;
+        private final float dividerHeightPercent;
+        public final int snapPosition;
+
+        /**
+         * If {@code true}, that means at the time of creation of this object, the
+         * split-screened apps were vertically stacked. This is useful in scenarios like
+         * rotation where the bounds won't change, but this variable can indicate what orientation
+         * the bounds were originally in
+         */
+        public final boolean appsStackedVertically;
+        /**
+         * If {@code true}, that means at the time of creation of this object, the phone was in
+         * seascape orientation. This is important on devices with insets, because they do not split
+         * evenly -- one of the insets must be slightly larger to account for the inset.
+         * From landscape, it is the leftTop task that expands slightly.
+         * From seascape, it is the rightBottom task that expands slightly.
+         */
+        public final boolean initiatedFromSeascape;
+        public final int leftTopTaskId;
+        public final int rightBottomTaskId;
+
+        public SplitBounds(Rect leftTopBounds, Rect rightBottomBounds, int leftTopTaskId,
+                int rightBottomTaskId, int snapPosition) {
+            this.leftTopBounds = leftTopBounds;
+            this.rightBottomBounds = rightBottomBounds;
+            this.leftTopTaskId = leftTopTaskId;
+            this.rightBottomTaskId = rightBottomTaskId;
+            this.snapPosition = snapPosition;
+
+            if (rightBottomBounds.top > leftTopBounds.top) {
+                // vertical apps, horizontal divider
+                this.visualDividerBounds = new Rect(leftTopBounds.left, leftTopBounds.bottom,
+                        leftTopBounds.right, rightBottomBounds.top);
+                appsStackedVertically = true;
+                initiatedFromSeascape = false;
+            } else {
+                // horizontal apps, vertical divider
+                this.visualDividerBounds = new Rect(leftTopBounds.right, leftTopBounds.top,
+                        rightBottomBounds.left, leftTopBounds.bottom);
+                appsStackedVertically = false;
+                // The following check is unreliable on devices without insets
+                // (initiatedFromSeascape will always be set to false.) This happens to be OK for
+                // all our current uses, but should be refactored.
+                // TODO: Create a more reliable check, or refactor how splitting works on devices
+                //  with insets.
+                if (rightBottomBounds.width() > leftTopBounds.width()) {
+                    initiatedFromSeascape = true;
+                } else {
+                    initiatedFromSeascape = false;
+                }
+            }
+
+            float totalWidth = rightBottomBounds.right - leftTopBounds.left;
+            float totalHeight = rightBottomBounds.bottom - leftTopBounds.top;
+            leftTaskPercent = leftTopBounds.width() / totalWidth;
+            topTaskPercent = leftTopBounds.height() / totalHeight;
+            dividerWidthPercent = visualDividerBounds.width() / totalWidth;
+            dividerHeightPercent = visualDividerBounds.height() / totalHeight;
+        }
+
+        /**
+         * Returns the percentage size of the left/top task (compared to the full width/height of
+         * the split pair). E.g. if the left task is 4 units wide, the divider is 2 units, and the
+         * right task is 4 units, this method will return 0.4f.
+         */
+        public float getLeftTopTaskPercent() {
+            // topTaskPercent and leftTaskPercent are defined at creation time, and are not updated
+            // on device rotate, so we have to check appsStackedVertically to return the right
+            // creation-time measurements.
+            return appsStackedVertically ? topTaskPercent : leftTaskPercent;
+        }
+
+        /**
+         * Returns the percentage size of the divider's thickness (compared to the full width/height
+         * of the split pair). E.g. if the left task is 4 units wide, the divider is 2 units, and
+         * the right task is 4 units, this method will return 0.2f.
+         */
+        public float getDividerPercent() {
+            // dividerHeightPercent and dividerWidthPercent are defined at creation time, and are
+            // not updated on device rotate, so we have to check appsStackedVertically to return
+            // the right creation-time measurements.
+            return appsStackedVertically ? dividerHeightPercent : dividerWidthPercent;
+        }
+
+        /**
+         * Returns the percentage size of the right/bottom task (compared to the full width/height
+         * of the split pair). E.g. if the left task is 4 units wide, the divider is 2 units, and
+         * the right task is 4 units, this method will return 0.4f.
+         */
+        public float getRightBottomTaskPercent() {
+            return 1 - (getLeftTopTaskPercent() + getDividerPercent());
+        }
+
+        @Override
+        public String toString() {
+            return "LeftTop: " + leftTopBounds + ", taskId: " + leftTopTaskId + "\n"
+                    + "RightBottom: " + rightBottomBounds + ", taskId: " + rightBottomTaskId +  "\n"
+                    + "Divider: " + visualDividerBounds + "\n"
+                    + "AppsVertical? " + appsStackedVertically + "\n"
+                    + "snapPosition: " + snapPosition;
+        }
+    }
+
     public static class SplitStageInfo {
         public int taskId = -1;
         @StagePosition

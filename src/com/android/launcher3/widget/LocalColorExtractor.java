@@ -20,25 +20,26 @@ import android.app.WallpaperColors;
 import android.content.Context;
 import android.util.SparseIntArray;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import javax.inject.Inject;
+import com.android.launcher3.R;
+import com.android.launcher3.util.ResourceBasedOverride;
 
 /** Extracts the colors we need from the wallpaper at given locations. */
-public class LocalColorExtractor {
+public class LocalColorExtractor implements ResourceBasedOverride {
 
-    @Inject
-    public LocalColorExtractor() {
+    /**
+     * Creates a new instance of LocalColorExtractor
+     */
+    public static LocalColorExtractor newInstance(Context context) {
+        return Overrides.getObject(LocalColorExtractor.class, context.getApplicationContext(),
+                R.string.local_colors_extraction_class);
     }
 
     /**
      * Updates the base context to contain the colors override
      */
-    @Nullable
-    public ColorsOverride applyColorsOverride(Context base, WallpaperColors colors) {
-        return null;
-    }
+    public void applyColorsOverride(Context base, WallpaperColors colors) { }
 
     /**
      * Generates color resource overrides from {@link WallpaperColors}.
@@ -51,18 +52,5 @@ public class LocalColorExtractor {
     /**
      * Updates the base context to contain the colors override
      */
-    @Nullable
-    public ColorsOverride applyColorsOverride(Context base, SparseIntArray override) {
-        return null;
-    }
-
-    /**
-     * Updates the base context with a color overlay generated using the seeds colors and style, and
-     * returns a {@link ColorsOverride} for using the override
-     */
-    @Nullable
-    public ColorsOverride applyColorOverlay(@NonNull Context base, @NonNull int[] seedColors,
-            int style) {
-        return null;
-    }
+    public void applyColorsOverride(Context base, SparseIntArray override) { }
 }

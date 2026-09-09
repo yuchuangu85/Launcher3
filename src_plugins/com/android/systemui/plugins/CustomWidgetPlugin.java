@@ -18,6 +18,7 @@ package com.android.systemui.plugins;
 
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetProviderInfo;
+import android.content.Context;
 
 import com.android.systemui.plugins.annotations.ProvidesInterface;
 
@@ -37,7 +38,17 @@ public interface CustomWidgetPlugin extends Plugin {
     void onViewCreated(AppWidgetHostView parent);
 
     /**
+     * Get the UUID for the custom widget.
+     *
+     * @deprecated Not used
+     */
+    @Deprecated
+    default String getId() {
+        return "";
+    }
+
+    /**
      * Used to modify a widgets' info.
      */
-    default void updateWidgetInfo(AppWidgetProviderInfo info) { }
+    default void updateWidgetInfo(AppWidgetProviderInfo info, Context context) { }
 }

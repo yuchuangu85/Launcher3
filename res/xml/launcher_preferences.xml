@@ -37,4 +37,17 @@
         launcher:logIdOn="613"
         launcher:logIdOff="614" />
 
+    <!--
+      LAUNCHER_HOME_SCREEN_ROTATION_ENABLED(615)
+      LAUNCHER_HOME_SCREEN_ROTATION_DISABLED(616)
+    -->
+    <SwitchPreference
+        android:key="pref_allowRotation"
+        android:title="@string/allow_rotation_title"
+        android:summary="@string/allow_rotation_desc"
+        android:defaultValue="false"
+        android:persistent="true"
+        launcher:logIdOn="615"
+        launcher:logIdOff="616" />
+
 </androidx.preference.PreferenceScreen>

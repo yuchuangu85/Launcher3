@@ -17,7 +17,6 @@
 <com.android.launcher3.AppWidgetResizeFrame
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:elevation="1dp"
     android:layout_height="match_parent"
     android:padding="0dp">
 

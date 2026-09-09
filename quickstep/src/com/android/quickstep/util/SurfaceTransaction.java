@@ -63,24 +63,6 @@ public class SurfaceTransaction {
         }
 
         /**
-         * @param color The color value to apply to the surface.
-         * @return this Builder
-         */
-        public SurfaceProperties setColor(float[] color) {
-            mTransaction.setColor(mSurface, color);
-            return this;
-        }
-
-        /**
-         * @param opaque Whether the surface is opaque.
-         * @return this Builder
-         */
-        public SurfaceProperties setOpaque(boolean opaque) {
-            mTransaction.setOpaque(mSurface, opaque);
-            return this;
-        }
-
-        /**
          * @param matrix The matrix to apply to the surface.
          * @return this Builder
          */
@@ -99,30 +81,11 @@ public class SurfaceTransaction {
         }
 
         /**
-         * @param z The Z-order of the surface.
+         * @param relativeLayer The relative layer.
          * @return this Builder
          */
-        public SurfaceProperties setLayer(int z) {
-            mTransaction.setLayer(mSurface, z);
-            return this;
-        }
-
-        /**
-         * @param relativeTo The surface to apply the Z-order relative to.
-         * @param z The Z-order to apply to the current surface relative to the relativeTo surface.
-         * @return this Builder
-         */
-        public SurfaceProperties setRelativeLayer(SurfaceControl relativeTo, int z) {
-            mTransaction.setRelativeLayer(mSurface, relativeTo, z);
-            return this;
-        }
-
-        /**
-         * @param newParent The new parent for the surface.
-         * @return this Builder
-         */
-        public SurfaceProperties reparent(SurfaceControl newParent) {
-            mTransaction.reparent(mSurface, newParent);
+        public SurfaceProperties setLayer(int relativeLayer) {
+            mTransaction.setLayer(mSurface, relativeLayer);
             return this;
         }
 
@@ -145,29 +108,11 @@ public class SurfaceTransaction {
         }
 
         /**
-         * @param radius The radius for the background blur to apply to the surface.
-         * @return this Builder
-         */
-        public SurfaceProperties setBackgroundBlurRadius(int radius) {
-            mTransaction.setBackgroundBlurRadius(mSurface, radius);
-            return this;
-        }
-
-        /**
          * Requests to show the given surface.
          * @return this Builder
          */
         public SurfaceProperties setShow() {
             mTransaction.show(mSurface);
-            return this;
-        }
-
-        /**
-         * Requests to remove the given surface.
-         * @return this Builder
-         */
-        public SurfaceProperties setRemove() {
-            mTransaction.remove(mSurface);
             return this;
         }
     }
@@ -178,12 +123,10 @@ public class SurfaceTransaction {
     public class MockProperties extends SurfaceProperties {
 
         public float alpha = -1;
-        public boolean opaque = false;
         public Matrix matrix = null;
         public Rect windowCrop = null;
         public float cornerRadius = 0;
         public float shadowRadius = 0;
-        public int backgroundBlurRadius = 0;
 
         protected MockProperties() {
             super(null);
@@ -192,12 +135,6 @@ public class SurfaceTransaction {
         @Override
         public SurfaceProperties setAlpha(float alpha) {
             this.alpha = alpha;
-            return this;
-        }
-
-        @Override
-        public SurfaceProperties setOpaque(boolean opaque) {
-            this.opaque = opaque;
             return this;
         }
 
@@ -214,17 +151,7 @@ public class SurfaceTransaction {
         }
 
         @Override
-        public SurfaceProperties setLayer(int z) {
-            return this;
-        }
-
-        @Override
-        public SurfaceProperties setRelativeLayer(SurfaceControl relativeTo, int z) {
-            return this;
-        }
-
-        @Override
-        public SurfaceProperties reparent(SurfaceControl newParent) {
+        public SurfaceProperties setLayer(int relativeLayer) {
             return this;
         }
 
@@ -241,18 +168,7 @@ public class SurfaceTransaction {
         }
 
         @Override
-        public SurfaceProperties setBackgroundBlurRadius(int radius) {
-            this.backgroundBlurRadius = radius;
-            return this;
-        }
-
-        @Override
         public SurfaceProperties setShow() {
-            return this;
-        }
-
-        @Override
-        public SurfaceProperties setRemove() {
             return this;
         }
     }

@@ -21,10 +21,6 @@ package com.android.launcher3.util;
  */
 public class StateManagerProtoLogProxy {
 
-    public static boolean isLoggingToLogcat() {
-        return false;
-    }
-
     public static void logGoToState(Object fromState, Object toState, String trace) { }
 
     public static void logCreateAtomicAnimation(Object fromState, Object toState, String trace) { }
@@ -32,8 +28,6 @@ public class StateManagerProtoLogProxy {
     public static void logOnStateTransitionStart(Object state) { }
 
     public static void logOnStateTransitionEnd(Object state) { }
-
-    public static void logOnRepeatStateSetAborted(Object state) { }
 
     public static void logCancelAnimation(boolean animationOngoing, String trace) { }
 }

@@ -106,9 +106,6 @@ public class DoubleShadowBubbleTextView extends BubbleTextView {
         if (shouldDrawAppContrastTile() && !TextUtils.isEmpty(getText())) {
             drawAppContrastTile(canvas);
         }
-
-        super.drawSelectedBackgroundIfNecessary(canvas);
-
         // If text is transparent or shadow alpha is 0, don't draw any shadow
         if (skipDoubleShadow()) {
             super.onDraw(canvas);

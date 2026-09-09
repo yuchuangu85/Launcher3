@@ -16,8 +16,8 @@
 package com.android.launcher3.model;
 
 import static com.android.launcher3.LauncherSettings.Favorites.addTableToDb;
+import static com.android.launcher3.Utilities.SHOULD_SHOW_FIRST_PAGE_WIDGET;
 import static com.android.launcher3.provider.LauncherDbUtils.dropTable;
-import static com.android.launcher3.util.SQLiteCacheHelper.createNoLocaleParams;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -26,7 +26,6 @@ import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 import android.os.Process;
 import android.os.UserHandle;
@@ -38,17 +37,17 @@ import androidx.annotation.NonNull;
 
 import com.android.launcher3.AutoInstallsLayout;
 import com.android.launcher3.AutoInstallsLayout.LayoutParserCallback;
-import com.android.launcher3.BuildConfig;
-import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.provider.LauncherDbUtils;
 import com.android.launcher3.provider.LauncherDbUtils.SQLiteTransaction;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.IntSet;
+import com.android.launcher3.util.NoLocaleSQLiteHelper;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.widget.LauncherWidgetHolder;
@@ -58,35 +57,41 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 /**
  * SqLite database for launcher home-screen model
  * The class is subclassed in tests to create an in-memory db.
  */
-public class DatabaseHelper extends SQLiteOpenHelper implements
+public class DatabaseHelper extends NoLocaleSQLiteHelper implements
         LayoutParserCallback {
 
     /**
      * Represents the schema of the database. Changes in scheme need not be backwards compatible.
      * When increasing the scheme version, ensure that downgrade_schema.json is updated
      */
-    public static final int SCHEMA_VERSION = Flags.enableLauncherIconShapes() ? 34 : 32;
+    public static final int SCHEMA_VERSION = 32;
     private static final String TAG = "DatabaseHelper";
     private static final boolean LOGD = false;
 
     private static final String DOWNGRADE_SCHEMA_FILE = "downgrade_schema.json";
 
     private final Context mContext;
+    private final ToLongFunction<UserHandle> mUserSerialProvider;
     private final Runnable mOnEmptyDbCreateCallback;
     private final AtomicInteger mMaxItemId = new AtomicInteger(-1);
+
+    public boolean mHotseatRestoreTableExists;
 
     /**
      * Constructor used in tests and for restore.
      */
-    public DatabaseHelper(Context context, String dbName, Runnable onEmptyDbCreateCallback) {
-        super(context, dbName, SCHEMA_VERSION, createNoLocaleParams());
+    public DatabaseHelper(Context context, String dbName,
+            ToLongFunction<UserHandle> userSerialProvider, Runnable onEmptyDbCreateCallback) {
+        super(context, dbName, SCHEMA_VERSION);
         mContext = context;
+        mUserSerialProvider = userSerialProvider;
         mOnEmptyDbCreateCallback = onEmptyDbCreateCallback;
     }
 
@@ -109,8 +114,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements
         mOnEmptyDbCreateCallback.run();
     }
 
+    public void onAddOrDeleteOp(SQLiteDatabase db) {
+        if (mHotseatRestoreTableExists) {
+            dropTable(db, Favorites.HYBRID_HOTSEAT_BACKUP_TABLE);
+            mHotseatRestoreTableExists = false;
+        }
+    }
+
     private long getDefaultUserSerial() {
-        return UserCache.INSTANCE.get(mContext).getSerialNumberForUser(Process.myUserHandle());
+        return mUserSerialProvider.applyAsLong(Process.myUserHandle());
     }
 
     @Override
@@ -245,7 +257,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements
                         Favorites.SCREEN, IntArray.wrap(-777, -778)), null);
             }
             case 30: {
-                if (BuildConfig.QSB_ON_FIRST_SCREEN) {
+                if (FeatureFlags.QSB_ON_FIRST_SCREEN
+                        && !SHOULD_SHOW_FIRST_PAGE_WIDGET) {
                     // Clean up first row in screen 0 as it might contain junk data.
                     Log.d(TAG, "Cleaning up first row");
                     db.delete(Favorites.TABLE_NAME,
@@ -259,15 +272,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements
             case 31: {
                 LauncherDbUtils.migrateLegacyShortcuts(mContext, db);
             }
-            // Skip version 32 as it introduced a restore bug, and is no longer necessary
-            case 32:
-            case 33: {
-                // Ensure backup icons are updated to default shape to handle downgrade backup
-                FileLog.d(TAG, "Cropping db icons to default shape for downgrade backup");
-                LauncherDbUtils.updateBackupIcons(mContext, db, /** useDefaultShape */ true);
-            }
             // Fall through
-            case 34: {
+            case 32: {
                 // DB Upgraded successfully
                 return;
             }
@@ -460,19 +466,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements
 
     @Override
     public int insertAndCheck(SQLiteDatabase db, ContentValues values) {
+        return dbInsertAndCheck(db, Favorites.TABLE_NAME, values);
+    }
+
+    public int dbInsertAndCheck(SQLiteDatabase db, String table, ContentValues values) {
         if (values == null) {
             throw new RuntimeException("Error: attempting to insert null values");
         }
         if (!values.containsKey(LauncherSettings.Favorites._ID)) {
             throw new RuntimeException("Error: attempting to add item without specifying an id");
         }
-
-        updateMaxId(values.getAsInteger(Favorites._ID));
-        return (int) db.insert(Favorites.TABLE_NAME, null, values);
+        checkId(values);
+        return (int) db.insert(table, null, values);
     }
 
-    /** Updates the max ID counter to include the provided id */
-    public void updateMaxId(int id) {
+    public void checkId(ContentValues values) {
+        int id = values.getAsInteger(Favorites._ID);
         mMaxItemId.accumulateAndGet(id, Math::max);
     }
 

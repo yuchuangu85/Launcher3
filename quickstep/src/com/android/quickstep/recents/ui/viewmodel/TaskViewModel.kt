@@ -18,16 +18,10 @@ package com.android.quickstep.recents.ui.viewmodel
 
 import android.annotation.ColorInt
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import androidx.core.graphics.ColorUtils
-import com.android.launcher3.concurrent.annotations.LightweightBackground
-import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority
+import com.android.launcher3.util.coroutines.DispatcherProvider
 import com.android.quickstep.recents.domain.model.TaskId
-import com.android.quickstep.recents.domain.model.TaskLayoutConfig
-import com.android.quickstep.recents.domain.model.TaskLayoutState
-import com.android.quickstep.recents.domain.model.TaskLayoutState.DesktopTaskLayoutState
 import com.android.quickstep.recents.domain.model.TaskModel
-import com.android.quickstep.recents.domain.usecase.GetDesktopTaskLayoutStateUseCase
 import com.android.quickstep.recents.domain.usecase.GetSysUiStatusNavFlagsUseCase
 import com.android.quickstep.recents.domain.usecase.GetTaskUseCase
 import com.android.quickstep.recents.domain.usecase.GetThumbnailPositionUseCase
@@ -35,16 +29,11 @@ import com.android.quickstep.recents.domain.usecase.IsThumbnailValidUseCase
 import com.android.quickstep.recents.domain.usecase.ThumbnailPosition
 import com.android.quickstep.recents.viewmodel.RecentsViewData
 import com.android.quickstep.views.TaskViewType
-import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
-import com.android.wm.shell.shared.split.SplitBounds
-import javax.inject.Inject
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
@@ -55,160 +44,85 @@ import kotlinx.coroutines.flow.map
  * [com.android.quickstep.views.DesktopTaskView] and [com.android.quickstep.views.GroupedTaskView].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TaskViewModel
-@Inject
-constructor(
+class TaskViewModel(
+    private val taskViewType: TaskViewType,
     recentsViewData: RecentsViewData,
     private val getTaskUseCase: GetTaskUseCase,
     private val getSysUiStatusNavFlagsUseCase: GetSysUiStatusNavFlagsUseCase,
     private val isThumbnailValidUseCase: IsThumbnailValidUseCase,
     private val getThumbnailPositionUseCase: GetThumbnailPositionUseCase,
-    private val getDesktopTaskLayoutStateUseCase: GetDesktopTaskLayoutStateUseCase,
-    @LightweightBackground(LightweightBackgroundPriority.UI)
-    lightweightBackgroundDispatcher: CoroutineDispatcher,
+    dispatcherProvider: DispatcherProvider,
 ) {
-    private lateinit var taskViewType: TaskViewType
-    private val taskIds = MutableStateFlow(emptySet<Int>())
+    private var taskIds = MutableStateFlow(emptySet<Int>())
 
-    private val taskModels =
-        taskIds.flatMapLatest { ids ->
-            // Combine Tasks requests
-            val taskFlows =
-                ids.map { id ->
-                    getTaskUseCase(id).distinctUntilChanged().map { taskModel -> id to taskModel }
-                }
-            combine(taskFlows) { taskArray -> taskArray }
-        }
-
-    val state: Flow<TaskTileUiState> =
-        com.android.launcher3.util.coroutines
-            .combine(
-                taskModels,
+    private val isLiveTile =
+        combine(
+                taskIds,
                 recentsViewData.runningTaskIds,
                 recentsViewData.runningTaskShowScreenshot,
-                recentsViewData.overlayEnabled,
-                recentsViewData.settledFullyVisibleTaskIds,
-                recentsViewData.centralTaskIds,
-            ) {
-                taskModels: Array<Pair<Int, TaskModel?>>,
-                runningTaskIds: Set<Int>,
-                runningTaskShowScreenshot: Boolean,
-                isOverlayEnabled: Boolean,
-                settledFullyVisibleTaskIds: Set<Int>,
-                centralTaskIds: Set<Int> ->
-                val taskIds = taskModels.map { it.first }.toSet()
-                val isCentralTask = taskIds == centralTaskIds
-                val overlayEnabled =
-                    when (taskViewType) {
-                        TaskViewType.SINGLE -> {
-                            isOverlayEnabled && settledFullyVisibleTaskIds.any { it in taskIds }
-                        }
-                        else -> false
-                    }
-                val isLiveTile = runningTaskIds == taskIds && !runningTaskShowScreenshot
-                val taskData = mapToTaskData(taskModels.toList(), isLiveTile)
-
-                mapToTaskTile(taskData, overlayEnabled, isCentralTask)
+            ) { taskIds, runningTaskIds, runningTaskShowScreenshot ->
+                runningTaskIds == taskIds && !runningTaskShowScreenshot
             }
             .distinctUntilChanged()
-            .debounce { state ->
-                // Debouncing only when thumbnails are not present gives the best results.
-                // This is because thumbnail loading is a decent predictor of there being no more
-                // emissions to come as they are typically the last emission for a TaskView.
-                if (state.tasks.any { (it as? TaskData.Data)?.thumbnailData?.thumbnail == null }) {
-                    DEBOUNCE_DELAY_MS
-                } else {
-                    0
-                }
+
+    private val isCentralTask =
+        combine(taskIds, recentsViewData.centralTaskIds) { taskIds, centralTaskIds ->
+                taskIds == centralTaskIds
             }
-            .flowOn(lightweightBackgroundDispatcher)
+            .distinctUntilChanged()
 
-    var taskLayoutStateMap = emptyMap<TaskId, TaskLayoutState>()
-        @VisibleForTesting set
+    private val taskData =
+        taskIds.flatMapLatest { ids ->
+            // Combine Tasks requests
+            combine(
+                ids.map { id -> getTaskUseCase(id).map { taskModel -> id to taskModel } },
+                ::mapToTaskData,
+            )
+        }
 
-    fun bind(taskViewType: TaskViewType, vararg taskId: TaskId) {
-        this.taskViewType = taskViewType
-        taskIds.value =
-            taskId.toSet().also { Log.d(TAG, "bind $this as $taskViewType to taskIds: $it") }
+    private val overlayEnabled =
+        combine(recentsViewData.overlayEnabled, recentsViewData.settledFullyVisibleTaskIds) {
+                isOverlayEnabled,
+                settledFullyVisibleTaskIds ->
+                isOverlayEnabled && settledFullyVisibleTaskIds.any { it in taskIds.value }
+            }
+            .distinctUntilChanged()
+
+    val state: Flow<TaskTileUiState> =
+        combine(taskData, isLiveTile, overlayEnabled, isCentralTask, ::mapToTaskTile)
+            .distinctUntilChanged()
+            .flowOn(dispatcherProvider.background)
+
+    fun bind(vararg taskId: TaskId) {
+        taskIds.value = taskId.toSet().also { Log.d(TAG, "bind: $it") }
     }
 
-    fun unbind() {
-        taskIds.value = emptySet()
-        Log.d(TAG, "unbind $this")
-    }
-
-    fun isThumbnailValid(
-        thumbnail: ThumbnailData?,
-        width: Int,
-        height: Int,
-        splitBounds: SplitBounds?,
-        stagePosition: Int,
-    ): Boolean = isThumbnailValidUseCase(thumbnail, width, height, splitBounds, stagePosition)
+    fun isThumbnailValid(thumbnail: ThumbnailData?, width: Int, height: Int): Boolean =
+        isThumbnailValidUseCase(thumbnail, width, height)
 
     fun getThumbnailPosition(
         thumbnail: ThumbnailData?,
         width: Int,
         height: Int,
         isRtl: Boolean,
-        splitBounds: SplitBounds?,
-        splitPosition: Int,
-        densityDpi: Int,
     ): ThumbnailPosition =
         getThumbnailPositionUseCase(
             thumbnailData = thumbnail,
             width = width,
             height = height,
             isRtl = isRtl,
-            splitBounds,
-            splitPosition,
-            densityDpi,
         )
-
-    inline fun <reified T : TaskLayoutState> getTaskLayoutState(taskId: TaskId): T? {
-        val state = taskLayoutStateMap[taskId]
-        return if (state is T) {
-            state
-        } else {
-            null
-        }
-    }
-
-    fun updateTasksLayouts(
-        tasks: List<Task>,
-        layoutConfig: TaskLayoutConfig,
-        dismissedTaskId: TaskId? = null,
-    ) {
-        // For standard task views, we might not need complex organization in the VM yet.
-        when (layoutConfig) {
-            is TaskLayoutConfig.DesktopLayoutConfig -> {
-                val oldTaskLayoutStateMap =
-                    taskLayoutStateMap
-                        .mapNotNull { (taskId, layoutState) ->
-                            (layoutState as? DesktopTaskLayoutState)?.let {
-                                taskId to it.overviewPosition
-                            }
-                        }
-                        .toMap()
-
-                taskLayoutStateMap =
-                    getDesktopTaskLayoutStateUseCase(
-                        tasks = tasks,
-                        layoutConfig = layoutConfig,
-                        oldTaskOverviewPositionsMap = oldTaskLayoutStateMap,
-                        dismissedTaskId = dismissedTaskId,
-                    )
-            }
-        }
-    }
 
     private fun mapToTaskTile(
         tasks: List<TaskData>,
+        isLiveTile: Boolean,
         overlayEnabled: Boolean,
         isCentralTask: Boolean,
     ): TaskTileUiState {
         val firstThumbnailData = (tasks.firstOrNull() as? TaskData.Data)?.thumbnailData
         return TaskTileUiState(
             tasks = tasks,
+            isLiveTile = isLiveTile,
             hasHeader = taskViewType == TaskViewType.DESKTOP,
             sysUiStatusNavFlags = getSysUiStatusNavFlagsUseCase(firstThumbnailData),
             taskOverlayEnabled = overlayEnabled,
@@ -216,25 +130,19 @@ constructor(
         )
     }
 
-    private fun mapToTaskData(
-        result: List<Pair<TaskId, TaskModel?>>,
-        isLiveTile: Boolean,
-    ): List<TaskData> = result.map { mapToTaskData(it.first, it.second, isLiveTile) }
+    private fun mapToTaskData(result: Array<Pair<TaskId, TaskModel?>>): List<TaskData> =
+        result.map { mapToTaskData(it.first, it.second) }
 
-    private fun mapToTaskData(taskId: TaskId, result: TaskModel?, isLiveTile: Boolean): TaskData =
+    private fun mapToTaskData(taskId: TaskId, result: TaskModel?): TaskData =
         result?.let {
             TaskData.Data(
                 taskId = taskId,
-                packageName = result.packageName,
                 title = result.title,
                 titleDescription = result.titleDescription,
                 icon = result.icon,
                 thumbnailData = result.thumbnail,
                 backgroundColor = result.backgroundColor.removeAlpha(),
                 isLocked = result.isLocked,
-                isLiveTile = isLiveTile && !result.isMinimized,
-                remainingAppTimerDuration = result.remainingAppDuration,
-                isAppLocked = result.isAppLocked,
             )
         } ?: TaskData.NoData(taskId)
 
@@ -242,6 +150,5 @@ constructor(
 
     private companion object {
         const val TAG = "TaskViewModel"
-        const val DEBOUNCE_DELAY_MS = 16L
     }
 }

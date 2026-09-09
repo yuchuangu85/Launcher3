@@ -17,80 +17,50 @@
 package com.android.quickstep
 
 import android.os.RemoteException
-import android.os.UserHandle
 import android.util.Log
 import android.view.InsetsState
 import android.view.WindowInsets
-import androidx.annotation.AnyThread
+
 import com.android.launcher3.Utilities
+import com.android.launcher3.config.FeatureFlags
 import com.android.launcher3.util.Executors
 import com.android.wm.shell.shared.IHomeTransitionListener.Stub
 import com.android.wm.shell.shared.IShellTransitions
-import java.util.concurrent.CopyOnWriteArrayList
-import javax.annotation.concurrent.ThreadSafe
 
 /** Class to track visibility state of Launcher */
-@ThreadSafe
 class HomeVisibilityState {
 
-    @Volatile
     var isHomeVisible = true
-        private set
-
-    @Volatile
-    var isHomeBehindDesktop = false
         private set
 
     @Volatile var navbarInsetPosition = 0
 
-    private var listeners = CopyOnWriteArrayList<VisibilityChangeListener>()
+    private var listeners = mutableSetOf<VisibilityChangeListener>()
 
-    @AnyThread fun addListener(l: VisibilityChangeListener) = listeners.add(l)
+    fun addListener(l: VisibilityChangeListener) = listeners.add(l)
 
-    @AnyThread fun removeListener(l: VisibilityChangeListener) = listeners.remove(l)
+    fun removeListener(l: VisibilityChangeListener) = listeners.remove(l)
 
     fun init(transitions: IShellTransitions?) {
+        if (!FeatureFlags.enableHomeTransitionListener()) return
         try {
             transitions?.setHomeTransitionListener(
                 object : Stub() {
-                    override fun onHomeVisibilityChanged(
-                        isVisible: Boolean,
-                        keyguardGoingAwayOrWaking: Boolean,
-                        behindDesktop: Boolean,
-                    ) {
-                        Utilities.postAsyncCallback(Executors.MAIN_EXECUTOR.handler) {
-                            val homeVisibilityChanged = isHomeVisible != isVisible
-                            isHomeVisible = isVisible
-                            isHomeBehindDesktop = behindDesktop
-                            listeners.forEach {
-                                if (
-                                    homeVisibilityChanged || it.handleDesktopVisibilityOnlyChanges()
-                                ) {
-                                    it.onHomeVisibilityChanged(
-                                        isVisible,
-                                        keyguardGoingAwayOrWaking,
-                                        behindDesktop,
-                                    )
-                                }
-                            }
-                        }
+                    override fun onHomeVisibilityChanged(isVisible: Boolean) {
+                        Utilities.postAsyncCallback(
+                            Executors.MAIN_EXECUTOR.handler,
+                            {
+                                isHomeVisible = isVisible
+                                listeners.forEach { it.onHomeVisibilityChanged(isVisible) }
+                            },
+                        )
                     }
-
                     override fun onDisplayInsetsChanged(insetsState: InsetsState) {
-                        val displayFrame = insetsState.displayFrame
-                        val bottomInset =
-                            insetsState
-                                .calculateInsets(
-                                    displayFrame,
-                                    displayFrame,
-                                    WindowInsets.Type.navigationBars(),
-                                    false,
-                                )
-                                .bottom
-                        navbarInsetPosition = displayFrame.bottom - bottomInset
+                        val bottomInset = insetsState.calculateInsets(insetsState.displayFrame,
+                                WindowInsets.Type.navigationBars(), false).bottom
+                        navbarInsetPosition = insetsState.displayFrame.bottom - bottomInset
                     }
-                },
-                UserHandle.myUserId(),
+                }
             )
         } catch (e: RemoteException) {
             Log.w(TAG, "Failed call setHomeTransitionListener", e)
@@ -98,13 +68,7 @@ class HomeVisibilityState {
     }
 
     interface VisibilityChangeListener {
-        fun handleDesktopVisibilityOnlyChanges(): Boolean
-
-        fun onHomeVisibilityChanged(
-            isVisible: Boolean,
-            keyguardGoingAwayOrWaking: Boolean,
-            behindDesktop: Boolean,
-        )
+        fun onHomeVisibilityChanged(isVisible: Boolean)
     }
 
     override fun toString() = "{HomeVisibilityState isHomeVisible=$isHomeVisible}"

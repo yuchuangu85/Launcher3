@@ -20,7 +20,6 @@ import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Context;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewDebug;
@@ -38,7 +37,6 @@ import java.util.ArrayList;
  */
 public abstract class NavigableAppWidgetHostView extends AppWidgetHostView
         implements DraggableView, Reorderable {
-    private static final String TAG = "NavigableAppWidgetHostView";
 
     private final MultiTranslateDelegate mTranslateDelegate = new MultiTranslateDelegate(this);
 
@@ -99,10 +97,14 @@ public abstract class NavigableAppWidgetHostView extends AppWidgetHostView
                     case 0:
                         mChildrenFocused = false;
                         break;
-                    case 1:
-                        focusableChildren.get(0).performClick();
-                        mChildrenFocused = false;
-                        return true;
+                    case 1: {
+                        if (shouldAllowDirectClick()) {
+                            focusableChildren.get(0).performClick();
+                            mChildrenFocused = false;
+                            return true;
+                        }
+                        // continue;
+                    }
                     default:
                         focusableChildren.get(0).requestFocus();
                         return true;
@@ -111,6 +113,13 @@ public abstract class NavigableAppWidgetHostView extends AppWidgetHostView
         }
         return super.onKeyUp(keyCode, event);
     }
+
+    /**
+     * For a widget with only a single interactive element, return true if whole widget should act
+     * as a single interactive element, and clicking 'enter' should activate the child element
+     * directly. Otherwise clicking 'enter' will only move the focus inside the widget.
+     */
+    protected abstract boolean shouldAllowDirectClick();
 
     @Override
     protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
@@ -163,8 +172,6 @@ public abstract class NavigableAppWidgetHostView extends AppWidgetHostView
     }
 
     private void updateScale() {
-        Log.d(TAG, "updateScale - [fitScale,bounceScale]: ["
-                + mScaleToFit + "," + mScaleForReorderBounce + "]");
         super.setScaleX(mScaleToFit * mScaleForReorderBounce);
         super.setScaleY(mScaleToFit * mScaleForReorderBounce);
     }

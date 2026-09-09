@@ -27,20 +27,21 @@ public class SectionDecorationInfo {
     public static final int ROUND_TOP_RIGHT = 1 << 2;
     public static final int ROUND_BOTTOM_LEFT = 1 << 3;
     public static final int ROUND_BOTTOM_RIGHT = 1 << 4;
+    public static final int DECORATOR_ALPHA = 255;
 
     protected boolean mShouldDecorateItemsTogether;
     private SectionDecorationHandler mDecorationHandler;
     protected boolean mIsTopRound;
     protected boolean mIsBottomRound;
 
-    public SectionDecorationInfo(Context context, int roundRegions) {
+    public SectionDecorationInfo(Context context, int roundRegions, boolean decorateTogether) {
         mDecorationHandler =
-                new SectionDecorationHandler(context,
+                new SectionDecorationHandler(context, DECORATOR_ALPHA,
                         isFlagEnabled(roundRegions, ROUND_TOP_LEFT),
                         isFlagEnabled(roundRegions, ROUND_TOP_RIGHT),
                         isFlagEnabled(roundRegions, ROUND_BOTTOM_LEFT),
                         isFlagEnabled(roundRegions, ROUND_BOTTOM_RIGHT));
-        mShouldDecorateItemsTogether = true;
+        mShouldDecorateItemsTogether = decorateTogether;
         mIsTopRound = isFlagEnabled(roundRegions, ROUND_TOP_LEFT) &&
                 isFlagEnabled(roundRegions, ROUND_TOP_RIGHT);
         mIsBottomRound = isFlagEnabled(roundRegions, ROUND_BOTTOM_LEFT) &&

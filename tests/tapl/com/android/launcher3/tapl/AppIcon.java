@@ -16,8 +16,8 @@
 
 package com.android.launcher3.tapl;
 
+
 import android.graphics.Point;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -25,7 +25,6 @@ import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.BySelector;
 import androidx.test.uiautomator.UiObject2;
 
-import com.android.launcher3.Flags;
 import com.android.launcher3.testing.shared.TestProtocol;
 
 import java.util.regex.Pattern;
@@ -63,20 +62,6 @@ public abstract class AppIcon extends Launchable {
         return By.clazz(TextView.class).text(text).pkg(launcher.getLauncherPackageName());
     }
 
-    /**
-     * Creates a {@link BySelector} to find a menu shortcut with specified
-     * {@link UiObject2#getContentDescription()}.
-     * <p>
-     * This is used for menu items that are represented by an icon without text.
-     *
-     * @param desc the {@link UiObject2#getContentDescription()}
-     * @param launcher the {@link LauncherInstrumentation}
-     * @return the {@link BySelector} to find the shortcut
-     */
-    static BySelector getMenuShortcutSelector(String desc, LauncherInstrumentation launcher) {
-        return By.clazz(ImageView.class).desc(desc).pkg(launcher.getLauncherPackageName());
-    }
-
     static BySelector getAnyAppIconSelector() {
         return By.clazz(TextView.class);
     }
@@ -97,22 +82,9 @@ public abstract class AppIcon extends Launchable {
      * Long-clicks the icon to open its menu, and looks at the deep shortcuts container only.
      */
     public AppIconMenu openDeepShortcutMenu() {
-        if (Flags.expandableLongPressMenu()) {
-            try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
-                final UiObject2 popupContainer = mLauncher
-                        .clickAndGet(mObject, "popup_container", getLongClickEvent());
-                final UiObject2 expandAppShortcuts = popupContainer.findObject(
-                        By.text("Shortcuts"));
-                if (expandAppShortcuts != null) {
-                    expandAppShortcuts.click();
-                }
-
-                return createMenu(
-                        mLauncher.waitForLauncherObject(TestProtocol.DEEP_SHORTCUTS_CONTAINER));
-            }
-        } else {
-            return createMenu(mLauncher.clickAndGet(mObject,
-                    /* resName= */ TestProtocol.DEEP_SHORTCUTS_CONTAINER, getLongClickEvent()));
+        try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
+            return createMenu(mLauncher.clickAndGet(
+                    mObject, /* resName= */ "deep_shortcuts_container", getLongClickEvent()));
         }
     }
 
@@ -149,7 +121,7 @@ public abstract class AppIcon extends Launchable {
      * get the name of an app where the text of it is multiline.
      */
     @NonNull
-    public String getAppName() {
+    String getAppName() {
         return getObject().getContentDescription();
     }
 

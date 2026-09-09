@@ -16,75 +16,45 @@
 
 package com.android.launcher3.util.coroutines
 
-import com.android.launcher3.concurrent.annotations.Background
-import com.android.launcher3.concurrent.annotations.LightweightBackground
-import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority
-import com.android.launcher3.concurrent.annotations.TaskbarUi
-import com.android.launcher3.concurrent.annotations.Ui
-import com.android.launcher3.dagger.LauncherAppComponent
-import com.android.launcher3.dagger.LauncherAppSingleton
-import com.android.launcher3.util.DaggerSingletonObject
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.newFixedThreadPoolContext
 
 interface DispatcherProvider {
-    /**
-     * Background thread pool for longer running work e.g. accessing storage, making network
-     * requests, running AI tasks etc.
-     */
-    val ioBackground: CoroutineDispatcher
-
-    /**
-     * Background thread pool for UI related work e.g. manipulating in-memory objects for
-     * presentation on the UI.
-     */
-    val lightweightBackground: CoroutineDispatcher
-
-    /**
-     * A coroutine dispatcher that is confined to the Main thread operating with UI objects. It
-     * executes coroutines immediately when it is already in the right context without an additional
-     * re-dispatch.
-     *
-     * See Kotlin documentation for [Dispatchers.Main.immediate] for more detailed documentation.
-     */
+    val default: CoroutineDispatcher
+    val background: CoroutineDispatcher
     val main: CoroutineDispatcher
-
-    /**
-     * A coroutine dispatcher that is confined to the Taskbar Ui Thread operating with UI objects.
-     * It executes coroutines immediately when it is already in the right context without an
-     * additional re-dispatch.
-     */
-    val taskbarUi: CoroutineDispatcher
-
-    /**
-     * A coroutine dispatcher that is not confined to any specific thread.
-     *
-     * See Kotlin documentation for [Dispatchers.Unconfined] for more detailed documentation.
-     */
     val unconfined: CoroutineDispatcher
 }
 
-@LauncherAppSingleton
-class ProductionDispatchers
-@Inject
-constructor(
-    @Background val backgroundDispatcher: CoroutineDispatcher,
-    @LightweightBackground(LightweightBackgroundPriority.UI)
-    val lightweightBackgroundUiDispatcher: CoroutineDispatcher,
-    @Ui val uiDispatcher: CoroutineDispatcher,
-    @TaskbarUi override val taskbarUi: CoroutineDispatcher,
-) : DispatcherProvider {
-    override val ioBackground = backgroundDispatcher
+object ProductionDispatchers : DispatcherProvider {
+    private val bgDispatcher = CoroutinesHelper.bgDispatcher()
 
-    override val lightweightBackground = lightweightBackgroundUiDispatcher
+    override val default: CoroutineDispatcher = Dispatchers.Default
+    override val background: CoroutineDispatcher = bgDispatcher
+    override val main: CoroutineDispatcher = Dispatchers.Main.immediate
+    override val unconfined: CoroutineDispatcher = Dispatchers.Unconfined
+}
 
-    override val main = uiDispatcher
-
-    override val unconfined = Dispatchers.Unconfined
-
-    companion object {
-        @JvmField
-        val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getProductionDispatchers)
+private object CoroutinesHelper {
+    /**
+     * Default Coroutine dispatcher for background operations.
+     *
+     * Note that this is explicitly limiting the number of threads. In the past, we used
+     * [Dispatchers.IO]. This caused >40 threads to be spawned, and a lot of thread list lock
+     * contention between then, eventually causing jank.
+     */
+    @OptIn(DelicateCoroutinesApi::class)
+    fun bgDispatcher(): CoroutineDispatcher {
+        // Why a new ThreadPool instead of just using Dispatchers.IO with
+        // CoroutineDispatcher.limitedParallelism? Because, if we were to use Dispatchers.IO, we
+        // would share those threads with other dependencies using Dispatchers.IO.
+        // Using a dedicated thread pool we have guarantees only Launcher is able to schedule
+        // code on those.
+        return newFixedThreadPoolContext(
+            nThreads = Runtime.getRuntime().availableProcessors(),
+            name = "LauncherBg",
+        )
     }
 }

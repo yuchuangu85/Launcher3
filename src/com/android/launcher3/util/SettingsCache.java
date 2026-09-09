@@ -18,33 +18,29 @@ package com.android.launcher3.util;
 
 import static android.provider.Settings.System.ACCELEROMETER_ROTATION;
 
-import static com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority.UI;
+import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
-import android.util.Log;
 
-import androidx.annotation.AnyThread;
-import androidx.annotation.WorkerThread;
+import androidx.annotation.UiThread;
 
-import com.android.launcher3.concurrent.annotations.LightweightBackground;
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
-import javax.annotation.concurrent.ThreadSafe;
 import javax.inject.Inject;
-import javax.inject.Named;
 
 /**
  * ContentObserver over Settings keys that also has a caching layer.
@@ -52,14 +48,14 @@ import javax.inject.Named;
  * {@link #unregister(Uri, OnChangeListener)} methods.
  *
  * This can be used as a normal cache without any listeners as well via the
- * {@link #getValue} and {@link #onChange(boolean, Uri)} to update (and subsequently call get)
+ * {@link #getValue(Uri, int)} and {@link #onChange)} to update (and subsequently call
+ * get)
  *
  * The cache will be invalidated/updated through the normal
  * {@link ContentObserver#onChange(boolean)} calls
  *
  * Cache will also be updated if a key queried is missing (even if it has no listeners registered).
  */
-@ThreadSafe
 @LauncherAppSingleton
 public class SettingsCache extends ContentObserver {
 
@@ -83,26 +79,18 @@ public class SettingsCache extends ContentObserver {
     private static final String SYSTEM_URI_PREFIX = Settings.System.CONTENT_URI.toString();
     private static final String GLOBAL_URI_PREFIX = Settings.Global.CONTENT_URI.toString();
 
-    private final Function<Uri, MutableListenableRef<Boolean>> mListenerMapper = uri -> {
+    private final Function<Uri, CopyOnWriteArrayList<OnChangeListener>> mListenerMapper = uri -> {
         registerUriAsync(uri);
-        boolean value = false;
-        try {
-            value = getValue(uri);
-        } catch (SecurityException e) {
-            // A SecurityException is thrown when the value is not readable yet
-            Log.e("SettingsCache", "", e);
-        }
-        return new MutableListenableRef<>(value);
+        return new CopyOnWriteArrayList<>();
     };
 
     /**
      * Caches the last seen value for registered keys.
      */
     private final Map<Uri, Boolean> mKeyCache = new ConcurrentHashMap<>();
-    private final Map<Uri, MutableListenableRef<Boolean>> mListenerMap = new ConcurrentHashMap<>();
-    private final Set<Uri> mUrisEnabledByDefault;
+    private final Map<Uri, CopyOnWriteArrayList<OnChangeListener>> mListenerMap =
+            new ConcurrentHashMap<>();
     protected final ContentResolver mResolver;
-    private final Executor mLightweightBackgroundExecutor;
 
     /**
      * Singleton instance
@@ -111,62 +99,64 @@ public class SettingsCache extends ContentObserver {
             new DaggerSingletonObject<>(LauncherBaseAppComponent::getSettingsCache);
 
     @Inject
-    SettingsCache(@ApplicationContext Context context,
-            @Named("SETTINGS_ENABLED_BY_DEFAULT") Set<Uri> urisEnabledByDefault,
-            DaggerSingletonTracker tracker,
-            @LightweightBackground(priority = UI) LooperExecutor lightweightBgLooperExecutor) {
-        super(new Handler(lightweightBgLooperExecutor.getLooper()));
+    SettingsCache(@ApplicationContext Context context, DaggerSingletonTracker tracker) {
+        super(new Handler(Looper.getMainLooper()));
         mResolver = context.getContentResolver();
-        mUrisEnabledByDefault = urisEnabledByDefault;
-        mLightweightBackgroundExecutor = lightweightBgLooperExecutor;
         tracker.addCloseable(() ->
-                mLightweightBackgroundExecutor.execute(
-                        () -> mResolver.unregisterContentObserver(this)));
+                UI_HELPER_EXECUTOR.execute(() -> mResolver.unregisterContentObserver(this)));
     }
 
-    @WorkerThread
     @Override
     public void onChange(boolean selfChange, Uri uri) {
         // We use default of 1, but if we're getting an onChange call, can assume a non-default
         // value will exist
-        boolean newVal = computeNewValue(uri);
-        mKeyCache.put(uri, newVal);
-        MutableListenableStream<Boolean> listeners = mListenerMap.get(uri);
+        boolean newVal = updateValue(uri, 1 /* Effectively Unused */);
+        List<OnChangeListener> listeners = mListenerMap.get(uri);
         if (listeners == null) {
             return;
         }
-        listeners.dispatchValue(newVal);
+
+        for (OnChangeListener listener : listeners) {
+            listener.onSettingsChanged(newVal);
+        }
     }
 
     /**
      * Returns the value for this classes key from the cache. If not in cache, will call
-     * {@link #computeNewValue(Uri)} to fetch.
+     * {@link #updateValue(Uri, int)} to fetch.
      */
-    @AnyThread
     public boolean getValue(Uri keySetting) {
-        return mKeyCache.computeIfAbsent(keySetting, this::computeNewValue);
+        return getValue(keySetting, 1);
+    }
+
+    /**
+     * Returns the value for this classes key from the cache. If not in cache, will call
+     * {@link #updateValue(Uri, int)} to fetch.
+     */
+    public boolean getValue(Uri keySetting, int defaultValue) {
+        if (mKeyCache.containsKey(keySetting)) {
+            return mKeyCache.get(keySetting);
+        } else {
+            return updateValue(keySetting, defaultValue);
+        }
     }
 
     private void registerUriAsync(Uri uri) {
-        mLightweightBackgroundExecutor.execute(
-                () -> mResolver.registerContentObserver(uri, false, this));
+        UI_HELPER_EXECUTOR.execute(() -> mResolver.registerContentObserver(uri, false, this));
     }
 
     /**
      * Does not de-dupe if you add same listeners for the same key multiple times.
      * Unregister once complete using {@link #unregister(Uri, OnChangeListener)}
-     *
-     * Note that the returned {@link ListenableRef} will receive new value on main thread.
      */
-    @AnyThread
-    public ListenableRef<Boolean> getListenableRef(Uri uri) {
-        return mListenerMap.computeIfAbsent(uri, mListenerMapper);
+    @UiThread
+    public void register(Uri uri, OnChangeListener changeListener) {
+        mListenerMap.computeIfAbsent(uri, mListenerMapper).add(changeListener);
     }
 
-    private boolean computeNewValue(Uri keyUri) {
+    private boolean updateValue(Uri keyUri, int defaultValue) {
         String key = keyUri.getLastPathSegment();
         boolean newVal;
-        int defaultValue = mUrisEnabledByDefault.contains(keyUri) ? 1 : 0;
         if (keyUri.toString().startsWith(SYSTEM_URI_PREFIX)) {
             newVal = Settings.System.getInt(mResolver, key, defaultValue) == 1;
         } else if (keyUri.toString().startsWith(GLOBAL_URI_PREFIX)) {
@@ -175,6 +165,23 @@ public class SettingsCache extends ContentObserver {
             newVal = Settings.Secure.getInt(mResolver, key, defaultValue) == 1;
         }
 
+        mKeyCache.put(keyUri, newVal);
         return newVal;
+    }
+
+    /**
+     * Call to stop receiving updates on the given {@param listener}.
+     * This Uri/Listener pair must correspond to the same pair called with for
+     * {@link #register(Uri, OnChangeListener)}
+     */
+    public void unregister(Uri uri, OnChangeListener listener) {
+        List<OnChangeListener> listenersToRemoveFrom = mListenerMap.get(uri);
+        if (listenersToRemoveFrom != null) {
+            listenersToRemoveFrom.remove(listener);
+        }
+    }
+
+    public interface OnChangeListener {
+        void onSettingsChanged(boolean isEnabled);
     }
 }

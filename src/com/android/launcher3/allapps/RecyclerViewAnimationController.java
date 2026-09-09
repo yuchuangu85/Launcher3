@@ -31,6 +31,7 @@ import android.util.FloatProperty;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Interpolator;
 
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.Utilities;
@@ -231,17 +232,16 @@ public class RecyclerViewAnimationController {
             Log.w(LOG_TAG, "Can't determine span index - child not found in adapter");
             return 0;
         }
-
-        if (appsRecyclerView.getAdapter() instanceof AllAppsGridAdapter adapter) {
-            return adapter.getSpanIndex(adapterPosition);
-        } else if (!Utilities.IS_DEBUG_DEVICE) {
+        if (!(appsRecyclerView.getAdapter() instanceof AllAppsGridAdapter<?>)) {
+            Log.e(LOG_TAG, "Search RV doesn't have an AllAppsGridAdapter?");
             // This case shouldn't happen, but for debug devices we will continue to create a more
             // visible crash.
-            Log.e(LOG_TAG, "Search RV doesn't have an AllAppsGridAdapter?");
-            return 0;
-        } else {
-            throw new IllegalArgumentException("Search RV doesn't have an AllAppsGridAdapter?");
+            if (!Utilities.IS_DEBUG_DEVICE) {
+                return 0;
+            }
         }
+        AllAppsGridAdapter<?> adapter = (AllAppsGridAdapter<?>) appsRecyclerView.getAdapter();
+        return adapter.getSpanIndex(adapterPosition);
     }
 
     protected TimeInterpolator getInterpolator() {

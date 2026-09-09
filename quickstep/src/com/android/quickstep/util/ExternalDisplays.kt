@@ -23,11 +23,7 @@ import com.android.systemui.shared.recents.model.Task
 
 /** Whether this displayId belongs to an external display */
 val Int.isExternalDisplay
-    get() = !isDefaultDisplay
-
-/** Whether this displayId belongs to the default display */
-val Int.isDefaultDisplay
-    get() = this == DEFAULT_DISPLAY
+    get() = this != DEFAULT_DISPLAY
 
 val Int?.safeDisplayId
     get() =

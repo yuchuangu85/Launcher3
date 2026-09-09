@@ -19,60 +19,49 @@ package com.android.quickstep.util
 import android.content.Context
 import android.hardware.input.InputManager
 import android.view.InputDevice
-import com.android.launcher3.concurrent.annotations.LightweightBackground
-import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority.UI
-import com.android.launcher3.dagger.ApplicationContext
-import com.android.launcher3.dagger.LauncherAppSingleton
-import com.android.launcher3.util.DaggerSingletonTracker
+import com.android.launcher3.util.Executors
 import com.android.launcher3.util.IntSet
-import com.android.launcher3.util.LooperExecutor
-import com.android.launcher3.util.MutableListenableRef
-import javax.inject.Inject
 
 /** Utility class to maintain a list of actively connected trackpad devices */
-@LauncherAppSingleton
-class ActiveTrackpadList
-@Inject
-constructor(
-    @ApplicationContext ctx: Context,
-    lifecycle: DaggerSingletonTracker,
-    @LightweightBackground(priority = UI) private val executor: LooperExecutor,
-) : InputManager.InputDeviceListener {
+class ActiveTrackpadList(ctx: Context, private val updateCallback: Runnable) :
+    IntSet(), InputManager.InputDeviceListener {
 
-    private val inputManager =
-        ctx.getSystemService(InputManager::class.java)!!.also {
-            it.registerInputDeviceListener(this, executor.handler)
-        }
-
-    private val connectedDevices =
-        IntSet.wrap(inputManager.inputDeviceIds.filter(this::isTrackpadDevice))
-    private val _isConnected = MutableListenableRef(!connectedDevices.isEmpty)
-
-    val connected = _isConnected.asListenable()
+    private val inputManager = ctx.getSystemService(InputManager::class.java)!!
 
     init {
-        lifecycle.addCloseable(executor) { inputManager.unregisterInputDeviceListener(this) }
+        inputManager.registerInputDeviceListener(this, Executors.UI_HELPER_EXECUTOR.handler)
+        inputManager.inputDeviceIds.filter(this::isTrackpadDevice).forEach(this::add)
     }
 
     override fun onInputDeviceAdded(deviceId: Int) {
-        if (isTrackpadDevice(deviceId)) addInputDeviceUnchecked(deviceId)
-    }
-
-    fun addInputDeviceUnchecked(deviceId: Int) {
-        connectedDevices.add(deviceId)
-        update()
+        if (isTrackpadDevice(deviceId)) {
+            // This updates internal TIS state so it needs to also run on the main
+            // thread.
+            Executors.MAIN_EXECUTOR.execute {
+                val wasEmpty = isEmpty
+                add(deviceId)
+                if (wasEmpty) update()
+            }
+        }
     }
 
     override fun onInputDeviceChanged(deviceId: Int) {}
 
     override fun onInputDeviceRemoved(deviceId: Int) {
-        connectedDevices.remove(deviceId)
-        update()
+        // This updates internal TIS state so it needs to also run on the main thread.
+        Executors.MAIN_EXECUTOR.execute {
+            remove(deviceId)
+            if (isEmpty) update()
+        }
     }
 
     private fun update() {
-        val newValue = !connectedDevices.isEmpty
-        if (_isConnected.value != newValue) _isConnected.dispatchValue(newValue)
+        updateCallback.run()
+    }
+
+    fun destroy() {
+        inputManager.unregisterInputDeviceListener(this)
+        clear()
     }
 
     /** This is a blocking binder call that should run on a bg thread. */

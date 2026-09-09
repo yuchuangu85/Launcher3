@@ -16,10 +16,6 @@
 
 package com.android.launcher3.shortcuts;
 
-import static com.android.launcher3.AbstractFloatingView.TYPE_FOLDER;
-import static com.android.launcher3.Flags.blurOnMoreSurfaces;
-import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_NOT_PINNABLE;
-
 import android.content.Context;
 import android.content.pm.ShortcutInfo;
 import android.content.res.ColorStateList;
@@ -28,27 +24,19 @@ import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 
-import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
-import com.android.launcher3.folder.Folder;
-import com.android.launcher3.logging.StatsLogManager;
-import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.popup.PopupContainerWithArrow;
 import com.android.launcher3.util.Themes;
-import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BubbleTextHolder;
 
 /**
@@ -64,7 +52,6 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
 
     private BubbleTextView mBubbleText;
     private View mIconView;
-    private ImageView mAddButton;
 
     private WorkspaceItemInfo mInfo;
     private ShortcutInfo mDetail;
@@ -87,7 +74,6 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
         mBubbleText = findViewById(R.id.bubble_text);
         mBubbleText.setHideBadge(true);
         mIconView = findViewById(R.id.icon);
-        mAddButton = findViewById(R.id.deep_shortcut_add_button);
         tryUpdateTextBackground();
     }
 
@@ -107,27 +93,19 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
      * Updates the text background to match the shape of this background (when applicable).
      */
     private void tryUpdateTextBackground() {
-        if (mBubbleText == null) {
+        if (!(getBackground() instanceof GradientDrawable) || mBubbleText == null) {
             return;
         }
-        Drawable background = getBackground();
-        if (blurOnMoreSurfaces() && background instanceof LayerDrawable l) {
-            // When we use blur, we have a LayerDrawable of
-            // [BackgroundBlurDrawable, GradientDrawable] as the background.
-            background = l.getDrawable(1);
-        }
-        if (!(background instanceof GradientDrawable surfaceColor)) {
-            return;
-        }
+        GradientDrawable background = (GradientDrawable) getBackground();
 
         int color = Themes.getAttrColor(getContext(), android.R.attr.colorControlHighlight);
         GradientDrawable backgroundMask = new GradientDrawable();
         backgroundMask.setColor(color);
         backgroundMask.setShape(GradientDrawable.RECTANGLE);
-        if (surfaceColor.getCornerRadii() != null) {
-            backgroundMask.setCornerRadii(surfaceColor.getCornerRadii());
+        if (background.getCornerRadii() != null) {
+            backgroundMask.setCornerRadii(background.getCornerRadii());
         } else {
-            backgroundMask.setCornerRadius(surfaceColor.getCornerRadius());
+            backgroundMask.setCornerRadius(background.getCornerRadius());
         }
 
         RippleDrawable drawable = new RippleDrawable(ColorStateList.valueOf(color),
@@ -159,8 +137,9 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
         return sTempPoint;
     }
 
+    /** package private **/
     public void applyShortcutInfo(WorkspaceItemInfo info, ShortcutInfo detail,
-            PopupContainerWithArrow container, ActivityContext ac) {
+            PopupContainerWithArrow container) {
         mInfo = info;
         mDetail = detail;
         mBubbleText.applyFromWorkspaceItem(info);
@@ -178,62 +157,6 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
         mBubbleText.setOnClickListener(container.getItemClickListener());
         mBubbleText.setOnLongClickListener(container.getItemDragHandler());
         mBubbleText.setOnTouchListener(container.getItemDragHandler());
-        if (ac instanceof Launcher launcher && isPinnable(container)) {
-            setupAddButton();
-            setAddButtonClickListener(launcher, info, container);
-        }
-    }
-
-    private boolean isPinnable(PopupContainerWithArrow container) {
-        if (!(container.getOriginalIcon() instanceof BubbleTextView bbtv)) {
-            return false;
-        }
-        boolean isPinnable = false;
-        if (bbtv.getTag() instanceof ItemInfoWithIcon infoWithIcon) {
-            isPinnable = (infoWithIcon.runtimeStatusFlags & FLAG_NOT_PINNABLE) == 0;
-        }
-        return isPinnable;
-    }
-
-    private void setupAddButton() {
-        mAddButton.setVisibility(VISIBLE);
-        mBubbleText.setPadding(
-                mBubbleText.getPaddingStart(),
-                mBubbleText.getPaddingTop(),
-                (int) getResources().getDimension(R.dimen.deep_shortcut_text_end_padding),
-                mBubbleText.getPaddingBottom());
-    }
-
-    private void setAddButtonClickListener(Launcher launcher, WorkspaceItemInfo info,
-            PopupContainerWithArrow<Launcher> container) {
-        LauncherAccessibilityDelegate launcherAccessibilityDelegate =
-                launcher.getAccessibilityDelegate();
-        StatsLogManager statsLogManager = launcher.getStatsLogManager();
-        mAddButton.setOnClickListener(v -> {
-            launcherAccessibilityDelegate.addToWorkspace(info,
-                    /*accessibility=*/ false,
-                    /*finishCallback=*/ (success) -> {
-                        statsLogManager
-                                .logger()
-                                .withItemInfo(info)
-                                .log(StatsLogManager.LauncherEvent
-                                        .LAUNCHER_TAP_TO_ADD_DEEP_SHORTCUT);
-                    });
-            // If we have an open folder, don't animate the popup closing.
-            Folder folder = AbstractFloatingView.getOpenView(launcher, TYPE_FOLDER);
-            container.close(folder == null);
-            if (folder != null) {
-                folder.close(true);
-            }
-        });
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        if (mAddButton != null) {
-            mAddButton.setOnClickListener(null);
-        }
     }
 
     /**

@@ -58,10 +58,7 @@ public class FolderGridOrganizer {
      * Creates a FolderGridOrganizer for the given DeviceProfile
      */
     public static FolderGridOrganizer createFolderGridOrganizer(DeviceProfile profile) {
-        return new FolderGridOrganizer(
-                profile.getFolderProfile().getNumColumns(),
-                profile.getFolderProfile().getNumRows()
-        );
+        return new FolderGridOrganizer(profile.numFolderColumns, profile.numFolderRows);
     }
 
     /**
@@ -144,8 +141,11 @@ public class FolderGridOrganizer {
      * @return true if there was any change
      */
     public boolean updateRankAndPos(ItemInfo item, int rank) {
-        if (rank != item.rank) {
+        Point pos = getPosForRank(rank);
+        if (!pos.equals(item.cellX, item.cellY) || rank != item.rank) {
             item.rank = rank;
+            item.cellX = pos.x;
+            item.cellY = pos.y;
             return true;
         }
         return false;
@@ -156,13 +156,8 @@ public class FolderGridOrganizer {
      */
     public Point getPosForRank(int rank) {
         int pagePos = rank % mMaxItemsPerPage;
-        if (mCountX == 0) {
-            mPoint.x = 0;
-            mPoint.y = 0;
-        } else {
-            mPoint.x = pagePos % mCountX;
-            mPoint.y = pagePos / mCountX;
-        }
+        mPoint.x = pagePos % mCountX;
+        mPoint.y = pagePos / mCountX;
         return mPoint;
     }
 

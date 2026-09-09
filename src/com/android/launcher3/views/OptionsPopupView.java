@@ -15,10 +15,20 @@
  */
 package com.android.launcher3.views;
 
+import static com.android.launcher3.BuildConfig.WIDGETS_ENABLED;
+import static com.android.launcher3.LauncherState.EDIT_MODE;
+import static com.android.launcher3.config.FeatureFlags.MULTI_SELECT_EDIT_MODE;
+import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.IGNORE;
+import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALL_APPS_TAP_OR_LONGPRESS;
+import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS;
+import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_WIDGETSTRAY_BUTTON_TAP_OR_LONGPRESS;
+
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -26,15 +36,25 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import com.android.launcher3.AbstractFloatingView;
+import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.logging.StatsLogManager.EventEnum;
+import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.popup.ArrowPopup;
 import com.android.launcher3.shortcuts.DeepShortcutView;
+import com.android.launcher3.testing.TestLogging;
+import com.android.launcher3.testing.shared.TestProtocol;
+import com.android.launcher3.widget.picker.WidgetsFullSheet;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -44,6 +64,13 @@ import java.util.List;
  */
 public class OptionsPopupView<T extends Context & ActivityContext> extends ArrowPopup<T>
         implements OnClickListener, OnLongClickListener {
+
+    // An intent extra to indicate the horizontal scroll of the wallpaper.
+    private static final String EXTRA_WALLPAPER_OFFSET = "com.android.launcher3.WALLPAPER_OFFSET";
+    private static final String EXTRA_WALLPAPER_FLAVOR = "com.android.launcher3.WALLPAPER_FLAVOR";
+    // An intent extra to indicate the launch source by launcher.
+    private static final String EXTRA_WALLPAPER_LAUNCH_SOURCE =
+            "com.android.wallpaper.LAUNCH_SOURCE";
 
     private final ArrayMap<View, OptionItem> mItemMap = new ArrayMap<>();
     private RectF mTargetRect;
@@ -120,11 +147,6 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
     @Override
     public void assignMarginsAndBackgrounds(ViewGroup viewGroup) {
         assignMarginsAndBackgrounds(viewGroup, mColors[0]);
-    }
-
-    @Override
-    protected void assignMarginsAndBackgrounds(ViewGroup viewGroup, int backgroundColor) {
-        super.assignMarginsAndBackgrounds(viewGroup, backgroundColor);
         // last shortcut doesn't need bottom margin
         final int count = viewGroup.getChildCount() - 1;
         for (int i = 0; i < count; i++) {
@@ -132,14 +154,6 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
             MarginLayoutParams mlp = (MarginLayoutParams) viewGroup.getChildAt(i).getLayoutParams();
             mlp.bottomMargin = mChildContainerMargin;
         }
-    }
-
-    public static void showNoReturn(
-            ActivityContext activityContext,
-            RectF targetRect,
-            List<OptionItem> items,
-            boolean shouldAddArrow) {
-        show(activityContext, targetRect, items, shouldAddArrow);
     }
 
     public static <T extends Context & ActivityContext> OptionsPopupView<T> show(
@@ -179,6 +193,125 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
 
         popup.show();
         return popup;
+    }
+
+    /**
+     * Returns the list of supported actions
+     */
+    public static ArrayList<OptionItem> getOptions(Launcher launcher) {
+        ArrayList<OptionItem> options = new ArrayList<>();
+        options.add(new OptionItem(launcher,
+                R.string.styles_wallpaper_button_text,
+                R.drawable.ic_palette,
+                IGNORE,
+                OptionsPopupView::startWallpaperPicker));
+        if (WIDGETS_ENABLED) {
+            options.add(new OptionItem(launcher,
+                    R.string.widget_button_text,
+                    R.drawable.ic_widget,
+                    LAUNCHER_WIDGETSTRAY_BUTTON_TAP_OR_LONGPRESS,
+                    OptionsPopupView::onWidgetsClicked));
+        }
+        if (MULTI_SELECT_EDIT_MODE.get()) {
+            options.add(new OptionItem(launcher,
+                    R.string.edit_home_screen,
+                    R.drawable.enter_home_gardening_icon,
+                    LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS,
+                    OptionsPopupView::enterHomeGardening));
+        }
+        options.add(new OptionItem(launcher,
+                R.string.all_apps_button_label,
+                R.drawable.ic_apps,
+                LAUNCHER_ALL_APPS_TAP_OR_LONGPRESS,
+                OptionsPopupView::enterAllApps));
+        options.add(new OptionItem(launcher,
+                R.string.settings_button_text,
+                R.drawable.ic_setting,
+                LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS,
+                OptionsPopupView::startSettings));
+        return options;
+    }
+
+    /**
+     * Used by the options to open All Apps, uses an intent as to not tie the implementation of
+     * opening All Apps with OptionsPopup, instead it uses the public API to open All Apps.
+     */
+    public static boolean enterAllApps(View view) {
+        Launcher launcher = Launcher.getLauncher(view.getContext());
+        launcher.startActivity(
+                new Intent(Intent.ACTION_ALL_APPS)
+                .setComponent(launcher.getComponentName())
+                .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        );
+        return true;
+    }
+
+    private static boolean enterHomeGardening(View view) {
+        Launcher launcher = Launcher.getLauncher(view.getContext());
+        launcher.getStateManager().goToState(EDIT_MODE);
+        return true;
+    }
+
+    private static boolean onWidgetsClicked(View view) {
+        return openWidgets(Launcher.getLauncher(view.getContext())) != null;
+    }
+
+    /** Returns WidgetsFullSheet that was opened, or null if nothing was opened. */
+    @Nullable
+    public static WidgetsFullSheet openWidgets(Launcher launcher) {
+        if (launcher.getPackageManager().isSafeMode()) {
+            Toast.makeText(launcher, R.string.safemode_widget_error, Toast.LENGTH_SHORT).show();
+            return null;
+        } else {
+            AbstractFloatingView floatingView = AbstractFloatingView.getTopOpenViewWithType(
+                    launcher, TYPE_WIDGETS_FULL_SHEET);
+            if (floatingView != null) {
+                return (WidgetsFullSheet) floatingView;
+            }
+            return WidgetsFullSheet.show(launcher, true /* animated */);
+        }
+    }
+
+    private static boolean startSettings(View view) {
+        TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "start: startSettings");
+        Launcher launcher = Launcher.getLauncher(view.getContext());
+        launcher.startActivity(new Intent(Intent.ACTION_APPLICATION_PREFERENCES)
+                .setPackage(launcher.getPackageName())
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+        return true;
+    }
+
+    /**
+     * Event handler for the wallpaper picker button that appears after a long press
+     * on the home screen.
+     */
+    private static boolean startWallpaperPicker(View v) {
+        Launcher launcher = Launcher.getLauncher(v.getContext());
+        if (!Utilities.isWallpaperAllowed(launcher)) {
+            String message = launcher.getStringCache() != null
+                    ? launcher.getStringCache().disabledByAdminMessage
+                    : launcher.getString(R.string.msg_disabled_by_admin);
+            Toast.makeText(launcher, message, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        Intent intent = new Intent(Intent.ACTION_SET_WALLPAPER)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                .putExtra(EXTRA_WALLPAPER_OFFSET,
+                        launcher.getWorkspace().getWallpaperOffsetForCenterPage())
+                .putExtra(EXTRA_WALLPAPER_LAUNCH_SOURCE, "app_launched_launcher")
+                .putExtra(EXTRA_WALLPAPER_FLAVOR, "focus_wallpaper");
+        String pickerPackage = launcher.getString(R.string.wallpaper_picker_package);
+        if (!TextUtils.isEmpty(pickerPackage)) {
+            intent.setPackage(pickerPackage);
+        }
+        return launcher.startActivitySafely(v, intent, placeholderInfo(intent)) != null;
+    }
+
+    static WorkspaceItemInfo placeholderInfo(Intent intent) {
+        WorkspaceItemInfo placeholderInfo = new WorkspaceItemInfo();
+        placeholderInfo.intent = intent;
+        placeholderInfo.container = LauncherSettings.Favorites.CONTAINER_SETTINGS;
+        return placeholderInfo;
     }
 
     public static class OptionItem {

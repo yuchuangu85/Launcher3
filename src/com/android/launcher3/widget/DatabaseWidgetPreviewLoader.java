@@ -17,7 +17,6 @@ package com.android.launcher3.widget;
 
 import static android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN;
 
-import static com.android.launcher3.icons.cache.CachedObjectCachingLogic.loadFullResIcon;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.widget.LauncherAppWidgetProviderInfo.fromProviderInfo;
 
@@ -41,26 +40,22 @@ import androidx.annotation.VisibleForTesting;
 import androidx.core.os.BuildCompat;
 
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.InvariantDeviceProfile;
+import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.icons.BitmapRenderer;
-import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.icons.LauncherIcons;
 import com.android.launcher3.model.WidgetItem;
 import com.android.launcher3.pm.ShortcutConfigActivityInfo;
 import com.android.launcher3.util.CancellableTask;
 import com.android.launcher3.util.Executors;
 import com.android.launcher3.util.LooperExecutor;
+import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.widget.util.WidgetSizes;
 
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-
-import javax.inject.Inject;
 
 /**
  * Utility class to generate widget previews
@@ -73,23 +68,8 @@ public class DatabaseWidgetPreviewLoader {
 
     private final Context mContext;
 
-    private final DeviceProfile mDeviceProfile;
-    private final IconCache mIconCache;
-
-    @Deprecated // Inject this class instead
-    public DatabaseWidgetPreviewLoader(Context context, DeviceProfile deviceProfile) {
+    public DatabaseWidgetPreviewLoader(Context context) {
         mContext = context;
-        mDeviceProfile = deviceProfile;
-        mIconCache = LauncherAppState.getInstance(context).getIconCache();
-    }
-
-    @Inject
-    public DatabaseWidgetPreviewLoader(@ApplicationContext Context context,
-            InvariantDeviceProfile idp,
-            IconCache iconCache) {
-        mContext = context;
-        mDeviceProfile = idp.getDeviceProfile(context);
-        mIconCache = iconCache;
     }
 
     /**
@@ -125,7 +105,7 @@ public class DatabaseWidgetPreviewLoader {
         WidgetPreviewInfo result = new WidgetPreviewInfo();
 
         AppWidgetProviderInfo widgetInfo = item.widgetInfo;
-        if (BuildCompat.isAtLeastV() && widgetInfo != null
+        if (BuildCompat.isAtLeastV() && Flags.enableGeneratedPreviews() && widgetInfo != null
                 && ((widgetInfo.generatedPreviewCategories & WIDGET_CATEGORY_HOME_SCREEN) != 0)) {
             result.remoteViews = new WidgetManagerHelper(mContext)
                     .loadGeneratedPreview(widgetInfo, WIDGET_CATEGORY_HOME_SCREEN);
@@ -202,12 +182,14 @@ public class DatabaseWidgetPreviewLoader {
         int previewWidth;
         int previewHeight;
 
+        DeviceProfile dp = ActivityContext.lookupContext(mContext).getDeviceProfile();
+
         if (widgetPreviewExists && drawable.getIntrinsicWidth() > 0
                 && drawable.getIntrinsicHeight() > 0) {
             previewWidth = drawable.getIntrinsicWidth();
             previewHeight = drawable.getIntrinsicHeight();
         } else {
-            Size widgetSize = WidgetSizes.getWidgetSizePx(mDeviceProfile, spanX, spanY);
+            Size widgetSize = WidgetSizes.getWidgetSizePx(dp, spanX, spanY);
             previewWidth = widgetSize.getWidth();
             previewHeight = widgetSize.getHeight();
         }
@@ -268,9 +250,10 @@ public class DatabaseWidgetPreviewLoader {
 
                 // Draw icon in the center.
                 try {
-                    Drawable icon = loadFullResIcon(mIconCache, info);
+                    Drawable icon = info.getFullResIcon(
+                            LauncherAppState.getInstance(mContext).getIconCache());
                     if (icon != null) {
-                        int appIconSize = mDeviceProfile.getWorkspaceProfile().getIconSizePx();
+                        int appIconSize = dp.iconSizePx;
                         int iconSize = (int) Math.min(appIconSize * scale,
                                 Math.min(boxRect.width(), boxRect.height()));
 
@@ -288,7 +271,7 @@ public class DatabaseWidgetPreviewLoader {
 
     private Bitmap generateShortcutPreview(
             ShortcutConfigActivityInfo info, int maxWidth, int maxHeight) {
-        int iconSize = mDeviceProfile.getAllAppsProfile().getIconSizePx();
+        int iconSize = ActivityContext.lookupContext(mContext).getDeviceProfile().allAppsIconSizePx;
         int padding = mContext.getResources()
                 .getDimensionPixelSize(R.dimen.widget_preview_shortcut_padding);
 
@@ -297,9 +280,10 @@ public class DatabaseWidgetPreviewLoader {
             throw new RuntimeException("Max size is too small for preview");
         }
         return BitmapRenderer.createHardwareBitmap(size, size, c -> {
-            Drawable originalIcon = Objects.requireNonNull(loadFullResIcon(mIconCache, info));
             LauncherIcons li = LauncherIcons.obtain(mContext);
-            Drawable icon = li.createBadgedIconBitmap(mutateOnMainThread(originalIcon))
+            Drawable icon = li.createBadgedIconBitmap(
+                    mutateOnMainThread(info.getFullResIcon(
+                            LauncherAppState.getInstance(mContext).getIconCache())))
                     .newIcon(mContext);
             li.recycle();
 

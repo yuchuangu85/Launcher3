@@ -18,7 +18,6 @@ package com.android.quickstep.recents.ui.viewmodel
 
 import android.graphics.drawable.Drawable
 import com.android.systemui.shared.recents.model.ThumbnailData
-import java.time.Duration
 
 /**
  * This class represents the UI state to be consumed by TaskView, GroupTaskView and DesktopTaskView.
@@ -34,6 +33,7 @@ import java.time.Duration
  */
 data class TaskTileUiState(
     val tasks: List<TaskData>,
+    val isLiveTile: Boolean,
     val hasHeader: Boolean,
     val sysUiStatusNavFlags: Int,
     val taskOverlayEnabled: Boolean,
@@ -50,28 +50,20 @@ sealed class TaskData {
      * This class provides UI information related to a Task (App) to be displayed within a TaskView.
      *
      * @property taskId Identifier of the task
-     * @property packageName package name for the task
      * @property title App title
      * @property titleDescription App content description
      * @property icon App icon
      * @property thumbnailData Information related to the last snapshot retrieved from the app
      * @property backgroundColor The background color of the task.
-     * @property isLocked Indicates whether the task is locked or not by a system-wide lock.
-     * @property isLiveTile Indicates whether the task is shown with a live tile or not.
-     * @property remainingAppTimerDuration time remaining on the app timer for the application.
-     * @property isAppLocked Indicates whether the task's app is locked by the App Lock feature.
+     * @property isLocked Indicates whether the task is locked or not.
      */
     data class Data(
         override val taskId: Int,
-        val packageName: String,
         val title: String?,
         val titleDescription: String?,
         val icon: Drawable?,
         val thumbnailData: ThumbnailData?,
         val backgroundColor: Int,
         val isLocked: Boolean,
-        val isLiveTile: Boolean,
-        val remainingAppTimerDuration: Duration?,
-        val isAppLocked: Boolean,
     ) : TaskData()
 }

@@ -20,6 +20,9 @@ import com.android.app.animation.Interpolators.AGGRESSIVE_EASE_IN_OUT
 import com.android.app.animation.Interpolators.FINAL_FRAME
 import com.android.app.animation.Interpolators.INSTANT
 import com.android.app.animation.Interpolators.LINEAR
+import com.android.launcher3.Flags.enableDesktopExplodedView
+import com.android.launcher3.Flags.enableGridOnlyOverview
+import com.android.launcher3.Flags.enableLargeDesktopWindowingTile
 import com.android.launcher3.LauncherState
 import com.android.launcher3.anim.AnimatedFloat
 import com.android.launcher3.anim.AnimatorListeners.forSuccessCallback
@@ -50,6 +53,7 @@ import com.android.quickstep.views.RecentsView.TASK_SECONDARY_SPLIT_TRANSLATION
 import com.android.quickstep.views.RecentsView.TASK_SECONDARY_TRANSLATION
 import com.android.quickstep.views.RecentsView.TASK_THUMBNAIL_SPLASH_ALPHA
 import com.android.quickstep.views.RecentsViewUtils.Companion.DESK_EXPLODE_PROGRESS
+import com.android.quickstep.views.TaskView.Companion.FLAG_UPDATE_ALL
 
 /**
  * State handler for handling UI changes for [com.android.quickstep.views.LauncherRecentsView]. In
@@ -72,16 +76,20 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
             recentsView,
             if (state.displayOverviewTasksAsGrid(launcher.deviceProfile)) 1f else 0f,
         )
-        DESK_EXPLODE_PROGRESS.set(recentsView, if (state.showExplodedDesktopView()) 1f else 0f)
+        if (enableDesktopExplodedView()) {
+            DESK_EXPLODE_PROGRESS.set(recentsView, if (state.showExplodedDesktopView()) 1f else 0f)
+        }
 
         TASK_THUMBNAIL_SPLASH_ALPHA.set(
             recentsView,
             if (state.showTaskThumbnailSplash()) 1f else 0f,
         )
-        DESKTOP_CAROUSEL_DETACH_PROGRESS.set(
-            recentsView,
-            if (state.detachDesktopCarousel()) 1f else 0f,
-        )
+        if (enableLargeDesktopWindowingTile()) {
+            DESKTOP_CAROUSEL_DETACH_PROGRESS.set(
+                recentsView,
+                if (state.detachDesktopCarousel()) 1f else 0f,
+            )
+        }
 
         if (state.isRecentsViewVisible) {
             recentsView.updateEmptyMessage()
@@ -92,7 +100,7 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
         recentsView.setFullscreenProgress(state.overviewFullscreenProgress)
         // In Overview, we may be layering app surfaces behind Launcher, so we need to notify
         // DepthController to prevent optimizations which might occlude the layers behind
-        launcher.depthController.setHasContentBehindContainer(state.isRecentsViewVisible)
+        launcher.depthController.setHasContentBehindLauncher(state.isRecentsViewVisible)
 
         val builder = PendingAnimation(state.getTransitionDuration(launcher, true).toLong())
         handleSplitSelectionState(state, builder, animate = false)
@@ -138,7 +146,8 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
             toState.overviewModalness,
             config.getInterpolator(
                 ANIM_OVERVIEW_MODAL,
-                if (!toState.isRecentsViewVisible) FINAL_FRAME else LINEAR,
+                if (enableGridOnlyOverview() && !toState.isRecentsViewVisible) FINAL_FRAME
+                else LINEAR,
             ),
         )
 
@@ -157,23 +166,27 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
             getOverviewInterpolator(fromState, toState),
         )
 
-        builder.setFloat(
-            recentsView,
-            DESK_EXPLODE_PROGRESS,
-            if (toState.showExplodedDesktopView()) 1f else 0f,
-            getOverviewInterpolator(fromState, toState),
-        )
+        if (enableDesktopExplodedView()) {
+            builder.setFloat(
+                recentsView,
+                DESK_EXPLODE_PROGRESS,
+                if (toState.showExplodedDesktopView()) 1f else 0f,
+                getOverviewInterpolator(fromState, toState),
+            )
+        }
 
-        builder.setFloat(
-            recentsView,
-            DESKTOP_CAROUSEL_DETACH_PROGRESS,
-            if (toState.detachDesktopCarousel()) 1f else 0f,
-            getOverviewInterpolator(fromState, toState),
-        )
+        if (enableLargeDesktopWindowingTile()) {
+            builder.setFloat(
+                recentsView,
+                DESKTOP_CAROUSEL_DETACH_PROGRESS,
+                if (toState.detachDesktopCarousel()) 1f else 0f,
+                getOverviewInterpolator(fromState, toState),
+            )
+        }
 
         if (toState.isRecentsViewVisible) {
             // While animating into recents, update the visible task data as needed
-            builder.addOnFrameCallback { recentsView.loadVisibleTaskData() }
+            builder.addOnFrameCallback { recentsView.loadVisibleTaskData(FLAG_UPDATE_ALL) }
             recentsView.updateEmptyMessage()
         } else {
             builder.addListener(forSuccessCallback { recentsView.resetTaskVisuals() })
@@ -182,7 +195,7 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
         // DepthController to prevent optimizations which might occlude the layers behind
         builder.addListener(
             forSuccessCallback {
-                launcher.depthController.setHasContentBehindContainer(toState.isRecentsViewVisible)
+                launcher.depthController.setHasContentBehindLauncher(toState.isRecentsViewVisible)
             }
         )
 
@@ -233,13 +246,13 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
                 launcher.deviceProfile,
             )
 
-        val timings =
-            AnimUtils.getDeviceOverviewToSplitTimings(
-                launcher.deviceProfile.getDeviceProperties().isLargeScreen
-            )
+        val timings = AnimUtils.getDeviceOverviewToSplitTimings(launcher.deviceProfile.isTablet)
         if (!goingToOverviewFromWorkspaceContextual) {
             // This animation is already done for the contextual case, don't redo it
-            recentsView.createSplitSelectInitAnimation(builder)
+            recentsView.createSplitSelectInitAnimation(
+                builder,
+                toState.getTransitionDuration(launcher, true),
+            )
         }
         // Shift tasks vertically downward to get out of placeholder view
         builder.setFloat(
@@ -274,10 +287,8 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
         config: StateAnimationConfig,
         state: LauncherState,
     ) {
-        val launcherUiState = launcher.launcherUiState
         val clearAllButtonAlpha =
-            if (state.areElementsVisible(launcherUiState, LauncherState.CLEAR_ALL_BUTTON)) 1f
-            else 0f
+            if (state.areElementsVisible(launcher, LauncherState.CLEAR_ALL_BUTTON)) 1f else 0f
         propertySetter.setFloat(
             recentsView.clearAllButton,
             ClearAllButton.VISIBILITY_ALPHA,
@@ -285,8 +296,7 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
             LINEAR,
         )
         val overviewButtonAlpha =
-            if (state.areElementsVisible(launcherUiState, LauncherState.OVERVIEW_ACTIONS)) 1f
-            else 0f
+            if (state.areElementsVisible(launcher, LauncherState.OVERVIEW_ACTIONS)) 1f else 0f
         propertySetter.setFloat(
             launcher.actionsView.visibilityAlpha,
             AnimatedFloat.VALUE,
@@ -297,8 +307,7 @@ class RecentsViewStateController(private val launcher: QuickstepLauncher) :
             propertySetter.setFloat(
                 it,
                 AddDesktopButton.VISIBILITY_ALPHA,
-                if (state.areElementsVisible(launcherUiState, LauncherState.ADD_DESK_BUTTON)) 1f
-                else 0f,
+                if (state.areElementsVisible(launcher, LauncherState.ADD_DESK_BUTTON)) 1f else 0f,
                 LINEAR,
             )
         }

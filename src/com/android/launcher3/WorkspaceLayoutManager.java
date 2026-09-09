@@ -42,6 +42,8 @@ public interface WorkspaceLayoutManager {
 
     // The is the first screen. It is always present, even if its empty.
     int FIRST_SCREEN_ID = 0;
+    // This is the second page. On two panel home it is always present, even if its empty.
+    int SECOND_SCREEN_ID = 1;
 
     /**
      * At bind time, we use the rank (screenId) to compute x and y for hotseat items.
@@ -60,13 +62,6 @@ public interface WorkspaceLayoutManager {
             Log.d(TAG, "addInScreenFromBind: hotseat inflation with x = " + x
                     + " and y = " + y);
         }
-
-        // b/388022685 adding logs to investigate why tag is sometimes null.
-        if (child.getTag() == null) {
-            Log.e(TAG, "child.getTag() is null here for view: " + child + " and itemInfo: "
-                    + info);
-        }
-
         addInScreen(child, info.container, presenterPos.screenId, x, y, info.spanX, info.spanY);
     }
 
@@ -154,16 +149,7 @@ public interface WorkspaceLayoutManager {
         }
 
         child.setHapticFeedbackEnabled(false);
-        // The OnLongClickListener starts drag and drop, but search_container_workspace is not
-        // draggable. It doesn't implement DraggableView.
-        // Setting the OnLongClickListener on search_container_workspace leads to two issues:
-        //    1. NullPointerException attempting to invoke DraggableView::getViewType.
-        //    2. DuplicateClickableBoundsCheck failure when the bounds of
-        //    search_container_workspace doesn't match its draggable child.
-        // Retain the condition to avoid regression of the two issues above.
-        if (childId != R.id.search_container_workspace) {
-            child.setOnLongClickListener(getWorkspaceChildOnLongClickListener());
-        }
+        child.setOnLongClickListener(getWorkspaceChildOnLongClickListener());
         if (child instanceof DropTarget) {
             onAddDropTarget((DropTarget) child);
         }

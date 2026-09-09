@@ -30,17 +30,15 @@
     <string name="set_default_home_app" msgid="5808906607627586381">"Angiv <xliff:g id="LAUNCHER_NAME">%1$s</xliff:g> som standardstartapp i Indstillinger"</string>
     <string name="recent_task_option_split_screen" msgid="6690461455618725183">"Opdel skærm"</string>
     <string name="recent_task_option_aspect_ratio" msgid="7008605516391096989">"Skift billedformat"</string>
-    <string name="split_app_info_accessibility" msgid="5475288491241414932">"Appoplysninger for %1$s"</string>
+    <string name="split_app_info_accessibility" msgid="5475288491241414932">"Appinfo for %1$s"</string>
     <string name="split_app_usage_settings" msgid="7214375263347964093">"Indstillinger for brug af %1$s"</string>
-    <string name="close_task_accessibility" msgid="4765872229211282647">"Luk %1$s"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"Nyt vindue"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"Administrer vinduer"</string>
-    <string name="close_app_taskbar" msgid="3238979263877091273">"Luk"</string>
-    <string name="save_app_pair" msgid="5647523853662686243">"Gem app-parring"</string>
+    <string name="save_app_pair" msgid="5647523853662686243">"Gem appsammenknytning"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
-    <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"Denne app-parring understøttes ikke på enheden"</string>
-    <string name="app_pair_needs_unfold" msgid="4588897528143807002">"Fold enheden ud for at bruge denne app-parring"</string>
-    <string name="app_pair_not_available" msgid="3556767440808032031">"App-parring er ikke tilgængelig"</string>
+    <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"Denne appsammenknytning understøttes ikke på enheden"</string>
+    <string name="app_pair_needs_unfold" msgid="4588897528143807002">"Fold enheden ud for at bruge denne appsammenknytning"</string>
+    <string name="app_pair_not_available" msgid="3556767440808032031">"Appsammenknytning er ikke tilgængelig"</string>
     <string name="long_press_widget_to_add" msgid="3587712543577675817">"Hold en widget nede for at flytte den."</string>
     <string name="long_accessible_way_to_add" msgid="2733588281439571974">"Tryk to gange, og hold en widget nede for at flytte den eller bruge tilpassede handlinger."</string>
     <string name="widget_picker_widget_options_button_description" msgid="4770099264476852363">"Flere valgmuligheder"</string>
@@ -63,6 +61,8 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# genvej}one{# genvej}other{# genveje}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"Widgets"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Søg"</string>
+    <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Ryd teksten i søgefeltet"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Der er ingen tilgængelige widgets eller genveje"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Der blev ikke fundet nogen widgets eller genveje"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Personlig"</string>
@@ -89,7 +89,7 @@
     <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"Tryk to gange, og hold en genvej nede for at flytte den eller bruge tilpassede handlinger."</string>
     <string name="out_of_space" msgid="6455557115204099579">"Der er ikke ledig plads på startskærmen"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"Der er ikke mere plads i bakken Favoritter"</string>
-    <string name="all_apps_button_label" msgid="8130441508702294465">"Appliste"</string>
+    <string name="all_apps_button_label" msgid="8130441508702294465">"Liste med apps"</string>
     <string name="all_apps_search_results" msgid="5889367432531296759">"Søgeresultater"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"Liste over personlige apps"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"Liste over apps til arbejdet"</string>
@@ -102,28 +102,6 @@
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"Foreslå ikke en app"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"Fastgør forslaget"</string>
     <string name="bubble" msgid="3072951361014076670">"Boble"</string>
-    <string name="enable_app_lock" msgid="5606772593969266718">"Applås"</string>
-    <string name="disable_app_lock" msgid="2252606435270354961">"Fjern applås"</string>
-    <string name="widget_settings" msgid="5280157748464495511">"Indstillinger"</string>
-    <string name="add_to_taskbar" msgid="1442306985857150792">"Føj til proceslinjen"</string>
-    <string name="remove_from_taskbar" msgid="5817026706030273018">"Fjern på proceslinje"</string>
-    <string name="no_room_in_taskbar" msgid="6885243748717395469">"Der er ikke plads på proceslinjen"</string>
-    <string name="app_added_to_taskbar" msgid="6348755169793615171">"Appen er føjet til proceslinjen"</string>
-    <string name="app_removed_from_taskbar" msgid="3471754847898675396">"Appen er fjernet fra proceslinjen"</string>
-    <string name="remove_system_shortcut_label" msgid="3991201411148073972">"Fjern"</string>
-    <string name="home_screen_files_context_menu_copy_label" msgid="8769381168712216221">"Kopiér"</string>
-    <string name="home_screen_files_context_menu_open_in_app_label" msgid="7930552598671791537">"Åbn"</string>
-    <string name="home_screen_files_context_menu_rename_label" msgid="699579827537411711">"Omdøb"</string>
-    <string name="home_screen_files_context_menu_delete_permanently_label" msgid="8660443461874174185">"Slet permanent"</string>
-    <string name="home_screen_files_context_menu_move_to_trash_label" msgid="1145655050674479315">"Flyt til papirkurv"</string>
-    <string name="home_screen_files_moved_to_trash_message" msgid="2848141584483641247">"Elementet er flyttet til papirkurven"</string>
-    <string name="home_screen_files_move_to_trash_error_message" msgid="3836240816166417826">"Elementet kan ikke flyttes til papirkurven. Noget gik galt."</string>
-    <string name="home_screen_files_restore_from_trash_error_message" msgid="994941644161090497">"Handlingen kunne ikke fortrydes. Gå til appen Files for at gendanne."</string>
-    <string name="actions_popup_menu_button" msgid="2442187572711557413">"Handlinger"</string>
-    <string name="shortcuts_popup_menu_button" msgid="766598805805882499">"Genveje"</string>
-    <string name="actions_popup_menu_button_description" msgid="4224192559473869722">"Vis handlingsmenu"</string>
-    <string name="shortcuts_popup_menu_button_description" msgid="7566698511556454634">"Vis menuen med appgenveje"</string>
-    <string name="pause_app_label" msgid="6796255881727695791">"Sæt app på pause"</string>
     <string name="permlab_install_shortcut" msgid="5632423390354674437">"installere genveje"</string>
     <string name="permdesc_install_shortcut" msgid="923466509822011139">"Tillader, at en app tilføjer genveje uden brugerens indgriben."</string>
     <string name="permlab_read_settings" msgid="5136500343007704955">"læs indstillinger og genveje for startskærm"</string>
@@ -135,11 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Tryk for at fuldføre konfigurationen"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Dette er en systemapp, som ikke kan afinstalleres."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Rediger navn"</string>
-    <string name="paginate_left" msgid="7915437358451360433">"Sideinddeling til venstre"</string>
-    <string name="paginate_right" msgid="6701038155201975878">"Sideinddeling til højre"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> er deaktiveret"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} har # notifikation}one{{app_name} har # notifikation}other{{app_name} har # notifikationer}}"</string>
-    <string name="hotseat_prediction_content_description" msgid="7680403232742709704">"App, du forventes at skulle bruge: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Side %1$d ud af %2$d"</string>
     <string name="workspace_scroll_format" msgid="8458889198184077399">"Startskærm %1$d ud af %2$d"</string>
     <string name="workspace_new_page" msgid="257366611030256142">"Ny startskærm"</string>
@@ -150,26 +125,18 @@
     <string name="folder_tap_to_rename" msgid="4017685068016979677">"Tryk for at gemme omdøbningen"</string>
     <string name="folder_closed" msgid="4100806530910930934">"Mappen er lukket"</string>
     <string name="folder_renamed" msgid="1794088362165669656">"Mappen er omdøbt til <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="folder_type_name" msgid="506043307348675355">"Mappe"</string>
-    <string name="app_folder_type_name" msgid="149643408248060284">"Appmappe"</string>
-    <string name="apps_folder_name_format_exact" msgid="891345161390366700">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> elementer"</string>
-    <string name="apps_folder_name_format_exact_with_dot" msgid="7729062268048931718">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> elementer, har notifikationer"</string>
-    <string name="apps_folder_name_format_overflow" msgid="4614729357510054194">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> eller flere elementer"</string>
-    <string name="apps_folder_name_format_overflow_with_dot" msgid="4738681518782744688">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> eller flere elementer, har notifikationer"</string>
+    <string name="folder_name_format_exact" msgid="8626242716117004803">"Mappe: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> elementer"</string>
+    <string name="folder_name_format_overflow" msgid="4270108890534995199">"Mappe: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> eller flere elementer"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"Unavngiven mappe"</string>
-    <string name="files_folder_name" msgid="7712191128817533622">"Filmappe: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="app_pair_name_format" msgid="8134106404716224054">"App-parring: <xliff:g id="APP1">%1$s</xliff:g> og <xliff:g id="APP2">%2$s</xliff:g>"</string>
+    <string name="app_pair_name_format" msgid="8134106404716224054">"Appsammenknytning: <xliff:g id="APP1">%1$s</xliff:g> og <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"Baggrund og stil"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"Rediger startskærm"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"Indst. for startskærm"</string>
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"Deaktiveret af din administrator"</string>
-    <string name="settings_home_organizer" msgid="5184766349407080054">"Hjemmeorganisering"</string>
+    <string name="allow_rotation_title" msgid="7222049633713050106">"Tillad rotation af startskærmen"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Når telefonen roteres"</string>
-    <string name="compose_developer_options_section" msgid="8211460486549952595">"Jetpack Compose"</string>
-    <string name="enable_composition_tracing_title" msgid="8989606591739368424">"Aktivér kompositionssporing"</string>
-    <string name="enable_composition_tracing_desc" msgid="7187566039216492405">"Aktivér kompositionssporing, når du foretager en Perfetto-sporing i oversigten"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Liggende format"</string>
-    <string name="landscape_mode_desc" msgid="3085236452297838664">"Indstil startskærmen til liggende format"</string>
+    <string name="landscape_mode_desc" msgid="7372569859592816793">"Indstil telefonen til liggende format"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Notifikationsprikker"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Til"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Fra"</string>
@@ -206,12 +173,9 @@
     <string name="move_to_hotseat_position" msgid="6295412897075147808">"Flyt til foretrukne position <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="item_moved" msgid="4606538322571412879">"Elementet blev flyttet"</string>
     <string name="add_to_folder" msgid="9040534766770853243">"Føj til mappen: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_position" msgid="4457486890869662">"Føj til mappen <xliff:g id="NAME">%1$s</xliff:g>. Række <xliff:g id="NUMBER_0">%2$s</xliff:g>, kolonne <xliff:g id="NUMBER_1">%3$s</xliff:g> i <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="add_to_folder_with_app" msgid="4534929978967147231">"Føj til mappen, der indeholder <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_app_with_position" msgid="6670979489897093325">"Føj til mappe med <xliff:g id="NAME">%1$s</xliff:g>. Række <xliff:g id="NUMBER_0">%2$s</xliff:g>, kolonne <xliff:g id="NUMBER_1">%3$s</xliff:g>, i <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="added_to_folder" msgid="4793259502305558003">"Elementet blev føjet til mappen"</string>
     <string name="create_folder_with" msgid="4050141361160214248">"Opret mappe med: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="create_folder_with_position" msgid="3093164349445159115">"Opret en mappe med <xliff:g id="NAME">%1$s</xliff:g>. Række <xliff:g id="NUMBER_0">%2$s</xliff:g>, kolonne <xliff:g id="NUMBER_1">%3$s</xliff:g>, i <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="folder_created" msgid="6409794597405184510">"Mappen blev oprettet"</string>
     <string name="action_move_to_workspace" msgid="39528912300293768">"Flyt til startskærm"</string>
     <string name="action_resize" msgid="1802976324781771067">"Tilpas størrelse"</string>
@@ -219,16 +183,11 @@
     <string name="action_increase_height" msgid="459390020612501122">"Øg højden"</string>
     <string name="action_decrease_width" msgid="1374549771083094654">"Reducer bredden"</string>
     <string name="action_decrease_height" msgid="282377193880900022">"Reducer højden"</string>
-    <string name="resize_handle_start" msgid="431073846880883794">"Venstre tilpasningshåndtag"</string>
-    <string name="resize_handle_top" msgid="280799523356834542">"Øverste tilpasningshåndtag"</string>
-    <string name="resize_handle_end" msgid="8411240534474246075">"Højre tilpasningshåndtag"</string>
-    <string name="resize_handle_bottom" msgid="4217171801060928429">"Nederste tilpasningshåndtag"</string>
-    <string name="tap_to_show_resize_buttons" msgid="964815552123289232">"Vis justeringsknapper"</string>
     <string name="widget_resized" msgid="9130327887929620">"Størrelsen for widgetten er ændret til bredde <xliff:g id="NUMBER_0">%1$s</xliff:g> og højde <xliff:g id="NUMBER_1">%2$s</xliff:g>"</string>
     <string name="action_deep_shortcut" msgid="4766835855579976045">"Genvejsmenu"</string>
     <string name="widget_frame_name" msgid="8782828448471444270">"Widget til at tilpasse størrelsen på rammen for <xliff:g id="STRING">%1$s</xliff:g>"</string>
     <string name="action_close" msgid="1077760267194136901">"Luk"</string>
-    <string name="action_dismiss_notification" msgid="5909461085055959187">"Luk"</string>
+    <string name="action_dismiss_notification" msgid="5909461085055959187">"Afvis"</string>
     <string name="accessibility_close" msgid="2277148124685870734">"Luk"</string>
     <string name="all_apps_personal_tab" msgid="4190252696685155002">"Personlig"</string>
     <string name="all_apps_work_tab" msgid="4884822796154055118">"Arbejde"</string>
@@ -236,6 +195,7 @@
     <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"Fanen Arbejdsapps"</string>
     <string name="work_profile_toggle_label" msgid="3081029915775481146">"Arbejdsprofil"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"Arbejdsapps har badges og kan ses af din it-administrator"</string>
+    <string name="work_profile_edu_accept" msgid="6069788082535149071">"OK"</string>
     <string name="work_apps_paused_title" msgid="3040901117349444598">"Dine arbejdsapps er sat på pause"</string>
     <string name="work_apps_paused_info_body" msgid="1687828929959237477">"Du vil ikke modtage notifikationer fra dine arbejdsapps"</string>
     <string name="work_apps_paused_body" msgid="261634750995824906">"Arbejdsapps kan ikke sende dig notifikationer, bruge dit batteri eller få adgang til din lokation"</string>
@@ -256,23 +216,6 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Lås"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Ændringer af tilstanden for det private område"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Installer"</string>
-    <string name="ps_app_label_override" msgid="6876160706011676804">"Tilføj"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Installer apps i privat område"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Føj filer m.m. til dit private område"</string>
-    <string name="circle_shape_title" msgid="3582075061179674565">"Cirkel"</string>
-    <string name="square_shape_title" msgid="3085320803149569308">"Kvadrat"</string>
-    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4-sidet kage"</string>
-    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7-sidet kage"</string>
-    <string name="arch_shape_title" msgid="2213843822192871318">"Bue"</string>
-    <string name="create_new_folder_button_text" msgid="4037052463794735069">"Ny mappe"</string>
-    <string name="default_new_folder_name" msgid="8821062664729412079">"Ny mappe"</string>
-    <string name="home_screen_files_rename_dialog_clear_button" msgid="1516608063079626727">"Ryd"</string>
-    <string name="home_screen_files_rename_dialog_neutral_button" msgid="961781261154618336">"Annuller"</string>
-    <string name="home_screen_files_rename_dialog_positive_button" msgid="6506701192246379747">"Omdøb"</string>
-    <string name="home_screen_files_rename_dialog_file_title" msgid="3540941610992603887">"Omdøb fil"</string>
-    <string name="home_screen_files_rename_dialog_folder_title" msgid="2453152990256864379">"Omdøb mappe"</string>
-    <string name="something_went_wrong" msgid="1492883246069060632">"Noget gik galt"</string>
-    <string name="organizer_create_screen_title" msgid="1052454457895703433">"Opret skærm"</string>
-    <string name="organizer_create_screen_description" msgid="3224132391919219061">"Vælg en kategori for at tilføje apps og widgets fra din telefon"</string>
-    <string name="organizer_choose_layout_title" msgid="127228966942084947">"Vælg layout"</string>
 </resources>

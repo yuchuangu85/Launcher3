@@ -18,7 +18,8 @@ package com.android.launcher3.splitscreen
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.Drawable
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import android.view.View
 import com.android.launcher3.model.data.ItemInfo
@@ -40,7 +41,7 @@ abstract class SplitShortcut<T>(
     target: T,
     itemInfo: ItemInfo?,
     originalView: View?,
-    protected val position: SplitPositionOption,
+    protected val position: SplitPositionOption
 ) : SystemShortcut<T>(iconResId, labelResId, target, itemInfo, originalView) where
 T : Context?,
 T : ActivityContext? {
@@ -50,17 +51,17 @@ T : ActivityContext? {
     protected val splitSelectSource: SplitSelectSource?
         get() {
             // Initiate splitscreen from the Home screen or Home All Apps
+            val bitmap: Bitmap
             val intent: Intent
-            val drawable: Drawable
             when (mItemInfo) {
                 is WorkspaceItemInfo -> {
                     val workspaceItemInfo = mItemInfo
-                    drawable = workspaceItemInfo.newIcon(mOriginalView.context)
+                    bitmap = workspaceItemInfo.bitmap.icon
                     intent = workspaceItemInfo.intent
                 }
                 is com.android.launcher3.model.data.AppInfo -> {
                     val appInfo = mItemInfo
-                    drawable = appInfo.newIcon(mOriginalView.context)
+                    bitmap = appInfo.bitmap.icon
                     intent = appInfo.intent
                 }
                 else -> {
@@ -72,11 +73,11 @@ T : ActivityContext? {
                 SplitConfigurationOptions.getLogEventForPosition(position.stagePosition)
             return SplitSelectSource(
                 mOriginalView,
-                drawable,
+                BitmapDrawable(bitmap),
                 intent,
                 position,
                 mItemInfo,
-                splitEvent,
+                splitEvent
             )
         }
 

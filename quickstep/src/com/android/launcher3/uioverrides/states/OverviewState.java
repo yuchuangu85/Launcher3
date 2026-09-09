@@ -16,29 +16,27 @@
 package com.android.launcher3.uioverrides.states;
 
 import static com.android.app.animation.Interpolators.DECELERATE_2;
+import static com.android.launcher3.Flags.enableDesktopExplodedView;
+import static com.android.launcher3.Flags.enableOverviewBackgroundWallpaperBlur;
+import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_OVERVIEW;
-import static com.android.launcher3.util.OverviewReleaseFlags.enablePredictiveBackInOverview;
 
-import android.graphics.Color;
+import android.content.Context;
 import android.graphics.Rect;
 import android.os.SystemProperties;
-
-import androidx.core.graphics.ColorUtils;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
-import com.android.launcher3.LauncherUiState;
 import com.android.launcher3.R;
-import com.android.launcher3.display.DisplayController;
-import com.android.launcher3.statehandlers.DepthController;
-import com.android.launcher3.uioverrides.QuickstepLauncher;
+import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
-import com.android.launcher3.views.ScrimColors;
-import com.android.quickstep.fallback.RecentsStateUtilsKt;
+import com.android.quickstep.util.BaseDepthController;
 import com.android.quickstep.util.LayoutUtils;
 import com.android.quickstep.views.RecentsView;
+import com.android.quickstep.views.TaskView;
+import com.android.systemui.shared.system.BlurUtils;
 
 /**
  * Definition for overview state
@@ -52,12 +50,10 @@ public class OverviewState extends LauncherState {
     protected static final Rect sTempRect = new Rect();
 
     private static final int STATE_FLAGS = FLAG_WORKSPACE_ICONS_CAN_BE_DRAGGED
-            | FLAG_DISABLE_RESTORE_EXCEPT_UI_MODE_CHANGE
-            | FLAG_RECENTS_VIEW_VISIBLE
-            | FLAG_WORKSPACE_INACCESSIBLE
+            | FLAG_DISABLE_RESTORE | FLAG_RECENTS_VIEW_VISIBLE | FLAG_WORKSPACE_INACCESSIBLE
             | FLAG_CLOSE_POPUPS;
 
-    protected OverviewState(int id) {
+    public OverviewState(int id) {
         this(id, STATE_FLAGS);
     }
 
@@ -88,7 +84,7 @@ public class OverviewState extends LauncherState {
         recentsView.getTaskSize(sTempRect);
         float scale;
         DeviceProfile deviceProfile = launcher.getDeviceProfile();
-        if (deviceProfile.getDeviceProperties().isTwoPanels()) {
+        if (deviceProfile.isTwoPanels) {
             // In two panel layout, width does not include both panels or space between them, so
             // use height instead. We do not use height for handheld, as cell layout can be
             // shorter than a task and we want the workspace to scale down to task size.
@@ -116,24 +112,21 @@ public class OverviewState extends LauncherState {
     }
 
     @Override
-    public int getVisibleElements(LauncherUiState launcherUiState) {
+    public int getVisibleElements(Launcher launcher) {
         int elements = CLEAR_ALL_BUTTON | OVERVIEW_ACTIONS | ADD_DESK_BUTTON;
+        DeviceProfile dp = launcher.getDeviceProfile();
         boolean showFloatingSearch;
-        DeviceProfile dp = launcherUiState.getDeviceProfileRef().getValue();
-        if (dp.getDeviceProperties().isPhone()) {
+        if (dp.isPhone) {
             // Only show search in phone overview in portrait mode.
-            showFloatingSearch = !dp.getDeviceProperties().isLandscape();
+            showFloatingSearch = !dp.isLandscape;
         } else {
             // Only show search in tablet overview if taskbar is not visible.
-            showFloatingSearch = !dp.getDeviceProperties()
-                    .getTaskbarConfiguration()
-                    .isTaskbarPresent()
-                    || isTaskbarStashed(dp);
+            showFloatingSearch = !dp.isTaskbarPresent || isTaskbarStashed(launcher);
         }
         if (showFloatingSearch) {
             elements |= FLOATING_SEARCH_BAR;
         }
-        if (launcherUiState.getSplitScreenUiState().isSplitSelectActive()) {
+        if (launcher.isSplitSelectionActive()) {
             elements &= ~CLEAR_ALL_BUTTON & ~ADD_DESK_BUTTON;
         }
         return elements;
@@ -150,36 +143,41 @@ public class OverviewState extends LauncherState {
 
     @Override
     public int getFloatingSearchBarRestingMarginBottom(Launcher launcher) {
-        return areElementsVisible(launcher.getLauncherUiState(), FLOATING_SEARCH_BAR) ? 0
+        return areElementsVisible(launcher, FLOATING_SEARCH_BAR) ? 0
                 : super.getFloatingSearchBarRestingMarginBottom(launcher);
     }
 
     @Override
     public boolean shouldFloatingSearchBarUsePillWhenUnfocused(Launcher launcher) {
         DeviceProfile dp = launcher.getDeviceProfile();
-        return dp.getDeviceProperties().isPhone() && !dp.getDeviceProperties().isLandscape();
+        return dp.isPhone && !dp.isLandscape;
     }
 
     @Override
-    public boolean isTaskbarAlignedWithHotseat() {
+    public boolean isTaskbarAlignedWithHotseat(Launcher launcher) {
         return false;
     }
 
     @Override
-    public ScrimColors getWorkspaceScrimColor(Launcher launcher) {
-        return new ScrimColors(
-                /* backgroundColor= */ Themes.getAttrColor(launcher, R.attr.overviewScrimColor),
-                /* foregroundColor= */ Color.TRANSPARENT);
+    public int getWorkspaceScrimColor(Launcher launcher) {
+        return enableOverviewBackgroundWallpaperBlur() && BlurUtils.supportsBlursOnWindows()
+                ? Themes.getAttrColor(launcher, R.attr.overviewScrimColorOverBlur)
+                : Themes.getAttrColor(launcher, R.attr.overviewScrimColor);
     }
 
     @Override
     public boolean displayOverviewTasksAsGrid(DeviceProfile deviceProfile) {
-        return deviceProfile.getDeviceProperties().isLargeScreen();
+        return deviceProfile.isTablet;
     }
 
     @Override
-    public boolean isInOverview() {
-        return true;
+    public boolean detachDesktopCarousel() {
+        return false;
+    }
+
+    @Override
+    public boolean showExplodedDesktopView() {
+        return enableDesktopExplodedView();
     }
 
     @Override
@@ -209,35 +207,30 @@ public class OverviewState extends LauncherState {
     }
 
     @Override
-    protected float getDepthUnchecked(ActivityContext context) {
+    protected float getDepthUnchecked(Context context) {
         // TODO(178661709): revert to always scaled
-        return SystemProperties.getBoolean("ro.launcher.depth.overview", true)
-                ? DepthController.DEPTH_70_PERCENT
-                : DepthController.DEPTH_0_PERCENT;
-    }
-
-    @Override
-    public void onBackStarted(Launcher launcher) {
-        if (enablePredictiveBackInOverview()) {
-            RecentsStateUtilsKt.toRecentsState(this).onBackStarted((QuickstepLauncher) launcher);
+        if (enableScalingRevealHomeAnimation()) {
+            return SystemProperties.getBoolean("ro.launcher.depth.overview", true)
+                    ? BaseDepthController.DEPTH_70_PERCENT
+                    : BaseDepthController.DEPTH_0_PERCENT;
         } else {
-            super.onBackStarted(launcher);
-        }
-    }
-
-    @Override
-    public void onBackProgressed(Launcher launcher, float backProgress) {
-        if (enablePredictiveBackInOverview()) {
-            RecentsStateUtilsKt.toRecentsState(this).onBackProgressed((QuickstepLauncher) launcher,
-                    backProgress);
-        } else {
-            super.onBackProgressed(launcher, backProgress);
+            return SystemProperties.getBoolean("ro.launcher.depth.overview", true) ? 1 : 0;
         }
     }
 
     @Override
     public void onBackInvoked(Launcher launcher) {
-        RecentsStateUtilsKt.toRecentsState(this).onBackInvoked((QuickstepLauncher) launcher);
+        RecentsView recentsView = launcher.getOverviewPanel();
+        TaskView taskView = recentsView.getRunningTaskView();
+        if (taskView != null) {
+            if (recentsView.isTaskViewFullyVisible(taskView)) {
+                taskView.launchWithAnimation();
+            } else {
+                recentsView.snapToPage(recentsView.indexOfChild(taskView));
+            }
+        } else {
+            super.onBackInvoked(launcher);
+        }
     }
 
     public static OverviewState newBackgroundState(int id) {
@@ -261,9 +254,5 @@ public class OverviewState extends LauncherState {
      */
     public static OverviewState newSplitSelectState(int id) {
         return new SplitScreenSelectState(id);
-    }
-
-    public static OverviewState newOverviewState(int id) {
-        return new OverviewState(id, STATE_FLAGS | FLAG_IS_TASK_VIEW_INTERACTIVE);
     }
 }

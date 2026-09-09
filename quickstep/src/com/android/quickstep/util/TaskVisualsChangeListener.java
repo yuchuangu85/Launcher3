@@ -19,9 +19,6 @@ package com.android.quickstep.util;
 import android.annotation.NonNull;
 import android.os.UserHandle;
 
-import androidx.annotation.MainThread;
-import androidx.annotation.WorkerThread;
-
 import com.android.systemui.shared.recents.model.Task;
 import com.android.systemui.shared.recents.model.ThumbnailData;
 
@@ -33,7 +30,6 @@ public interface TaskVisualsChangeListener {
     /**
      * Called when the task thumbnail changes
      */
-    @MainThread
     default Task onTaskThumbnailChanged(int taskId, ThumbnailData thumbnailData) {
         return null;
     }
@@ -41,12 +37,10 @@ public interface TaskVisualsChangeListener {
     /**
      * Called when the icon for a task changes
      */
-    @MainThread
     default void onTaskIconChanged(@NonNull String pkg, @NonNull UserHandle user) {}
 
     /**
      * Called when the icon for a task changes
      */
-    @WorkerThread
     default void onTaskIconChanged(int taskId) {}
 }

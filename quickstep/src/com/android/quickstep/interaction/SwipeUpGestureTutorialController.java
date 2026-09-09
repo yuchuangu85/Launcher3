@@ -52,7 +52,6 @@ import com.android.launcher3.anim.PendingAnimation;
 import com.android.quickstep.GestureState;
 import com.android.quickstep.OverviewComponentObserver;
 import com.android.quickstep.RemoteTargetGluer;
-import com.android.quickstep.RotationTouchHelper;
 import com.android.quickstep.SwipeUpAnimationLogic;
 import com.android.quickstep.SwipeUpAnimationLogic.RunningWindowAnim;
 import com.android.quickstep.util.RecordingSurfaceTransaction;
@@ -87,12 +86,11 @@ abstract class SwipeUpGestureTutorialController extends TutorialController {
     SwipeUpGestureTutorialController(TutorialFragment tutorialFragment, TutorialType tutorialType) {
         super(tutorialFragment, tutorialType);
         mTaskViewSwipeUpAnimation = new ViewSwipeUpAnimation(mContext, new GestureState(
-                OverviewComponentObserver.INSTANCE.get(mContext), Display.DEFAULT_DISPLAY, -1),
-                RotationTouchHelper.REPOSITORY_INSTANCE.get(mContext).get(Display.DEFAULT_DISPLAY));
+                OverviewComponentObserver.INSTANCE.get(mContext), Display.DEFAULT_DISPLAY, -1));
 
         DeviceProfile dp = InvariantDeviceProfile.INSTANCE.get(mContext)
                 .getDeviceProfile(mContext)
-                .copy();
+                .copy(mContext);
         mTaskViewSwipeUpAnimation.initDp(dp);
 
         int height = mTutorialFragment.getRootView().getFullscreenHeight();
@@ -311,9 +309,8 @@ abstract class SwipeUpGestureTutorialController extends TutorialController {
 
     class ViewSwipeUpAnimation extends SwipeUpAnimationLogic {
 
-        ViewSwipeUpAnimation(Context context, GestureState gestureState,
-                RotationTouchHelper rotationTouchHelper) {
-            super(context, gestureState, rotationTouchHelper);
+        ViewSwipeUpAnimation(Context context, GestureState gestureState) {
+            super(context, gestureState);
             mRemoteTargetHandles[0] = new RemoteTargetGluer.RemoteTargetHandle(
                     mRemoteTargetHandles[0].getTaskViewSimulator(), new FakeTransformParams());
 
@@ -330,7 +327,7 @@ abstract class SwipeUpGestureTutorialController extends TutorialController {
         void initDp(DeviceProfile dp) {
             initTransitionEndpoints(dp);
             mRemoteTargetHandles[0].getTaskViewSimulator().setPreviewBounds(
-                    new Rect(0, 0, dp.getDeviceProperties().getWidthPx(), dp.getDeviceProperties().getHeightPx()), dp.getInsets());
+                    new Rect(0, 0, dp.widthPx, dp.heightPx), dp.getInsets());
         }
 
         @Override

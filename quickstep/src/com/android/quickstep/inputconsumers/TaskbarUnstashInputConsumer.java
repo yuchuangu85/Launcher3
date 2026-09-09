@@ -17,31 +17,32 @@ package com.android.quickstep.inputconsumers;
 
 import static android.view.MotionEvent.ACTION_MOVE;
 import static android.view.MotionEvent.INVALID_POINTER_ID;
-import static android.view.RoundedCorner.POSITION_BOTTOM_LEFT;
-import static android.view.RoundedCorner.POSITION_BOTTOM_RIGHT;
 
+import static com.android.launcher3.Flags.enableCursorHoverStates;
+import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.MotionEventsUtils.isTrackpadMotionEvent;
 import static com.android.launcher3.taskbar.TaskbarAutohideSuspendController.FLAG_AUTOHIDE_SUSPEND_TOUCHING;
-import static com.android.launcher3.util.Executors.getTaskbarUiThread;
-import static com.android.systemui.shared.Flags.cursorHotCorner;
 
+import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.hardware.display.DisplayManager;
 import android.os.Handler;
-import android.view.Display;
+import android.os.Looper;
 import android.view.InputDevice;
 import android.view.MotionEvent;
-import android.view.RoundedCorner;
 import android.view.VelocityTracker;
+import android.view.ViewConfiguration;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.Px;
 
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.taskbar.TaskbarApiProxy;
-import com.android.launcher3.taskbar.TaskbarUiState;
+import com.android.launcher3.R;
+import com.android.launcher3.taskbar.TaskbarActivityContext;
+import com.android.launcher3.taskbar.TaskbarThresholdUtils;
+import com.android.launcher3.taskbar.TaskbarTranslationController.TransitionCallback;
 import com.android.launcher3.touch.OverScroll;
+import com.android.launcher3.util.DisplayController;
 import com.android.quickstep.GestureState;
 import com.android.quickstep.InputConsumer;
 import com.android.quickstep.OverviewCommandHelper;
@@ -49,9 +50,7 @@ import com.android.quickstep.OverviewCommandHelper.CommandType;
 import com.android.systemui.shared.system.InputMonitorCompat;
 
 /**
- * Listens for touch (swipe) and hover events to unstash the Taskbar. All touch and keyboard events
- * are dispatched on main thread so invocation on taskbar APIs has to be switched to taskbar ui
- * thread (if enableTaskbarUiTherad() flag is on).
+ * Listens for touch (swipe) and hover events to unstash the Taskbar.
  */
 public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
 
@@ -59,14 +58,11 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
 
     private static final int NUM_MOTION_MOVE_THRESHOLD = 3;
 
-    private static final Handler sUnstashHandler = new Handler(getTaskbarUiThread().getLooper());
+    private static final Handler sUnstashHandler = new Handler(Looper.getMainLooper());
 
-    private @Nullable TaskbarApiProxy mTaskbarApiProxy;
-    private final TaskbarUiState mTaskbarUiState;
+    private final TaskbarActivityContext mTaskbarActivityContext;
     private final OverviewCommandHelper mOverviewCommandHelper;
-    private final DisplayManager mDisplayManager;
     private final float mUnstashArea;
-    private final int mActionCornerPadding;
     private final int mTaskbarNavThreshold;
     private final int mTaskbarNavThresholdY;
     private final boolean mIsTaskbarAllAppsOpen;
@@ -84,46 +80,47 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
     private final Rect mBottomEdgeBounds = new Rect();
     private final int mBottomScreenEdge;
     private final int mStashedTaskbarBottomEdge;
+
+    private final @Nullable TransitionCallback mTransitionCallback;
     private final GestureState mGestureState;
     private VelocityTracker mVelocityTracker;
     private boolean mCanPlayTaskbarBgAlphaAnimation = true;
     private int mMotionMoveCount = 0;
     // Velocity defined as dp per s
-    private final float mTaskbarSlowVelocityYThreshold;
+    private float mTaskbarSlowVelocityYThreshold;
 
     public TaskbarUnstashInputConsumer(
+            Context context,
             InputConsumer delegate,
             InputMonitorCompat inputMonitor,
-            TaskbarApiProxy taskbarApiProxy,
-            DisplayManager displayManager,
+            TaskbarActivityContext taskbarActivityContext,
             OverviewCommandHelper overviewCommandHelper,
-            GestureState gestureState,
-            int touchSlop) {
+            GestureState gestureState) {
         super(gestureState.getDisplayId(), delegate, inputMonitor);
-        mTaskbarApiProxy = taskbarApiProxy;
-        mTaskbarUiState = taskbarApiProxy.getTaskbarUiState();
-        mIsTransientTaskbar = taskbarApiProxy.isTransient();
+        mTaskbarActivityContext = taskbarActivityContext;
         mOverviewCommandHelper = overviewCommandHelper;
-        mDisplayManager = displayManager;
-        mTouchSlop = touchSlop;
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
-        mUnstashArea = getUnstashAreaSizePx();
-        mActionCornerPadding = getActionCornerPaddingPx();
+        Resources res = context.getResources();
+        mUnstashArea = res.getDimensionPixelSize(R.dimen.taskbar_unstash_input_area);
+        mTaskbarNavThreshold = TaskbarThresholdUtils.getFromNavThreshold(res,
+                taskbarActivityContext.getDeviceProfile());
+        mTaskbarNavThresholdY = taskbarActivityContext.getDeviceProfile().heightPx
+                - mTaskbarNavThreshold;
+        mIsTaskbarAllAppsOpen = mTaskbarActivityContext.isTaskbarAllAppsOpen();
 
-        boolean pinnedTaskbarWithAutoStashing =
-                mTaskbarApiProxy.shouldAllowTaskbarToAutoStash() && !mIsTransientTaskbar;
+        mIsTransientTaskbar = DisplayController.isTransientTaskbar(context);
+        mTaskbarSlowVelocityYThreshold =
+                res.getDimensionPixelSize(R.dimen.taskbar_slow_velocity_y_threshold);
 
-        DeviceProfile deviceProfile = mTaskbarUiState.getDeviceProfile();
-        mTaskbarNavThreshold = pinnedTaskbarWithAutoStashing ? 0 : getTaskbarNavThreshold();
+        mBottomScreenEdge = res.getDimensionPixelSize(
+                R.dimen.taskbar_stashed_screen_edge_hover_deadzone_height);
+        mStashedTaskbarBottomEdge =
+                res.getDimensionPixelSize(R.dimen.taskbar_stashed_below_hover_deadzone_height);
 
-        mTaskbarNavThresholdY =
-                deviceProfile.getDeviceProperties().getHeightPx() - mTaskbarNavThreshold;
-        mIsTaskbarAllAppsOpen = isTaskbarAllAppsOpen();
-
-        mTaskbarSlowVelocityYThreshold = getTaskbarSlowVelocityYThreshold();
-        mBottomScreenEdge = getTaskbarStashedScreenEdgeHoverDeadzoneHeightPx();
-
-        mStashedTaskbarBottomEdge = getTaskbarStashedBelowHoverDeadzoneHeightPx();
+        mTransitionCallback = mIsTransientTaskbar
+                ? taskbarActivityContext.getTranslationCallbacks()
+                : null;
         mGestureState = gestureState;
     }
 
@@ -139,7 +136,7 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
 
     @Override
     public void onMotionEvent(MotionEvent ev) {
-        if (mIsTransientTaskbar) {
+        if (enableScalingRevealHomeAnimation() && mIsTransientTaskbar) {
             checkVelocityForTaskbarBackground(ev);
         }
         if (mState != STATE_ACTIVE) {
@@ -147,6 +144,8 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
                     && isStashedTaskbarHovered((int) ev.getX(), (int) ev.getY());
             // Only show the transient task bar if the touch events are on the screen.
             if (!isTrackpadMotionEvent(ev)) {
+                final float x = ev.getRawX();
+                final float y = ev.getRawY();
                 switch (ev.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         mActivePointerId = ev.getPointerId(0);
@@ -154,12 +153,10 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
                         mLastPos.set(mDownPos);
 
                         mHasPassedTaskbarNavThreshold = false;
-                        if (mTaskbarApiProxy != null) {
-                            mTaskbarApiProxy.setAutohideSuspendFlag(
-                                    FLAG_AUTOHIDE_SUSPEND_TOUCHING, true);
-                            if (!mIsTaskbarAllAppsOpen) {
-                                mTaskbarApiProxy.onTransitionActionDown();
-                            }
+                        mTaskbarActivityContext.setAutohideSuspendFlag(
+                                FLAG_AUTOHIDE_SUSPEND_TOUCHING, true);
+                        if (mTransitionCallback != null && !mIsTaskbarAllAppsOpen) {
+                            mTransitionCallback.onActionDown();
                         }
                         break;
                     case MotionEvent.ACTION_POINTER_UP:
@@ -181,23 +178,23 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
                         }
                         mLastPos.set(ev.getX(pointerIndex), ev.getY(pointerIndex));
 
+                        float dX = mLastPos.x - mDownPos.x;
                         float dY = mLastPos.y - mDownPos.y;
 
-                        if (mTaskbarApiProxy != null
-                                && mTaskbarApiProxy.shouldAllowTaskbarToAutoStash()) {
+                        if (mIsTransientTaskbar) {
                             boolean passedTaskbarNavThreshold = dY < 0
                                     && Math.abs(dY) >= mTaskbarNavThreshold;
 
-                            // we only care about nav thresholds when we are transient taskbar
                             if (!mHasPassedTaskbarNavThreshold && passedTaskbarNavThreshold
                                     && !mGestureState.isInExtendedSlopRegion()) {
                                 mHasPassedTaskbarNavThreshold = true;
-                                mTaskbarApiProxy.onSwipeToUnstashTaskbar(true);
+                                mTaskbarActivityContext.onSwipeToUnstashTaskbar(true);
                             }
+
                             if (dY < 0) {
                                 dY = -OverScroll.dampedScroll(-dY, mTaskbarNavThresholdY);
-                                if (!mIsTaskbarAllAppsOpen) {
-                                    mTaskbarApiProxy.onTransitionActionMove(dY);
+                                if (mTransitionCallback != null && !mIsTaskbarAllAppsOpen) {
+                                    mTransitionCallback.onActionMove(dY);
                                 }
                             }
                         }
@@ -236,22 +233,22 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
 
         float velocityYPxPerS = mVelocityTracker.getYVelocity();
         float dY = Math.abs(mLastPos.y - mDownPos.y);
-        if (mTaskbarApiProxy != null
-                && mCanPlayTaskbarBgAlphaAnimation
+        if (mCanPlayTaskbarBgAlphaAnimation
                 && mMotionMoveCount >= NUM_MOTION_MOVE_THRESHOLD // Arbitrary value
                 && velocityYPxPerS != 0 // Ignore these
                 && velocityYPxPerS >= mTaskbarSlowVelocityYThreshold
                 && dY != 0
                 && dY > mTouchSlop) {
-            mTaskbarApiProxy.playTaskbarBackgroundAlphaAnimation();
+            mTaskbarActivityContext.playTaskbarBackgroundAlphaAnimation();
             mCanPlayTaskbarBgAlphaAnimation = false;
         }
     }
 
     private void cleanupAfterMotionEvent() {
-        if (mTaskbarApiProxy != null) {
-            mTaskbarApiProxy.setAutohideSuspendFlag(FLAG_AUTOHIDE_SUSPEND_TOUCHING, false);
-            mTaskbarApiProxy.onTransitionActionEnd();
+        mTaskbarActivityContext.setAutohideSuspendFlag(
+                FLAG_AUTOHIDE_SUSPEND_TOUCHING, false);
+        if (mTransitionCallback != null) {
+            mTransitionCallback.onActionEnd();
         }
         mHasPassedTaskbarNavThreshold = false;
 
@@ -273,37 +270,31 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
      */
     @Override
     public void onHoverEvent(MotionEvent ev) {
-        if (!isTaskbarStashed()) {
+        if (!enableCursorHoverStates() || mTaskbarActivityContext == null
+                || !mTaskbarActivityContext.isTaskbarStashed()) {
             return;
         }
 
         if (mIsStashedTaskbarHovered) {
             updateHoveredTaskbarState((int) ev.getX(), (int) ev.getY());
         } else {
-            updateUnhoveredTaskbarState((int) ev.getX(), (int) ev.getY(), ev.getDisplayId());
+            updateUnhoveredTaskbarState((int) ev.getX(), (int) ev.getY());
         }
     }
 
-    public void onConsumerAboutToBeSwitched() {
-        super.onConsumerAboutToBeSwitched();
-        mTaskbarApiProxy = null;
-    }
-
     private void updateHoveredTaskbarState(int x, int y) {
-        DeviceProfile dp = mTaskbarUiState.getDeviceProfile();
+        DeviceProfile dp = mTaskbarActivityContext.getDeviceProfile();
         mBottomEdgeBounds.set(
-                (dp.getDeviceProperties().getWidthPx() - (int) mUnstashArea) / 2,
-                dp.getDeviceProperties().getHeightPx() - mStashedTaskbarBottomEdge,
-                (int) (((dp.getDeviceProperties().getWidthPx() - mUnstashArea) / 2) + mUnstashArea),
-                dp.getDeviceProperties().getHeightPx());
+                (dp.widthPx - (int) mUnstashArea) / 2,
+                dp.heightPx - mStashedTaskbarBottomEdge,
+                (int) (((dp.widthPx - mUnstashArea) / 2) + mUnstashArea),
+                dp.heightPx);
 
         if (mBottomEdgeBounds.contains(x, y)) {
             // start a single unstash timeout if hovering bottom edge under the hinted taskbar.
             if (!sUnstashHandler.hasMessagesOrCallbacks()) {
                 sUnstashHandler.postDelayed(() -> {
-                    if (mTaskbarApiProxy != null) {
-                        mTaskbarApiProxy.onSwipeToUnstashTaskbar(false);
-                    }
+                    mTaskbarActivityContext.onSwipeToUnstashTaskbar(false);
                     mIsStashedTaskbarHovered = false;
                 }, HOVER_TASKBAR_UNSTASH_TIMEOUT);
             }
@@ -316,97 +307,47 @@ public class TaskbarUnstashInputConsumer extends DelegateInputConsumer {
         }
     }
 
-    private void updateUnhoveredTaskbarState(int x, int y, int displayId) {
+    private void updateUnhoveredTaskbarState(int x, int y) {
         sUnstashHandler.removeCallbacksAndMessages(null);
 
-        DeviceProfile dp = mTaskbarUiState.getDeviceProfile();
+        DeviceProfile dp = mTaskbarActivityContext.getDeviceProfile();
         mBottomEdgeBounds.set(
                 0,
-                dp.getDeviceProperties().getHeightPx() - mBottomScreenEdge,
-                dp.getDeviceProperties().getWidthPx(),
-                dp.getDeviceProperties().getHeightPx());
-
-        if (cursorHotCorner() && mDisplayManager != null) {
-            Display display = mDisplayManager.getDisplay(displayId);
-            if (display != null) {
-                RoundedCorner leftBottomCorner = display.getRoundedCorner(POSITION_BOTTOM_LEFT);
-                int leftCornerRadius =
-                        leftBottomCorner == null ? 0 : leftBottomCorner.getRadius();
-                RoundedCorner rightBottomCorner = display.getRoundedCorner(
-                        POSITION_BOTTOM_RIGHT);
-                int rightCornerRadius =
-                        rightBottomCorner == null ? 0 : rightBottomCorner.getRadius();
-                mBottomEdgeBounds.inset(leftCornerRadius + mActionCornerPadding, 0,
-                        rightCornerRadius + mActionCornerPadding, 0);
-            }
-        }
+                dp.heightPx - mBottomScreenEdge,
+                dp.widthPx,
+                dp.heightPx);
 
         if (isStashedTaskbarHovered(x, y)) {
             // If enter hovering stashed taskbar, start hint.
             startStashedTaskbarHover(/* isHovered = */ true);
-        } else if (mBottomEdgeBounds.contains(x, y) && mTaskbarApiProxy != null) {
+        } else if (mBottomEdgeBounds.contains(x, y)) {
             // If hover screen's bottom edge not below the stashed taskbar, unstash it.
-            mTaskbarApiProxy.onSwipeToUnstashTaskbar(false);
+            mTaskbarActivityContext.onSwipeToUnstashTaskbar(false);
         }
     }
 
     private void startStashedTaskbarHover(boolean isHovered) {
-        if (mTaskbarApiProxy != null) {
-            mTaskbarApiProxy.startTaskbarUnstashHint(isHovered);
-        }
+        mTaskbarActivityContext.startTaskbarUnstashHint(isHovered);
         mIsStashedTaskbarHovered = isHovered;
     }
 
     private boolean isStashedTaskbarHovered(int x, int y) {
-        if (!isTaskbarStashed() || isTaskbarAllAppsOpen()) {
+        if (!mTaskbarActivityContext.isTaskbarStashed()
+                || mTaskbarActivityContext.isTaskbarAllAppsOpen()
+                || !enableCursorHoverStates()) {
             return false;
         }
-        DeviceProfile dp = mTaskbarUiState.getDeviceProfile();
+        DeviceProfile dp = mTaskbarActivityContext.getDeviceProfile();
         mStashedTaskbarHandleBounds.set(
-                (dp.getDeviceProperties().getWidthPx() - (int) mUnstashArea) / 2,
-                dp.getDeviceProperties().getHeightPx()
-                        - dp.getTaskbarProfile().getStashedTaskbarHeight(),
-                (int) (((dp.getDeviceProperties().getWidthPx() - mUnstashArea) / 2) + mUnstashArea),
-                dp.getDeviceProperties().getHeightPx());
+                (dp.widthPx - (int) mUnstashArea) / 2,
+                dp.heightPx - dp.stashedTaskbarHeight,
+                (int) (((dp.widthPx - mUnstashArea) / 2) + mUnstashArea),
+                dp.heightPx);
         return mStashedTaskbarHandleBounds.contains(x, y);
-    }
-
-    private boolean isTaskbarStashed() {
-        return mTaskbarUiState.isTaskbarStashed();
-    }
-
-    private boolean isTaskbarAllAppsOpen() {
-        return mTaskbarUiState.isTaskbarAllAppsOpen();
-    }
-
-    @Px
-    private int getUnstashAreaSizePx() {
-        return mTaskbarUiState.getTaskbarUnstashAreaSizePx();
-    }
-
-    @Px
-    private int getActionCornerPaddingPx() {
-        return mTaskbarUiState.getTaskbarActionCornerPaddingPx();
     }
 
     private boolean isMouseEvent(MotionEvent event) {
         return event.getSource() == InputDevice.SOURCE_MOUSE;
-    }
-
-    private int getTaskbarNavThreshold() {
-        return mTaskbarUiState.getTaskbarNavThreshold();
-    }
-
-    private int getTaskbarSlowVelocityYThreshold() {
-        return mTaskbarUiState.getTaskbarSlowVelocityYThreshold();
-    }
-
-    private int getTaskbarStashedScreenEdgeHoverDeadzoneHeightPx() {
-        return mTaskbarUiState.getTaskbarStashedScreenEdgeHoverDeadzoneHeightPx();
-    }
-
-    private int getTaskbarStashedBelowHoverDeadzoneHeightPx() {
-        return mTaskbarUiState.getTaskbarStashedBelowHoverDeadzoneHeightPx();
     }
 
     @Override

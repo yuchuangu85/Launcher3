@@ -16,22 +16,26 @@
 package com.android.quickstep.views;
 
 import static android.app.ActivityTaskManager.INVALID_TASK_ID;
+import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_WALLPAPER_ACTIVITY;
 
+import static com.android.launcher3.Flags.enableGridOnlyOverview;
 import static com.android.launcher3.LauncherState.CLEAR_ALL_BUTTON;
+import static com.android.launcher3.LauncherState.ADD_DESK_BUTTON;
+import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
 import static com.android.launcher3.LauncherState.OVERVIEW_MODAL_TASK;
 import static com.android.launcher3.LauncherState.OVERVIEW_SPLIT_SELECT;
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
+import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SPLIT_SELECTION_EXIT_HOME;
 
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
-import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
+import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.desktop.DesktopRecentsTransitionController;
@@ -44,12 +48,13 @@ import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.util.PendingSplitSelectInfo;
 import com.android.launcher3.util.SplitConfigurationOptions;
 import com.android.launcher3.util.SplitConfigurationOptions.SplitSelectSource;
+import com.android.quickstep.BaseContainerInterface;
 import com.android.quickstep.GestureState;
+import com.android.quickstep.LauncherActivityInterface;
 import com.android.quickstep.SystemUiProxy;
-import com.android.quickstep.split.SplitSelectStateController;
-import com.android.quickstep.util.SurfaceTransactionApplier;
+import com.android.quickstep.util.AnimUtils;
+import com.android.quickstep.util.SplitSelectStateController;
 import com.android.wm.shell.shared.GroupedTaskInfo;
-import com.android.wm.shell.shared.desktopmode.DesktopModeTransitionSource;
 
 import kotlin.Unit;
 
@@ -74,19 +79,25 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     }
 
     @Override
-    protected void initialiseInjectables() {
-        mContainer.getActivityComponent().inject(this);
+    public void init(OverviewActionsView actionsView,
+            SplitSelectStateController splitPlaceholderView,
+            @Nullable DesktopRecentsTransitionController desktopRecentsTransitionController) {
+        super.init(actionsView, splitPlaceholderView, desktopRecentsTransitionController);
+        setContentAlpha(0);
     }
 
     @Override
-    public void init(OverviewActionsView actionsView,
-            SplitSelectStateController splitPlaceholderView,
-            @Nullable DesktopRecentsTransitionController desktopRecentsTransitionController,
-            SurfaceTransactionApplier surfaceTransactionApplier,
-            @Nullable ViewGroup emptyRecentsMessageView) {
-        super.init(actionsView, splitPlaceholderView, desktopRecentsTransitionController,
-                surfaceTransactionApplier, emptyRecentsMessageView);
-        setContentAlpha(0);
+    protected void handleStartHome(boolean animated) {
+        StateManager stateManager = getStateManager();
+        animated &= stateManager.shouldAnimateStateChange();
+        if (mSplitSelectStateController.isSplitSelectActive()) {
+            AnimUtils.goToNormalStateWithSplitDismissal(stateManager, mContainer,
+                    LAUNCHER_SPLIT_SELECTION_EXIT_HOME,
+                    mSplitSelectStateController.getSplitAnimationController());
+        } else {
+            stateManager.goToState(NORMAL, animated);
+        }
+        AbstractFloatingView.closeAllOpenViews(mContainer, animated);
     }
 
     @Override
@@ -120,13 +131,11 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             TaskContainer taskContainer;
             if (recoveryData != null && recoveryData.getStagedTaskId() == taskId && (taskContainer =
                     mUtils.getTaskContainerById(taskId)) != null) {
-                MAIN_EXECUTOR.execute(() -> {
-                    initiateSplitSelect(
-                            taskContainer,
-                            recoveryData.getStagePosition(), recoveryData.getSource()
-                    );
-                    mContainer.finishSplitSelectRecovery();
-                });
+                initiateSplitSelect(
+                        taskContainer,
+                        recoveryData.getStagePosition(), recoveryData.getSource()
+                );
+                mContainer.finishSplitSelectRecovery();
             }
         }
     }
@@ -143,8 +152,13 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     public void onStateTransitionStart(LauncherState toState) {
         setOverviewStateEnabled(toState.isRecentsViewVisible);
 
-        if (toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
-            setOverviewGridEnabled(true);
+        if (enableGridOnlyOverview()) {
+            if (toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
+                setOverviewGridEnabled(true);
+            }
+        } else {
+            setOverviewGridEnabled(
+                    toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile()));
         }
         setOverviewFullscreenEnabled(toState.getOverviewFullscreenProgress() == 1);
         if (toState == OVERVIEW_MODAL_TASK) {
@@ -153,11 +167,8 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             resetModalVisuals();
         }
 
-        resetShareUIState();
-
-        // Set border state changes to avoid showing border during state transitions
-        if (!toState.isRecentsViewVisible || toState == OVERVIEW_MODAL_TASK
-                || toState == OVERVIEW_SPLIT_SELECT) {
+        // Set border after select mode changes to avoid showing border during state transition
+        if (!toState.isRecentsViewVisible || toState == OVERVIEW_MODAL_TASK) {
             setTaskBorderEnabled(false);
         }
 
@@ -166,11 +177,11 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
 
     @Override
     public void onStateTransitionComplete(LauncherState finalState) {
-        mUtils.onStateTransitionComplete(finalState);
-        DesktopVisibilityController.INSTANCE.get(mContainer).onLauncherStateChanged(
-                mContainer.getDisplayId(), finalState);
-        if (!finalState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
-            setOverviewGridEnabled(false);
+        DesktopVisibilityController.INSTANCE.get(mContainer).onLauncherStateChanged(finalState);
+        if (enableGridOnlyOverview()) {
+            if (!finalState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
+                setOverviewGridEnabled(false);
+            }
         }
 
         if (!finalState.isRecentsViewVisible) {
@@ -187,6 +198,9 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         if (finalState.isRecentsViewVisible && finalState != OVERVIEW_MODAL_TASK) {
             setTaskBorderEnabled(true);
         }
+        if (isOverlayEnabled) {
+            mBlurUtils.setDrawLiveTileBelowRecents(true);
+        }
     }
 
     @Override
@@ -194,9 +208,12 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         super.setOverviewStateEnabled(enabled);
         if (enabled) {
             LauncherState state = getStateManager().getState();
-            boolean hasClearAllButton = (state.getVisibleElements(mContainer.getLauncherUiState())
-                            & CLEAR_ALL_BUTTON) != 0;
+            boolean hasClearAllButton = (state.getVisibleElements(mContainer)
+                    & CLEAR_ALL_BUTTON) != 0;
+            boolean hasAddDeskButton = (state.getVisibleElements(mContainer)
+                    & ADD_DESK_BUTTON) != 0;
             setDisallowScrollToClearAll(!hasClearAllButton);
+            setDisallowScrollToAddDesk(!hasAddDeskButton);
         }
     }
 
@@ -208,7 +225,7 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     }
 
     @Override
-    protected DepthController<?, ?> getDepthController() {
+    protected DepthController getDepthController() {
         return mContainer.getDepthController();
     }
 
@@ -220,6 +237,11 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         } else if (mContainer.isInState(LauncherState.OVERVIEW_MODAL_TASK)) {
             getStateManager().goToState(LauncherState.OVERVIEW, animate);
         }
+    }
+
+    @Override
+    protected BaseContainerInterface<LauncherState, ?> getContainerInterface(int displayId) {
+        return LauncherActivityInterface.INSTANCE;
     }
 
     @Override
@@ -255,6 +277,10 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     @Override
     public void onGestureAnimationStart(GroupedTaskInfo groupedTaskInfo) {
         super.onGestureAnimationStart(groupedTaskInfo);
+        if (!ENABLE_DESKTOP_WINDOWING_WALLPAPER_ACTIVITY.isTrue()) {
+            // TODO: b/333533253 - Remove after flag rollout
+            DesktopVisibilityController.INSTANCE.get(mContainer).setRecentsGestureStart();
+        }
     }
 
     @Override
@@ -271,10 +297,13 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             showDesktopApps = true;
         }
         super.onGestureAnimationEnd();
+        if (!ENABLE_DESKTOP_WINDOWING_WALLPAPER_ACTIVITY.isTrue()) {
+            // TODO: b/333533253 - Remove after flag rollout
+            desktopVisibilityController.setRecentsGestureEnd(endTarget);
+        }
         if (showDesktopApps) {
             SystemUiProxy.INSTANCE.get(mContainer).showDesktopApps(mContainer.getDisplayId(),
-                    /* transition */ null, /* taskIdToReorderToFront */ null,
-                    DesktopModeTransitionSource.RECENTS);
+                    null /* transition */);
         }
     }
 }

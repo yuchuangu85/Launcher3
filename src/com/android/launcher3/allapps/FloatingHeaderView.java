@@ -38,7 +38,6 @@ import com.android.launcher3.R;
 import com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder;
 import com.android.launcher3.util.PluginManagerWrapper;
 import com.android.launcher3.views.ActivityContext;
-import com.android.launcher3.workprofile.PersonalWorkSlidingTabStrip;
 import com.android.systemui.plugins.AllAppsRow;
 import com.android.systemui.plugins.AllAppsRow.OnHeightUpdatedListener;
 import com.android.systemui.plugins.PluginListener;
@@ -88,7 +87,7 @@ public class FloatingHeaderView extends LinearLayout implements
     private final int mTabsAdditionalPaddingTop;
     private final int mTabsAdditionalPaddingBottom;
 
-    protected PersonalWorkSlidingTabStrip mTabLayout;
+    protected ViewGroup mTabLayout;
     private AllAppsRecyclerView mMainRV;
     private AllAppsRecyclerView mWorkRV;
     private SearchRecyclerView mSearchRV;
@@ -275,10 +274,15 @@ public class FloatingHeaderView extends LinearLayout implements
         mTabLayout.setVisibility(mTabsHidden ? GONE : visibility);
     }
 
+    /** Returns whether search bar has multi-line support, and is currently in multi-line state. */
+    private boolean isSearchBarMultiline() {
+        return Flags.multilineSearchBar() && mSearchBarOffset > 0;
+    }
+
     private void updateExpectedHeight() {
         updateFloatingRowsHeight();
         mMaxTranslation = 0;
-        boolean shouldAddSearchBarHeight = mSearchBarOffset > 0 && !Flags.floatingSearchBar();
+        boolean shouldAddSearchBarHeight = isSearchBarMultiline() && !Flags.floatingSearchBar();
         if (shouldAddSearchBarHeight) {
             mMaxTranslation += mSearchBarOffset;
         }
@@ -410,7 +414,7 @@ public class FloatingHeaderView extends LinearLayout implements
         return !mTabsHidden;
     }
 
-    PersonalWorkSlidingTabStrip getTabLayout() {
+    ViewGroup getTabLayout() {
         return mTabLayout;
     }
 
@@ -473,7 +477,7 @@ public class FloatingHeaderView extends LinearLayout implements
     @Override
     public void setInsets(Rect insets) {
         Rect allAppsPadding = ActivityContext.lookupContext(getContext())
-                .getDeviceProfile().getAllAppsProfile().getPadding();
+                .getDeviceProfile().allAppsPadding;
         setPadding(allAppsPadding.left, getPaddingTop(), allAppsPadding.right, getPaddingBottom());
     }
 

@@ -23,11 +23,11 @@ import com.android.launcher3.celllayout.CellPosMapper
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.model.BgDataModel.FixedContainerItems
-import com.android.launcher3.model.BgDataModel.ModificationSource.ModelTask
-import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.widget.model.WidgetsListBaseEntriesBuilder
+import java.util.Objects
 import java.util.function.Predicate
 import javax.inject.Inject
 
@@ -40,7 +40,6 @@ constructor(
     val dataModel: BgDataModel,
     val allAppsList: AllAppsList,
     val model: LauncherModel,
-    val modelWriterFactory: ModelWriterFactory,
 ) {
 
     private val uiExecutor = MAIN_EXECUTOR
@@ -56,14 +55,7 @@ constructor(
      * Updates from model task, do not deal with icon position in hotseat. Also no need to verify
      * changes as the ModelTasks always push the changes to callbacks
      */
-    fun getModelWriter(): IModelWriter =
-        modelWriterFactory.create(
-            verifyChanges = false,
-            CellPosMapper.DEFAULT,
-            modificationSource = ModelTask,
-            // TODO: (b/455016031) - Remove owner from ModelWriter
-            owner = null,
-        )
+    fun getModelWriter() = model.getWriter(false /* verifyChanges */, CellPosMapper.DEFAULT, null)
 
     fun bindUpdatedWorkspaceItems(allUpdates: Collection<ItemInfo>) {
         // Bind workspace items
@@ -71,17 +63,30 @@ constructor(
         if (workspaceUpdates.isNotEmpty()) {
             scheduleCallbackTask { it.bindItemsUpdated(workspaceUpdates) }
         }
+
+        // Bind extra items if any
+        allUpdates
+            .stream()
+            .mapToInt { it.container }
+            .distinct()
+            .mapToObj { dataModel.extraItems.get(it) }
+            .filter { Objects.nonNull(it) }
+            .forEach { bindExtraContainerItems(it) }
     }
 
     fun bindExtraContainerItems(item: FixedContainerItems) {
         scheduleCallbackTask { it.bindExtraContainerItems(item) }
     }
 
+    fun bindDeepShortcuts(dataModel: BgDataModel) {
+        val shortcutMapCopy = HashMap(dataModel.deepShortcutMap)
+        scheduleCallbackTask { it.bindDeepShortcutMap(shortcutMapCopy) }
+    }
+
     fun bindUpdatedWidgets(dataModel: BgDataModel) {
         val allWidgets =
             WidgetsListBaseEntriesBuilder(context)
                 .build(dataModel.widgetsModel.widgetsByPackageItemForPicker)
-        dataModel.notifyWidgetsUpdate(allWidgets)
         scheduleCallbackTask { it.bindAllWidgets(allWidgets) }
     }
 
@@ -94,19 +99,14 @@ constructor(
 
     fun bindApplicationsIfNeeded() {
         if (allAppsList.getAndResetChangeFlag()) {
-            // shallow copy
-            val data = allAppsList.immutableData
-            scheduleCallbackTask {
-                it.bindAllApplications(data.apps, data.flags, data.packageUserKeyToUidMap)
-            }
-        }
-    }
-
-    fun bindIncrementalUpdates(updatedAppInfos: List<AppInfo>) {
-        if (updatedAppInfos.isNotEmpty()) {
-            updatedAppInfos.forEach { info ->
-                scheduleCallbackTask { it.bindIncrementalDownloadProgressUpdated(info) }
-            }
+            val apps = allAppsList.copyData()
+            val flags = allAppsList.flags
+            val packageUserKeyToUidMap =
+                apps.associateBy(
+                    keySelector = { PackageUserKey(it.componentName!!.packageName, it.user) },
+                    valueTransform = { it.uid },
+                )
+            scheduleCallbackTask { it.bindAllApplications(apps, flags, packageUserKeyToUidMap) }
         }
     }
 }

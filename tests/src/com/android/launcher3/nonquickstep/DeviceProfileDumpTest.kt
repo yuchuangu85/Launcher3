@@ -18,6 +18,9 @@ package com.android.launcher3.nonquickstep
 import androidx.test.filters.SmallTest
 import com.android.launcher3.AbstractDeviceProfileTest
 import com.android.launcher3.DeviceProfile
+import com.android.launcher3.Flags
+import com.android.launcher3.util.rule.setFlags
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -30,11 +33,20 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
 
     @Parameterized.Parameter lateinit var instance: TestCase
 
+    @Before
+    fun setUp() {
+        setFlagsRule.setFlags(
+            instance.decoupleDepth,
+            Flags.FLAG_ENABLE_SCALING_REVEAL_HOME_ANIMATION,
+        )
+        setFlagsRule.setFlags(false, Flags.FLAG_ONE_GRID_SPECS)
+    }
+
     @Test
     fun dumpPortraitGesture() {
         initializeDevice(instance.deviceName, isGestureMode = true, isLandscape = false)
         val dp = context.appComponent.idp.getDeviceProfile(context)
-        dp.updateIsTaskbarPresentInApps(instance.isTaskbarPresentInApps)
+        dp.isTaskbarPresentInApps = instance.isTaskbarPresentInApps
 
         assertDump(dp, instance.filename("Portrait"))
     }
@@ -43,7 +55,7 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
     fun dumpPortrait3Button() {
         initializeDevice(instance.deviceName, isGestureMode = false, isLandscape = false)
         val dp = context.appComponent.idp.getDeviceProfile(context)
-        dp.updateIsTaskbarPresentInApps(instance.isTaskbarPresentInApps)
+        dp.isTaskbarPresentInApps = instance.isTaskbarPresentInApps
 
         assertDump(dp, instance.filename("Portrait3Button"))
     }
@@ -52,7 +64,7 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
     fun dumpLandscapeGesture() {
         initializeDevice(instance.deviceName, isGestureMode = true, isLandscape = true)
         val dp = context.appComponent.idp.getDeviceProfile(context)
-        dp.updateIsTaskbarPresentInApps(instance.isTaskbarPresentInApps)
+        dp.isTaskbarPresentInApps = instance.isTaskbarPresentInApps
 
         val testName =
             if (instance.deviceName == "phone") {
@@ -67,7 +79,7 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
     fun dumpLandscape3Button() {
         initializeDevice(instance.deviceName, isGestureMode = false, isLandscape = true)
         val dp = context.appComponent.idp.getDeviceProfile(context)
-        dp.updateIsTaskbarPresentInApps(instance.isTaskbarPresentInApps)
+        dp.isTaskbarPresentInApps = instance.isTaskbarPresentInApps
 
         val testName =
             if (instance.deviceName == "phone") {
@@ -119,6 +131,12 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
                 TestCase("phone", gridName = "5_by_5"),
                 TestCase("tablet", gridName = "6_by_5", isTaskbarPresentInApps = true),
                 TestCase("twopanel-tablet", gridName = "4_by_4", isTaskbarPresentInApps = true),
+                TestCase(
+                    "twopanel-tablet",
+                    gridName = "4_by_4",
+                    isTaskbarPresentInApps = true,
+                    decoupleDepth = true,
+                ),
             )
         }
 
@@ -126,6 +144,7 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
             val deviceName: String,
             val gridName: String,
             val isTaskbarPresentInApps: Boolean = false,
+            val decoupleDepth: Boolean = false,
         ) {
             fun filename(testName: String = ""): String {
                 val device =
@@ -135,7 +154,13 @@ class DeviceProfileDumpTest : AbstractDeviceProfileTest() {
                         "twopanel-phone" -> "twoPanelFolded"
                         else -> "phone"
                     }
-                return "$device$testName"
+                val depth =
+                    if (decoupleDepth) {
+                        "_decoupleDepth"
+                    } else {
+                        ""
+                    }
+                return "$device$testName$depth"
             }
         }
     }

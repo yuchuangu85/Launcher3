@@ -16,6 +16,7 @@
 
 package com.android.launcher3.pageindicators;
 
+import static com.android.launcher3.Flags.enableLauncherVisualRefresh;
 import static com.android.launcher3.config.FeatureFlags.FOLDABLE_SINGLE_PAGE;
 
 import android.animation.Animator;
@@ -31,11 +32,13 @@ import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.VectorDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.FloatProperty;
 import android.util.IntProperty;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewOutlineProvider;
@@ -50,6 +53,8 @@ import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.util.Themes;
 
+import java.util.function.Consumer;
+
 /**
  * {@link PageIndicator} which shows dots per page. The active page is shown with the current
  * accent color.
@@ -58,7 +63,10 @@ import com.android.launcher3.util.Themes;
  * WorkspacePageIndicator. A lot of the functionality in this class is only used by one UI purpose.
  */
 public class PageIndicatorDots extends View implements Insettable, PageIndicator {
-    private static final long ANIMATION_DURATION = 200;
+
+    private static final float SHIFT_PER_ANIMATION = 0.5f;
+    private static final float SHIFT_THRESHOLD = (enableLauncherVisualRefresh() ? 0.5f : 0.2f);
+    private static final long ANIMATION_DURATION = (enableLauncherVisualRefresh() ? 200 : 150);
     private static final int PAGINATION_FADE_DELAY = ViewConfiguration.getScrollDefaultDelay();
     private static final int PAGINATION_FADE_IN_DURATION = 83;
     private static final int PAGINATION_FADE_OUT_DURATION = 167;
@@ -67,14 +75,20 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     private static final int ENTER_ANIMATION_STAGGERED_DELAY = 150;
     private static final int ENTER_ANIMATION_DURATION = 400;
 
-    private static final int HEIGHT_MULTIPLIER = 4;
+    private static final int LARGE_HEIGHT_MULTIPLIER = 12;
+    private static final int SMALL_HEIGHT_MULTIPLIER = 4;
+    private static final int LARGE_WIDTH_MULTIPLIER = 5;
+    private static final int SMALL_WIDTH_MULTIPLIER = 3;
+    private static final float ARROW_TOUCH_BOX_FACTOR = 5f;
 
     private static final int PAGE_INDICATOR_ALPHA = 255;
     private static final int DOT_ALPHA = 128;
     private static final float DOT_ALPHA_FRACTION = 0.5f;
+    private static final int DOT_GAP_FACTOR = 4;
     private static final int VISIBLE_ALPHA = 255;
     private static final int INVISIBLE_ALPHA = 0;
     private Paint mPaginationPaint;
+    private Consumer<Direction> mOnArrowClickListener;
 
     // This value approximately overshoots to 1.5 times the original size.
     private static final float ENTER_ANIMATION_OVERSHOOT_TENSION = 4.9f;
@@ -117,12 +131,15 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     private final float mGapWidth;
     private final float mCircleGap;
     private final boolean mIsRtl;
+    private final VectorDrawable mArrowRight;
+    private final VectorDrawable mArrowLeft;
+    private final Rect mArrowRightBounds = new Rect();
+    private final Rect mArrowLeftBounds = new Rect();
 
     private int mNumPages;
     private int mActivePage;
     private int mTotalScroll;
     private boolean mShouldAutoHide;
-    private boolean mIsMoveAnimationQueued;
     private int mToAlpha;
 
     /**
@@ -164,9 +181,13 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         mPaginationPaint.setColor(Themes.getAttrColor(context, R.attr.pageIndicatorDotColor));
         mDotRadius = getResources().getDimension(R.dimen.page_indicator_dot_size) / 2;
         mGapWidth = getResources().getDimension(R.dimen.page_indicator_gap_width);
-        mCircleGap = mDotRadius * 2 + mGapWidth;
+        mCircleGap = (enableLauncherVisualRefresh())
+                ? mDotRadius * 2 + mGapWidth
+                : DOT_GAP_FACTOR * mDotRadius;
         setOutlineProvider(new MyOutlineProver());
         mIsRtl = Utilities.isRtl(getResources());
+        mArrowRight = (VectorDrawable) getResources().getDrawable(R.drawable.ic_chevron_end);
+        mArrowLeft = (VectorDrawable) getResources().getDrawable(R.drawable.ic_chevron_start);
     }
 
     @Override
@@ -195,31 +216,41 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
 
         mTotalScroll = totalScroll;
 
-        float scrollPerPage = (float) totalScroll / (mNumPages - 1);
-        float position = currentScroll / scrollPerPage;
+        if (enableLauncherVisualRefresh()) {
+            float scrollPerPage = (float) totalScroll / (mNumPages - 1);
+            float position = currentScroll / scrollPerPage;
+            animateToPosition(Math.round(position));
 
-        if (mIsMoveAnimationQueued) {
-            mCurrentPosition = position;
-            // For jump animations, wait until we have scrolled to within 1 page away from the
-            // final destination to start the animation. This has the effect of a smooth delay.
-            if (Math.abs(mActivePage - position) <= 1) {
-                animateToPosition(mActivePage);
+            float delta = Math.abs((int) position - position);
+            if (mShouldAutoHide && (delta < 0.1 || delta > 0.9)) {
+                hideAfterDelay();
             }
-        } else if (mAnimator == null) {
-            // mLastPosition is used to determine which dots should be growing / shrinking.
-            // Update it when the scroll moves pages. Fling animations also update mLastPosition
-            if (Math.abs(mLastPosition - position) > 1) {
-                mLastPosition = Math.round(position);
+        } else {
+            int scrollPerPage = totalScroll / (mNumPages - 1);
+            int pageToLeft = scrollPerPage == 0 ? 0 : currentScroll / scrollPerPage;
+            int pageToLeftScroll = pageToLeft * scrollPerPage;
+            int pageToRightScroll = pageToLeftScroll + scrollPerPage;
+
+            float scrollThreshold = SHIFT_THRESHOLD * scrollPerPage;
+            if (currentScroll < pageToLeftScroll + scrollThreshold) {
+                // scroll is within the left page's threshold
+                animateToPosition(pageToLeft);
+                if (mShouldAutoHide) {
+                    hideAfterDelay();
+                }
+            } else if (currentScroll > pageToRightScroll - scrollThreshold) {
+                // scroll is far enough from left page to go to the right page
+                animateToPosition(pageToLeft + 1);
+                if (mShouldAutoHide) {
+                    hideAfterDelay();
+                }
+            } else {
+                // scroll is between left and right page
+                animateToPosition(pageToLeft + SHIFT_PER_ANIMATION);
+                if (mShouldAutoHide) {
+                    mDelayedPaginationFadeHandler.removeCallbacksAndMessages(null);
+                }
             }
-            mFinalPosition = mLastPosition + (position > mLastPosition ? 1 : -1);
-
-            // Just show current position if slow scroll. Otherwise, fling animation is going
-            CURRENT_POSITION.set(this, position);
-        }
-
-        float delta = Math.abs((int) position - position);
-        if (mShouldAutoHide && !mIsMoveAnimationQueued && (delta < 0.1 || delta > 0.9)) {
-            hideAfterDelay();
         }
     }
 
@@ -291,18 +322,23 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
 
     private void animateToPosition(float position) {
         mFinalPosition = position;
+        if (!enableLauncherVisualRefresh()
+                && Math.abs(mCurrentPosition - mFinalPosition) < SHIFT_THRESHOLD) {
+            mCurrentPosition = mFinalPosition;
+        }
         if (mAnimator == null && Float.compare(mCurrentPosition, position) != 0) {
-            float positionForThisAnim = position;
+            float positionForThisAnim = enableLauncherVisualRefresh()
+                    ? position
+                    : (mCurrentPosition > mFinalPosition
+                            ? mCurrentPosition - SHIFT_PER_ANIMATION
+                            : mCurrentPosition + SHIFT_PER_ANIMATION);
             mAnimator = ObjectAnimator.ofFloat(this, CURRENT_POSITION, positionForThisAnim);
             mAnimator.addListener(new AnimationCycleListener());
             mAnimator.setDuration(ANIMATION_DURATION);
-            // If user performs fling with only 11% of the distance to go, we don't want the
-            // animation to be 150 ms long so we tether it to the scroll distance remaining.
-            // Large jump scrolls can be more than 1, so we cap the animation time.
-            float remainingScroll = Math.min(1, Math.abs(position - mCurrentPosition));
-            mAnimator.setDuration((long) (ANIMATION_DURATION * remainingScroll));
-            mAnimator.setInterpolator(new OvershootInterpolator());
-            mIsMoveAnimationQueued = false;
+            if (enableLauncherVisualRefresh()) {
+                mLastPosition = (int) mCurrentPosition;
+                mAnimator.setInterpolator(new OvershootInterpolator());
+            }
             mAnimator.start();
         }
     }
@@ -363,11 +399,6 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         animSet.start();
     }
 
-    /**
-     * Performs a move-bounce animation upon fling. Flings happen in between 2 positions. Either we
-     * are coming from the right one, and going to the left, or vice versa. Ex. 3.7 current pos with
-     * left swipe means last=3, target=4. Slow scroll page-changes also update mLastPosition.
-     */
     @Override
     public void setActiveMarker(int activePage) {
         // In unfolded foldables, every page has two CellLayouts, so we need to halve the active
@@ -377,18 +408,8 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         }
 
         if (mActivePage != activePage) {
-            mLastPosition = mActivePage;
             mActivePage = activePage;
-
-            // If the animation is a local snap, then immediately perform it. Otherwise, delay
-            // snap animation until current scroll is within 1 page of the target page.
-            if (Math.abs(mActivePage - mCurrentPosition) <= 1) {
-                animateToPosition(activePage);
-            } else {
-                mFinalPosition = activePage;
-                mIsMoveAnimationQueued = true;
-            }
-     }
+        }
     }
 
     @Override
@@ -405,6 +426,11 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     }
 
     @Override
+    public void setArrowClickListener(Consumer<Direction> listener) {
+        mOnArrowClickListener = listener;
+    }
+
+    @Override
     public void setPauseScroll(boolean pause, boolean isTwoPanels) {
         mIsTwoPanels = isTwoPanels;
 
@@ -418,14 +444,17 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // TODO(b/394355070): Verify Folder Entry Animation works correctly with visual updates
         // Add extra spacing of mDotRadius on all sides so than entry animation could be run
+        // and so the hitboxes of arrows can be clicked easier.
         int width = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.EXACTLY ?
-                MeasureSpec.getSize(widthMeasureSpec) :
-                        // #ofGaps*gap_size + (#ofDots + 1 for double size dot)*dot_size
-                (int) (((mNumPages - 1) * mGapWidth) + ((1 + mNumPages) * mDotRadius * 2));
+                MeasureSpec.getSize(widthMeasureSpec)
+                : (int) ((mNumPages * ((enableLauncherVisualRefresh())
+                        ? LARGE_WIDTH_MULTIPLIER : SMALL_WIDTH_MULTIPLIER) + 2) * mDotRadius);
         int height = MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY
                 ? MeasureSpec.getSize(heightMeasureSpec)
-                : (int) (HEIGHT_MULTIPLIER * mDotRadius);
+                : (int) (((enableLauncherVisualRefresh())
+                        ? LARGE_HEIGHT_MULTIPLIER : SMALL_HEIGHT_MULTIPLIER) * mDotRadius);
         setMeasuredDimension(width, height);
     }
 
@@ -444,128 +473,195 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         float x = ((float) getWidth() / 2) - (mCircleGap * ((float) mNumPages - 1) / 2);
         float y = getHeight() / 2;
 
-        // Save the current alpha value, so we can reset to it again after drawing the dots
-        int alpha = mPaginationPaint.getAlpha();
-
         if (mEntryAnimationRadiusFactors != null) {
-            x -= mDotRadius;
-            if (mIsRtl) {
-                x = getWidth() - x;
-                circleGap = -circleGap;
-            }
-            sTempRect.top = y - mDotRadius;
-            sTempRect.bottom = y + mDotRadius;
+            if (enableLauncherVisualRefresh()) {
+                x -= mDotRadius;
+                if (mIsRtl) {
+                    x = getWidth() - x;
+                    circleGap = -circleGap;
+                }
+                sTempRect.top = y - mDotRadius;
+                sTempRect.bottom = y + mDotRadius;
 
-            for (int i = 0; i < mEntryAnimationRadiusFactors.length; i++) {
-                if (i == mActivePage) {
-                    if (mIsRtl) {
-                        sTempRect.left = x - (mDotRadius * 3);
-                        sTempRect.right = x + mDotRadius;
-                        x += circleGap - (mDotRadius * 2);
+                for (int i = 0; i < mEntryAnimationRadiusFactors.length; i++) {
+                    if (i == mActivePage) {
+                        if (mIsRtl) {
+                            sTempRect.left = x - (mDotRadius * 3);
+                            sTempRect.right = x + mDotRadius;
+                            x += circleGap - (mDotRadius * 2);
+                        } else {
+                            sTempRect.left = x - mDotRadius;
+                            sTempRect.right = x + (mDotRadius * 3);
+                            x += circleGap + (mDotRadius * 2);
+                        }
+                        scale(sTempRect, mEntryAnimationRadiusFactors[i]);
+                        float scaledRadius = mDotRadius * mEntryAnimationRadiusFactors[i];
+                        mPaginationPaint.setAlpha(PAGE_INDICATOR_ALPHA);
+                        canvas.drawRoundRect(sTempRect, scaledRadius, scaledRadius,
+                                mPaginationPaint);
                     } else {
-                        sTempRect.left = x - mDotRadius;
-                        sTempRect.right = x + (mDotRadius * 3);
-                        x += circleGap + (mDotRadius * 2);
+                        mPaginationPaint.setAlpha(DOT_ALPHA);
+                        canvas.drawCircle(x, y, mDotRadius * mEntryAnimationRadiusFactors[i],
+                                mPaginationPaint);
+                        x += circleGap;
                     }
-                    scale(sTempRect, mEntryAnimationRadiusFactors[i]);
-                    float scaledRadius = mDotRadius * mEntryAnimationRadiusFactors[i];
-                    mPaginationPaint.setAlpha(PAGE_INDICATOR_ALPHA);
-                    canvas.drawRoundRect(sTempRect, scaledRadius, scaledRadius,
-                            mPaginationPaint);
-                } else {
-                    mPaginationPaint.setAlpha(DOT_ALPHA);
+                }
+            } else {
+                // During entry animation, only draw the circles
+
+                if (mIsRtl) {
+                    x = getWidth() - x;
+                    circleGap = -circleGap;
+                }
+                for (int i = 0; i < mEntryAnimationRadiusFactors.length; i++) {
+                    mPaginationPaint.setAlpha(i == mActivePage ? PAGE_INDICATOR_ALPHA : DOT_ALPHA);
                     canvas.drawCircle(x, y, mDotRadius * mEntryAnimationRadiusFactors[i],
                             mPaginationPaint);
                     x += circleGap;
                 }
             }
         } else {
+            // Save the current alpha value, so we can reset to it again after drawing the dots
+            int alpha = mPaginationPaint.getAlpha();
 
-            int nonActiveAlpha = (int) (alpha * DOT_ALPHA_FRACTION);
+            if (enableLauncherVisualRefresh()) {
+                int nonActiveAlpha = (int) (alpha * DOT_ALPHA_FRACTION);
 
-            float diameter = 2 * mDotRadius;
-            sTempRect.top = y - mDotRadius;
-            sTempRect.bottom = y + mDotRadius;
-            sTempRect.left = x - diameter;
+                float diameter = 2 * mDotRadius;
+                sTempRect.top = y - mDotRadius;
+                sTempRect.bottom = y + mDotRadius;
+                sTempRect.left = x - diameter;
 
-            float currentPosition = mCurrentPosition;
-            float lastPosition = mLastPosition;
-            float finalPosition = mFinalPosition;
+                float currentPosition = mCurrentPosition;
+                float lastPosition = mLastPosition;
 
-            if (mIsRtl) {
-                currentPosition = mNumPages - currentPosition - 1;
-                lastPosition = mNumPages - lastPosition - 1;
-                finalPosition = mNumPages - finalPosition - 1;
-            }
+                if (mIsRtl) {
+                    currentPosition = mNumPages - currentPosition - 1;
+                    lastPosition = mNumPages - lastPosition - 1;
+                }
+                float posDif = Math.abs(lastPosition - currentPosition);
+                float boundedPosition = (posDif > 1)
+                        ? Math.round(currentPosition)
+                        : currentPosition;
+                float bounceProgress = (posDif > 1) ? posDif - 1 : 0;
+                float bounceAdjustment = Math.abs(currentPosition - boundedPosition) * diameter;
 
-            // Calculate the progress of the animation. The numerator is the distance from the
-            // start while the denominator is the total distance from start to end. Progress can
-            // be greater than 1 if performing a snap animation. In the case that the last and
-            // final positions are equivalent, we divide by 1 rather than 0 to avoid NaN, which
-            // screws up the math and has the effect of turning page indicator dots invisible.
-            float progress = Math.abs(currentPosition - lastPosition)
-                    / Math.max(1, Math.abs(finalPosition - lastPosition));
-            float bounceAdjustment = Math.max(progress - 1, 0) * diameter;
-            int alphaAdjustment = (int) (Math.min(progress, 1) * (alpha - nonActiveAlpha));
+                if (mOnArrowClickListener != null && boundedPosition >= 1) {
+                    // Here we draw the Left Arrow
+                    mArrowLeft.setAlpha(alpha);
+                    int size = (int) (mGapWidth * 4);
+                    mArrowLeftBounds.left = (int) (sTempRect.left - mGapWidth - size);
+                    mArrowLeftBounds.top = (int) (y - size / 2);
+                    mArrowLeftBounds.right = (int) (sTempRect.left - mGapWidth);
+                    mArrowLeftBounds.bottom = (int) (y + size / 2);
+                    mArrowLeft.setBounds(mArrowLeftBounds);
+                    mArrowLeft.draw(canvas);
+                }
 
-            // Here we draw the dots, one at a time from the left-most dot to the right-most dot
-            // 1.0 => 000000 000000111111 000000
-            // 1.3 => 000000 0000001111 11000000
-            // 1.6 => 000000 00000011 1111000000
-            // 2.0 => 000000 000000 111111000000
-            for (int i = 0; i < mNumPages; i++) {
-                // Adjust alpha and width based on the progress of the animation. Smaller dots
-                // will also be more transparent, and larger dots more opaque.
-                mPaginationPaint.setAlpha(i == lastPosition ? alpha - alphaAdjustment
-                        : i == finalPosition ? nonActiveAlpha + alphaAdjustment
-                                : nonActiveAlpha);
-                sTempRect.right = sTempRect.left + diameter + (diameter
-                        * (i == lastPosition ? 1 - progress
-                        : i == finalPosition ? progress : 0));
+                // Here we draw the dots, one at a time from the left-most dot to the right-most dot
+                // 1.0 => 000000 000000111111 000000
+                // 1.3 => 000000 0000001111 11000000
+                // 1.6 => 000000 00000011 1111000000
+                // 2.0 => 000000 000000 111111000000
+                for (int i = 0; i < mNumPages; i++) {
+                    mPaginationPaint.setAlpha(nonActiveAlpha);
+                    float delta = Math.abs(boundedPosition - i);
+                    if (delta <= SHIFT_THRESHOLD) {
+                        mPaginationPaint.setAlpha(alpha);
+                    }
 
-                // Save x position before adjusting right edge for bounce animation. This keeps
-                // the dots in the same centered locations, avoiding an accordion appearance.
-                x = sTempRect.right + mGapWidth;
+                    // If boundedPosition is 3.3, both 3 and 4 should enter this condition.
+                    // If boundedPosition is 3, only 3 should enter this condition.
+                    if (delta < 1) {
+                        sTempRect.right = sTempRect.left + diameter + ((1 - delta) * diameter);
 
-                if (bounceAdjustment > 0) {
-                    // While the animation is shifting the active pagination dots size from
-                    // the previously active one, to the newly active dot, there is no bounce
-                    // adjustment. The bounce happens in the "Overshoot" phase of the animation.
-                    // lastPosition is used to determine when the currentPosition is just
-                    // leaving the page, or if it is in the overshoot phase.
-                    if (finalPosition == i) {
-                        if (lastPosition < finalPosition) {
-                            sTempRect.left -= bounceAdjustment;
-                        } else {
-                            sTempRect.right += bounceAdjustment;
+                        // While the animation is shifting the active pagination dots size from
+                        // the previously active one, to the newly active dot, there is no bounce
+                        // adjustment. The bounce happens in the "Overshoot" phase of the animation.
+                        // lastPosition is used to determine when the currentPosition is just
+                        // leaving the page, or if it is in the overshoot phase.
+                        if (boundedPosition == i && bounceProgress != 0) {
+                            if (lastPosition < currentPosition) {
+                                sTempRect.left -= bounceAdjustment;
+                            } else {
+                                sTempRect.right += bounceAdjustment;
+                            }
+                        }
+                    } else {
+                        sTempRect.right = sTempRect.left + diameter;
+
+                        if (lastPosition == i && bounceProgress != 0) {
+                            if (lastPosition > currentPosition) {
+                                sTempRect.left += bounceAdjustment;
+                            } else {
+                                sTempRect.right -= bounceAdjustment;
+                            }
                         }
                     }
-                    if ((lastPosition <= i && i < finalPosition)
-                            || (finalPosition < i && i <= lastPosition)) {
-                        if (lastPosition > finalPosition) {
-                            sTempRect.left += bounceAdjustment;
-                        } else {
-                            sTempRect.right -= bounceAdjustment;
+                    if (Math.round(mCurrentPosition) == i) {
+                        sLastActiveRect.set(sTempRect);
+                        if (mCurrentPosition == 0) {
+                            // The outline is calculated before onDraw is called. If the user has
+                            // paginated, closed the folder, and opened the folder again, the
+                            // first drawn outline will use stale bounds.
+                            // Invalidation is cheap, and is only needed when scroll is 0.
+                            invalidateOutline();
                         }
                     }
-                }
-                if (Math.round(mCurrentPosition) == i) {
-                    sLastActiveRect.set(sTempRect);
-                    if (mCurrentPosition == 0) {
-                        // The outline is calculated before onDraw is called. If the user has
-                        // paginated, closed the folder, and opened the folder again, the
-                        // first drawn outline will use stale bounds.
-                        // Invalidation is cheap, and is only needed when scroll is 0.
-                        invalidateOutline();
-                    }
-                }
-                canvas.drawRoundRect(sTempRect, mDotRadius, mDotRadius, mPaginationPaint);
+                    canvas.drawRoundRect(sTempRect, mDotRadius, mDotRadius, mPaginationPaint);
 
-                sTempRect.left = x;
+                    // TODO(b/394355070) Verify RTL experience works correctly with visual updates
+                    sTempRect.left = sTempRect.right + mGapWidth;
+                }
+
+                if (mOnArrowClickListener != null && boundedPosition <= mNumPages - 2) {
+                    // Here we draw the Right Arrow
+                    mArrowRight.setAlpha(alpha);
+                    int size = (int) (mGapWidth * 4);
+                    mArrowRightBounds.left = (int) sTempRect.left;
+                    mArrowRightBounds.top = (int) (y - size / 2);
+                    mArrowRightBounds.right = (int) (int) (sTempRect.left + size);
+                    mArrowRightBounds.bottom = (int) (y + size / 2);
+                    mArrowRight.setBounds(mArrowRightBounds);
+                    mArrowRight.draw(canvas);
+                }
+            } else {
+                // Here we draw the dots
+                mPaginationPaint.setAlpha((int) (alpha * DOT_ALPHA_FRACTION));
+                for (int i = 0; i < mNumPages; i++) {
+                    canvas.drawCircle(x, y, mDotRadius, mPaginationPaint);
+                    x += circleGap;
+                }
+
+                // Here we draw the current page indicator
+                mPaginationPaint.setAlpha(alpha);
+                canvas.drawRoundRect(getActiveRect(), mDotRadius, mDotRadius, mPaginationPaint);
             }
+
+            // Reset the alpha so it doesn't become progressively more transparent each onDraw call
+            mPaginationPaint.setAlpha(alpha);
         }
-        // Reset the alpha so it doesn't become progressively more transparent each onDraw call
-        mPaginationPaint.setAlpha(alpha);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        if (mOnArrowClickListener == null) {
+            // No - Op. Don't care about touch events
+        } else if ((mIsRtl && withinExpandedBounds(mArrowRightBounds, ev))
+                || (!mIsRtl && withinExpandedBounds(mArrowLeftBounds, ev))) {
+            mOnArrowClickListener.accept(Direction.START);
+        } else if ((mIsRtl && withinExpandedBounds(mArrowLeftBounds, ev))
+                || (!mIsRtl && withinExpandedBounds(mArrowRightBounds, ev))) {
+            mOnArrowClickListener.accept(Direction.END);
+        }
+        return super.onTouchEvent(ev);
+    }
+
+    // For larger Touch box
+    private boolean withinExpandedBounds(Rect rect, MotionEvent ev) {
+        RectF scaledRect = new RectF(rect);
+        scale(scaledRect, ARROW_TOUCH_BOX_FACTOR);
+        return scaledRect.contains(ev.getX(), ev.getY());
     }
 
     private static void scale(RectF rect, float factor) {
@@ -577,6 +673,38 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
 
         rect.left -= horizontalAdjustment;
         rect.right += horizontalAdjustment;
+    }
+
+    private RectF getActiveRect() {
+        float startCircle = (int) mCurrentPosition;
+        float delta = mCurrentPosition - startCircle;
+        float diameter = 2 * mDotRadius;
+        float startX = ((float) getWidth() / 2)
+                - (mCircleGap * (((float) mNumPages - 1) / 2))
+                - mDotRadius;
+        sTempRect.top = (getHeight() * 0.5f) - mDotRadius;
+        sTempRect.bottom = (getHeight() * 0.5f) + mDotRadius;
+        sTempRect.left = startX + (startCircle * mCircleGap);
+        sTempRect.right = sTempRect.left + diameter;
+
+        if (delta < SHIFT_PER_ANIMATION) {
+            // dot is capturing the right circle.
+            sTempRect.right += delta * mCircleGap * 2;
+        } else {
+            // Dot is leaving the left circle.
+            sTempRect.right += mCircleGap;
+
+            delta -= SHIFT_PER_ANIMATION;
+            sTempRect.left += delta * mCircleGap * 2;
+        }
+
+        if (mIsRtl) {
+            float rectWidth = sTempRect.width();
+            sTempRect.right = getWidth() - sTempRect.left;
+            sTempRect.left = sTempRect.right - rectWidth;
+        }
+
+        return sTempRect;
     }
 
     @VisibleForTesting
@@ -599,7 +727,8 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         @Override
         public void getOutline(View view, Outline outline) {
             if (mEntryAnimationRadiusFactors == null) {
-                RectF activeRect = sLastActiveRect;
+                RectF activeRect = enableLauncherVisualRefresh()
+                        ? sLastActiveRect : getActiveRect();
                 outline.setRoundRect(
                         (int) activeRect.left,
                         (int) activeRect.top,

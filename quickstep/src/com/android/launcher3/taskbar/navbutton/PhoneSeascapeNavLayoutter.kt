@@ -24,38 +24,31 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Space
 import com.android.launcher3.R
-import com.android.launcher3.Utilities
 
 class PhoneSeascapeNavLayoutter(
     resources: Resources,
-    navButtonContainer: LinearLayout,
+    navBarContainer: LinearLayout,
     endContextualContainer: ViewGroup,
     startContextualContainer: ViewGroup,
     imeSwitcher: ImageView?,
     a11yButton: ImageView?,
-    moreOptionsButton: ImageView?,
-    space: Space?,
-    backButton: ImageView?,
-    homeButton: ImageView?,
-    recentsButton: ImageView?,
+    space: Space?
 ) :
     PhoneLandscapeNavLayoutter(
         resources,
-        navButtonContainer,
+        navBarContainer,
         endContextualContainer,
         startContextualContainer,
         imeSwitcher,
         a11yButton,
-        moreOptionsButton,
-        space,
-        backButton,
-        homeButton,
-        recentsButton,
+        space
     ) {
 
-    override fun shouldFlipButtonOrder(): Boolean {
-        // setting & config both flip the order, so xor operator makes them cancel each other out.
-        return isFlipEnabledBySetting() xor Utilities.isRtl(resources)
+    override fun addThreeButtons() {
+        // Flip ordering of back and recents buttons
+        navButtonContainer.addView(backButton)
+        navButtonContainer.addView(homeButton)
+        navButtonContainer.addView(recentsButton)
     }
 
     override fun repositionContextualButtons(buttonSize: Int) {
@@ -70,14 +63,14 @@ class PhoneSeascapeNavLayoutter(
             buttonSize,
             roundedCornerContentMargin + contentPadding,
             0,
-            Gravity.TOP,
+            Gravity.TOP
         )
         repositionContextualContainer(
             endContextualContainer,
             buttonSize,
             0,
             roundedCornerContentMargin + contentPadding,
-            Gravity.BOTTOM,
+            Gravity.BOTTOM
         )
 
         startContextualContainer.addView(space, MATCH_PARENT, MATCH_PARENT)

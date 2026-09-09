@@ -18,7 +18,7 @@
     android:height="20dp"
     android:viewportHeight="24.0"
     android:viewportWidth="24.0"
-    android:tint="@color/materialColorOnSurface">
+    android:tint="?android:attr/textColorPrimary">
     <path
         android:fillColor="@android:color/white"
         android:pathData="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10s10-4.48,10-10S17.52,2,12,2z M4,12c0-4.42,3.58-8,8-8c1.85,0,3.55,0.63,4.9,1.69

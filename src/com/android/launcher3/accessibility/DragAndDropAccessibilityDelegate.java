@@ -94,7 +94,8 @@ public abstract class DragAndDropAccessibilityDelegate extends ExploreByTouchHel
     @Override
     public boolean onPerformActionForVirtualView(int viewId, int action, Bundle args) {
         if (action == AccessibilityNodeInfoCompat.ACTION_CLICK && viewId != INVALID_ID) {
-            mDelegate.handleAccessibleDrop(mView, getItemBounds(viewId));
+            String confirmation = getConfirmationForIconDrop(viewId);
+            mDelegate.handleAccessibleDrop(mView, getItemBounds(viewId), confirmation);
             return true;
         }
         return false;
@@ -153,6 +154,8 @@ public abstract class DragAndDropAccessibilityDelegate extends ExploreByTouchHel
     }
 
     protected abstract String getLocationDescriptionForIconDrop(int id);
+
+    protected abstract String getConfirmationForIconDrop(int id);
 
     private Rect getItemBounds(int id) {
         int cellX = id % mView.getCountX();

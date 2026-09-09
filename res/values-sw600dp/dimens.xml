@@ -21,6 +21,9 @@
 <!-- DragController -->
     <dimen name="drag_flingToDeleteMinVelocity">-1000dp</dimen>
 
+<!-- Widgets pickers -->
+    <dimen name="widget_list_horizontal_margin">32dp</dimen>
+
 <!-- AllApps -->
     <dimen name="all_apps_search_bar_content_overlap">0dp</dimen>
 
@@ -38,7 +41,6 @@
     <dimen name="dynamic_grid_hotseat_side_padding">0dp</dimen>
     <dimen name="spring_loaded_hotseat_top_margin">65dp</dimen>
     <dimen name="min_hotseat_icon_space">17dp</dimen>
-    <dimen name="min_hotseat_qsb_width">240dp</dimen>
 
 <!-- Dragging -->
     <dimen name="drop_target_top_margin">64dp</dimen>

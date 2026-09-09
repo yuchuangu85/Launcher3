@@ -43,7 +43,7 @@ public class FolderIcon implements IconDragTarget {
     public Folder open() {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
              LauncherInstrumentation.Closable c = mLauncher.addContextLayer("open folder")) {
-            mLauncher.executeAndWaitForLauncherEvent(mObject::click,
+            mLauncher.executeAndWaitForLauncherEvent(() -> mLauncher.clickLauncherObject(mObject),
                     event -> TestProtocol.FOLDER_OPENED_MESSAGE.equals(
                             event.getClassName().toString()),
                     () -> "Fail to open folder.",

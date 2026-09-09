@@ -32,7 +32,7 @@ class LauncherUnfoldTransitionController(
     private val progressProvider: ProxyUnfoldTransitionProvider,
 ) : OnDeviceProfileChangeListener, ActivityLifecycleCallbacksAdapter, TransitionProgressListener {
 
-    private var isLargeScreen: Boolean? = null
+    private var isTablet: Boolean? = null
     private var hasUnfoldTransitionStarted = false
     private val timeoutAlarm =
         Alarm().apply {
@@ -56,7 +56,7 @@ class LauncherUnfoldTransitionController(
     }
 
     override fun onDeviceProfileChanged(dp: DeviceProfile) {
-        if (isLargeScreen != null && dp.getDeviceProperties().isLargeScreen != isLargeScreen) {
+        if (isTablet != null && dp.isTablet != isTablet) {
             // We should preemptively start the animation only if:
             // - We changed to the unfolded screen
             // - SystemUI IPC connection is alive, so we won't end up in a situation that we won't
@@ -66,24 +66,20 @@ class LauncherUnfoldTransitionController(
             //   if Launcher was not open during unfold, in this case we receive the configuration
             //   change only after we went back to home screen and we don't want to start the
             //   animation in this case.
-            if (
-                dp.getDeviceProperties().isLargeScreen &&
-                    progressProvider.isActive &&
-                    !hasUnfoldTransitionStarted
-            ) {
+            if (dp.isTablet && progressProvider.isActive && !hasUnfoldTransitionStarted) {
                 // Preemptively start the unfold animation to make sure that we have drawn
                 // the first frame of the animation before the screen gets unblocked
                 onTransitionStarted()
                 Trace.beginAsyncSection("$TAG#startedPreemptively", 0)
                 timeoutAlarm.setAlarm(PREEMPTIVE_UNFOLD_TIMEOUT_MS)
             }
-            if (!dp.getDeviceProperties().isLargeScreen) {
+            if (!dp.isTablet) {
                 // Reset unfold transition status when folded
                 hasUnfoldTransitionStarted = false
             }
         }
 
-        isLargeScreen = dp.getDeviceProperties().isLargeScreen
+        isTablet = dp.isTablet
     }
 
     override fun onTransitionStarted() {

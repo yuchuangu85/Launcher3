@@ -34,15 +34,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /** Drawable for the background of the bubble bar. */
-class BubbleBarBackground(
-    context: Context,
-    private var backgroundHeight: Float,
-    /**
-     * The margin is used to decrease the size of the background rect, so that it is visually
-     * smaller while maintaining a large enough touch area
-     */
-    private var margin: Float,
-) : Drawable() {
+class BubbleBarBackground(context: Context, private var backgroundHeight: Float) : Drawable() {
 
     private val fillPaint: Paint = Paint()
     private val strokePaint: Paint = Paint()
@@ -51,6 +43,7 @@ class BubbleBarBackground(
     private val arrowTipRadius: Float
     private val arrowVisibleHeight: Float
 
+    private val strokeAlpha: Int
     private val strokeColor: Int
     private val strokeColorDropTarget: Int
     private val shadowAlpha: Int
@@ -118,11 +111,13 @@ class BubbleBarBackground(
         strokePaint.strokeWidth = res.getDimension(R.dimen.transient_taskbar_stroke_width)
         // apply theme alpha attributes
         if (Utilities.isDarkTheme(context)) {
+            strokeAlpha = DARK_THEME_STROKE_ALPHA
             shadowAlpha = DARK_THEME_SHADOW_ALPHA
         } else {
+            strokeAlpha = LIGHT_THEME_STROKE_ALPHA
             shadowAlpha = LIGHT_THEME_SHADOW_ALPHA
         }
-        strokePaint.alpha = STROKE_ALPHA
+        strokePaint.alpha = strokeAlpha
         shadowBlur = res.getDimension(R.dimen.transient_taskbar_shadow_blur)
         keyShadowDistance = res.getDimension(R.dimen.transient_taskbar_key_shadow_distance)
         arrowWidth = res.getDimension(R.dimen.bubblebar_pointer_width)
@@ -154,22 +149,19 @@ class BubbleBarBackground(
         )
         // Create background path
         val backgroundPath = Path()
-        val visibleBackgroundHeight = backgroundHeight - margin * 2
-        val scaledBackgroundHeight = visibleBackgroundHeight * scaleY
+        val scaledBackgroundHeight = backgroundHeight * scaleY
         val scaledWidth = width * scaleX
-        val arrowTopOffset = bounds.height().toFloat() - backgroundHeight * scaleY + margin
-        val radius = visibleBackgroundHeight / 2f
+        val topOffset = scaledBackgroundHeight - bounds.height().toFloat()
+        val radius = backgroundHeight / 2f
 
-        val left =
-            bounds.left + (if (anchorLeft) 0f else bounds.width().toFloat() - scaledWidth) + margin
-        val right =
-            bounds.left + (if (anchorLeft) scaledWidth else bounds.width().toFloat()) - margin
+        val left = bounds.left + (if (anchorLeft) 0f else bounds.width().toFloat() - scaledWidth)
+        val right = bounds.left + (if (anchorLeft) scaledWidth else bounds.width().toFloat())
         // Calculate top with scaled heights for background and arrow to align with stash handle
-        val top = bounds.bottom - scaledBackgroundHeight + getScaledArrowVisibleHeight() - margin
-        val bottom = bounds.bottom.toFloat() - margin
+        val top = bounds.bottom - scaledBackgroundHeight + getScaledArrowVisibleHeight()
+        val bottom = bounds.bottom.toFloat()
 
         backgroundPath.addRoundRect(left, top, right, bottom, radius, radius, Path.Direction.CW)
-        addArrowPathIfNeeded(backgroundPath, arrowTopOffset)
+        addArrowPathIfNeeded(backgroundPath, topOffset)
 
         // Draw background.
         canvas.drawPath(backgroundPath, fillPaint)
@@ -193,7 +185,7 @@ class BubbleBarBackground(
         arrowPath.transform(pathTransform)
         // shift to arrow position
         val arrowStart = bounds.left + arrowPositionX - (arrowWidth / 2f)
-        val arrowTop = (1 - arrowHeightFraction) * getScaledArrowVisibleHeight() + topOffset
+        val arrowTop = (1 - arrowHeightFraction) * getScaledArrowVisibleHeight() - topOffset
         arrowPath.offset(arrowStart, arrowTop)
         // union with rectangle
         sourcePath.op(arrowPath, Path.Op.UNION)
@@ -209,7 +201,7 @@ class BubbleBarBackground(
 
     override fun setAlpha(alpha: Int) {
         fillPaint.alpha = alpha
-        strokePaint.alpha = mapToRange(alpha, 0, 255, 0, STROKE_ALPHA, Interpolators.LINEAR)
+        strokePaint.alpha = mapToRange(alpha, 0, 255, 0, strokeAlpha, Interpolators.LINEAR)
         invalidateSelf()
     }
 
@@ -221,9 +213,8 @@ class BubbleBarBackground(
         fillPaint.colorFilter = colorFilter
     }
 
-    fun setBackgroundHeight(newHeight: Float, newMargin: Float) {
+    fun setBackgroundHeight(newHeight: Float) {
         backgroundHeight = newHeight
-        margin = newMargin
         invalidateSelf()
     }
 
@@ -256,7 +247,7 @@ class BubbleBarBackground(
         }
         isShowingDropTarget = isDropTarget
         val strokeColor = if (isDropTarget) strokeColorDropTarget else strokeColor
-        val alpha = if (isDropTarget) DRAG_STROKE_ALPHA else STROKE_ALPHA
+        val alpha = if (isDropTarget) DRAG_STROKE_ALPHA else strokeAlpha
         strokePaint.color = strokeColor
         strokePaint.alpha = alpha
         invalidateSelf()
@@ -265,7 +256,8 @@ class BubbleBarBackground(
     fun isShowingDropTarget() = isShowingDropTarget
 
     companion object {
-        private const val STROKE_ALPHA = 51
+        private const val DARK_THEME_STROKE_ALPHA = 51
+        private const val LIGHT_THEME_STROKE_ALPHA = 41
         private const val DRAG_STROKE_ALPHA = 255
         private const val DARK_THEME_SHADOW_ALPHA = 51
         private const val LIGHT_THEME_SHADOW_ALPHA = 25

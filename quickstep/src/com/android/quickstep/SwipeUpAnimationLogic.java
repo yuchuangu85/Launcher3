@@ -17,6 +17,7 @@ package com.android.quickstep;
 
 import static com.android.app.animation.Interpolators.ACCELERATE_1_5;
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.launcher3.Flags.enableAdditionalHomeAnimations;
 import static com.android.launcher3.PagedView.INVALID_PAGE;
 
 import android.animation.Animator;
@@ -25,6 +26,7 @@ import android.graphics.Matrix;
 import android.graphics.Matrix.ScaleToFit;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.Log;
 import android.view.RemoteAnimationTarget;
 
 import androidx.annotation.NonNull;
@@ -37,7 +39,6 @@ import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.AnimationSuccessListener;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
-import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.touch.PagedOrientationHandler;
 import com.android.launcher3.views.ClipIconView;
 import com.android.quickstep.RemoteTargetGluer.RemoteTargetHandle;
@@ -46,14 +47,12 @@ import com.android.quickstep.util.AnimatorControllerWithResistance;
 import com.android.quickstep.util.RectFSpringAnim;
 import com.android.quickstep.util.RectFSpringAnim.DefaultSpringConfig;
 import com.android.quickstep.util.RectFSpringAnim.TaskbarHotseatSpringConfig;
-import com.android.quickstep.util.RectFSpringAnim.WidgetSpringConfig;
 import com.android.quickstep.util.SurfaceTransaction.SurfaceProperties;
 import com.android.quickstep.util.TaskViewSimulator;
 import com.android.quickstep.util.TransformParams;
 import com.android.quickstep.util.TransformParams.BuilderProxy;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.TaskView;
-import com.android.wm.shell.shared.GroupedTaskInfo;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -85,31 +84,20 @@ public abstract class SwipeUpAnimationLogic implements
 
     protected boolean mIsSwipeForSplit;
 
-    public SwipeUpAnimationLogic(Context context, GestureState gestureState,
-            RotationTouchHelper rotationTouchHelper) {
+    public SwipeUpAnimationLogic(Context context, GestureState gestureState) {
         mContext = context;
         mGestureState = gestureState;
         updateIsGestureForSplit(TopTaskTracker.INSTANCE.get(context)
                 .getRunningSplitTaskIds().length);
 
-        GroupedTaskInfo groupedTaskInfo = null;
-        if (mGestureState.getRunningTask() != null) {
-            groupedTaskInfo =
-                    mGestureState.getRunningTask().getPlaceholderGroupedTaskInfo(
-                            /* splitTaskIds = */ null);
-        }
-        mTargetGluer = new RemoteTargetGluer(mContext, mGestureState.getContainerInterface(),
-                groupedTaskInfo);
+        mTargetGluer = new RemoteTargetGluer(mContext, mGestureState.getContainerInterface());
         mRemoteTargetHandles = mTargetGluer.getRemoteTargetHandles();
+        RotationTouchHelper rotationTouchHelper = RotationTouchHelper.INSTANCE.get(context);
         runActionOnRemoteHandles(remoteTargetHandle ->
                 remoteTargetHandle.getTaskViewSimulator().getOrientationState().update(
                         rotationTouchHelper.getCurrentActiveRotation(),
                         rotationTouchHelper.getDisplayRotation()
                 ));
-    }
-
-    protected float getCurrentShiftValue() {
-        return mCurrentShift.value;
     }
 
     protected void initTransitionEndpoints(DeviceProfile dp) {
@@ -118,14 +106,13 @@ public abstract class SwipeUpAnimationLogic implements
                 .getSwipeUpDestinationAndLength(dp, mContext, TEMP_RECT,
                         mRemoteTargetHandles[0].getTaskViewSimulator().getOrientationState()
                                 .getOrientationHandler());
-        mDragLengthFactor = (float) dp.getDeviceProperties().getHeightPx() / mTransitionDragLength;
+        mDragLengthFactor = (float) dp.heightPx / mTransitionDragLength;
 
         for (RemoteTargetHandle remoteHandle : mRemoteTargetHandles) {
             PendingAnimation pendingAnimation = new PendingAnimation(mTransitionDragLength * 2);
             TaskViewSimulator taskViewSimulator = remoteHandle.getTaskViewSimulator();
             taskViewSimulator.setDp(dp);
-            taskViewSimulator.addAppToCarouselAnim(pendingAnimation, LINEAR,
-                    mGestureState.isHandlingAtomicEvent());
+            taskViewSimulator.addAppToCarouselAnim(pendingAnimation, LINEAR);
             AnimatorPlaybackController playbackController =
                     pendingAnimation.createPlaybackController();
 
@@ -137,22 +124,21 @@ public abstract class SwipeUpAnimationLogic implements
         }
     }
 
-    protected float getShiftFromDisplacement(float displacement) {
-        if (displacement > mTransitionDragLength * mDragLengthFactor && mTransitionDragLength > 0) {
-            return mDragLengthFactor;
-        } else {
-            float translation = Math.max(displacement, 0);
-            return mTransitionDragLength == 0 ? 0 : translation / mTransitionDragLength;
-        }
-    }
-
     @UiThread
     public void updateDisplacement(float displacement) {
         // We are moving in the negative x/y direction
         displacement = overrideDisplacementForTransientTaskbar(-displacement);
         mCurrentDisplacement = displacement;
 
-        mCurrentShift.updateValue(getShiftFromDisplacement(displacement));
+        float shift;
+        if (displacement > mTransitionDragLength * mDragLengthFactor && mTransitionDragLength > 0) {
+            shift = mDragLengthFactor;
+        } else {
+            float translation = Math.max(displacement, 0);
+            shift = mTransitionDragLength == 0 ? 0 : translation / mTransitionDragLength;
+        }
+
+        mCurrentShift.updateValue(shift);
     }
 
     /**
@@ -179,13 +165,7 @@ public abstract class SwipeUpAnimationLogic implements
     }
 
     protected abstract class HomeAnimationFactory {
-        // The progress at which a closing window starts fading out.
-        private static final float ALPHA_START_PROGRESS = 0f;
-        // The progress at which a closing window becomes fully transparent.
-        private static final float ALPHA_END_PROGRESS = 0.85f;
-
         protected float mSwipeVelocity;
-        protected float mAlphaEndProgress = ALPHA_END_PROGRESS;
 
         /**
          * Returns true if we know the home animation involves an item in the hotseat.
@@ -194,27 +174,16 @@ public abstract class SwipeUpAnimationLogic implements
             return false;
         }
 
-        /**
-         * Returns true if the home animation involves a widget.
-         */
-        public boolean isWidget() {
-            return false;
-        }
-
         public @NonNull RectF getWindowTargetRect() {
             PagedOrientationHandler orientationHandler = getOrientationHandler();
             DeviceProfile dp = mDp;
-            final int halfIconSize = dp.getWorkspaceProfile().getIconSizePx() / 2;
-            float primaryDimension = orientationHandler.getPrimaryValue(
-                    dp.getDeviceProperties().getAvailableWidthPx(),
-                    dp.getDeviceProperties().getAvailableHeightPx()
-            );
-            float secondaryDimension = orientationHandler.getSecondaryValue(
-                    dp.getDeviceProperties().getAvailableWidthPx(),
-                    dp.getDeviceProperties().getAvailableHeightPx()
-            );
+            final int halfIconSize = dp.iconSizePx / 2;
+            float primaryDimension = orientationHandler
+                    .getPrimaryValue(dp.availableWidthPx, dp.availableHeightPx);
+            float secondaryDimension = orientationHandler
+                    .getSecondaryValue(dp.availableWidthPx, dp.availableHeightPx);
             final float targetX =  primaryDimension / 2f;
-            final float targetY = secondaryDimension - dp.getHotseatProfile().getBarSizePx();
+            final float targetY = secondaryDimension - dp.hotseatBarSizePx;
             // Fallback to animate to center of screen.
             return new RectF(targetX - halfIconSize, targetY - halfIconSize,
                     targetX + halfIconSize, targetY + halfIconSize);
@@ -247,8 +216,8 @@ public abstract class SwipeUpAnimationLogic implements
          */
         protected float getWindowAlpha(float progress) {
             // Alpha interpolates between [1, 0] between progress values [start, end]
-            final float start = ALPHA_START_PROGRESS;
-            final float end = mAlphaEndProgress;
+            final float start = 0f;
+            final float end = 0.85f;
 
             if (progress <= start) {
                 return 1f;
@@ -257,15 +226,6 @@ public abstract class SwipeUpAnimationLogic implements
                 return 0f;
             }
             return Utilities.mapToRange(progress, start, end, 1, 0, ACCELERATE_1_5);
-        }
-
-        /**
-         * @param progress The progress of the animation to the home screen.
-         * @return The current corner radius to set on the animating app window. A negative value
-         *   is invalid and should not be used.
-         */
-        protected float getWindowCornerRadius(float progress) {
-            return -1f;
         }
 
         /**
@@ -292,7 +252,7 @@ public abstract class SwipeUpAnimationLogic implements
         }
 
         public boolean isPortrait() {
-            return !mDp.getDeviceProperties().isLandscape() && !mDp.isSeascape();
+            return !mDp.isLandscape && !mDp.isSeascape();
         }
     }
 
@@ -398,15 +358,11 @@ public abstract class SwipeUpAnimationLogic implements
             startRect = new RectF(thumbnailBounds);
         }
 
-        boolean useTaskbarHotseatParams =
-                mDp.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()
+        boolean useTaskbarHotseatParams = mDp.isTaskbarPresent
                 && homeAnimationFactory.isInHotseat();
         RectFSpringAnim anim = new RectFSpringAnim(useTaskbarHotseatParams
-                ? new TaskbarHotseatSpringConfig(mContext, mDp, startRect, targetRect)
-                : (homeAnimationFactory.isWidget()
-                        ? new WidgetSpringConfig(mContext, mDp, startRect, targetRect)
-                        : new DefaultSpringConfig(mContext, mDp, startRect, targetRect)));
-
+                ? new TaskbarHotseatSpringConfig(mContext, startRect, targetRect)
+                : new DefaultSpringConfig(mContext, mDp, startRect, targetRect));
         homeAnimationFactory.setAnimation(anim);
 
         SpringAnimationRunner runner = new SpringAnimationRunner(
@@ -449,9 +405,13 @@ public abstract class SwipeUpAnimationLogic implements
         final boolean mIsPortrait;
         final Rect mThumbnailStartBounds = new Rect();
 
-        float mTaskViewPivotFractionX;
-        float mTaskViewPivotFractionY;
-        float mInitialScroll;
+        // Store the mTargetTaskView view properties onAnimationStart so that we can reset them
+        // when cleaning up.
+        float mTaskViewAlpha;
+        float mTaskViewTranslationX;
+        float mTaskViewTranslationY;
+        float mTaskViewScaleX;
+        float mTaskViewScaleY;
 
         SpringAnimationRunner(
                 HomeAnimationFactory factory,
@@ -482,7 +442,7 @@ public abstract class SwipeUpAnimationLogic implements
             // to end up offscreen.
             mRunningTaskViewScrollOffset = factory.isRtl()
                     ? (Math.min(0, -invariantStartRect.right))
-                    : (Math.max(0, mDp.getDeviceProperties().getWidthPx() - invariantStartRect.left));
+                    : (Math.max(0, mDp.widthPx - invariantStartRect.left));
         }
 
         @Override
@@ -491,48 +451,9 @@ public abstract class SwipeUpAnimationLogic implements
             float alpha = mAnimationFactory.getWindowAlpha(progress);
 
             mHomeAnim.setPlayFraction(progress);
-            if (mTargetTaskView == null) {
+            if (!enableAdditionalHomeAnimations() || mTargetTaskView == null) {
                 mHomeToWindowPositionMap.mapRect(mWindowCurrentRect, currentRect);
-
-                if (mAnimationFactory.isWidget()) {
-                    RectF cropRectF = new RectF();
-                    float scale;
-                    if (mCropRectF.height() > mCropRectF.width()) {
-                        scale = Math.min(mWindowCurrentRect.width() / mCropRectF.width(), 1f);
-                        float unscaledHeight = mWindowCurrentRect.height() / scale;
-                        float croppedHeight = mCropRectF.height() - unscaledHeight;
-                        float translate = croppedHeight / 2;
-                        cropRectF.set(
-                                0f, translate, mCropRectF.width(), mCropRectF.height() - translate);
-                        mMatrix.setScale(scale, scale);
-                        mMatrix.postTranslate(mWindowCurrentRect.left,
-                                mWindowCurrentRect.top - croppedHeight * scale / 2);
-                    } else {
-                        scale = Math.min(mWindowCurrentRect.height() / mCropRectF.height(), 1f);
-                        float unscaledWidth = mWindowCurrentRect.width() / scale;
-                        float croppedWidth = mCropRectF.width() - unscaledWidth;
-                        float translate = croppedWidth / 2;
-                        cropRectF.set(
-                                translate, 0f, mCropRectF.width() - translate, mCropRectF.height());
-                        mMatrix.setScale(scale, scale);
-                        mMatrix.postTranslate(mWindowCurrentRect.left - croppedWidth * scale / 2,
-                                mWindowCurrentRect.top);
-                    }
-                    cropRectF.round(mCropRect);
-
-                    float windowRadius = mAnimationFactory.getWindowCornerRadius(progress);
-                    if (mAnimationFactory.isWidget() && windowRadius >= 0f) {
-                        // The corner radius in the window is scaled by the matrix. So the radius
-                        // provided by the animation factory needs to be transformed by the inverse
-                        // of the window transform.
-                        Matrix inverse = new Matrix();
-                        mMatrix.invert(inverse);
-                        cornerRadius = inverse.mapRadius(windowRadius);
-                    }
-                } else {
-                    mMatrix.setRectToRect(mCropRectF, mWindowCurrentRect, ScaleToFit.FILL);
-                }
-
+                mMatrix.setRectToRect(mCropRectF, mWindowCurrentRect, ScaleToFit.FILL);
                 mLocalTransformParams
                         .setTargetAlpha(alpha)
                         .setCornerRadius(cornerRadius);
@@ -550,17 +471,17 @@ public abstract class SwipeUpAnimationLogic implements
                     currentRect,
                     progress,
                     mMatrix.mapRadius(cornerRadius),
-                    mTargetTaskView == null ? 0 : (int) (alpha * 255));
+                    !enableAdditionalHomeAnimations() || mTargetTaskView == null
+                            ? 0 : (int) (alpha * 255));
 
-            if (mTargetTaskView == null) {
+            if (!enableAdditionalHomeAnimations() || mTargetTaskView == null) {
                 return;
             }
             if (mAnimationFactory.isAnimatingIntoIcon() && mAnimationFactory.isAnimationReady()) {
-                mTargetTaskView.setAnimateToIconAlpha(0f);
+                mTargetTaskView.setAlpha(0f);
                 return;
             }
-            mTargetTaskView.setAnimateToIconAlpha(
-                    mAnimationFactory.isAnimatingIntoIcon() ? 1f : alpha);
+            mTargetTaskView.setAlpha(mAnimationFactory.isAnimatingIntoIcon() ? 1f : alpha);
             float startWidth = mThumbnailStartBounds.width();
             float startHeight =  mThumbnailStartBounds.height();
             float currentWidth = currentRect.width();
@@ -572,7 +493,7 @@ public abstract class SwipeUpAnimationLogic implements
             if (isStartWidthValid && isStartHeightValid) {
                 scale = Math.min(currentWidth, currentHeight) / Math.min(startWidth, startHeight);
             } else {
-                FileLog.e(TAG, "TaskView starting bounds are invalid: " + mThumbnailStartBounds);
+                Log.e(TAG, "TaskView starting bounds are invalid: " + mThumbnailStartBounds);
                 if (isStartWidthValid) {
                     scale = currentWidth / startWidth;
                 } else if (isStartHeightValid) {
@@ -583,39 +504,16 @@ public abstract class SwipeUpAnimationLogic implements
             }
 
             if (Float.isNaN(scale)) {
-                FileLog.e(TAG, "Scale is NaN: starting dimensions=[" + startWidth + ", "
-                        + startHeight + "], current dimensions=[" + currentWidth + ", "
-                        + currentHeight + "]");
+                Log.e(TAG, "Scale is NaN: starting dimensions=[" + startWidth + ", " + startHeight
+                        + "], current dimensions=[" + currentWidth + ", " + currentHeight + "]");
             }
-            RecentsView recentsView = mTargetTaskView.getRecentsView();
-            float scrollDelta = recentsView == null
-                    ? 0 : (mInitialScroll - recentsView.getScroller().getCurrX());
-            float translationX =
-                    getScaledPivotPoint(
-                            currentRect.left,
-                            currentRect.width(),
-                            mTaskViewPivotFractionX)
-                    - getScaledPivotPoint(
-                            mThumbnailStartBounds.left,
-                            mThumbnailStartBounds.width(),
-                            mTaskViewPivotFractionX);
-            float translationY =
-                    getScaledPivotPoint(
-                            currentRect.top,
-                            currentRect.height(),
-                            mTaskViewPivotFractionY)
-                    - getScaledPivotPoint(
-                            mThumbnailStartBounds.top,
-                            mThumbnailStartBounds.height(),
-                            mTaskViewPivotFractionY);
 
-            mTargetTaskView.setAnimateToIconScale(scale);
-            mTargetTaskView.setAnimateToIconTranslationX(translationX - scrollDelta);
-            mTargetTaskView.setAnimateToIconTranslationY(translationY);
-        }
-
-        private static float getScaledPivotPoint(float start, float length, float pivotFraction) {
-            return start + (length * pivotFraction);
+            mTargetTaskView.setScaleX(scale);
+            mTargetTaskView.setScaleY(scale);
+            mTargetTaskView.setTranslationX(
+                    currentRect.centerX() - mThumbnailStartBounds.centerX());
+            mTargetTaskView.setTranslationY(
+                    currentRect.centerY() - mThumbnailStartBounds.centerY());
         }
 
         @Override
@@ -636,7 +534,7 @@ public abstract class SwipeUpAnimationLogic implements
         public void onAnimationStart(Animator animation) {
             setUp();
             mHomeAnim.dispatchOnStart();
-            if (mTargetTaskView == null) {
+            if (!enableAdditionalHomeAnimations() || mTargetTaskView == null) {
                 return;
             }
             Rect thumbnailBounds = new Rect();
@@ -651,7 +549,7 @@ public abstract class SwipeUpAnimationLogic implements
         }
 
         private void setUp() {
-            if (mTargetTaskView == null) {
+            if (!enableAdditionalHomeAnimations() || mTargetTaskView == null) {
                 return;
             }
             RecentsView recentsView = mTargetTaskView.getRecentsView();
@@ -661,26 +559,32 @@ public abstract class SwipeUpAnimationLogic implements
             }
             mTargetTaskView.getThumbnailBounds(
                     mThumbnailStartBounds, /* relativeToDragLayer= */ true);
+            mTaskViewAlpha = mTargetTaskView.getAlpha();
             if (mAnimationFactory.isAnimatingIntoIcon()) {
                 return;
             }
-            mTaskViewPivotFractionX = mTargetTaskView.getPivotX() / mTaskViewWidth;
-            mTaskViewPivotFractionY = mTargetTaskView.getPivotY() / mTaskViewHeight;
-            mInitialScroll = recentsView == null ? 0f : recentsView.getScroller().getCurrX();
+            mTaskViewTranslationX = mTargetTaskView.getTranslationX();
+            mTaskViewTranslationY = mTargetTaskView.getTranslationY();
+            mTaskViewScaleX = mTargetTaskView.getScaleX();
+            mTaskViewScaleY = mTargetTaskView.getScaleY();
         }
 
         private void cleanUp() {
-            if (mTargetTaskView == null) {
+            if (!enableAdditionalHomeAnimations() || mTargetTaskView == null) {
                 return;
             }
             RecentsView recentsView = mTargetTaskView.getRecentsView();
             if (recentsView != null) {
                 recentsView.setOffsetMidpointIndexOverride(INVALID_PAGE);
             }
-            mTargetTaskView.setAnimateToIconAlpha(1f);
-            mTargetTaskView.setAnimateToIconScale(1f);
-            mTargetTaskView.setAnimateToIconTranslationX(0f);
-            mTargetTaskView.setAnimateToIconTranslationY(0f);
+            mTargetTaskView.setAlpha(mTaskViewAlpha);
+            if (!mAnimationFactory.isAnimatingIntoIcon()) {
+                mTargetTaskView.setTranslationX(mTaskViewTranslationX);
+                mTargetTaskView.setTranslationY(mTaskViewTranslationY);
+                mTargetTaskView.setScaleX(mTaskViewScaleX);
+                mTargetTaskView.setScaleY(mTaskViewScaleY);
+                return;
+            }
             mAnimationFactory.setTaskViewArtist(null);
         }
 

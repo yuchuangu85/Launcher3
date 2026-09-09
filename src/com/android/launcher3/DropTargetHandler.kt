@@ -1,23 +1,18 @@
 package com.android.launcher3
 
 import android.content.ComponentName
-import android.util.Log
 import android.view.View
 import com.android.launcher3.BaseActivity.EVENT_RESUMED
 import com.android.launcher3.DropTarget.DragObject
 import com.android.launcher3.LauncherConstants.ActivityCodes
 import com.android.launcher3.SecondaryDropTarget.DeferredOnComplete
 import com.android.launcher3.dragndrop.DragLayer
-import com.android.launcher3.homescreenfiles.HomeScreenFilesProvider
-import com.android.launcher3.homescreenfiles.HomeScreenFilesUtils
-import com.android.launcher3.homescreenfiles.isFileSystemItem
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.util.IntSet
 import com.android.launcher3.util.PendingRequestArgs
 import com.android.launcher3.views.Snackbar
-import java.util.concurrent.Executor
 
 /**
  * Handler class for drop target actions that require modifying or interacting with launcher.
@@ -25,14 +20,11 @@ import java.util.concurrent.Executor
  * This class is created by Launcher and provided the instance of launcher when created, which
  * allows us to decouple drop target controllers from Launcher to enable easier testing.
  */
-class DropTargetHandler(
-    private val launcher: Launcher,
-    private val undoDeleteController: UndoDeleteController,
-    private val homeScreenFilesProvider: HomeScreenFilesProvider,
-    private val mainExecutor: Executor,
-) {
+class DropTargetHandler(launcher: Launcher) {
+    val mLauncher: Launcher = launcher
+
     fun onDropAnimationComplete() {
-        launcher.stateManager.goToState(LauncherState.NORMAL)
+        mLauncher.stateManager.goToState(LauncherState.NORMAL)
     }
 
     fun onSecondaryTargetCompleteDrop(target: ComponentName?, d: DragObject) {
@@ -42,7 +34,7 @@ class DropTargetHandler(
                 if (d.dragSource is SecondaryDropTarget.DeferredOnComplete) {
                     target?.let {
                         deferred.mPackageName = it.packageName
-                        launcher.addEventCallback(EVENT_RESUMED) { deferred.onLauncherResume() }
+                        mLauncher.addEventCallback(EVENT_RESUMED) { deferred.onLauncherResume() }
                     } ?: deferred.sendFailure()
                 }
             }
@@ -50,124 +42,78 @@ class DropTargetHandler(
     }
 
     fun reconfigureWidget(widgetId: Int, info: ItemInfo) {
-        launcher.setWaitingForResult(PendingRequestArgs.forWidgetInfo(widgetId, null, info))
-        launcher.appWidgetHolder?.also {
-            it.startConfigActivity(launcher, widgetId, ActivityCodes.REQUEST_RECONFIGURE_APPWIDGET)
-        } ?: Log.e(TAG, "appWidgetHolder is null, cannot start config activity.")
+        mLauncher.setWaitingForResult(PendingRequestArgs.forWidgetInfo(widgetId, null, info))
+        mLauncher.appWidgetHolder.startConfigActivity(
+            mLauncher,
+            widgetId,
+            ActivityCodes.REQUEST_RECONFIGURE_APPWIDGET,
+        )
     }
 
     fun getViewUnderDrag(info: ItemInfo): View? {
         return if (
             info is LauncherAppWidgetInfo &&
                 info.container == LauncherSettings.Favorites.CONTAINER_DESKTOP &&
-                launcher.workspace.dragInfo != null
+                mLauncher.workspace.dragInfo != null
         ) {
-            launcher.workspace.dragInfo.cell
+            mLauncher.workspace.dragInfo.cell
         } else null
     }
 
-    fun prepareToUndoDelete(item: ItemInfo) {
-        if (item.isFileSystemItem() && HomeScreenFilesUtils.isTrashingEnabled()) {
-            // Home screen file items rely on their own unidirectional data flow
-            // (`HomeScreenFilesProvider` -> `HomeScreenFilesUpdateTask`), so there is no need
-            // to manually call `mLauncher.modelWriter` from here.
-            return
-        }
-        undoDeleteController.prepareToUndoDelete()
+    fun prepareToUndoDelete() {
+        mLauncher.modelWriter.prepareToUndoDelete()
     }
 
-    fun onDeleteComplete(item: ItemInfo, view: View?) {
-        if (item.isFileSystemItem() && HomeScreenFilesUtils.isTrashingEnabled()) {
-            onDeleteCompleteForHomeScreenFile(item)
-            return
-        }
-
-        removeItemAndStripEmptyScreens(view, item)
+    fun onDeleteComplete(item: ItemInfo) {
+        removeItemAndStripEmptyScreens(null /* view */, item)
         AbstractFloatingView.closeOpenViews(
-            launcher,
+            mLauncher,
             false,
-            AbstractFloatingView.TYPE_WIDGET_RESIZE_FRAME or AbstractFloatingView.TYPE_FOLDER,
+            AbstractFloatingView.TYPE_WIDGET_RESIZE_FRAME,
         )
         var pageItem: ItemInfo = item
         if (item.container >= 0) {
-            launcher.workspace.getViewByItemId(item.container)?.let {
+            mLauncher.workspace.getViewByItemId(item.container)?.let {
                 pageItem = it.tag as ItemInfo
             }
         }
         val pageIds =
             if (pageItem.container == LauncherSettings.Favorites.CONTAINER_DESKTOP)
                 IntSet.wrap(pageItem.screenId)
-            else launcher.workspace.currentPageScreenIds
-        val onDismissed = Runnable {
-            if (item.isFileSystemItem()) {
-                // The old "Delete permanently" action is delayed until `onDismissed`, otherwise
-                // it's impossible to restore the file item on "Undo".
-                homeScreenFilesProvider.deletePermanently(
-                    requireNotNull(requireNotNull(item.intent).data)
-                )
-            }
-            undoDeleteController.commit()
-        }
+            else mLauncher.workspace.currentPageScreenIds
         val onUndoClicked = Runnable {
-            launcher.setPagesToBindSynchronously(pageIds)
-            undoDeleteController.abort()
-            launcher.statsLogManager.logger().log(LauncherEvent.LAUNCHER_UNDO)
+            mLauncher.setPagesToBindSynchronously(pageIds)
+            mLauncher.modelWriter.abortDelete()
+            mLauncher.statsLogManager.logger().log(LauncherEvent.LAUNCHER_UNDO)
         }
 
-        Snackbar.show(launcher, R.string.item_removed, R.string.undo, onDismissed, onUndoClicked)
+        Snackbar.show(
+            mLauncher,
+            R.string.item_removed,
+            R.string.undo,
+            mLauncher.modelWriter::commitDelete,
+            onUndoClicked,
+        )
     }
 
-    private fun onDeleteCompleteForHomeScreenFile(item: ItemInfo) {
-        val title = item.title.toString()
-        val restoreFromTrashResultHandler: (Boolean) -> Unit = { success ->
-            if (!success) {
-                Snackbar.show(
-                    launcher,
-                    R.string.home_screen_files_restore_from_trash_error_message,
-                )
-                /*onDismissed=*/ {}
-            }
-        }
-        val moveToTrashResultHandler: (String?) -> Unit = { trashPath ->
-            if (trashPath != null) {
-                Snackbar.show(
-                    launcher,
-                    launcher.resources.getString(R.string.home_screen_files_moved_to_trash_message),
-                    R.string.undo,
-                    /*onDismissed=*/ {},
-                    /*onActionClicked=*/ {
-                        homeScreenFilesProvider
-                            .restoreFromTrash(trashPath)
-                            .thenAcceptAsync(restoreFromTrashResultHandler, mainExecutor)
-                    },
-                )
-            } else {
-                Snackbar.show(launcher, R.string.home_screen_files_move_to_trash_error_message)
-                /*onDismissed=*/ {}
-            }
-        }
-
-        homeScreenFilesProvider
-            .moveToTrash(title)
-            .thenAcceptAsync(moveToTrashResultHandler, mainExecutor)
+    fun onAccessibilityDelete(view: View?, item: ItemInfo, announcement: CharSequence) {
+        removeItemAndStripEmptyScreens(view, item)
+        mLauncher.dragLayer.announceForAccessibility(announcement)
     }
 
     fun getDragLayer(): DragLayer {
-        return launcher.dragLayer
+        return mLauncher.dragLayer
     }
 
     fun onClick(buttonDropTarget: ButtonDropTarget) {
-        launcher.accessibilityDelegate.handleAccessibleDrop(buttonDropTarget, null)
+        mLauncher.accessibilityDelegate.handleAccessibleDrop(buttonDropTarget, null, null)
     }
 
     private fun removeItemAndStripEmptyScreens(view: View?, item: ItemInfo) {
-        // Remove the item from launcher ONLY (not the db). The DB deletion is handled by
-        // resuming the UndoDeleteController.
-        launcher.removeItem(view, item, true /* deleteFromDb */, "removed by accessibility drop")
-        launcher.workspace.stripEmptyScreens()
-    }
-
-    companion object {
-        private const val TAG = "DropTargetHandler"
+        // Remove the item from launcher and the db, we can ignore the containerInfo in this call
+        // because we already remove the drag view from the folder (if the drag originated from
+        // a folder) in Folder.beginDrag()
+        mLauncher.removeItem(view, item, true /* deleteFromDb */, "removed by accessibility drop")
+        mLauncher.workspace.stripEmptyScreens()
     }
 }

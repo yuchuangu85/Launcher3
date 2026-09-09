@@ -36,7 +36,6 @@ import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.model.ItemInstallQueue;
-import com.android.launcher3.model.SerializedItemItem;
 import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.IntArray;
@@ -196,8 +195,7 @@ public class InstallSessionHelper {
 
     @WorkerThread
     public boolean promiseIconAddedForId(final int sessionId) {
-        // Make sure the session id is valid.
-        return sessionId != -1 && getPromiseIconIds().contains(sessionId);
+        return getPromiseIconIds().contains(sessionId);
     }
 
     @WorkerThread
@@ -226,13 +224,10 @@ public class InstallSessionHelper {
             // not already present. For general app installations however, we do support it.
             if (!Flags.enableSupportForArchiving() || !sessionInfo.isUnarchival()) {
                 FileLog.d(LOG, "Adding package name to install queue: "
-                        + sessionInfo.getAppPackageName()
-                        + "Package installer: "
-                        + sessionInfo.getInstallerPackageName()
-                        + "Session id: "
-                        + sessionInfo.getSessionId());
-                ItemInstallQueue.INSTANCE.get(mAppContext).queueItem(new SerializedItemItem(
-                        sessionInfo.getAppPackageName(), getUserHandle(sessionInfo)));
+                        + sessionInfo.getAppPackageName());
+
+                ItemInstallQueue.INSTANCE.get(mAppContext)
+                        .queueItem(sessionInfo.getAppPackageName(), getUserHandle(sessionInfo));
             }
 
             getPromiseIconIds().add(sessionInfo.getSessionId());

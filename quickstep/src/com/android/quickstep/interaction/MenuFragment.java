@@ -23,14 +23,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.R;
-import com.android.wm.shell.shared.TypefaceUtils;
 
 /** Displays the gesture nav tutorial menu. */
 public final class MenuFragment extends GestureSandboxFragment {
@@ -61,64 +58,7 @@ public final class MenuFragment extends GestureSandboxFragment {
         root.findViewById(R.id.gesture_tutorial_menu_done_button).setOnClickListener(
                 v -> close());
 
-        setPaddings(
-                root,
-                root.findViewById(R.id.gesture_tutorial_menu_home_button_text),
-                root.findViewById(R.id.gesture_tutorial_home_step_shape),
-                /* setVerticalMargins= */ true);
-        setPaddings(
-                root,
-                root.findViewById(R.id.gesture_tutorial_menu_back_button_text),
-                root.findViewById(R.id.gesture_tutorial_back_step_shape),
-                /* setVerticalMargins= */ false);
-        setPaddings(
-                root,
-                root.findViewById(R.id.gesture_tutorial_menu_overview_button_text),
-                root.findViewById(R.id.gesture_tutorial_overview_step_shape),
-                /* setVerticalMargins= */ true);
-
-        TypefaceUtils.setTypeface(
-                root.findViewById(R.id.gesture_tutorial_menu_home_button_text),
-                TypefaceUtils.FontFamily.GSF_DISPLAY_SMALL_EMPHASIZED);
-        TypefaceUtils.setTypeface(
-                root.findViewById(R.id.gesture_tutorial_menu_back_button_text),
-                TypefaceUtils.FontFamily.GSF_DISPLAY_SMALL_EMPHASIZED);
-        TypefaceUtils.setTypeface(
-                root.findViewById(R.id.gesture_tutorial_menu_overview_button_text),
-                TypefaceUtils.FontFamily.GSF_DISPLAY_SMALL_EMPHASIZED);
-        TypefaceUtils.setTypeface(
-                root.findViewById(R.id.gesture_tutorial_menu_done_button),
-                TypefaceUtils.FontFamily.GSF_LABEL_LARGE);
-
         return root;
-    }
-
-    private void setPaddings(
-            @NonNull View root,
-            @NonNull TextView textView,
-            @NonNull View shapeImage,
-            boolean setVerticalPaddings) {
-        if (!root.isAttachedToWindow()) {
-            root.getViewTreeObserver().addOnGlobalLayoutListener(
-                    new ViewTreeObserver.OnGlobalLayoutListener() {
-                        @Override
-                        public void onGlobalLayout() {
-                            root.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            setPaddings(root, textView, shapeImage, setVerticalPaddings);
-                        }
-                    });
-            return;
-        }
-        if (setVerticalPaddings) {
-            if (textView.getLineCount() <= 1) {
-                return;
-            }
-            // Don't set top padding to allow room for long strings
-            textView.setPadding(0, 0, 0, shapeImage.getHeight());
-        } else {
-            // set both left and right paddings to keep it horizontally-aligned
-            textView.setPadding(shapeImage.getWidth(), 0, shapeImage.getWidth(), 0);
-        }
     }
 
     @Override

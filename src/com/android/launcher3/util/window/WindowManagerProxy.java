@@ -53,8 +53,6 @@ import androidx.annotation.VisibleForTesting;
 import com.android.launcher3.R;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
-import com.android.launcher3.display.DisplayController;
-import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.testing.shared.ResourceUtils;
 import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.NavigationMode;
@@ -109,9 +107,16 @@ public class WindowManagerProxy {
     }
 
     /**
-     * Returns if the display is in desktop-first mode.
+     * Returns if we are in desktop mode or not.
      */
-    public boolean isDisplayDesktopFirst(Context displayInfoContext) {
+    public boolean isInDesktopMode(int displayId) {
+        return false;
+    }
+
+    /**
+     * Returns if the pinned taskbar should be shown when home is visible.
+     */
+    public boolean showLockedTaskbarOnHome(Context displayInfoContext) {
         return false;
     }
 
@@ -124,34 +129,28 @@ public class WindowManagerProxy {
     }
 
     /**
+     * Returns if the home is visible.
+     */
+    public boolean isHomeVisible(Context context) {
+        return false;
+    }
+
+    /**
      * Returns the real bounds for the provided display after applying any insets normalization
      */
     public WindowBounds getRealBounds(Context displayInfoContext, CachedDisplayInfo info) {
         WindowMetrics windowMetrics = displayInfoContext.getSystemService(WindowManager.class)
                 .getMaximumWindowMetrics();
         Rect insets = new Rect();
-        // NOTE: Unable to use `normalizeWindowInsets(Context, WidnowInsets, Rect)` because
-        // uses DisplayController instance to determine whether taskbar is shown on home, and this
-        // method gets called while initializing DisaplayController.
-        normalizeWindowInsets(displayInfoContext,
-                showDesktopTaskbarForFreeformDisplay(displayInfoContext),
-                windowMetrics.getWindowInsets(), insets);
+        normalizeWindowInsets(displayInfoContext, windowMetrics.getWindowInsets(), insets);
         return new WindowBounds(windowMetrics.getBounds(), insets, info.rotation);
     }
 
     /**
      * Returns an updated insets, accounting for various Launcher UI specific overrides like taskbar
      */
-    public WindowInsets normalizeWindowInsets(Context context,
-            WindowInsets oldInsets,
+    public WindowInsets normalizeWindowInsets(Context context, WindowInsets oldInsets,
             Rect outInsets) {
-        LauncherDisplayInfo info = DisplayController.getInfo(context);
-        return normalizeWindowInsets(context, info.getShowDesktopTaskbarForFreeformDisplay(),
-                oldInsets, outInsets);
-    }
-
-    WindowInsets normalizeWindowInsets(Context context, boolean taskbarShownOnHome,
-            WindowInsets oldInsets, Rect outInsets) {
         if (!mTaskbarDrawnInProcess) {
             outInsets.set(oldInsets.getSystemWindowInsetLeft(), oldInsets.getSystemWindowInsetTop(),
                     oldInsets.getSystemWindowInsetRight(), oldInsets.getSystemWindowInsetBottom());
@@ -203,7 +202,7 @@ public class WindowManagerProxy {
 
         // Override the tappable insets to be 0 on the bottom for gesture nav (otherwise taskbar
         // would count towards it). This is used for the bottom protection in All Apps for example.
-        if (isGesture && !taskbarShownOnHome) {
+        if (isGesture) {
             Insets oldTappableInsets = oldInsets.getInsets(WindowInsets.Type.tappableElement());
             Insets newTappableInsets = Insets.of(oldTappableInsets.left, oldTappableInsets.top,
                     oldTappableInsets.right, 0);
@@ -448,7 +447,7 @@ public class WindowManagerProxy {
      * Returns the display associated with the context, or DEFAULT_DISPLAY if the context isn't
      * associated with a display.
      */
-    public Display getDisplay(Context displayInfoContext) {
+    protected Display getDisplay(Context displayInfoContext) {
         try {
             return displayInfoContext.getDisplay();
         } catch (UnsupportedOperationException e) {
@@ -456,14 +455,6 @@ public class WindowManagerProxy {
         }
         return displayInfoContext.getSystemService(DisplayManager.class).getDisplay(
                 DEFAULT_DISPLAY);
-    }
-
-    private int getDisplayId(Context displayInfoContext) {
-        try {
-            return displayInfoContext.getDisplay().getDisplayId();
-        } catch (UnsupportedOperationException e) {
-            return DEFAULT_DISPLAY;
-        }
     }
 
     /**
@@ -477,18 +468,11 @@ public class WindowManagerProxy {
     }
 
     /**
-     * Returns the current navigation mode from resource if the context is for the default or a non-
-     * display context. Otherwise, return NavigationMode.THREE_BUTTONS.
+     * Returns the current navigation mode from resource.
      */
-    public NavigationMode getNavigationMode(Context displayInfoContext) {
-        // Always assume 3-button nav for external displays
-        int displayId = getDisplayId(displayInfoContext);
-        if (displayId != DEFAULT_DISPLAY) {
-            return NavigationMode.THREE_BUTTONS;
-        }
-        // Otherwise get from Resource
+    public NavigationMode getNavigationMode(Context context) {
         int modeInt = ResourceUtils.getIntegerByName(NAV_BAR_INTERACTION_MODE_RES_NAME,
-                displayInfoContext.getResources(), INVALID_RESOURCE_HANDLE);
+                context.getResources(), INVALID_RESOURCE_HANDLE);
 
         if (modeInt == INVALID_RESOURCE_HANDLE) {
             Log.e(TAG, "Failed to get system resource ID. Incompatible framework version?");
@@ -509,4 +493,60 @@ public class WindowManagerProxy {
         return new Rect(cutout.getSafeInsetLeft(), cutout.getSafeInsetTop(),
                 cutout.getSafeInsetRight(), cutout.getSafeInsetBottom());
     }
+
+    /** Registers a listener for Taskbar changes in Desktop Mode.  */
+    public void registerDesktopVisibilityListener(DesktopVisibilityListener listener) { }
+
+    /** Removes a previously registered listener for Taskbar changes in Desktop Mode.  */
+    public void unregisterDesktopVisibilityListener(DesktopVisibilityListener listener) { }
+
+    /** A listener for when the user enters/exits Desktop Mode.  */
+    public interface DesktopVisibilityListener {
+        /**
+         * Called when the desktop mode state on the display whose ID is `displayId` changes.
+         *
+         * @param displayId The ID of the display for which this notification is triggering.
+         * @param isInDesktopModeAndNotInOverview True if a desktop is currently active on the given
+         *                                        display, and Overview is currently inactive.
+         */
+        default void onIsInDesktopModeChanged(int displayId,
+                boolean isInDesktopModeAndNotInOverview) {
+        }
+
+        /**
+         * Called whenever the conditions that allow the creation of desks change.
+         *
+         * @param canCreateDesks whether it is possible to create new desks.
+         */
+        default void onCanCreateDesksChanged(boolean canCreateDesks) {
+        }
+
+        /**
+         * Called when a new desk is added.
+         *
+         * @param displayId The ID of the display on which the desk was added.
+         * @param deskId The ID of the newly added desk.
+         */
+        default void onDeskAdded(int displayId, int deskId) {}
+
+        /**
+         * Called when an existing desk is removed.
+         *
+         * @param displayId The ID of the display on which the desk was removed.
+         * @param deskId The ID of the desk that was removed.
+         */
+        default void onDeskRemoved(int displayId, int deskId) {}
+
+        /**
+         * Called when the active desk changes.
+         *
+         * @param displayId The ID of the display on which the desk activation change is happening.
+         * @param newActiveDesk The ID of the new active desk or -1 if no desk is active anymore
+         *                      (i.e. exit desktop mode).
+         * @param oldActiveDesk The ID of the desk that was previously active, or -1 if no desk was
+         *                      active before.
+         */
+        default void onActiveDeskChanged(int displayId, int newActiveDesk, int oldActiveDesk) {}
+    }
+
 }

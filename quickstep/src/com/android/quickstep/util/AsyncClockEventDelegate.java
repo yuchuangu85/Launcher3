@@ -18,9 +18,7 @@ package com.android.quickstep.util;
 import static android.content.Intent.ACTION_TIMEZONE_CHANGED;
 import static android.content.Intent.ACTION_TIME_CHANGED;
 
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
-import static com.android.launcher3.util.SimpleBroadcastReceiver.actionsFilter;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -32,7 +30,6 @@ import android.provider.Settings;
 import android.util.ArrayMap;
 import android.widget.TextClock.ClockEventDelegate;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 
 import com.android.launcher3.dagger.ApplicationContext;
@@ -41,6 +38,7 @@ import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DaggerSingletonTracker;
 import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.SettingsCache;
+import com.android.launcher3.util.SettingsCache.OnChangeListener;
 import com.android.launcher3.util.SimpleBroadcastReceiver;
 import com.android.quickstep.dagger.QuickstepBaseAppComponent;
 
@@ -53,7 +51,8 @@ import javax.inject.Inject;
  * Extension of {@link ClockEventDelegate} to support async event registration
  */
 @LauncherAppSingleton
-public class AsyncClockEventDelegate extends ClockEventDelegate implements SafeCloseable {
+public class AsyncClockEventDelegate extends ClockEventDelegate
+        implements OnChangeListener, SafeCloseable {
 
     public static final DaggerSingletonObject<AsyncClockEventDelegate> INSTANCE =
             new DaggerSingletonObject<>(QuickstepBaseAppComponent::getAsyncClockEventDelegate);
@@ -66,8 +65,6 @@ public class AsyncClockEventDelegate extends ClockEventDelegate implements SafeC
     private final List<ContentObserver> mFormatObservers = new ArrayList<>();
     private final Uri mFormatUri = Settings.System.getUriFor(Settings.System.TIME_12_24);
 
-    private @Nullable SafeCloseable mSettingCacheSafeCloseable;
-
     private boolean mFormatRegistered = false;
     private boolean mDestroyed = false;
 
@@ -79,8 +76,8 @@ public class AsyncClockEventDelegate extends ClockEventDelegate implements SafeC
         mContext = context;
         mSettingsCache = settingsCache;
         mReceiver = new SimpleBroadcastReceiver(
-                context, UI_HELPER_EXECUTOR, MAIN_EXECUTOR, this::onClockEventReceived);
-        mReceiver.register(actionsFilter(ACTION_TIME_CHANGED, ACTION_TIMEZONE_CHANGED));
+                context, UI_HELPER_EXECUTOR, this::onClockEventReceived);
+        mReceiver.register(ACTION_TIME_CHANGED, ACTION_TIMEZONE_CHANGED);
         tracker.addCloseable(this);
     }
 
@@ -105,16 +102,7 @@ public class AsyncClockEventDelegate extends ClockEventDelegate implements SafeC
         }
         synchronized (mFormatObservers) {
             if (!mFormatRegistered && !mDestroyed) {
-                mSettingCacheSafeCloseable = mSettingsCache.getListenableRef(mFormatUri)
-                        .forEach(MAIN_EXECUTOR, (isEnabled) -> {
-                            if (mDestroyed) {
-                                return null;
-                            }
-                            synchronized (mFormatObservers) {
-                                mFormatObservers.forEach(o -> o.dispatchChange(false, mFormatUri));
-                            }
-                            return null;
-                        });
+                mSettingsCache.register(mFormatUri, this);
                 mFormatRegistered = true;
             }
             mFormatObservers.add(observer);
@@ -128,6 +116,15 @@ public class AsyncClockEventDelegate extends ClockEventDelegate implements SafeC
         }
     }
 
+    @Override
+    public void onSettingsChanged(boolean isEnabled) {
+        if (mDestroyed) {
+            return;
+        }
+        synchronized (mFormatObservers) {
+            mFormatObservers.forEach(o -> o.dispatchChange(false, mFormatUri));
+        }
+    }
     @WorkerThread
     private void onClockEventReceived(Intent intent) {
         if (mDestroyed) {
@@ -141,10 +138,7 @@ public class AsyncClockEventDelegate extends ClockEventDelegate implements SafeC
     @Override
     public void close() {
         mDestroyed = true;
-        if (mSettingCacheSafeCloseable != null) {
-            mSettingCacheSafeCloseable.close();
-            mSettingCacheSafeCloseable = null;
-        }
-        mReceiver.close();
+        mSettingsCache.unregister(mFormatUri, this);
+        mReceiver.unregisterReceiverSafely();
     }
 }

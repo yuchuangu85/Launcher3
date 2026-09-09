@@ -45,6 +45,7 @@ public final class Widget extends Launchable implements WorkspaceDragSource {
 
     @Override
     protected void addExpectedEventsForLongClick() {
+        mLauncher.expectEvent(TestProtocol.SEQUENCE_MAIN, LONG_CLICK_EVENT);
     }
 
     @Override

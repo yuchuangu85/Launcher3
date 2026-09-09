@@ -167,6 +167,13 @@ public abstract class StatefulActivity<STATE_TYPE extends BaseState<STATE_TYPE>>
         Utilities.postAsyncCallback(mHandler, mHandleDeferredResume);
     }
 
+    /**
+     * Runs the given {@param r} runnable when this activity binds to the touch interaction service.
+     */
+    public void runOnBindToTouchInteractionService(Runnable r) {
+        r.run();
+    }
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         Trace.beginSection("statefulActivity#onConfigurationChanged");
@@ -175,6 +182,10 @@ public abstract class StatefulActivity<STATE_TYPE extends BaseState<STATE_TYPE>>
         Trace.endSection();
     }
 
+    /**
+     * Handles configuration change when system calls {@link #onConfigurationChanged}, or on other
+     * situations that configuration might change.
+     */
     public void handleConfigurationChanged(Configuration newConfig) {
         int diff = newConfig.diff(mOldConfig);
         int rotation = WindowManagerProxy.INSTANCE.get(this).getRotation(this);
@@ -188,7 +199,8 @@ public abstract class StatefulActivity<STATE_TYPE extends BaseState<STATE_TYPE>>
     }
 
     /**
-     * Logic for when device configuration changes (rotation, screen size change etc.)
+     * Logic for when device configuration changes (rotation, screen size change, multi-window,
+     * etc.)
      */
     protected abstract void onHandleConfigurationChanged();
 

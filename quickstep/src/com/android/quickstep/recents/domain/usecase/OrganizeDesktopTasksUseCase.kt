@@ -19,297 +19,54 @@ package com.android.quickstep.recents.domain.usecase
 import android.graphics.Rect
 import android.graphics.RectF
 import androidx.core.graphics.toRect
-import com.android.quickstep.recents.domain.model.TaskLayoutConfig.DesktopLayoutConfig
-import com.android.quickstep.recents.domain.model.TaskPosition
-import com.android.quickstep.recents.domain.model.TaskPosition.Hidden
-import com.android.quickstep.recents.domain.model.TaskPosition.Rendered
-import javax.inject.Inject
+import com.android.quickstep.recents.domain.model.DesktopTaskBoundsData
 
-/**
- * This usecase is responsible for organizing desktop windows in a non-overlapping way, and can also
- * reflow a layout when a task is dismissed.
- */
-class OrganizeDesktopTasksUseCase @Inject constructor() {
-
+/** This usecase is responsible for organizing desktop windows in a non-overlapping way. */
+class OrganizeDesktopTasksUseCase {
     /**
-     * Arranges desktop tasks or rebalances layout after a task dismissal.
-     *
-     * @param allCurrentOriginalTaskBounds List of all tasks currently considered for layout, with
-     *   their original, unorganized bounds.
-     * @param layoutConfig Configuration for layout (margins, padding, etc.).
-     * @param taskPositionsHint A hint of the previous task positions, used to decide whether to
-     *   reflow.
-     * @param dismissedTaskId Optional ID of a task to be dismissed. If provided, the logic may
-     *   choose to reflow the existing layout or perform a full reorganization.
-     * @return A list of [TaskPosition] representing the new layout. Tasks that are laid out are
-     *   [Rendered]; tasks that are hidden (due to empty original bounds or inability to fit) are
-     *   [Hidden].
+     * Run to layout [taskBounds] within the screen [desktopBounds]. Layout is done in 2 stages:
+     * 1. Optimal height is determined. In this stage height is bisected to find maximum height
+     *    which still allows all the windows to fit.
+     * 2. Row widths are balanced. In this stage the available width is reduced until some windows
+     *    are no longer fitting or until the difference between the narrowest and the widest rows
+     *    starts growing. Overall this achieves the goals of maximum size for previews (or maximum
+     *    row height which is equivalent assuming fixed height), balanced rows and minimal wasted
+     *    space.
      */
-    operator fun invoke(
-        allCurrentOriginalTaskBounds: List<Rendered>,
-        layoutConfig: DesktopLayoutConfig,
-        taskPositionsHint: List<TaskPosition>? = null,
-        dismissedTaskId: Int? = null,
-    ): List<TaskPosition> {
-        if (dismissedTaskId == null) {
-            // No task dismissed, perform full organization on all current tasks.
-            return performFullOrganization(allCurrentOriginalTaskBounds, layoutConfig)
-        }
-
-        if (allCurrentOriginalTaskBounds.isEmpty() || taskPositionsHint == null) {
-            // Last task was dismissed or we don't have any previous layout position data,
-            // performFullOrganization will be performed.
-            return performFullOrganization(allCurrentOriginalTaskBounds, layoutConfig)
-        }
-
-        val dismissedTaskData = taskPositionsHint.find { it.taskId == dismissedTaskId }
-        // If the dismissed task window was a hidden task window, we can still use the previous
-        // layout.
-        if (dismissedTaskData is Hidden) {
-            return taskPositionsHint.filterNot { it.taskId == dismissedTaskId }
-        }
-
-        val hadHiddenTasksInPreviousLayout = taskPositionsHint.any { it is Hidden }
-        if (hadHiddenTasksInPreviousLayout) {
-            // Now, check whether the new full layout can show/hide different set of task
-            // windows, if so, use the full layout, otherwise, use the reflow layout.
-            val tentativeLayoutForRemaining =
-                performFullOrganization(allCurrentOriginalTaskBounds, layoutConfig)
-
-            val taskIds1 =
-                tentativeLayoutForRemaining.filterIsInstance<Rendered>().map { it.taskId }.toSet()
-            val taskIds2 = taskPositionsHint.filterIsInstance<Rendered>().map { it.taskId }.toSet()
-            if (taskIds1 != taskIds2) {
-                return tentativeLayoutForRemaining
-            }
-        }
-
-        // Pass only rendered tasks for reflow logic
-        val reflowedRenderedTasks =
-            performReflowRebalance(
-                currentLayout = taskPositionsHint.filterIsInstance<Rendered>(),
-                taskIdToRemove = dismissedTaskId,
-                layoutConfig = layoutConfig,
-            )
-
-        // Preserve hidden tasks from the previous layout (that were not the dismissed task).
-        val hiddenTasksToPreserve = taskPositionsHint.filterIsInstance<Hidden>()
-
-        return reflowedRenderedTasks + hiddenTasksToPreserve
-    }
-
-    /**
-     * Arranges a list of desktop tasks within specified screen bounds for display in Overview. The
-     * layout process aims to maximize task visibility and create a balanced, non-overlapping
-     * arrangement.
-     *
-     * The layout is performed in several stages:
-     * 1. Optimal Height Determination: The algorithm bisects for an optimal height for task
-     *    previews to maximize their size while ensuring all valid tasks can fit.
-     * 2. Row Width Balancing: The available width is iteratively adjusted to balance the widths of
-     *    task rows, minimizing wasted space and preventing overly sparse or dense rows.
-     * 3. Centering: The successfully arranged tasks are then centered collectively within the
-     *    effective layout area.
-     *
-     * Input tasks ([taskBounds]) are provided as [Rendered]. Tasks from this list that have empty
-     * `bounds` are immediately converted to [Hidden]. For the remaining tasks with valid bounds,
-     * the algorithm attempts to lay them out.
-     *
-     * Constraints such as minimum task width (`layoutConfig.minTaskWidth`) and a maximum number of
-     * rows (`layoutConfig.maxRows`, which influences minimum task height) are respected for tasks
-     * that can be rendered.
-     *
-     * Tasks that cannot be successfully placed by the layout algorithm (e.g., due to insufficient
-     * space or exceeding the maximum number of displayable items based on constraints) are also
-     * returned as [Hidden]. The visual representation of these hidden tasks (e.g., as placeholders)
-     * is handled by the caller.
-     *
-     * For more details on the original layout strategy and goals, see b/421417134.
-     *
-     * @param taskBounds A list of [Rendered] representing the tasks to be arranged. Each item
-     *   includes the task's ID and its original bounds.
-     * @param layoutConfig Configuration parameters for the layout, including margins, padding,
-     *   minimum task dimensions, and maximum row count.
-     * @return A list of [TaskPosition], with each element corresponding to an input task. Elements
-     *   will be [Rendered] with new, calculated bounds if the task is laid out, or [Hidden] if the
-     *   task was initially empty-bounded or could not fit into the layout.
-     */
-    private fun performFullOrganization(
-        taskBounds: List<Rendered>,
-        layoutConfig: DesktopLayoutConfig,
-    ): List<TaskPosition> {
-        if (taskBounds.isEmpty()) {
+    fun run(
+        desktopBounds: Rect,
+        taskBounds: List<DesktopTaskBoundsData>,
+    ): List<DesktopTaskBoundsData> {
+        if (desktopBounds.isEmpty || taskBounds.isEmpty()) {
             return emptyList()
         }
 
-        val validTaskBounds =
-            taskBounds
-                .filterNot { it.bounds.isEmpty }
-                .map { Rendered(taskId = it.taskId, bounds = it.bounds) }
+        // Filter out [taskBounds] with empty rects before calculating layout.
+        val validTaskBounds = taskBounds.filterNot { it.bounds.isEmpty }
 
-        if (layoutConfig.desktopBounds.isEmpty || validTaskBounds.isEmpty()) {
-            return taskBounds.map { Hidden(it.taskId) }
-        }
-
-        // Assuming we can place all windows in one row, do one pass first to check whether all
-        // windows can fit.
-        // Use [validTaskBounds] here to calculate the desired effective layout bounds.
-        var availableLayoutBounds =
-            layoutConfig.desktopBounds.getLayoutEffectiveBounds(
-                singleRow = true,
-                taskNumber = validTaskBounds.size,
-                layoutConfig,
-            )
-        var resultRects =
-            findOptimalHeightAndBalancedWidth(availableLayoutBounds, validTaskBounds, layoutConfig)
-
-        // If the windows can't fit in one row, try to fit them in multiple rows.
-        if (!canFitInOneRow(resultRects)) {
-            availableLayoutBounds =
-                layoutConfig.desktopBounds.getLayoutEffectiveBounds(
-                    singleRow = false,
-                    taskNumber = validTaskBounds.size,
-                    layoutConfig,
-                )
-            resultRects =
-                findOptimalHeightAndBalancedWidth(
-                    availableLayoutBounds,
-                    validTaskBounds,
-                    layoutConfig,
-                )
-        }
-
-        // If there are hidden windows in [resultRects] at the moment, this means the current height
-        // in [resultRects] might not be the optimal height for the visible windows since the layout
-        // calculation requires shrinking the height to find a height that can fit all windows until
-        // it can no longer shrink because of the size constraints, by when we know some windows can
-        // not fit in Overview and need to be hidden. So here, we should run the layout algorithm
-        // again to find the optimal height to fit all visible windows, without considering hidden
-        // windows.
-        val (visibleResultRects, invisibleResultRects) =
-            resultRects.withIndex().partition { !it.value.isEmpty }
-        if (visibleResultRects.isNotEmpty()) {
-            val visibleTaskBounds = visibleResultRects.map { validTaskBounds[it.index] }
-            // Re-run the layout logic with just the visible windows to ensure they are
-            // optimally sized.
-            val singleRow = canFitInOneRow(resultRects)
-            availableLayoutBounds =
-                layoutConfig.desktopBounds.getLayoutEffectiveBounds(
-                    singleRow = singleRow,
-                    taskNumber = visibleTaskBounds.size,
-                    layoutConfig,
-                )
-            val newLaidOutRects =
-                findOptimalHeightAndBalancedWidth(
-                    availableLayoutBounds,
-                    visibleTaskBounds,
-                    layoutConfig,
-                )
-            resultRects = newLaidOutRects + invisibleResultRects.map { it.value }
-        }
-
-        val successfullyLaidOutRectFs = resultRects.filter { !it.isEmpty }
-        if (successfullyLaidOutRectFs.isNotEmpty()) {
-            val maxBottom = successfullyLaidOutRectFs.maxOfOrNull { it.bottom } ?: 0f
-            centerTaskWindows(
-                availableLayoutBounds,
-                maxBottom.toInt(),
-                successfullyLaidOutRectFs,
-                layoutConfig,
-            )
-        }
-
-        val laidOutBoundsMap = mutableMapOf<Int, RectF>()
-        validTaskBounds.forEachIndexed { index, taskData ->
-            val rectF = resultRects.getOrNull(index)
-            if (rectF != null && !rectF.isEmpty) {
-                laidOutBoundsMap[taskData.taskId] = rectF
-            }
-        }
-
-        return taskBounds.map { originalInputTask ->
-            val taskId = originalInputTask.taskId
-            val laidOutRectF = laidOutBoundsMap[taskId]
-            if (laidOutRectF != null) { // Successfully laid out
-                Rendered(taskId = taskId, bounds = laidOutRectF.toRect())
-            } else {
-                Hidden(taskId)
-            }
-        }
-    }
-
-    /**
-     * @param currentLayout The list of [Rendered] representing the current layout.
-     * @param taskIdToRemove The ID of the task to remove.
-     * @return A new list of [Rendered] with the task removed and layout rebalanced.
-     */
-    private fun performReflowRebalance(
-        currentLayout: List<Rendered>,
-        taskIdToRemove: Int,
-        layoutConfig: DesktopLayoutConfig,
-    ): List<Rendered> {
-        val taskToRemoveData =
-            currentLayout.find { it.taskId == taskIdToRemove }
-                ?: return currentLayout // Task not found, return original layout
-
-        val remainingTasks = currentLayout.filterNot { it.taskId == taskIdToRemove }
-        if (remainingTasks.isEmpty()) {
+        if (validTaskBounds.isEmpty()) {
             return emptyList()
         }
 
-        // Get the overall bounds of the current tasks.
-        val overallBounds =
-            currentLayout.fold(Rect()) { acc, taskData -> acc.apply { union(taskData.bounds) } }
+        val availableLayoutBounds = desktopBounds.getLayoutEffectiveBounds()
+        val resultRects = findOptimalHeightAndBalancedWidth(availableLayoutBounds, validTaskBounds)
 
-        val remainingRows = remainingTasks.groupBy { it.bounds.top }.toSortedMap()
+        centerTaskWindows(
+            availableLayoutBounds,
+            resultRects.maxOf { it.bottom }.toInt(),
+            resultRects,
+        )
 
-        val newLayout = mutableListOf<Rendered>()
-        // Check if the removed task was on its own row.
-        if (currentLayout.count { it.bounds.top == taskToRemoveData.bounds.top } == 1) {
-            val layoutCenterY = overallBounds.centerY().toFloat()
-            val totalHeight =
-                remainingRows.entries.sumOf { (_, tasks) -> tasks.maxOf { it.bounds.height() } } +
-                    (remainingRows.size - 1) * layoutConfig.verticalPaddingBetweenTasks
-
-            var currentY = layoutCenterY - totalHeight / 2f
-            for ((_, tasks) in remainingRows.entries) {
-                for (taskData in tasks) {
-                    val newBounds = Rect(taskData.bounds)
-                    newBounds.offsetTo(newBounds.left, currentY.toInt())
-                    newLayout.add(Rendered(taskData.taskId, newBounds))
-                }
-                currentY +=
-                    tasks.maxOf { it.bounds.height() } + layoutConfig.verticalPaddingBetweenTasks
-            }
-        } else {
-            for ((rowY, tasks) in remainingRows.entries) {
-                // Re-center tasks that were on the same row as the removed task.
-                if (rowY != taskToRemoveData.bounds.top) {
-                    // This row is not affected, add tasks with their original bounds
-                    newLayout.addAll(tasks)
-                    continue
-                }
-
-                val layoutCenterX = overallBounds.centerX().toFloat()
-
-                // This is the affected row, re-calculate X positions.
-                val totalWidth =
-                    tasks.sumOf { it.bounds.width() } +
-                        (tasks.size - 1) * layoutConfig.horizontalPaddingBetweenTasks
-                var currentX = layoutCenterX - totalWidth.toFloat() / 2f
-                for (taskData in tasks) {
-                    val newBounds = Rect(taskData.bounds)
-                    newBounds.offsetTo(currentX.toInt(), rowY)
-                    newLayout.add(Rendered(taskData.taskId, newBounds))
-                    currentX +=
-                        taskData.bounds.width() +
-                            layoutConfig.horizontalPaddingBetweenTasks.toFloat()
-                }
-            }
+        val result = mutableListOf<DesktopTaskBoundsData>()
+        for (i in validTaskBounds.indices) {
+            result.add(DesktopTaskBoundsData(validTaskBounds[i].taskId, resultRects[i].toRect()))
         }
-
-        return newLayout
+        return result
     }
+
+    /** Calculates the effective bounds for layout by applying insets to the raw desktop bounds. */
+    private fun Rect.getLayoutEffectiveBounds() =
+        Rect(this).apply { inset(OVERVIEW_INSET_TOP_BOTTOM, OVERVIEW_INSET_LEFT_RIGHT) }
 
     /**
      * Determines the optimal height for task windows and balances the row widths to minimize wasted
@@ -317,8 +74,7 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
      */
     private fun findOptimalHeightAndBalancedWidth(
         availableLayoutBounds: Rect,
-        validTaskBounds: List<Rendered>,
-        layoutConfig: DesktopLayoutConfig,
+        validTaskBounds: List<DesktopTaskBoundsData>,
     ): List<RectF> {
         // Right bound of the narrowest row.
         var minRight: Int
@@ -336,17 +92,7 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
         // Determine the optimal height bisecting between [lowHeight] and [highHeight]. Once this
         // optimal height is known, [heightFixed] is set to `true` and the rows are balanced by
         // repeatedly squeezing the widest row to cause windows to overflow to the subsequent rows.
-        var lowHeight =
-            maxOf(
-                DesktopLayoutUtils.getMinTaskHeightGivenMaxRows(
-                    availableLayoutBounds,
-                    layoutConfig,
-                ),
-                DesktopLayoutUtils.getRequiredHeightForMinWidth(
-                    validTaskBounds.map { it.bounds },
-                    layoutConfig,
-                ),
-            )
+        var lowHeight = VERTICAL_SPACE_BETWEEN_TASKS
         var highHeight = maxOf(lowHeight, availableLayoutBounds.height() + 1)
         var optimalHeight = 0.5f * (lowHeight + highHeight)
         var heightFixed = false
@@ -367,11 +113,7 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
                 fitWindowRectsInBounds(
                     Rect(availableLayoutBounds).apply { right = rightBound },
                     validTaskBounds,
-                    minOf(
-                        DesktopLayoutUtils.getMaxTaskHeight(availableLayoutBounds),
-                        optimalHeight.toInt(),
-                    ),
-                    layoutConfig,
+                    minOf(MAXIMUM_TASK_HEIGHT, optimalHeight.toInt()),
                 )
             val allWindowsFit = fitWindowResult.allWindowsFit
             resultRects = fitWindowResult.calculatedBounds
@@ -426,11 +168,7 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
                 fitWindowRectsInBounds(
                     Rect(availableLayoutBounds).apply { right = rightBound },
                     validTaskBounds,
-                    minOf(
-                        DesktopLayoutUtils.getMaxTaskHeight(availableLayoutBounds),
-                        optimalHeight.toInt(),
-                    ),
-                    layoutConfig,
+                    minOf(MAXIMUM_TASK_HEIGHT, optimalHeight.toInt()),
                 )
             resultRects = fitWindowResult.calculatedBounds
         }
@@ -459,15 +197,11 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
      */
     private fun fitWindowRectsInBounds(
         layoutBounds: Rect,
-        taskBounds: List<Rendered>,
+        taskBounds: List<DesktopTaskBoundsData>,
         optimalWindowHeight: Int,
-        layoutConfig: DesktopLayoutConfig,
     ): FitWindowResult {
         val numTasks = taskBounds.size
-        val outRects = MutableList(numTasks) { RectF() }
-
-        val verticalPadding = layoutConfig.verticalPaddingBetweenTasks
-        val horizontalPadding = layoutConfig.horizontalPaddingBetweenTasks
+        val outRects = mutableListOf<RectF>()
 
         // Start in the top-left corner of [layoutBounds].
         var left = layoutBounds.left
@@ -485,9 +219,9 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
             // Use the height to calculate the width
             val scale = optimalWindowHeight / taskBounds.height().toFloat()
             val width = (taskBounds.width() * scale).toInt()
-            val optimalRowHeight = optimalWindowHeight + verticalPadding
+            val optimalRowHeight = optimalWindowHeight + VERTICAL_SPACE_BETWEEN_TASKS
 
-            if (left + width + horizontalPadding > layoutBounds.right) {
+            if ((left + width + HORIZONTAL_SPACE_BETWEEN_TASKS) > layoutBounds.right) {
                 // Move to the next row if possible.
                 minRight = minOf(minRight, left)
                 maxRight = maxOf(maxRight, left)
@@ -497,7 +231,8 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
                 // row does not fit within the available width.
                 if (
                     (top + optimalRowHeight) > layoutBounds.bottom ||
-                        layoutBounds.left + width + horizontalPadding > layoutBounds.right
+                        layoutBounds.left + width + HORIZONTAL_SPACE_BETWEEN_TASKS >
+                            layoutBounds.right
                 ) {
                     allWindowsFit = false
                     break
@@ -506,16 +241,17 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
             }
 
             // Position the current rect.
-            outRects[i] =
+            outRects.add(
                 RectF(
                     left.toFloat(),
                     top.toFloat(),
                     (left + width).toFloat(),
                     (top + optimalWindowHeight).toFloat(),
                 )
+            )
 
             // Increment horizontal position.
-            left += (width + horizontalPadding)
+            left += (width + HORIZONTAL_SPACE_BETWEEN_TASKS)
         }
 
         // Update the narrowest and widest row width for the last row.
@@ -526,12 +262,7 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
     }
 
     /** Centers task windows in the center of Overview. */
-    private fun centerTaskWindows(
-        layoutBounds: Rect,
-        maxBottom: Int,
-        outWindowRects: List<RectF>,
-        layoutConfig: DesktopLayoutConfig,
-    ) {
+    private fun centerTaskWindows(layoutBounds: Rect, maxBottom: Int, outWindowRects: List<RectF>) {
         if (outWindowRects.isEmpty()) {
             return
         }
@@ -540,14 +271,11 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
         var currentRowY = outWindowRects[0].top
         var currentRowFirstItemIndex = 0
         val offsetY = (layoutBounds.bottom - maxBottom) / 2f
-        val horizontal_padding =
-            if (outWindowRects.size == 1) 0 else layoutConfig.horizontalPaddingBetweenTasks
 
         // Batch process to center overview desktop task windows within the same row.
         fun batchCenterDesktopTaskWindows(endIndex: Int) {
             // Calculate the shift amount required to center the desktop task items.
-            val rangeCenterX =
-                (currentRowUnionRange.left + currentRowUnionRange.right + horizontal_padding) / 2f
+            val rangeCenterX = (currentRowUnionRange.left + currentRowUnionRange.right) / 2f
             val currentDiffX = (layoutBounds.centerX() - rangeCenterX).coerceAtLeast(0f)
             for (j in currentRowFirstItemIndex until endIndex) {
                 outWindowRects[j].offset(currentDiffX, offsetY)
@@ -573,14 +301,11 @@ class OrganizeDesktopTasksUseCase @Inject constructor() {
         batchCenterDesktopTaskWindows(outWindowRects.size)
     }
 
-    /** Returns true if all task windows can fit in one row. */
-    private fun canFitInOneRow(resultRect: List<RectF>): Boolean {
-        val visibleRects = resultRect.filter { !it.isEmpty }
-        if (visibleRects.isEmpty()) {
-            return true
-        }
-
-        val firstTop = visibleRects.first().top
-        return visibleRects.all { it.top == firstTop }
+    private companion object {
+        const val VERTICAL_SPACE_BETWEEN_TASKS = 24
+        const val HORIZONTAL_SPACE_BETWEEN_TASKS = 24
+        const val OVERVIEW_INSET_TOP_BOTTOM = 16
+        const val OVERVIEW_INSET_LEFT_RIGHT = 16
+        const val MAXIMUM_TASK_HEIGHT = 800
     }
 }

@@ -19,28 +19,18 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import android.os.UserManager
-import androidx.annotation.AnyThread
 import androidx.annotation.VisibleForTesting
-import com.android.launcher3.concurrent.annotations.LightweightBackground
-import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority.UI
-import com.android.launcher3.concurrent.annotations.Ui
 import com.android.launcher3.dagger.ApplicationContext
+import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
-import com.android.launcher3.dagger.LauncherComponentProvider.appComponent
-import com.android.launcher3.util.SimpleBroadcastReceiver.Companion.actionsFilter
-import java.util.concurrent.Executor
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
+import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
 import javax.inject.Inject
 
 @LauncherAppSingleton
 class LockedUserState
 @Inject
-constructor(
-    @ApplicationContext private val context: Context,
-    @LightweightBackground(priority = UI) private val uiHelperExecutor: LooperExecutor,
-    @Ui private val uiExecutor: LooperExecutor,
-    lifeCycle: DaggerSingletonTracker,
-) {
-
+constructor(@ApplicationContext private val context: Context, lifeCycle: DaggerSingletonTracker) {
     val isUserUnlockedAtLauncherStartup: Boolean
     var isUserUnlocked = false
         private set(value) {
@@ -50,11 +40,11 @@ constructor(
             }
         }
 
-    private val mUserUnlockedActions = ThreadSafeRunnableList()
+    private val mUserUnlockedActions: RunnableList = RunnableList()
 
     @VisibleForTesting
     val userUnlockedReceiver =
-        SimpleBroadcastReceiver(context, uiHelperExecutor, uiExecutor) {
+        SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR) {
             if (Intent.ACTION_USER_UNLOCKED == it.action) {
                 isUserUnlocked = true
             }
@@ -70,40 +60,46 @@ constructor(
         isUserUnlocked = checkIsUserUnlocked()
         isUserUnlockedAtLauncherStartup = isUserUnlocked
         if (!isUserUnlocked) {
-            userUnlockedReceiver.register(actionsFilter(Intent.ACTION_USER_UNLOCKED)) {
-                // If user is unlocked while registering broadcast receiver, we should update
-                // [isUserUnlocked], which will call [notifyUserUnlocked] in setter
-                if (checkIsUserUnlocked()) {
-                    uiExecutor.execute { isUserUnlocked = true }
-                }
-            }
+            userUnlockedReceiver.register(
+                {
+                    // If user is unlocked while registering broadcast receiver, we should update
+                    // [isUserUnlocked], which will call [notifyUserUnlocked] in setter
+                    if (checkIsUserUnlocked()) {
+                        MAIN_EXECUTOR.execute { isUserUnlocked = true }
+                    }
+                },
+                Intent.ACTION_USER_UNLOCKED,
+            )
         }
-        lifeCycle.addCloseable(userUnlockedReceiver)
+        lifeCycle.addCloseable { userUnlockedReceiver.unregisterReceiverSafely() }
     }
 
     private fun checkIsUserUnlocked() =
         context.getSystemService(UserManager::class.java)!!.isUserUnlocked(Process.myUserHandle())
 
     private fun notifyUserUnlocked() {
-        mUserUnlockedActions.complete()
-        userUnlockedReceiver.close()
+        mUserUnlockedActions.executeAllAndDestroy()
+        userUnlockedReceiver.unregisterReceiverSafely()
     }
 
     /**
      * Adds a `Runnable` to be executed when a user is unlocked. If the user is already unlocked,
-     * this runnable will run immediately.
+     * this runnable will run immediately because RunnableList will already have been destroyed.
      */
-    @JvmOverloads
-    @AnyThread
-    fun runOnUserUnlocked(executor: Executor = uiExecutor, action: Runnable) =
-        mUserUnlockedActions.addTask(executor, action)
+    fun runOnUserUnlocked(action: Runnable) {
+        mUserUnlockedActions.add(action)
+    }
 
     /** Removes a previously queued `Runnable` to be run when the user is unlocked. */
-    @AnyThread
-    fun removeOnUserUnlockedRunnable(action: Runnable) = mUserUnlockedActions.removeTask(action)
+    fun removeOnUserUnlockedRunnable(action: Runnable) {
+        mUserUnlockedActions.remove(action)
+    }
 
     companion object {
+        @VisibleForTesting
+        @JvmField
+        val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getLockedUserState)
 
-        @JvmStatic fun get(context: Context): LockedUserState = context.appComponent.lockedUserState
+        @JvmStatic fun get(context: Context): LockedUserState = INSTANCE.get(context)
     }
 }

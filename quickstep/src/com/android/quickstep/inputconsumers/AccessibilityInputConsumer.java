@@ -61,8 +61,7 @@ public class AccessibilityInputConsumer extends DelegateInputConsumer {
             int displayId,
             RecentsAnimationDeviceState deviceState,
             InputConsumer delegate,
-            InputMonitorCompat inputMonitor,
-            RotationTouchHelper rotationTouchHelper) {
+            InputMonitorCompat inputMonitor) {
         super(displayId, delegate, inputMonitor);
         mContext = context;
         mVelocityTracker = VelocityTracker.obtain();
@@ -70,7 +69,7 @@ public class AccessibilityInputConsumer extends DelegateInputConsumer {
                 .getDimension(R.dimen.accessibility_gesture_min_swipe_distance);
         mMinFlingVelocity = ViewConfiguration.get(context).getScaledMinimumFlingVelocity();
         mDeviceState = deviceState;
-        mRotationHelper = rotationTouchHelper;
+        mRotationHelper = RotationTouchHelper.INSTANCE.get(context);
 
         mMotionPauseDetector = new MotionPauseDetector(context);
     }

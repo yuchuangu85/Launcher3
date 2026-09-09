@@ -24,8 +24,6 @@ import com.android.app.animation.Interpolators
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING
 import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING_IN_DESKTOP_MODE
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DESKTOP_MODE_TASKBAR_PINNED
-import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_DESKTOP_MODE_TASKBAR_UNPINNED
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASKBAR_DIVIDER_MENU_CLOSE
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASKBAR_DIVIDER_MENU_OPEN
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_TASKBAR_PINNED
@@ -44,8 +42,6 @@ class TaskbarPinningController(private val context: TaskbarActivityContext) :
     private val statsLogManager = context.statsLogManager
     @VisibleForTesting var isAnimatingTaskbarPinning = false
     @VisibleForTesting lateinit var onCloseCallback: (preferenceChanged: Boolean) -> Unit
-    // Counts number of popup instances that are visible, opening, or animating to closed.
-    private var popupCount = 0
 
     @SuppressLint("VisibleForTests")
     fun init(taskbarControllers: TaskbarControllers, sharedState: TaskbarSharedState) {
@@ -60,27 +56,16 @@ class TaskbarPinningController(private val context: TaskbarActivityContext) :
                 if (!didPreferenceChange) {
                     return
                 }
-
-                if (
-                    controllers.taskbarDesktopModeController.shouldShowDesktopTasksInTaskbar(
-                        context.displayId
-                    )
-                ) {
-                    val shouldPinDesktopTaskbar =
+                val shouldPinTaskbar =
+                    if (
+                        controllers.taskbarDesktopModeController.isInDesktopModeAndNotInOverview(
+                            context.displayId
+                        )
+                    ) {
                         !launcherPrefs.get(TASKBAR_PINNING_IN_DESKTOP_MODE)
-                    val logEvent =
-                        if (shouldPinDesktopTaskbar) {
-                            LAUNCHER_DESKTOP_MODE_TASKBAR_PINNED
-                        } else {
-                            LAUNCHER_DESKTOP_MODE_TASKBAR_UNPINNED
-                        }
-                    statsLogManager.logger().log(logEvent)
-                    launcherPrefs.put(TASKBAR_PINNING_IN_DESKTOP_MODE, shouldPinDesktopTaskbar)
-                    taskbarControllers.taskbarStashController.toggleTaskbarStash()
-                    return
-                }
-
-                val shouldPinTaskbar = !launcherPrefs.get(TASKBAR_PINNING)
+                    } else {
+                        !launcherPrefs.get(TASKBAR_PINNING)
+                    }
 
                 val animateToValue =
                     if (shouldPinTaskbar) {
@@ -97,25 +82,11 @@ class TaskbarPinningController(private val context: TaskbarActivityContext) :
     }
 
     fun showPinningView(view: View, horizontalPosition: Float = -1f) {
-        popupCount++
-        context.setTaskbarWindowFullscreen(
-            true,
-            TaskbarActivityContext.TASKBAR_WINDOW_TASKBAR_PINNING,
-        )
+        context.isTaskbarWindowFullscreen = true
         view.post {
             val popupView = getPopupView(view, horizontalPosition)
             popupView.requestFocus()
-            popupView.onCloseStartedCallback = onCloseCallback
-
-            popupView.addOnCloseCallback {
-                if (--popupCount == 0) {
-                    context.setTaskbarWindowFullscreen(
-                        false,
-                        TaskbarActivityContext.TASKBAR_WINDOW_TASKBAR_PINNING,
-                    )
-                }
-            }
-
+            popupView.onCloseCallback = onCloseCallback
             context.onPopupVisibilityChanged(true)
             popupView.show()
             statsLogManager.logger().log(LAUNCHER_TASKBAR_DIVIDER_MENU_OPEN)
@@ -169,6 +140,7 @@ class TaskbarPinningController(private val context: TaskbarActivityContext) :
 
     @VisibleForTesting
     fun recreateTaskbarAndUpdatePinningValue() {
+        updateIsAnimatingTaskbarPinningAndNotifyTaskbarDragLayer(false)
         if (
             controllers.taskbarDesktopModeController.isInDesktopModeAndNotInOverview(
                 context.displayId

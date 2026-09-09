@@ -172,6 +172,20 @@
             app:layout_constraintTop_toBottomOf="@id/gesture_tutorial_fragment_feedback_subtitle"
             app:layout_constraintEnd_toEndOf="parent"/>
 
+        <Button
+            style="@style/TextAppearance.GestureTutorial.Feedback.Subtext"
+            android:id="@+id/gesture_tutorial_fragment_close_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:text="@string/gesture_tutorial_action_button_label_skip"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+
+            app:layout_constraintTop_toBottomOf="@id/gesture_tutorial_fragment_feedback_subtitle"
+            app:layout_constraintStart_toStartOf="parent"/>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <ImageView

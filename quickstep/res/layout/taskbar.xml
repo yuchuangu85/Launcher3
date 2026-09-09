@@ -83,17 +83,6 @@
             android:layout_gravity="end"/>
     </com.android.launcher3.taskbar.navbutton.NearestTouchFrame>
 
-    <com.android.launcher3.taskbar.NudgeView
-            android:id="@+id/nudge_icon"
-            android:layout_width="@dimen/taskbar_nudge_pill_width"
-            android:layout_height="@dimen/taskbar_nudge_pill_height"
-            android:background="@drawable/bg_nudge_view"
-            android:clickable="false"
-            android:clipToOutline="false"
-            android:src="@drawable/ic_translate"
-            android:visibility="gone"
-            android:layout_gravity="bottom|center_horizontal"/>
-
     <com.android.launcher3.taskbar.StashedHandleView
         android:id="@+id/stashed_handle"
         tools:comment1="The actual size and shape will be set as a ViewOutlineProvider at runtime"

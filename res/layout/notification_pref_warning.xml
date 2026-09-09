@@ -20,4 +20,4 @@
     android:importantForAccessibility="no"
     android:scaleType="center"
     android:src="@drawable/ic_warning"
-    android:tint="@color/materialColorOnSurfaceVariant" />
+    android:tint="?android:attr/textColorSecondary" />

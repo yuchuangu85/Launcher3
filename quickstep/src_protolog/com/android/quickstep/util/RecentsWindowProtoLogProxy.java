@@ -19,8 +19,7 @@ package com.android.quickstep.util;
 import static com.android.quickstep.util.QuickstepProtoLogGroup.RECENTS_WINDOW;
 import static com.android.quickstep.util.QuickstepProtoLogGroup.isProtoLogInitialized;
 
-import android.util.Log;
-import android.window.DesktopExperienceFlags;
+import android.window.DesktopModeFlags;
 
 import androidx.annotation.NonNull;
 
@@ -38,72 +37,28 @@ import com.android.launcher3.Flags;
  * method. Or, if an existing entry needs to be modified, simply update it here.
  */
 public class RecentsWindowProtoLogProxy {
-    private static final boolean IS_RECENTS_WINDOW_PROTOLOG_ENABLED =
-            new DesktopExperienceFlags.DesktopExperienceFlag(Flags::enableRecentsWindowProtoLog,
-                    false, Flags.FLAG_ENABLE_RECENTS_WINDOW_PROTO_LOG).isTrue();
-    private static final QuickstepProtoLogGroup PROTO_LOG_GROUP = RECENTS_WINDOW;
-
-    private static boolean willProtoLog() {
-        return IS_RECENTS_WINDOW_PROTOLOG_ENABLED && isProtoLogInitialized();
-    }
-
-    private static void logToLogcatIfNeeded(String message, Object... args) {
-        if (!willProtoLog() || !PROTO_LOG_GROUP.isLogToLogcat()) {
-            Log.d(PROTO_LOG_GROUP.getTag(), String.format(message, args));
-        }
-    }
-
+    private static final DesktopModeFlags.DesktopModeFlag ENABLE_RECENTS_WINDOW_PROTO_LOG =
+            new DesktopModeFlags.DesktopModeFlag(Flags::enableRecentsWindowProtoLog, true);
     public static void logOnStateSetStart(@NonNull String stateName) {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP, "onStateSetStart: %s", stateName);
-        }
-        logToLogcatIfNeeded("onStateSetStart: %s", stateName);
+        if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
+        ProtoLog.d(RECENTS_WINDOW, "onStateSetStart: %s", stateName);
     }
 
     public static void logOnStateSetEnd(@NonNull String stateName) {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP, "onStateSetEnd: %s", stateName);
-        }
-        logToLogcatIfNeeded("onStateSetEnd: %s", stateName);
+        if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
+        ProtoLog.d(RECENTS_WINDOW, "onStateSetEnd: %s", stateName);
     }
 
-    public static void logOnRepeatStateSetAborted(@NonNull String stateName) {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP, "onRepeatStateSetAborted: %s", stateName);
-        }
-        logToLogcatIfNeeded("onRepeatStateSetAborted: %s", stateName);
-    }
-
-    public static void logStartRecentsWindow(boolean isShowing, boolean windowViewIsNull) {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP,
-                    "Starting recents window: isShowing=%b, windowViewIsNull=%b",
-                    isShowing,
-                    windowViewIsNull);
-        }
-        logToLogcatIfNeeded("Starting recents window: isShowing=%b, windowViewIsNull=%b",
-                isShowing,
+    public static void logStartRecentsWindow(boolean isShown, boolean windowViewIsNull) {
+        if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
+        ProtoLog.d(RECENTS_WINDOW,
+                "Starting recents window: isShow= %b, windowViewIsNull=%b",
+                isShown,
                 windowViewIsNull);
     }
 
-    public static void logCleanup(boolean isShowing) {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP, "Cleaning up recents window: isShowing=%b", isShowing);
-        }
-        logToLogcatIfNeeded("Cleaning up recents window: isShowing=%b", isShowing);
-    }
-
-    public static void logOnOverviewOverlayLeashInvalidated() {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP, "onOverviewOverlayLeashInvalidated");
-        }
-        logToLogcatIfNeeded("onOverviewOverlayLeashInvalidated");
-    }
-
-    public static void logCleanUpSurfaceControlViewHostInternal() {
-        if (willProtoLog()) {
-            ProtoLog.d(PROTO_LOG_GROUP, "cleanUpSurfaceControlViewHostInternal");
-        }
-        logToLogcatIfNeeded("cleanUpSurfaceControlViewHostInternal");
+    public static void logCleanup(boolean isShown) {
+        if (!ENABLE_RECENTS_WINDOW_PROTO_LOG.isTrue() || !isProtoLogInitialized()) return;
+        ProtoLog.d(RECENTS_WINDOW, "Cleaning up recents window: isShow= %b", isShown);
     }
 }

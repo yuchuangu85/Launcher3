@@ -21,7 +21,7 @@
          android:top="@dimen/all_apps_tabs_focus_vertical_inset">
         <shape android:shape="rectangle">
             <corners android:radius="@dimen/all_apps_header_pill_corner_radius" />
-            <solid android:color="?attr/allAppsUnselectedTab" />
+            <solid android:color="@color/materialColorSurfaceBright" />
         </shape>
     </item>
 </layer-list>

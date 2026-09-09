@@ -31,13 +31,12 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.icons.BitmapInfo;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.shortcuts.ShortcutKey;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ContentWriter;
-import com.android.wm.shell.shared.bubbles.BubbleFlagHelper;
+import com.android.wm.shell.shared.bubbles.BubbleAnythingFlagHelper;
 
 import java.util.Arrays;
 
@@ -77,12 +76,6 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
      *
      */
     public static final int FLAG_START_FOR_RESULT = 1 << 4;
-
-    /**
-     * Used to indicate that the icon bitmap in the restored Launcher db file is full-bleed and not
-     * cropped.
-     */
-    public static final int FLAG_RESTORED_FULL_BLEED = 1 << 5;
 
     /**
      * The intent used to start the application.
@@ -134,9 +127,11 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
     public WorkspaceItemInfo(ShortcutInfo shortcutInfo, Context context) {
         user = shortcutInfo.getUserHandle();
         itemType = Favorites.ITEM_TYPE_DEEP_SHORTCUT;
-        if (UserCache.INSTANCE.get(context).getUserInfo(user).isPrivate()) {
-            runtimeStatusFlags |= FLAG_NOT_PINNABLE;
-         }
+        if (Flags.privateSpaceRestrictAccessibilityDrag()) {
+            if (UserCache.INSTANCE.get(context).getUserInfo(user).isPrivate()) {
+                runtimeStatusFlags |= FLAG_NOT_PINNABLE;
+            }
+        }
         updateFromDeepShortcutInfo(shortcutInfo, context);
     }
 
@@ -182,15 +177,9 @@ public class WorkspaceItemInfo extends ItemInfoWithIcon {
         return isPromise() && !hasStatusFlag(FLAG_SUPPORTS_WEB_UI);
     }
 
-    @Override
-    public boolean supportsCustomShapes(@BitmapInfo.DrawableCreationFlags int creationFlags) {
-        return !(isArchived() && !hasStatusFlag(FLAG_RESTORED_FULL_BLEED))
-                && super.supportsCustomShapes(creationFlags);
-    }
-
     public void updateFromDeepShortcutInfo(@NonNull final ShortcutInfo shortcutInfo,
             @NonNull final Context context) {
-        if (BubbleFlagHelper.enableCreateAnyBubble()) {
+        if (BubbleAnythingFlagHelper.enableCreateAnyBubble()) {
             mShortcutInfo = shortcutInfo;
         }
         // {@link ShortcutInfo#getActivity} can change during an update. Recreate the intent

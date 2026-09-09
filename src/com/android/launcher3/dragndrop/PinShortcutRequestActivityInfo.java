@@ -19,10 +19,8 @@ package com.android.launcher3.dragndrop;
 import static android.content.pm.LauncherApps.EXTRA_PIN_ITEM_REQUEST;
 
 import static com.android.launcher3.LauncherAnimUtils.SPRING_LOADED_EXIT_DELAY;
-import static com.android.launcher3.LauncherState.DESKTOP_DRAG_MODE;
 import static com.android.launcher3.LauncherState.EDIT_MODE;
 import static com.android.launcher3.LauncherState.SPRING_LOADED;
-import static com.android.launcher3.Utilities.shouldEnableCursorDrivenWorkflows;
 import static com.android.launcher3.config.FeatureFlags.MULTI_SELECT_EDIT_MODE;
 
 import android.annotation.TargetApi;
@@ -35,14 +33,13 @@ import android.content.pm.LauncherApps.PinItemRequest;
 import android.content.pm.ShortcutInfo;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-
-import androidx.annotation.NonNull;
+import android.os.Process;
 
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.R;
-import com.android.launcher3.icons.cache.CachedObject;
-import com.android.launcher3.icons.cache.IconLoadRequest;
+import com.android.launcher3.icons.cache.BaseIconCache;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.PinRequestHelper;
 import com.android.launcher3.pm.ShortcutConfigActivityInfo;
@@ -89,16 +86,18 @@ public class PinShortcutRequestActivityInfo extends ShortcutConfigActivityInfo {
     }
 
     @Override
-    public Drawable getFullResIcon(@NonNull IconLoadRequest<CachedObject> request) {
+    public Drawable getFullResIcon(BaseIconCache cache) {
         Drawable d = mContext.getSystemService(LauncherApps.class)
-                .getShortcutIconDrawable(mInfo, request.iconDpi);
-        return d != null ? d : request.getDefaultIcon().newIcon(mContext);
+                .getShortcutIconDrawable(mInfo, LauncherAppState.getIDP(mContext).fillResIconDpi);
+        if (d == null) {
+            d = cache.getDefaultIcon(Process.myUserHandle()).newIcon(mContext);
+        }
+        return d;
     }
 
     @Override
     public WorkspaceItemInfo createWorkspaceItemInfo() {
-        long transitionDuration = (MULTI_SELECT_EDIT_MODE.get() ? EDIT_MODE
-                : shouldEnableCursorDrivenWorkflows(mContext) ? DESKTOP_DRAG_MODE : SPRING_LOADED)
+        long transitionDuration = (MULTI_SELECT_EDIT_MODE.get() ? EDIT_MODE : SPRING_LOADED)
                 .getTransitionDuration(Launcher.getLauncher(mContext), true /* isToState */);
         // Total duration for the drop animation to complete.
         long duration = mContext.getResources().getInteger(R.integer.config_dropAnimMaxDuration) +

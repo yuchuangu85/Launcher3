@@ -36,7 +36,6 @@ import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.ExtendedEditText;
 import com.android.launcher3.Insettable;
 import com.android.launcher3.R;
-import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.ActivityAllAppsContainerView;
 import com.android.launcher3.allapps.AllAppsStore;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
@@ -105,10 +104,8 @@ public class AppsSearchContainerLayout extends ExtendedEditText
                 - mAppsView.getActiveRecyclerView().getPaddingRight();
 
         int cellWidth = DeviceProfile.calculateCellWidth(rowWidth,
-                dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x,
-                dp.getHotseatProfile().getNumShownIcons());
-        int iconVisibleSize =
-                Math.round(ICON_VISIBLE_AREA_FACTOR * dp.getWorkspaceProfile().getIconSizePx());
+                dp.cellLayoutBorderSpacePx.x, dp.numShownHotseatIcons);
+        int iconVisibleSize = Math.round(ICON_VISIBLE_AREA_FACTOR * dp.iconSizePx);
         int iconPadding = cellWidth - iconVisibleSize;
 
         int myWidth = rowWidth - iconPadding + getPaddingLeft() + getPaddingRight();
@@ -134,7 +131,7 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     public void initializeSearch(ActivityAllAppsContainerView<?> appsView) {
         mAppsView = appsView;
         mSearchBarController.initialize(
-                new DefaultAppSearchAlgorithm(getContext(), mLauncher.getUiExecutor(), true),
+                new DefaultAppSearchAlgorithm(getContext(), true),
                 this, mLauncher, this);
     }
 
@@ -146,12 +143,6 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     @Override
     public void resetSearch() {
         mSearchBarController.reset();
-    }
-
-    @Override
-    public boolean isSearchQueryEmpty() {
-        String query = Utilities.trim(getEditableText().toString());
-        return query.isEmpty();
     }
 
     @Override

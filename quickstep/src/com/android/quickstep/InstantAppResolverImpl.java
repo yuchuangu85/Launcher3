@@ -24,11 +24,8 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.util.Log;
 
-import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.util.InstantAppResolver;
-
-import javax.inject.Inject;
 
 /**
  * Implementation of InstantAppResolver using platform APIs
@@ -41,9 +38,7 @@ public class InstantAppResolverImpl extends InstantAppResolver {
 
     private final PackageManager mPM;
 
-    @Inject
-    public InstantAppResolverImpl(@ApplicationContext Context context) {
-        super();
+    public InstantAppResolverImpl(Context context) {
         mPM = context.getPackageManager();
     }
 

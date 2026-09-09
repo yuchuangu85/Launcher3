@@ -36,7 +36,7 @@ class BubbleMenuItem(
                     )
                 }"
             )
-            uiObject.click()
+            launcher.clickLauncherObject(uiObject)
         }
     }
 }

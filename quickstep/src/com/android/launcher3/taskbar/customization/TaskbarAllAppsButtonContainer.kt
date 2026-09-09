@@ -29,9 +29,10 @@ import androidx.annotation.DrawableRes
 import androidx.core.view.setPadding
 import com.android.launcher3.R
 import com.android.launcher3.Utilities.dpToPx
+import com.android.launcher3.config.FeatureFlags.enableTaskbarPinning
 import com.android.launcher3.taskbar.TaskbarActivityContext
 import com.android.launcher3.taskbar.TaskbarViewCallbacks
-import com.android.launcher3.util.Executors.getTaskbarUiThread
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.views.ActivityContext
 import com.android.launcher3.views.IconButtonView
 import com.android.quickstep.DeviceConfigWrapper
@@ -48,19 +49,12 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private var allAppsTouchTriggered = false
     private var allAppsTouchRunnable: Runnable? = null
     private var allAppsButtonTouchDelayMs: Long = ViewConfiguration.getLongPressTimeout().toLong()
-    private var isTaskbarInMinimalState = false
     private lateinit var taskbarViewCallbacks: TaskbarViewCallbacks
 
     override val spaceNeeded: Int
         get() {
-            return taskbarIconViewSize
+            return dpToPx(activityContext.taskbarSpecsEvaluator.taskbarIconSize.size.toFloat())
         }
-
-    override val taskbarIconViewSize =
-        dpToPx(activityContext.taskbarSpecsEvaluator.taskbarIconTouchSize, activityContext)
-
-    override val taskbarIconViewPadding =
-        dpToPx(activityContext.taskbarSpecsEvaluator.taskbarIconPadding, activityContext)
 
     init {
         contentDescription = context.getString(R.string.all_apps_button_label)
@@ -74,10 +68,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 getAllAppsButton(activityContext.taskbarFeatureEvaluator.isTransient)
             )
         backgroundTintList = ColorStateList.valueOf(TRANSPARENT)
-        setPadding(taskbarIconViewPadding)
         setIconDrawable(drawable)
-        width = spaceNeeded
-        height = spaceNeeded
+        if (!activityContext.isTransientTaskbar) {
+            setPadding(dpToPx(activityContext.taskbarSpecsEvaluator.taskbarIconPadding.toFloat()))
+        }
         setForegroundTint(activityContext.getColor(R.color.all_apps_button_color))
     }
 
@@ -108,25 +102,29 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             return getAllAppsButtonForExpressiveTheme()
         }
         val shouldSelectTransientIcon =
-            isTransientTaskbar ||
-                activityContext.taskbarFeatureEvaluator.supportsTransitionToTransientTaskbar
+            isTransientTaskbar || (enableTaskbarPinning() && !activityContext.isThreeButtonNav)
         return if (shouldSelectTransientIcon) R.drawable.ic_transient_taskbar_all_apps_search_button
         else R.drawable.ic_taskbar_all_apps_search_button
     }
 
     @DrawableRes
     private fun getAllAppsButtonForExpressiveTheme(): Int {
-        return if (isTaskbarInMinimalState) {
-            R.drawable.ic_taskbar_minimal_state_all_apps_search_button_expressive_theme
+        return R.drawable.ic_taskbar_all_apps_search_button_expressive_theme
+    }
+
+    @DimenRes
+    fun getAllAppsButtonTranslationXOffsetForExpressiveTheme(isTransientTaskbar: Boolean): Int {
+        return if (isTransientTaskbar) {
+            R.dimen.transient_taskbar_all_apps_button_translation_x_offset_for_expressive_theme
         } else {
-            R.drawable.ic_taskbar_all_apps_search_button_expressive_theme
+            R.dimen.taskbar_all_apps_search_button_translation_x_offset_for_expressive_theme
         }
     }
 
     @DimenRes
     fun getAllAppsButtonTranslationXOffset(isTransientTaskbar: Boolean): Int {
         if (Flags.enableGsf()) {
-            return R.dimen.taskbar_all_apps_search_button_translation_x_offset_for_expressive_theme
+            return getAllAppsButtonTranslationXOffsetForExpressiveTheme(isTransientTaskbar)
         }
         return if (isTransientTaskbar) {
             R.dimen.transient_taskbar_all_apps_button_translation_x_offset
@@ -135,21 +133,11 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         }
     }
 
-    /** Taskbar minimal state is that taskbar does not host anything other than all apps button. */
-    fun updateTaskbarMinimalState(isInMinimalState: Boolean) {
-        if (isTaskbarInMinimalState != isInMinimalState) {
-            isTaskbarInMinimalState = isInMinimalState
-            setUpIcon()
-        }
-    }
-
     private fun onAllAppsButtonTouch(view: View, ev: MotionEvent): Boolean {
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 allAppsTouchTriggered = false
-                getTaskbarUiThread()
-                    .handler
-                    .postDelayed(allAppsTouchRunnable!!, allAppsButtonTouchDelayMs)
+                MAIN_EXECUTOR.handler.postDelayed(allAppsTouchRunnable!!, allAppsButtonTouchDelayMs)
             }
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL -> cancelAllAppsButtonTouch()
@@ -158,7 +146,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     private fun cancelAllAppsButtonTouch() {
-        getTaskbarUiThread().handler.removeCallbacks(allAppsTouchRunnable!!)
+        MAIN_EXECUTOR.handler.removeCallbacks(allAppsTouchRunnable!!)
         // ACTION_UP is first triggered, then click listener / long-click listener is triggered on
         // the next frame, so we need to post twice and delay the reset.
         this.post { this.post { allAppsTouchTriggered = false } }
@@ -172,10 +160,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     // Handle long click from Switch Access and Voice Access
     private fun onAllAppsButtonLongClick(view: View): Boolean {
-        if (
-            !getTaskbarUiThread().handler.hasCallbacks(allAppsTouchRunnable!!) &&
-                !allAppsTouchTriggered
-        ) {
+        if (!MAIN_EXECUTOR.handler.hasCallbacks(allAppsTouchRunnable!!) && !allAppsTouchTriggered) {
             taskbarViewCallbacks.triggerAllAppsButtonLongClick()
         }
         return true

@@ -13,7 +13,7 @@ import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.util.Thunk;
 
-public class WidgetHostViewLoader implements DragController.DragSessionListener {
+public class WidgetHostViewLoader implements DragController.DragListener {
     private static final String TAG = "WidgetHostViewLoader";
     private static final boolean LOGD = false;
 
@@ -40,18 +40,18 @@ public class WidgetHostViewLoader implements DragController.DragSessionListener 
     }
 
     @Override
-    public void onDragSessionStart(DropTarget.DragObject dragObject, DragOptions options) {
+    public void onDragStart(DropTarget.DragObject dragObject, DragOptions options) {
         preloadWidget();
     }
 
     @Override
-    public void onDragSessionEnd() {
+    public void onDragEnd() {
         if (LOGD) {
             Log.d(TAG, "Cleaning up in onDragEnd()...");
         }
 
         // Cleanup up preloading state.
-        mLauncher.getDragController().removeDragSessionListener(this);
+        mLauncher.getDragController().removeDragListener(this);
 
         mHandler.removeCallbacks(mBindWidgetRunnable);
         mHandler.removeCallbacks(mInflateWidgetRunnable);

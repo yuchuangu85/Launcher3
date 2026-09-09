@@ -16,87 +16,48 @@
 
 package com.android.launcher3.taskbar.customization
 
-import android.content.Context
-import androidx.annotation.AnyThread
-import com.android.app.displaylib.PerDisplayRepository
-import com.android.launcher3.LauncherPrefs
-import com.android.launcher3.LauncherPrefs.Companion.TASKBAR_PINNING
-import com.android.launcher3.dagger.ApplicationContext
-import com.android.launcher3.dagger.DisplayId
-import com.android.launcher3.dagger.LauncherAppComponent
-import com.android.launcher3.dagger.PerDisplaySingleton
-import com.android.launcher3.display.DisplayController
-import com.android.launcher3.display.LauncherDisplayInfo
-import com.android.launcher3.statehandlers.DesktopVisibilityController
-import com.android.launcher3.util.DaggerSingletonObject
-import com.android.launcher3.util.NavigationMode.NO_BUTTON
-import com.android.launcher3.util.NavigationMode.THREE_BUTTONS
-import com.android.systemui.shared.Flags.enableRecentsInTaskbar
-import javax.inject.Inject
+import com.android.launcher3.Flags.enableRecentsInTaskbar
+import com.android.launcher3.config.FeatureFlags.enableTaskbarPinning
+import com.android.launcher3.taskbar.TaskbarActivityContext
 
 /** Evaluates all the features taskbar can have. */
-@PerDisplaySingleton
 class TaskbarFeatureEvaluator
-@Inject
-constructor(
-    @DisplayId val displayId: Int,
-    @ApplicationContext val context: Context,
-    private val displayController: DisplayController,
-    private val desktopVisibilityController: DesktopVisibilityController,
-    private val launcherPrefs: LauncherPrefs,
-) {
-    private val displayInfo: LauncherDisplayInfo?
-        get() = displayController.getInfoForDisplay(displayId)
-
-    val isPrimaryDisplay = displayId == context.displayId
+private constructor(private val taskbarActivityContext: TaskbarActivityContext) {
+    val hasAllApps = true
+    val hasAppIcons = true
     val hasBubbles = false
-    val hasNavButtons: Boolean
-        get() = displayInfo?.navigationMode == THREE_BUTTONS
+    val hasNavButtons = taskbarActivityContext.isThreeButtonNav
 
     val isRecentsEnabled: Boolean
         get() = enableRecentsInTaskbar()
 
-    @get:AnyThread
-    val isTransient: Boolean
-        get() =
-            if (
-                displayInfo?.navigationMode != NO_BUTTON ||
-                    desktopVisibilityController.isInDesktopMode(displayId) ||
-                    displayInfo?.showDesktopTaskbarForFreeformDisplay == true
-            ) {
-                false
-            } else {
-                !isPinned
-            }
+    val hasDivider: Boolean
+        get() = enableTaskbarPinning() || isRecentsEnabled
 
-    val isPinned: Boolean
-        get() =
-            if (
-                desktopVisibilityController.isInDesktopMode(displayId) ||
-                    displayInfo?.showDesktopTaskbarForFreeformDisplay == true
-            ) {
-                true
-            } else {
-                launcherPrefs.get(TASKBAR_PINNING)
-            }
+    val isTransient: Boolean
+        get() = taskbarActivityContext.isTransientTaskbar
+
+    val isLandscape: Boolean
+        get() = taskbarActivityContext.deviceProfile.isLandscape
 
     val supportsPinningPopup: Boolean
         get() = !hasNavButtons
 
-    val isPersistent: Boolean
-        get() = isPinned || hasNavButtons
-
-    val supportsTransitionToTransientTaskbar: Boolean
-        get() =
-            !hasNavButtons &&
-                !DisplayController.getInfo(context).showDesktopTaskbarForFreeformDisplay &&
-                !desktopVisibilityController.isInDesktopMode(displayId)
+    fun onDestroy() {
+        taskbarFeatureEvaluator = null
+    }
 
     companion object {
-        @JvmField
-        val INSTANCE =
-            DaggerSingletonObject<PerDisplayRepository<TaskbarFeatureEvaluator>>(
-                LauncherAppComponent::getTaskbarFeatureEvaluatorRepository
-            )
+        @Volatile private var taskbarFeatureEvaluator: TaskbarFeatureEvaluator? = null
+
+        @JvmStatic
+        fun getInstance(taskbarActivityContext: TaskbarActivityContext): TaskbarFeatureEvaluator {
+            synchronized(this) {
+                if (taskbarFeatureEvaluator == null) {
+                    taskbarFeatureEvaluator = TaskbarFeatureEvaluator(taskbarActivityContext)
+                }
+                return taskbarFeatureEvaluator!!
+            }
+        }
     }
 }

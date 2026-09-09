@@ -23,80 +23,25 @@
     <style name="TextAppearance.GestureTutorial.CallToAction"
         parent="@android:style/Theme.DeviceDefault.DayNight" />
 
-    <style name="TextAppearance.GestureTutorial.MainTitle"
+    <style name="TextAppearance.GestureTutorial.Title"
         parent="TextAppearance.GestureTutorial">
-        <item name="android:textSize">36sp</item>
-        <item name="android:fontFamily">google-sans</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.MainTitle.Home"
-        parent="TextAppearance.GestureTutorial.MainTitle">
-        <item name="android:textColor">?attr/onContainerHome</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.MainTitle.Back"
-        parent="TextAppearance.GestureTutorial.MainTitle">
-        <item name="android:textColor">?attr/onContainerBack</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.MainTitle.Overview"
-        parent="TextAppearance.GestureTutorial.MainTitle">
-        <item name="android:textColor">?attr/onContainerOverview</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.MainTitle.Success.Home"
-        parent="TextAppearance.GestureTutorial.MainTitle.Home">
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.MainTitle.Success.Back"
-        parent="TextAppearance.GestureTutorial.MainTitle.Back">
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.MainTitle.Success.Overview"
-        parent="TextAppearance.GestureTutorial.MainTitle.Overview">
-        <item name="android:textColor">?attr/onContainerOverview</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+        <item name="android:textSize">28sp</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.Subtitle"
         parent="TextAppearance.GestureTutorial">
         <item name="android:gravity">center</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:letterSpacing">0.02</item>
-        <item name="android:fontFamily">google-sans-text</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.Subtitle.Home"
-        parent="TextAppearance.GestureTutorial.Subtitle">
-        <item name="android:textColor">?attr/onContainerHome</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.Subtitle.Back"
-        parent="TextAppearance.GestureTutorial.Subtitle">
-        <item name="android:textColor">?attr/onContainerBack</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.Subtitle.Overview"
-        parent="TextAppearance.GestureTutorial.Subtitle">
-        <item name="android:textColor">?attr/onContainerOverview</item>
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.Subtitle.Success.Home"
-        parent="TextAppearance.GestureTutorial.Subtitle">
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.Subtitle.Success.Back"
-        parent="TextAppearance.GestureTutorial.Subtitle">
-    </style>
-
-    <style name="TextAppearance.GestureTutorial.Subtitle.Success.Overview"
-        parent="TextAppearance.GestureTutorial.Subtitle">
-        <item name="android:textColor">?attr/onContainerOverview</item>
+        <item name="android:textColor">?android:attr/textColorTertiary</item>
+        <item name="android:letterSpacing">0.03</item>
+        <item name="android:textSize">21sp</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.Feedback.Title"
         parent="TextAppearance.GestureTutorial">
         <item name="android:gravity">start</item>
-        <item name="android:textColor">@color/materialColorOnSurface</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
         <item name="android:fontFamily">google-sans</item>
         <item name="android:letterSpacing">0.03</item>
         <item name="android:textSize">36sp</item>
@@ -111,17 +56,17 @@
 
     <style name="TextAppearance.GestureTutorial.MenuButton.Home"
         parent="TextAppearance.GestureTutorial.MenuButton">
-        <item name="android:textColor">?attr/onContainerHome</item>
+        <item name="android:textColor">?attr/secondaryHome</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.MenuButton.Back"
         parent="TextAppearance.GestureTutorial.MenuButton">
-        <item name="android:textColor">?attr/onContainerBack</item>
+        <item name="android:textColor">?attr/secondaryBack</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.MenuButton.Overview"
         parent="TextAppearance.GestureTutorial.MenuButton">
-        <item name="android:textColor">?attr/onContainerOverview</item>
+        <item name="android:textColor">?attr/secondaryOverview</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.Feedback.Title.AllSet"
@@ -142,7 +87,7 @@
     <style name="TextAppearance.GestureTutorial.Feedback.Subtitle"
         parent="TextAppearance.GestureTutorial">
         <item name="android:gravity">start</item>
-        <item name="android:textColor">@color/materialColorOnSurface</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
         <item name="android:fontFamily">google-sans-text</item>
         <item name="android:letterSpacing">0.03</item>
         <item name="android:textSize">14sp</item>
@@ -173,7 +118,7 @@
 
     <style name="TextAppearance.GestureTutorial.Feedback.Subtext.Dark"
         parent="TextAppearance.GestureTutorial.Feedback.Subtext">
-        <item name="android:textColor">@color/materialColorOnSurface</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.ButtonLabel"
@@ -188,17 +133,17 @@
 
     <style name="TextAppearance.GestureTutorial.ButtonLabel.Home"
         parent="TextAppearance.GestureTutorial.ButtonLabel">
-        <item name="android:textColor">?attr/containerHome</item>
+        <item name="android:textColor">?attr/onSurfaceHome</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.ButtonLabel.Back"
         parent="TextAppearance.GestureTutorial.ButtonLabel">
-        <item name="android:textColor">?attr/containerBack</item>
+        <item name="android:textColor">?attr/onSurfaceBack</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.ButtonLabel.Overview"
         parent="TextAppearance.GestureTutorial.ButtonLabel">
-        <item name="android:textColor">?attr/containerOverview</item>
+        <item name="android:textColor">?attr/onSurfaceOverview</item>
     </style>
 
     <style name="TextAppearance.GestureTutorial.CancelButtonLabel"
@@ -216,6 +161,50 @@
         <item name="android:textSize">14sp</item>
     </style>
 
+    <style name="TextAppearance.GestureTutorial.MainTitle"
+        parent="TextAppearance.GestureTutorial">
+        <item name="android:textSize">36sp</item>
+        <item name="android:fontFamily">google-sans</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainTitle.Home"
+        parent="TextAppearance.GestureTutorial.MainTitle">
+        <item name="android:textColor">?attr/secondaryHome</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainTitle.Back"
+        parent="TextAppearance.GestureTutorial.MainTitle">
+        <item name="android:textColor">?attr/secondaryBack</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainTitle.Overview"
+        parent="TextAppearance.GestureTutorial.MainTitle">
+        <item name="android:textColor">?attr/secondaryOverview</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainTitle.Success.Home"
+        parent="TextAppearance.GestureTutorial.MainTitle.Home">
+        <item name="android:textColor">?attr/secondaryHome</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainTitle.Success.Back"
+        parent="TextAppearance.GestureTutorial.MainTitle.Back">
+        <item name="android:textColor">?attr/secondaryBack</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainTitle.Success.Overview"
+        parent="TextAppearance.GestureTutorial.MainTitle.Overview">
+        <item name="android:textColor">?attr/secondaryOverview</item>
+    </style>
+
+    <style name="TextAppearance.GestureTutorial.MainSubtitle"
+        parent="TextAppearance.GestureTutorial.Subtitle">
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:fontFamily">google-sans-text</item>
+        <item name="android:textColor">?attr/tutorialSubtitle</item>
+    </style>
+
     <style name="AllSetTheme" parent="@style/DynamicColorsBaseLauncherTheme.NoActionBar">
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -223,11 +212,6 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowShowWallpaper">false</item>
-    </style>
-
-    <style name="AllSetTheme.Expressive" parent="AllSetTheme">
-        <item name="android:windowShowWallpaper">true</item>
-        <item name="android:windowIsTranslucent">true</item>
     </style>
 
     <!--
@@ -238,40 +222,24 @@
         <item name="android:colorControlHighlight">?attr/workspaceTextColor</item>
     </style>
 
-    <style name="OverviewActionsContainer">
-        <item name="buttonStyle">@style/OverviewActionButton</item>
-        <item name="android:buttonStyle">@style/OverviewActionButton</item>
-    </style>
-
-    <style name="OverviewActionsContainerBlur">
-        <item name="buttonStyle">@style/OverviewActionButton.Blur</item>
-        <item name="android:buttonStyle">@style/OverviewActionButton.Blur</item>
-    </style>
-
-    <style name="OverviewActionButton" parent="@android:style/Widget.DeviceDefault.Button.Borderless">
-        <item name="android:maxHeight">@dimen/overview_actions_height</item>
-        <item name="android:paddingVertical">4dp</item>
-        <item name="android:paddingHorizontal">@dimen/overview_actions_button_horizontal_padding
-        </item>
-        <item name="android:textSize">14sp</item>
+    <style name="OverviewActionButton"
+        parent="@android:style/Widget.DeviceDefault.Button.Borderless">
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
         <item name="android:textColor">@color/overview_button</item>
         <item name="android:drawableTint">@color/overview_button</item>
-        <item name="android:tint">@color/materialColorOnSurface</item>
+        <item name="android:tint">?android:attr/textColorPrimary</item>
         <item name="android:drawablePadding">8dp</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:textFontWeight">600</item>
-        <item name="android:gravity">center</item>
-        <item name="android:layout_gravity">center</item>
-        <item name="android:includeFontPadding">false</item>
-        <item name="android:colorControlHighlight">?attr/workspaceTextColor</item>
-        <item name="android:maxLines">1</item>
-        <item name="android:singleLine">true</item>
-        <item name="android:ellipsize">end</item>
-        <item name="android:background">@drawable/overview_action_button_background</item>
     </style>
 
-    <style name="OverviewActionButton.Blur">
-        <item name="android:background">@drawable/overview_action_button_background_blur</item>
+    <style name="OverviewClearAllButton" parent="@android:style/Widget.DeviceDefault.Button">
+        <item name="android:background">@drawable/bg_overview_clear_all_button</item>
+        <item name="android:minWidth">96dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:stateListAnimator">@null</item>
     </style>
 
     <!-- Icon displayed on the taskbar -->
@@ -305,6 +273,10 @@
         <item name="lineHeight">20sp</item>
     </style>
 
+    <style name="KeyboardQuickSwitchText.LargeText" parent="KeyboardQuickSwitchText">
+        <item name="android:textSize">32sp</item>
+    </style>
+
     <style name="KeyboardQuickSwitchText.OnBackground" parent="KeyboardQuickSwitchText">
         <item name="android:textColor">@color/materialColorOnSurface</item>
     </style>
@@ -315,24 +287,21 @@
         <item name="android:fadingEdgeLength">20dp</item>
         <item name="android:ellipsize">none</item>
         <item name="android:singleLine">true</item>
-        <item name="android:textColor">@color/materialColorOnPrimaryContainer</item>
     </style>
-
-    <style name="KeyboardQuickSwitchText.LargeTextOnTaskView"
-           parent="KeyboardQuickSwitchText.OnTaskView">
-        <item name="android:textSize">32sp</item>
-    </style>
-
 
     <style name="GestureTutorialActivity" parent="@style/AppTheme">
         <item name="background">@android:color/transparent</item>
-        <item name="surfaceContainer">@color/materialColorSurfaceContainerLow</item>
-        <item name="containerHome">@color/materialColorPrimaryContainer</item>
-        <item name="onContainerHome">@color/materialColorOnPrimaryContainer</item>
-        <item name="containerBack">@color/materialColorSecondaryContainer</item>
-        <item name="onContainerBack">@color/materialColorOnSecondaryContainer</item>
-        <item name="containerOverview">@color/materialColorTertiaryContainer</item>
-        <item name="onContainerOverview">@color/materialColorOnTertiaryContainer</item>
+        <item name="tutorialSubtitle">@android:color/black</item>
+        <item name="surfaceContainer">@color/materialColorSurfaceContainer</item>
+        <item name="onSurfaceHome">@color/materialColorPrimaryFixed</item>
+        <item name="surfaceHome">@android:color/system_accent1_300</item>
+        <item name="secondaryHome">@color/materialColorOnPrimaryFixedVariant</item>
+        <item name="onSurfaceBack">@color/materialColorTertiaryFixed</item>
+        <item name="surfaceBack">@android:color/system_accent3_300</item>
+        <item name="secondaryBack">@color/materialColorOnTertiaryFixedVariant</item>
+        <item name="onSurfaceOverview">@color/materialColorPrimaryFixed</item>
+        <item name="surfaceOverview">@android:color/system_accent2_300</item>
+        <item name="secondaryOverview">@color/materialColorOnSecondaryFixedVariant</item>
     </style>
 
     <style name="rotate_prompt_title" parent="TextAppearance.GestureTutorial.Dialog.Title">
@@ -357,63 +326,15 @@
         <item name="android:lineHeight">20sp</item>
     </style>
 
-    <style name="TextAppearance.Nudge.Title" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
-        <item name="android:gravity">center_horizontal</item>
-        <item name="android:fontFamily">google-sans</item>
-        <item name="android:textSize">24sp</item>
+    <style name="WidgetPickerActivityTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation</item>
+
+        <item name="widgetsTheme">@style/WidgetContainerTheme</item>
+        <item name="pageIndicatorDotColor">@color/page_indicator_dot_color_light</item>
     </style>
-
-    <style name="TextAppearance.Nudge.Subtext" parent="android:TextAppearance.Material.Body1">
-        <item name="android:layout_marginTop">16dp</item>
-        <item name="android:fontFamily">google-sans-text</item>
-        <item name="android:textSize">14sp</item>
-    </style>
-
-    <style name="Nudge.Button.Primary" parent="@android:style/Widget.Material.Button">
-        <item name="android:background">@drawable/button_nudge_colored</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:minHeight">36dp</item>
-    </style>
-
-    <style name="Nudge.Button.Secondary" parent="@android:style/Widget.Material.Button">
-        <item name="android:background">@drawable/button_nudge_colored</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:minHeight">36dp</item>
-    </style>
-
-    <style name="AllAppsBlurStyle">
-        <item name="allAppsScrimColor">@color/shade_panel_scrim_color</item>
-        <item name="groupHighlight">@color/customColorSurfaceEffect1</item>
-        <item name="focusHighlight">@color/customColorSurfaceEffect2</item>
-        <item name="allAppsSurfaceLow">@color/customColorSurfaceEffect0</item>
-        <item name="allAppsSurfaceHighest">@color/customColorSurfaceEffect2</item>
-        <item name="allAppsUnselectedTab">@color/customColorSurfaceEffect2</item>
-        <item name="allappsHeaderProtectionColor">@color/customColorSurfaceEffect1</item>
-        <item name="privateSpaceSettingsColor">@color/customColorSurfaceEffect2</item>
-        <item name="privateSpaceDividerColor">@color/customColorSurfaceEffect3</item>
-        <item name="bottomSheetDragHandleColor">@color/materialColorOnSurface</item>
-    </style>
-
-    <style name="OverviewBlurStyle">
-        <item name="overviewScrimColor">?attr/overviewScrimColorBlur</item>
-        <item name="overviewActionsContainerStyle">@style/OverviewActionsContainerBlur</item>
-        <item name="overviewActionButtonStyle">@style/OverviewActionButton.Blur</item>
-        <item name="overviewScrimForegroundPrimary">?attr/overviewScrimForegroundPrimaryBlur</item>
-        <item name="overviewScrimForegroundSecondary">?attr/overviewScrimForegroundSecondaryBlur
-        </item>
-        <item name="addDesktopButtonBackgroundDrawable">@drawable/overview_action_button_background_blur</item>
-
-    </style>
-
-    <style name="OverviewBlurFallbackStyle">
-        <item name="overviewScrimColor">?attr/overviewScrimColorFallback</item>
-        <item name="overviewActionsContainerStyle">@style/OverviewActionsContainer</item>
-        <item name="overviewActionButtonStyle">@style/OverviewActionButton</item>
-        <item name="overviewScrimForegroundPrimary">@android:color/transparent</item>
-        <item name="overviewScrimForegroundSecondary">@android:color/transparent</item>
-        <item name="addDesktopButtonBackgroundDrawable">@drawable/overview_action_button_background</item>
-    </style>
-
 </resources>

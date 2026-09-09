@@ -16,14 +16,9 @@
 
 package com.android.launcher3.dragndrop;
 
-import static android.view.View.VISIBLE;
-
-import static com.android.launcher3.AbstractFloatingView.TYPE_DISCOVERY_BOUNCE;
-import static com.android.launcher3.Flags.enableDragStartEndMultiDispatch;
-import static com.android.launcher3.Flags.enableSystemDrag;
+import static com.android.launcher3.Flags.removeAppsRefreshOnRightClick;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_NOT_PINNABLE;
 
-import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -36,31 +31,27 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.app.animation.Interpolators;
-import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.DragSource;
 import com.android.launcher3.DropTarget;
-import com.android.launcher3.DropTarget.DragObject;
-import com.android.launcher3.R;
-import com.android.launcher3.accessibility.DragViewStateAnnouncer;
-import com.android.launcher3.dragndrop.DragOptions.PreDragCondition;
+import com.android.launcher3.Flags;
 import com.android.launcher3.logging.InstanceId;
 import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.TouchController;
-import com.android.launcher3.util.TouchUtil;
 import com.android.launcher3.views.ActivityContext;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
  * Class for initiating a drag within a view or across multiple views.
+ * @param <T>
  */
-public class DragController implements DragDriver.EventListener, TouchController {
+public abstract class DragController<T extends ActivityContext>
+        implements DragDriver.EventListener, TouchController {
 
     /**
      * When a drag is started from a deep press, you need to drag this much farther than normal to
@@ -68,9 +59,7 @@ public class DragController implements DragDriver.EventListener, TouchController
      */
     private static final int DEEP_PRESS_DISTANCE_FACTOR = 3;
 
-    private static final boolean PROFILE_DRAWING_DURING_DRAG = false;
-
-    private final ActivityContext mActivity;
+    protected final T mActivity;
 
     // temporaries to avoid gc thrash
     private final Rect mRectTemp = new Rect();
@@ -93,20 +82,14 @@ public class DragController implements DragDriver.EventListener, TouchController
 
     protected final Point mTmpPoint = new Point();
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    @VisibleForTesting
     public DropTarget.DragObject mDragObject;
 
     /** Who can receive drop events */
     private final ArrayList<DropTarget> mDropTargets = new ArrayList<>();
     private final ArrayList<DragListener> mListeners = new ArrayList<>();
-    private final ArrayList<DragSessionListener> mSessionListeners = new ArrayList<>();
 
     protected DropTarget mLastDropTarget;
-
-    /** Who can handle system drag events. */
-    @VisibleForTesting
-    public final ArrayList<SystemDragHandler> mSystemDragHandlers = new ArrayList<>();
-    private @Nullable SystemDragHandler mLastSystemDragHandler;
 
     private int mLastTouchClassification;
     protected int mDistanceSinceScroll = 0;
@@ -117,87 +100,31 @@ public class DragController implements DragDriver.EventListener, TouchController
      */
     protected boolean mIsInPreDrag;
 
-    /** Whether or not the drag operation is triggered by mouse right click. */
-    private boolean mIsInMouseRightClick = false;
-
     private final int DRAG_VIEW_SCALE_DURATION_MS = 500;
 
     /**
-     * Interface to receive notifications when a drag starts or stops.
-     * <p>
-     * NOTE: Events may be propagated multiple times per drag session.
-     *
-     * @see DragSessionListener
+     * Interface to receive notifications when a drag starts or stops
      */
     public interface DragListener {
         /**
          * A drag has begun
-         * <p>
-         * NOTE: This event may be propagated multiple times per drag session.
          *
          * @param dragObject The object being dragged
          * @param options Options used to start the drag
-         *
-         * @see DragSessionListener#onDragSessionStart(DragObject, DragOptions)
          */
         void onDragStart(DropTarget.DragObject dragObject, DragOptions options);
 
         /**
          * The drag has ended
-         * <p>
-         * NOTE: This event may be propagated multiple times per drag session.
-         *
-         * @see DragSessionListener#onDragSessionEnd()
          */
         void onDragEnd();
     }
 
     /**
-     * Interface to receive notifications when a drag session starts or stops.
-     *
-     * @see DragListener
-     */
-    public interface DragSessionListener {
-        /**
-         * A drag session has begun
-         *
-         * @param dragObject The object being dragged
-         * @param options Options used to start the drag
-         *
-         * @see DragListener#onDragStart(DragObject, DragOptions)
-         */
-        default void onDragSessionStart(DropTarget.DragObject dragObject, DragOptions options) {}
-
-        /**
-         * The drag session has ended
-         *
-         * @see DragListener#onDragEnd()
-         */
-        default void onDragSessionEnd() {}
-    }
-
-    /**
-     * Interface to handle system drag events.
-     */
-    public interface SystemDragHandler {
-        /**
-         * Invoked to handle a system drag event. The handler will continue to receive subsequent
-         * events for the drag sequence so long as it continues to return {@code true}.
-         *
-         * @param event The drag event
-         * @return {@code true} to receive subsequent events for the drag sequence
-         */
-        boolean onDrag(DragEvent event);
-    }
-
-    /**
      * Used to create a new DragLayer from XML.
      */
-    public DragController(ActivityContext activity) {
+    public DragController(T activity) {
         mActivity = activity;
-
-        // Register the default handler for system-level drag events.
-        addSystemDragHandler(mActivity.getActivityComponent().getSystemDragController());
     }
 
     /**
@@ -270,7 +197,7 @@ public class DragController implements DragDriver.EventListener, TouchController
                 dragInfo, dragRegion, initialDragViewScale, dragViewScaleOnDrop, options);
     }
 
-    protected DragView startDrag(
+    protected abstract DragView startDrag(
             @Nullable Drawable drawable,
             @Nullable View view,
             DraggableView originalView,
@@ -281,146 +208,7 @@ public class DragController implements DragDriver.EventListener, TouchController
             Rect dragRegion,
             float initialDragViewScale,
             float dragViewScaleOnDrop,
-            DragOptions options) {
-        if (PROFILE_DRAWING_DURING_DRAG) {
-            android.os.Debug.startMethodTracing("Launcher");
-        }
-
-        if (mIsInMouseRightClick
-                && options.preDragCondition == null
-                && originalView instanceof View v) {
-            options.preDragCondition = new PreDragCondition() {
-
-                @Override
-                public boolean shouldStartDrag(double distanceDragged) {
-                    return false;
-                }
-
-                @Override
-                public void onPreDragStart(DragObject dragObject) {
-                    // Set it to visible so the text of FolderIcon would not flash (avoid it from
-                    // being invisible and then visible)
-                    v.setVisibility(VISIBLE);
-                }
-
-                @Override
-                public void onPreDragEnd(DragObject dragObject, boolean dragStarted) { }
-            };
-        }
-
-        mActivity.hideKeyboard();
-        AbstractFloatingView.closeOpenViews(mActivity, false, TYPE_DISCOVERY_BOUNCE);
-
-        mOptions = options;
-        if (mOptions.simulatedDndStartPoint != null) {
-            mLastTouch.x = mMotionDown.x = mOptions.simulatedDndStartPoint.x;
-            mLastTouch.y = mMotionDown.y = mOptions.simulatedDndStartPoint.y;
-        }
-
-        final int dragRegionLeft = dragRegion == null ? 0 : dragRegion.left;
-        final int dragRegionTop = dragRegion == null ? 0 : dragRegion.top;
-
-        mLastDropTarget = null;
-
-        mDragObject = new DropTarget.DragObject(mActivity.asContext().getApplicationContext());
-        mDragObject.originalView = originalView;
-
-        mIsInPreDrag = mOptions.preDragCondition != null
-                && !mOptions.preDragCondition.shouldStartDrag(0);
-
-        // NOTE: If the internal drag is started to shadow a system drag, prevent drag view from
-        // drawing item's spring animated drawable (generally supported if the item has an adaptive
-        // icon) - the drag will use system drag shadow instead.
-        final DragView dragView = mDragObject.dragView = createDragView(
-                drawable, view, originalView, dragInfo, dragLayerX, dragLayerY, dragRegion,
-                initialDragViewScale, dragViewScaleOnDrop,
-                /*allowSpringDrawable=*/ !options.isSystemDrag);
-
-        if (dragInfo != null) {
-            dragView.setItemInfo(dragInfo);
-        }
-        mDragObject.dragComplete = false;
-
-        mDragObject.xOffset = mMotionDown.x - (dragLayerX + dragRegionLeft);
-        mDragObject.yOffset = mMotionDown.y - (dragLayerY + dragRegionTop);
-
-        mDragDriver = DragDriver.create(this, mOptions, getSecondaryEventConsumer());
-        if (!mOptions.isAccessibleDrag) {
-            mDragObject.stateAnnouncer = DragViewStateAnnouncer.createFor(dragView);
-        }
-
-        mDragObject.dragSource = source;
-        mDragObject.dragInfo = dragInfo;
-        mDragObject.originalDragInfo =
-                mDragObject.dragInfo != null ? mDragObject.dragInfo.makeShallowCopy() : null;
-
-        if (mOptions.preDragCondition != null) {
-            dragView.setHasDragOffset(mOptions.preDragCondition.getDragOffset().x != 0
-                    || mOptions.preDragCondition.getDragOffset().y != 0);
-        }
-
-        if (dragRegion != null) {
-            dragView.setDragRegion(new Rect(dragRegion));
-        }
-
-        dragView.show(mLastTouch.x, mLastTouch.y);
-        mDistanceSinceScroll = 0;
-
-        if (!mIsInPreDrag) {
-            callOnDragStart();
-        } else if (mOptions.preDragCondition != null) {
-            mOptions.preDragCondition.onPreDragStart(mDragObject);
-        }
-
-        handleMoveEvent(mLastTouch.x, mLastTouch.y);
-        onDragViewInitialized();
-        return dragView;
-    }
-
-    protected Consumer<MotionEvent> getSecondaryEventConsumer() {
-        return ev -> {};
-    }
-
-    protected DragView createDragView(
-            @Nullable Drawable drawable,
-            @Nullable View view,
-            DraggableView originalView,
-            ItemInfo dragInfo,
-            int dragLayerX, int dragLayerY,
-            Rect dragRegion,
-            float initialDragViewScale,
-            float dragViewScaleOnDrop,
-            boolean allowSpringDrawable) {
-        final int registrationX = mMotionDown.x - dragLayerX;
-        final int registrationY = mMotionDown.y - dragLayerY;
-
-        final Resources res = mActivity.asContext().getResources();
-        final float scaleDps = mIsInPreDrag
-                ? res.getDimensionPixelSize(R.dimen.pre_drag_view_scale) : 0f;
-        return drawable != null
-                ? new DragView(
-                mActivity,
-                drawable,
-                registrationX,
-                registrationY,
-                initialDragViewScale,
-                dragViewScaleOnDrop,
-                scaleDps,
-                allowSpringDrawable)
-                : new DragView(
-                        mActivity,
-                        view,
-                        view.getMeasuredWidth(),
-                        view.getMeasuredHeight(),
-                        registrationX,
-                        registrationY,
-                        initialDragViewScale,
-                        dragViewScaleOnDrop,
-                        scaleDps,
-                        allowSpringDrawable);
-    }
-
-    protected void onDragViewInitialized() { }
+            DragOptions options);
 
     protected void callOnDragStart() {
         if (mOptions.preDragCondition != null) {
@@ -437,24 +225,14 @@ public class DragController implements DragDriver.EventListener, TouchController
                     .start();
         }
         mDragObject.dragView.onDragStart();
-        for (DragSessionListener listener : new ArrayList<>(mSessionListeners)) {
-            listener.onDragSessionStart(mDragObject, mOptions);
-        }
-        if (enableDragStartEndMultiDispatch()) {
-            if (mDragDriver == null || mDragDriver.isDragWithinWindow()) {
-                for (DragListener listener : new ArrayList<>(mListeners)) {
-                    listener.onDragStart(mDragObject, mOptions);
-                }
-            }
-        } else {
-            for (DragListener listener : new ArrayList<>(mListeners)) {
-                listener.onDragStart(mDragObject, mOptions);
-            }
+        for (DragListener listener : new ArrayList<>(mListeners)) {
+            listener.onDragStart(mDragObject, mOptions);
         }
     }
 
     protected boolean isItemPinnable() {
-        return !(mDragObject.dragInfo instanceof ItemInfoWithIcon itemInfoWithIcon)
+        return !Flags.privateSpaceRestrictItemDrag()
+                || !(mDragObject.dragInfo instanceof ItemInfoWithIcon itemInfoWithIcon)
                 || (itemInfoWithIcon.runtimeStatusFlags & FLAG_NOT_PINNABLE) == 0;
     }
 
@@ -510,7 +288,7 @@ public class DragController implements DragDriver.EventListener, TouchController
         mDragObject.dragSource.onDropCompleted(dropTarget, mDragObject, accepted);
     }
 
-    protected void exitDrag() { }
+    protected abstract void exitDrag();
 
     public void onAppsRemoved(Predicate<ItemInfo> matcher) {
         // Cancel the current drag if we are removing an app that we are dragging
@@ -564,25 +342,10 @@ public class DragController implements DragDriver.EventListener, TouchController
         if (mIsInPreDrag && mOptions.preDragCondition != null) {
             mOptions.preDragCondition.onPreDragEnd(mDragObject, false /* dragStarted*/);
         }
-
-        final boolean wasInPreDrag = mIsInPreDrag;
         mIsInPreDrag = false;
         mOptions = null;
-
-        if (enableDragStartEndMultiDispatch()) {
-            if (mDragDriver == null || (!wasInPreDrag && mDragDriver.isDragWithinWindow())) {
-                for (DragListener listener : new ArrayList<>(mListeners)) {
-                    listener.onDragEnd();
-                }
-            }
-        } else {
-            for (DragListener listener : new ArrayList<>(mListeners)) {
-                listener.onDragEnd();
-            }
-        }
-
-        for (DragSessionListener listener : new ArrayList<>(mSessionListeners)) {
-            listener.onDragSessionEnd();
+        for (DragListener listener : new ArrayList<>(mListeners)) {
+            listener.onDragEnd();
         }
     }
 
@@ -615,24 +378,10 @@ public class DragController implements DragDriver.EventListener, TouchController
     }
 
     @Override
-    public void onDriverDragEnterWindow() {
-        if (enableDragStartEndMultiDispatch() && !mIsInPreDrag) {
-            for (DragListener listener : new ArrayList<>(mListeners)) {
-                listener.onDragStart(mDragObject, mOptions);
-            }
-        }
-    }
-
-    @Override
     public void onDriverDragExitWindow() {
         if (mLastDropTarget != null) {
             mLastDropTarget.onDragExit(mDragObject);
             mLastDropTarget = null;
-        }
-        if (enableDragStartEndMultiDispatch() && !mIsInPreDrag) {
-            for (DragListener listener : new ArrayList<>(mListeners)) {
-                listener.onDragEnd();
-            }
         }
     }
 
@@ -668,7 +417,6 @@ public class DragController implements DragDriver.EventListener, TouchController
             // Remember location of down touch
             mMotionDown.set(dragLayerPos.x,  dragLayerPos.y);
         }
-        mIsInMouseRightClick = TouchUtil.isMouseRightClickDownOrMove(ev);
 
         mLastTouchClassification = ev.getClassification();
         return mDragDriver != null && mDragDriver.onInterceptTouchEvent(ev);
@@ -691,55 +439,14 @@ public class DragController implements DragDriver.EventListener, TouchController
     }
 
     /**
-     * Call this from {@link com.android.launcher3.views.BaseDragLayer} to handle system drag
-     * events. This method identifies at most a single registered handler for the system drag
-     * sequence and dispatches events to it.
-     * Note that potential handlers are prioritized by reverse chronological registration time.
+     * Call this from a drag source view.
      */
     public boolean onDragEvent(DragEvent event) {
-        if (!enableSystemDrag()) {
-            return mDragDriver != null && mDragDriver.onDragEvent(event);
-        }
-
-        // Case: Handle system drag start.
-        if (event.getAction() == DragEvent.ACTION_DRAG_STARTED) {
-            for (int i = mSystemDragHandlers.size() - 1; i >= 0; i--) {
-                final SystemDragHandler handler = mSystemDragHandlers.get(i);
-                if (handler.onDrag(event)) {
-                    mLastSystemDragHandler = handler;
-                    if (mDragDriver != null) {
-                        mDragDriver.onDragEvent(event);
-                    }
-                    return true;
-                }
-            }
-            mLastSystemDragHandler = null;
-            return false;
-        }
-
-        // Case: Handle other system drag events.
-        if (mLastSystemDragHandler != null && mLastSystemDragHandler.onDrag(event)) {
-            if (mDragDriver !=  null) {
-                mDragDriver.onDragEvent(event);
-            }
-            return true;
-        }
-
-        // Case: Unhandled system drag event.
-        if (mLastSystemDragHandler != null) {
-            mLastSystemDragHandler = null;
-            if (isDragging()) {
-                cancelDrag();
-            }
-        }
-
-        return false;
+        return mDragDriver != null && mDragDriver.onDragEvent(event);
     }
 
     protected void handleMoveEvent(int x, int y) {
-        if (!mOptions.deferDragToPreDragEnd || !mIsInPreDrag) {
-            mDragObject.dragView.move(x, y);
-        }
+        mDragObject.dragView.move(x, y);
 
         // Check if we are hovering over the scroll areas
         mDistanceSinceScroll += Math.hypot(mLastTouch.x - x, mLastTouch.y - y);
@@ -760,17 +467,6 @@ public class DragController implements DragDriver.EventListener, TouchController
 
     public float getDistanceDragged() {
         return mDistanceSinceScroll;
-    }
-
-    public Point getDownPoint() {
-        return mMotionDown;
-    }
-
-    /**
-     * Returns true if the current drag operation is controlled by a mouse.
-     */
-    public boolean isMouseDrag() {
-        return mOptions != null && mOptions.isMouseDrag;
     }
 
     public void forceTouchMove() {
@@ -826,7 +522,14 @@ public class DragController implements DragDriver.EventListener, TouchController
 
         mDragObject.dragComplete = true;
         if (mIsInPreDrag) {
-            mDragObject.cancelled = true;
+            if (removeAppsRefreshOnRightClick()) {
+                mDragObject.cancelled = true;
+            } else {
+                if (dropTarget != null) {
+                    dropTarget.onDragExit(mDragObject);
+                }
+                return;
+            }
         }
 
         // Drop onto the target.
@@ -848,13 +551,9 @@ public class DragController implements DragDriver.EventListener, TouchController
     }
 
     private DropTarget findDropTarget(final int x, final int y) {
-        if (enableDragStartEndMultiDispatch()
-                && mDragDriver != null
-                && !mDragDriver.isDragWithinWindow()) {
-            return null;
-        }
         mCoordinatesTemp[0] = x;
         mCoordinatesTemp[1] = y;
+
         final Rect r = mRectTemp;
         final ArrayList<DropTarget> dropTargets = mDropTargets;
         final int count = dropTargets.size();
@@ -865,11 +564,8 @@ public class DragController implements DragDriver.EventListener, TouchController
 
             target.getHitRectRelativeToDragLayer(r);
             if (r.contains(x, y)) {
-                View dropTargetView = target.getDropView();
-                if (dropTargetView != null) {
-                    mActivity.getDragLayer().mapCoordInSelfToDescendant(dropTargetView,
-                            mCoordinatesTemp);
-                }
+                mActivity.getDragLayer().mapCoordInSelfToDescendant(target.getDropView(),
+                        mCoordinatesTemp);
                 mDragObject.x = mCoordinatesTemp[0];
                 mDragObject.y = mCoordinatesTemp[1];
                 return target;
@@ -881,50 +577,20 @@ public class DragController implements DragDriver.EventListener, TouchController
         return dropTarget;
     }
 
-    protected DropTarget getDefaultDropTarget(int[] dropCoordinates) {
-        return null;
-    }
+    protected abstract DropTarget getDefaultDropTarget(int[] dropCoordinates);
 
     /**
-     * Installs a listener which will be notified when a drag session starts or ends.
-     *
-     * @see #addDragListener(DragListener)
-     */
-    public void addDragSessionListener(DragSessionListener l) {
-        mSessionListeners.add(l);
-    }
-
-    /**
-     * Removes a previously installed drag session listener.
-     *
-     * @see #removeDragListener(DragListener)
-     */
-    public void removeDragSessionListener(DragSessionListener l) {
-        mSessionListeners.remove(l);
-    }
-
-    /**
-     * Installs a listener which will be notified when a drag starts or ends.
-     * <p>
-     * NOTE: Events may be propagated multiple times per drag session.
-     *
-     * @see #addDragSessionListener(DragSessionListener)
+     * Sets the drag listener which will be notified when a drag starts or ends.
      */
     public void addDragListener(DragListener l) {
         mListeners.add(l);
     }
 
     /**
-     * Removes a previously installed drag listener.
-     *
-     * @see #removeDragSessionListener(DragSessionListener)
+     * Remove a previously installed drag listener.
      */
     public void removeDragListener(DragListener l) {
         mListeners.remove(l);
-    }
-
-    @VisibleForTesting public ArrayList<DragListener> getListeners() {
-        return mListeners;
     }
 
     /**
@@ -939,37 +605,5 @@ public class DragController implements DragDriver.EventListener, TouchController
      */
     public void removeDropTarget(DropTarget target) {
         mDropTargets.remove(target);
-    }
-
-    /**
-     * Registers a handler for system drag events. Note that each system drag sequence can be
-     * handled by at most one handler and that potential handlers are prioritized by reverse
-     * chronological registration time.
-     *
-     * @param handler The handler to register
-     */
-    public void addSystemDragHandler(SystemDragHandler handler) {
-        if (enableSystemDrag()) {
-            mSystemDragHandlers.add(handler);
-        }
-    }
-
-    /**
-     * Unregisters a handler for system drag events. Note that this will cancel dragging if the
-     * specified handler is currently handling a system drag sequence.
-     *
-     * @param handler The handler to unregister
-     */
-    public void removeSystemDragHandler(SystemDragHandler handler) {
-        if (!enableSystemDrag()) {
-            return;
-        }
-        mSystemDragHandlers.remove(handler);
-        if (mLastSystemDragHandler == handler) {
-            mLastSystemDragHandler = null;
-            if (isDragging()) {
-                cancelDrag();
-            }
-        }
     }
 }

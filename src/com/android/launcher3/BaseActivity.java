@@ -16,8 +16,7 @@
 
 package com.android.launcher3;
 
-import static com.android.launcher3.display.LauncherDisplayInfo.CHANGE_ROTATION;
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
+import static com.android.launcher3.util.DisplayController.CHANGE_ROTATION;
 import static com.android.launcher3.util.FlagDebugUtils.appendFlag;
 import static com.android.launcher3.util.FlagDebugUtils.formatFlagChange;
 import static com.android.launcher3.util.SystemUiController.UI_STATE_FULLSCREEN_TASK;
@@ -28,10 +27,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ActionMode;
-import android.view.Display;
 import android.view.View;
 import android.window.OnBackInvokedDispatcher;
 
@@ -44,23 +43,20 @@ import androidx.savedstate.SavedStateRegistry;
 import androidx.savedstate.SavedStateRegistryController;
 
 import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener;
-import com.android.launcher3.dagger.ActivityContextComponent;
-import com.android.launcher3.dagger.LauncherComponentProvider;
-import com.android.launcher3.display.DisplayController;
-import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.testing.TestInformationHandler;
 import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.util.ActivityOptionsWrapper;
+import com.android.launcher3.util.DisplayController;
+import com.android.launcher3.util.DisplayController.DisplayInfoChangeListener;
+import com.android.launcher3.util.DisplayController.Info;
 import com.android.launcher3.util.LifecycleHelper;
-import com.android.launcher3.util.ListenableDiffAwareRef;
 import com.android.launcher3.util.RunnableList;
-import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.SystemUiController;
 import com.android.launcher3.util.ViewCache;
 import com.android.launcher3.util.WeakCleanupSet;
+import com.android.launcher3.util.WindowBounds;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimView;
 
@@ -73,11 +69,11 @@ import java.util.StringJoiner;
 /**
  * Launcher BaseActivity
  */
-public abstract class BaseActivity extends Activity implements ActivityContext {
+public abstract class BaseActivity extends Activity implements ActivityContext,
+        DisplayInfoChangeListener {
 
     private static final String TAG = "BaseActivity";
-    // TODO(b/406230491): Trun DEBUG back to false once done with investigation.
-    static final boolean DEBUG = true;
+    static final boolean DEBUG = false;
 
     public static final int INVISIBLE_BY_STATE_HANDLER = 1 << 0;
     public static final int INVISIBLE_BY_APP_TRANSITIONS = 1 << 1;
@@ -104,15 +100,16 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     }
 
     private final ArrayList<OnDeviceProfileChangeListener> mDPChangeListeners = new ArrayList<>();
+    private final ArrayList<MultiWindowModeChangedListener> mMultiWindowModeChangedListeners =
+            new ArrayList<>();
 
     private final SavedStateRegistryController mSavedStateRegistryController =
             SavedStateRegistryController.create(this);
     private final LifecycleRegistry mLifecycleRegistry = new LifecycleRegistry(this);
-    private final WeakCleanupSet mCleanupSet = new WeakCleanupSet(this, getUiExecutor());
+    private final WeakCleanupSet mCleanupSet = new WeakCleanupSet(this);
 
-    protected volatile DeviceProfile mDeviceProfile;
+    protected DeviceProfile mDeviceProfile;
     protected SystemUiController mSystemUiController;
-    protected int mDisplayId;
     private StatsLogManager mStatsLogManager;
 
     public static final int ACTIVITY_STATE_STARTED = 1 << 0;
@@ -138,8 +135,6 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
      * State flag indicating that a state transition is in progress
      */
     public static final int ACTIVITY_STATE_TRANSITION_ACTIVE = 1 << 6;
-
-    public static final int ACTIVITY_STATE_IS_TOP_RESUMED = 1 << 7;
 
     @Retention(SOURCE)
     @IntDef(
@@ -191,19 +186,12 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     private final RunnableList[] mEventCallbacks =
             {new RunnableList(), new RunnableList(), new RunnableList(), new RunnableList()};
 
-    // List of persistent callbacks (i.e. the list is not cleared when callbacks are first run) to
-    // be run when the top resumed activity state changes.
-    private final ArrayList<Runnable> mTopResumedChangedCallbacks = new ArrayList<Runnable>();
-
     private ActionMode mCurrentActionMode;
-
-    private ActivityContextComponent mActivityComponent;
 
     public BaseActivity() {
         mSavedStateRegistryController.performAttach();
         registerActivityLifecycleCallbacks(
                 new LifecycleHelper(this, mSavedStateRegistryController, mLifecycleRegistry));
-        TestInformationHandler.trackUiSurface(this);
     }
 
     @Override
@@ -219,19 +207,6 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     @Override
     public List<OnDeviceProfileChangeListener> getOnDeviceProfileChangeListeners() {
         return mDPChangeListeners;
-    }
-
-    @Override
-    public ActivityContextComponent getActivityComponent() {
-        if (mActivityComponent == null) {
-            // Preload all-apps when when embedded in Launcher or any other activity based UI
-            mActivityComponent = (ActivityContextComponent) LauncherComponentProvider.get(this)
-                    .getActivityContextComponentBuilder()
-                    .activityContext(this)
-                    .setAllAppsPreloaded(true)
-                    .build();
-        }
-        return mActivityComponent;
     }
 
     /**
@@ -264,20 +239,8 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Cache displayId as it is a binder call.
-        Display display = getDisplay();
-        mDisplayId = display != null ? display.getDisplayId() : Display.DEFAULT_DISPLAY;
         registerBackDispatcher();
-
-        // TODO: b/362720616 - Investigate the impact of adding listener using correct displayId.
-        ListenableDiffAwareRef<LauncherDisplayInfo, Integer> listenable =
-                DisplayController.INSTANCE.get(this).getListenable();
-        if (listenable != null) {
-            SafeCloseable safeCloseable = listenable.forEachChange(
-                    MAIN_EXECUTOR, this::onDisplayInfoChanged);
-            addEventCallback(EVENT_DESTROYED, safeCloseable::close);
-        }
+        DisplayController.INSTANCE.get(this).addChangeListener(this);
     }
 
     @Override
@@ -301,6 +264,14 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     }
 
     @Override
+    public void onMultiWindowModeChanged(boolean isInMultiWindowMode, Configuration newConfig) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig);
+        for (int i = mMultiWindowModeChangedListeners.size() - 1; i >= 0; i--) {
+            mMultiWindowModeChangedListeners.get(i).onMultiWindowModeChanged(isInMultiWindowMode);
+        }
+    }
+
+    @Override
     protected void onStop() {
         removeActivityFlags(ACTIVITY_STATE_STARTED | ACTIVITY_STATE_USER_ACTIVE);
         mForceInvisible = 0;
@@ -317,6 +288,7 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     protected void onDestroy() {
         super.onDestroy();
         mEventCallbacks[EVENT_DESTROYED].executeAllAndClear();
+        DisplayController.INSTANCE.get(this).removeChangeListener(this);
     }
 
     @Override
@@ -338,22 +310,6 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
             addActivityFlags(ACTIVITY_STATE_WINDOW_FOCUSED);
         } else {
             removeActivityFlags(ACTIVITY_STATE_WINDOW_FOCUSED);
-        }
-    }
-
-
-    @Override
-    public void onTopResumedActivityChanged(boolean isTopResumed) {
-        super.onTopResumedActivityChanged(isTopResumed);
-
-        if (isTopResumed) {
-            addActivityFlags(ACTIVITY_STATE_IS_TOP_RESUMED);
-        } else {
-            removeActivityFlags(ACTIVITY_STATE_IS_TOP_RESUMED);
-        }
-
-        for (Runnable callback : mTopResumedChangedCallbacks) {
-            callback.run();
         }
     }
 
@@ -397,14 +353,6 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
         return (mActivityFlags & ACTIVITY_STATE_USER_ACTIVE) != 0;
     }
 
-
-    /**
-     * @return true if Launcher is the current top resumed activity.
-     */
-    public boolean isTopResumedActivity() {
-        return (mActivityFlags & ACTIVITY_STATE_IS_TOP_RESUMED) != 0;
-    }
-
     public int getActivityFlags() {
         return mActivityFlags;
     }
@@ -431,6 +379,14 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
     }
 
     protected void onActivityFlagsChanged(int changeBits) {
+    }
+
+    public void addMultiWindowModeChangedListener(MultiWindowModeChangedListener listener) {
+        mMultiWindowModeChangedListeners.add(listener);
+    }
+
+    public void removeMultiWindowModeChangedListener(MultiWindowModeChangedListener listener) {
+        mMultiWindowModeChangedListeners.remove(listener);
     }
 
     /**
@@ -470,14 +426,8 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
         mEventCallbacks[event].remove(callback);
     }
 
-    /** Adds a callback to run when top resumed activity state changes. */
-    public void addTopResumedChangedCallback(Runnable callback) {
-        mTopResumedChangedCallbacks.add(callback);
-    }
-
-    /** Removes a callback previously added using [addTopResumedChangedCallback]. */
-    public void removeTopResumedChangedCallback(Runnable callback) {
-        mTopResumedChangedCallbacks.remove(callback);
+    public interface MultiWindowModeChangedListener {
+        void onMultiWindowModeChanged(boolean isInMultiWindowMode);
     }
 
     protected void dumpMisc(String prefix, PrintWriter writer) {
@@ -531,7 +481,12 @@ public abstract class BaseActivity extends Activity implements ActivityContext {
         return wrapper;
     }
 
-    protected void onDisplayInfoChanged(LauncherDisplayInfo info, int flags) {
+    protected WindowBounds getMultiWindowDisplaySize() {
+        return WindowBounds.fromWindowMetrics(getWindowManager().getCurrentWindowMetrics());
+    }
+
+    @Override
+    public void onDisplayInfoChanged(Context context, Info info, int flags) {
         if ((flags & CHANGE_ROTATION) != 0 && mDeviceProfile.isVerticalBarLayout()) {
             reapplyUi();
         }

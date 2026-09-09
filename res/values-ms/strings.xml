@@ -32,10 +32,8 @@
     <string name="recent_task_option_aspect_ratio" msgid="7008605516391096989">"Tukar nisbah bidang"</string>
     <string name="split_app_info_accessibility" msgid="5475288491241414932">"Maklumat apl untuk %1$s"</string>
     <string name="split_app_usage_settings" msgid="7214375263347964093">"Tetapan penggunaan sebanyak %1$s"</string>
-    <string name="close_task_accessibility" msgid="4765872229211282647">"Tutup %1$s"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"Tetingkap Baharu"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"Urus Tetingkap"</string>
-    <string name="close_app_taskbar" msgid="3238979263877091273">"Tutup"</string>
     <string name="save_app_pair" msgid="5647523853662686243">"Simpan gandingan apl"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"Gandingan apl ini tidak disokong pada peranti ini"</string>
@@ -63,6 +61,8 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# pintasan}other{# pintasan}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"Widget"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Cari"</string>
+    <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Kosongkan teks daripada kotak carian"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Widget dan pintasan tidak tersedia"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Tiada widget atau pintasan yang dijumpai"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Peribadi"</string>
@@ -102,28 +102,6 @@
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"Jangan cadangkan apl"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"Sematkan Ramalan"</string>
     <string name="bubble" msgid="3072951361014076670">"Gelembung"</string>
-    <string name="enable_app_lock" msgid="5606772593969266718">"Kunci apl"</string>
-    <string name="disable_app_lock" msgid="2252606435270354961">"Alih keluar kunci apl"</string>
-    <string name="widget_settings" msgid="5280157748464495511">"Tetapan"</string>
-    <string name="add_to_taskbar" msgid="1442306985857150792">"Tambahkan pada Bar Tugas"</string>
-    <string name="remove_from_taskbar" msgid="5817026706030273018">"Alih keluar daripada Bar Tugas"</string>
-    <string name="no_room_in_taskbar" msgid="6885243748717395469">"Tiada ruang dalam Bar tugas"</string>
-    <string name="app_added_to_taskbar" msgid="6348755169793615171">"Apl ditambahkan pada Bar Tugas"</string>
-    <string name="app_removed_from_taskbar" msgid="3471754847898675396">"Apl dialih keluar daripada Bar Tugas"</string>
-    <string name="remove_system_shortcut_label" msgid="3991201411148073972">"Alih keluar"</string>
-    <string name="home_screen_files_context_menu_copy_label" msgid="8769381168712216221">"Salin"</string>
-    <string name="home_screen_files_context_menu_open_in_app_label" msgid="7930552598671791537">"Buka"</string>
-    <string name="home_screen_files_context_menu_rename_label" msgid="699579827537411711">"Namakan semula"</string>
-    <string name="home_screen_files_context_menu_delete_permanently_label" msgid="8660443461874174185">"Padam secara kekal"</string>
-    <string name="home_screen_files_context_menu_move_to_trash_label" msgid="1145655050674479315">"Alihkan ke sampah"</string>
-    <string name="home_screen_files_moved_to_trash_message" msgid="2848141584483641247">"Item dialihkan kepada sampah"</string>
-    <string name="home_screen_files_move_to_trash_error_message" msgid="3836240816166417826">"Tidak dapat mengalihkan item kepada sampah. Ada masalah."</string>
-    <string name="home_screen_files_restore_from_trash_error_message" msgid="994941644161090497">"Tidak dapat buat asal. Akses apl Files untuk membuat pemulihan."</string>
-    <string name="actions_popup_menu_button" msgid="2442187572711557413">"Tindakan"</string>
-    <string name="shortcuts_popup_menu_button" msgid="766598805805882499">"Pintasan"</string>
-    <string name="actions_popup_menu_button_description" msgid="4224192559473869722">"Tunjukkan menu tindakan"</string>
-    <string name="shortcuts_popup_menu_button_description" msgid="7566698511556454634">"Tunjukkan menu pintasan apl"</string>
-    <string name="pause_app_label" msgid="6796255881727695791">"Jeda apl"</string>
     <string name="permlab_install_shortcut" msgid="5632423390354674437">"pasang pintasan"</string>
     <string name="permdesc_install_shortcut" msgid="923466509822011139">"Membenarkan apl menambah pintasan tanpa campur tangan pengguna."</string>
     <string name="permlab_read_settings" msgid="5136500343007704955">"membaca tetapan dan pintasan skrin utama"</string>
@@ -135,11 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Ketik untuk menyelesaikan persediaan"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Ini ialah apl sistem dan tidak boleh dinyahpasang."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Edit Nama"</string>
-    <string name="paginate_left" msgid="7915437358451360433">"Buat halaman ke kiri"</string>
-    <string name="paginate_right" msgid="6701038155201975878">"Buat halaman ke kanan"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> dilumpuhkan"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} mempunyai # pemberitahuan}other{{app_name} mempunyai # pemberitahuan}}"</string>
-    <string name="hotseat_prediction_content_description" msgid="7680403232742709704">"Apl yang diramalkan: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Halaman %1$d daripada %2$d"</string>
     <string name="workspace_scroll_format" msgid="8458889198184077399">"Skrin Laman Utama %1$d daripada %2$d"</string>
     <string name="workspace_new_page" msgid="257366611030256142">"Halaman skrin utama baharu"</string>
@@ -150,26 +125,18 @@
     <string name="folder_tap_to_rename" msgid="4017685068016979677">"Ketik untuk menyimpan penamaan semula"</string>
     <string name="folder_closed" msgid="4100806530910930934">"Folder ditutup"</string>
     <string name="folder_renamed" msgid="1794088362165669656">"Folder dinamakan semula kepada <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="folder_type_name" msgid="506043307348675355">"Folder"</string>
-    <string name="app_folder_type_name" msgid="149643408248060284">"Folder apl"</string>
-    <string name="apps_folder_name_format_exact" msgid="891345161390366700">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> item"</string>
-    <string name="apps_folder_name_format_exact_with_dot" msgid="7729062268048931718">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> item, mengandungi pemberitahuan"</string>
-    <string name="apps_folder_name_format_overflow" msgid="4614729357510054194">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> atau lebih banyak item"</string>
-    <string name="apps_folder_name_format_overflow_with_dot" msgid="4738681518782744688">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> atau lebih banyak item, mengandungi pemberitahuan"</string>
+    <string name="folder_name_format_exact" msgid="8626242716117004803">"Folder: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> item"</string>
+    <string name="folder_name_format_overflow" msgid="4270108890534995199">"Folder: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> atau lebih banyak item"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"Folder tidak bernama"</string>
-    <string name="files_folder_name" msgid="7712191128817533622">"Folder fail: <xliff:g id="NAME">%1$s</xliff:g>"</string>
     <string name="app_pair_name_format" msgid="8134106404716224054">"Gandingan apl: <xliff:g id="APP1">%1$s</xliff:g> dan <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"Hiasan latar &amp; gaya"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"Edit Skrin Utama"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"Tetapan skrin utama"</string>
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"Dilumpuhkan oleh pentadbir anda"</string>
-    <string name="settings_home_organizer" msgid="5184766349407080054">"Pengatur laman utama"</string>
+    <string name="allow_rotation_title" msgid="7222049633713050106">"Benarkan putaran skrin utama"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Apabila telefon diputar"</string>
-    <string name="compose_developer_options_section" msgid="8211460486549952595">"Jetpack Compose"</string>
-    <string name="enable_composition_tracing_title" msgid="8989606591739368424">"Dayakan penyurihan komposisi"</string>
-    <string name="enable_composition_tracing_desc" msgid="7187566039216492405">"Dayakan penyurihan komposisi semasa mengambil surih perfetto dalam ikhtisar"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Mod landskap"</string>
-    <string name="landscape_mode_desc" msgid="3085236452297838664">"Tetapkan skrin utama kepada mod landskap"</string>
+    <string name="landscape_mode_desc" msgid="7372569859592816793">"Tetapkan telefon kepada mod landskap"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Titik pemberitahuan"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Hidup"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Mati"</string>
@@ -206,12 +173,9 @@
     <string name="move_to_hotseat_position" msgid="6295412897075147808">"Alihkan ke kedudukan kegemaran <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="item_moved" msgid="4606538322571412879">"Item dialihkan"</string>
     <string name="add_to_folder" msgid="9040534766770853243">"Tambahkan pada folder: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_position" msgid="4457486890869662">"Tambahkan pada folder <xliff:g id="NAME">%1$s</xliff:g>. Baris <xliff:g id="NUMBER_0">%2$s</xliff:g>, lajur <xliff:g id="NUMBER_1">%3$s</xliff:g> dalam <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="add_to_folder_with_app" msgid="4534929978967147231">"Tambahkan pada folder dengan <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_app_with_position" msgid="6670979489897093325">"Tambahkan pada folder dengan <xliff:g id="NAME">%1$s</xliff:g>. Baris <xliff:g id="NUMBER_0">%2$s</xliff:g>, lajur <xliff:g id="NUMBER_1">%3$s</xliff:g>, dalam <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="added_to_folder" msgid="4793259502305558003">"Item ditambahkan pada folder"</string>
     <string name="create_folder_with" msgid="4050141361160214248">"Buat folder dengan: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="create_folder_with_position" msgid="3093164349445159115">"Buat folder dengan <xliff:g id="NAME">%1$s</xliff:g>. Baris <xliff:g id="NUMBER_0">%2$s</xliff:g>, lajur <xliff:g id="NUMBER_1">%3$s</xliff:g>, dalam <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="folder_created" msgid="6409794597405184510">"Folder dibuat"</string>
     <string name="action_move_to_workspace" msgid="39528912300293768">"Alihkan ke skrin utama"</string>
     <string name="action_resize" msgid="1802976324781771067">"Ubah saiz"</string>
@@ -219,11 +183,6 @@
     <string name="action_increase_height" msgid="459390020612501122">"Tambahkan ketinggian"</string>
     <string name="action_decrease_width" msgid="1374549771083094654">"Kurangkan kelebaran"</string>
     <string name="action_decrease_height" msgid="282377193880900022">"Kurangkan ketinggian"</string>
-    <string name="resize_handle_start" msgid="431073846880883794">"Pemegang ubah saiz kiri"</string>
-    <string name="resize_handle_top" msgid="280799523356834542">"Pemegang ubah saiz atas"</string>
-    <string name="resize_handle_end" msgid="8411240534474246075">"Pemegang ubah saiz kanan"</string>
-    <string name="resize_handle_bottom" msgid="4217171801060928429">"Pemegang ubah saiz bawah"</string>
-    <string name="tap_to_show_resize_buttons" msgid="964815552123289232">"Paparkan butang ubah saiz"</string>
     <string name="widget_resized" msgid="9130327887929620">"Saiz widget diubah menjadi <xliff:g id="NUMBER_0">%1$s</xliff:g> lebar <xliff:g id="NUMBER_1">%2$s</xliff:g> tinggi"</string>
     <string name="action_deep_shortcut" msgid="4766835855579976045">"Menu Pintasan"</string>
     <string name="widget_frame_name" msgid="8782828448471444270">"Bingkai Ubah Saiz Widget untuk <xliff:g id="STRING">%1$s</xliff:g>"</string>
@@ -236,6 +195,7 @@
     <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"Tab apl kerja"</string>
     <string name="work_profile_toggle_label" msgid="3081029915775481146">"Profil kerja"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"Apl kerja mempunyai lencana dan kelihatan kepada pentadbir IT anda"</string>
+    <string name="work_profile_edu_accept" msgid="6069788082535149071">"OK"</string>
     <string name="work_apps_paused_title" msgid="3040901117349444598">"Apl kerja dijeda"</string>
     <string name="work_apps_paused_info_body" msgid="1687828929959237477">"Anda tidak akan menerima pemberitahuan daripada apl kerja anda"</string>
     <string name="work_apps_paused_body" msgid="261634750995824906">"Apl kerja anda tidak boleh menghantar pemberitahuan kepada anda, menggunakan bateri anda atau mengakses lokasi anda"</string>
@@ -256,23 +216,6 @@
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Kunci"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Peralihan Ruang Peribadi"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Pasang"</string>
-    <string name="ps_app_label_override" msgid="6876160706011676804">"Tambah"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Pasang apl pada Ruang Peribadi"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Tambahkan fail dan banyak lagi pada Ruang Persendirian"</string>
-    <string name="circle_shape_title" msgid="3582075061179674565">"Bulatan"</string>
-    <string name="square_shape_title" msgid="3085320803149569308">"Segi empat sama"</string>
-    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Kuki 4 sisi"</string>
-    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Kuki 7 sisi"</string>
-    <string name="arch_shape_title" msgid="2213843822192871318">"Lengkung"</string>
-    <string name="create_new_folder_button_text" msgid="4037052463794735069">"Folder baharu"</string>
-    <string name="default_new_folder_name" msgid="8821062664729412079">"Folder baharu"</string>
-    <string name="home_screen_files_rename_dialog_clear_button" msgid="1516608063079626727">"Kosongkan"</string>
-    <string name="home_screen_files_rename_dialog_neutral_button" msgid="961781261154618336">"Batal"</string>
-    <string name="home_screen_files_rename_dialog_positive_button" msgid="6506701192246379747">"Namakan semula"</string>
-    <string name="home_screen_files_rename_dialog_file_title" msgid="3540941610992603887">"Namakan semula fail"</string>
-    <string name="home_screen_files_rename_dialog_folder_title" msgid="2453152990256864379">"Namakan semula folder"</string>
-    <string name="something_went_wrong" msgid="1492883246069060632">"Ada masalah"</string>
-    <string name="organizer_create_screen_title" msgid="1052454457895703433">"Buat skrin"</string>
-    <string name="organizer_create_screen_description" msgid="3224132391919219061">"Pilih kategori untuk menambahkan apl dan widget daripada telefon anda"</string>
-    <string name="organizer_choose_layout_title" msgid="127228966942084947">"Pilih reka letak"</string>
 </resources>

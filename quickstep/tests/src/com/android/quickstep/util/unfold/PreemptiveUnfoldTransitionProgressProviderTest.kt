@@ -65,7 +65,6 @@ class PreemptiveUnfoldTransitionProgressProviderTest {
     @After
     fun after() {
         Log.setWtfHandler(oldWtfHandler)
-        TestableLooper.remove(this)
     }
 
     @Test

@@ -37,8 +37,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The grid view adapter of all the apps.
+ *
+ * @param <T> Type of context inflating all apps.
  */
-public class AllAppsGridAdapter extends BaseAllAppsAdapter {
+public class AllAppsGridAdapter<T extends Context & ActivityContext> extends
+        BaseAllAppsAdapter<T> {
 
     public static final String TAG = "AppsGridAdapter";
     private final AppsGridLayoutManager mGridLayoutMgr;
@@ -69,13 +72,12 @@ public class AllAppsGridAdapter extends BaseAllAppsAdapter {
     }
 
 
-    public AllAppsGridAdapter(ActivityContext activityContext, LayoutInflater inflater,
+    public AllAppsGridAdapter(T activityContext, LayoutInflater inflater,
             AlphabeticalAppsList apps, SearchAdapterProvider<?> adapterProvider) {
         super(activityContext, inflater, apps, adapterProvider);
-        mGridLayoutMgr = new AppsGridLayoutManager(mActivityContext.asContext());
+        mGridLayoutMgr = new AppsGridLayoutManager(mActivityContext);
         mGridLayoutMgr.setSpanSizeLookup(new GridSpanSizer());
-        setAppsPerRow(
-                activityContext.getDeviceProfile().getAllAppsProfile().getNumShownAllAppsColumns());
+        setAppsPerRow(activityContext.getDeviceProfile().numShownAllAppsColumns);
     }
 
     /**

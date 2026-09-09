@@ -26,7 +26,6 @@ filegroup {
     name: "launcher3-quickstep-robo-src",
     path: "tests/multivalentTests",
     srcs: [
-        "tests/multivalentTests/src/**/*.aidl",
         "tests/multivalentTests/src/**/*.java",
         "tests/multivalentTests/src/**/*.kt",
     ],
@@ -36,7 +35,6 @@ filegroup {
     name: "launcher3-quickstep-tests-src",
     path: "tests",
     srcs: [
-        "tests/multivalentTests/src/**/*.aidl",
         "tests/multivalentTests/src/**/*.java",
         "tests/multivalentTests/src/**/*.kt",
         "tests/src/**/*.java",
@@ -45,9 +43,32 @@ filegroup {
 }
 
 filegroup {
+    name: "launcher3-quickstep-oop-tests-src",
+    path: "tests",
+    srcs: [
+        "tests/src/com/android/quickstep/TaskbarModeSwitchRule.java",
+        "tests/src/com/android/quickstep/NavigationModeSwitchRule.java",
+        "tests/src/com/android/quickstep/AbstractQuickStepTest.java",
+        "tests/src/com/android/quickstep/TaplOverviewIconTest.java",
+        "tests/src/com/android/quickstep/TaplTestsQuickstep.java",
+        "tests/src/com/android/quickstep/TaplTestsSplitscreen.java",
+        "tests/src/com/android/quickstep/util/SplitScreenTestUtils.kt",
+        "tests/src/com/android/launcher3/testcomponent/ExcludeFromRecentsTestActivity.java",
+    ],
+}
+
+filegroup {
     name: "launcher3-quickstep-screenshot-tests-src",
     path: "tests/multivalentScreenshotTests",
     srcs: [
         "tests/multivalentScreenshotTests/src/**/*.kt",
+    ],
+}
+
+filegroup {
+    name: "launcher3-quickstep-testing",
+    path: "testing",
+    srcs: [
+        "testing/**/*.kt",
     ],
 }

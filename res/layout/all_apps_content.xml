@@ -17,7 +17,9 @@
 -->
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <include layout="@layout/all_apps_bottom_sheet_background" />
+    <include
+        layout="@layout/all_apps_bottom_sheet_background"
+        android:visibility="gone" />
 
     <include
         layout="@layout/search_results_rv_layout"

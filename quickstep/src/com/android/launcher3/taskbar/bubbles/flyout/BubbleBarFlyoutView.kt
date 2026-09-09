@@ -18,6 +18,7 @@ package com.android.launcher3.taskbar.bubbles.flyout
 
 import android.content.Context
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Outline
@@ -26,7 +27,6 @@ import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewOutlineProvider
@@ -59,13 +59,8 @@ class BubbleBarFlyoutView(
         /** Returns the maximum possible height of the flyout view. */
         fun getMaximumViewHeight(context: Context): Int {
             val verticalPaddings = getFlyoutPadding(context) * 2
-            val singleRowHeightPx =
-                TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_SP,
-                    TEXT_ROW_HEIGHT_SP.toFloat(),
-                    context.resources.displayMetrics,
-                )
-            val textSizePx = singleRowHeightPx * MAX_ROWS_COUNT
+            val textSizeSp = TEXT_ROW_HEIGHT_SP * MAX_ROWS_COUNT
+            val textSizePx = textSizeSp * Resources.getSystem().displayMetrics.scaledDensity
             val triangleHeight =
                 context.resources.getDimensionPixelSize(R.dimen.bubblebar_flyout_triangle_height)
             return verticalPaddings + textSizePx.toInt() + triangleHeight

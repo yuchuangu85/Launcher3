@@ -26,6 +26,7 @@
     android:layout_marginHorizontal="@dimen/keyboard_quick_switch_margin_ends"
     android:layout_gravity="center_horizontal"
     android:background="@drawable/keyboard_quick_switch_view_background"
+    android:clipToOutline="true"
     android:alpha="0"
     android:visibility="invisible"
     android:focusableInTouchMode="true"

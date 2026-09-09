@@ -20,31 +20,30 @@ import android.content.Context
 import android.graphics.Rect
 import android.view.MotionEvent
 import com.android.app.animation.Interpolators.ZOOM_IN
+import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.LauncherAnimUtils
 import com.android.launcher3.Utilities.EDGE_NAV_BAR
 import com.android.launcher3.Utilities.boundToRange
 import com.android.launcher3.Utilities.debugLog
 import com.android.launcher3.Utilities.isRtl
 import com.android.launcher3.anim.AnimatorPlaybackController
-import com.android.launcher3.display.DisplayController
 import com.android.launcher3.touch.BaseSwipeDetector
 import com.android.launcher3.touch.SingleAxisSwipeDetector
+import com.android.launcher3.util.DisplayController
 import com.android.launcher3.util.FlingBlockCheck
 import com.android.launcher3.util.TouchController
 import com.android.quickstep.views.RecentsView
 import com.android.quickstep.views.RecentsViewContainer
 import com.android.quickstep.views.TaskView
-import java.util.function.Consumer
 import kotlin.math.abs
 
 /** Touch controller which handles dragging task view cards for launch. */
-class TaskViewLaunchTouchController<CONTAINER>
-@JvmOverloads
-constructor(
+class TaskViewLaunchTouchController<CONTAINER>(
     private val container: CONTAINER,
-    private val onAnimationCreatedCallback: Consumer<AnimatorPlaybackController>? = null,
-) : TouchController, SingleAxisSwipeDetector.Listener
-    where CONTAINER : Context, CONTAINER : RecentsViewContainer {
+    private val taskViewRecentsTouchContext: TaskViewRecentsTouchContext,
+) : TouchController, SingleAxisSwipeDetector.Listener where
+CONTAINER : Context,
+CONTAINER : RecentsViewContainer {
     private val tempRect = Rect()
     private val flingBlockCheck = FlingBlockCheck()
     private val recentsView: RecentsView<*, *> = container.getOverviewPanel()
@@ -61,7 +60,13 @@ constructor(
     private var launchEndDisplacement: Float = 0f
     private var playbackController: AnimatorPlaybackController? = null
     private var verticalFactor: Int = 0
-    private var canInterceptTouch = false
+
+    private fun canTaskLaunchTaskView(taskView: TaskView?) =
+        taskView != null &&
+            taskView === recentsView.currentPageTaskView &&
+            DisplayController.getNavigationMode(container).hasGestures &&
+            (!recentsView.showAsGrid() || taskView.isLargeTile) &&
+            recentsView.isTaskInExpectedScrollPosition(taskView)
 
     private fun canInterceptTouch(ev: MotionEvent): Boolean =
         when {
@@ -72,17 +77,27 @@ constructor(
                 false
             }
 
-            !recentsView.shouldSwipeDownLaunchTaskView(taskBeingDragged) -> {
-                // Already logged in RecentsViewUtils.
+            // Floating views that a TouchController should not try to intercept touches from.
+            AbstractFloatingView.getTopOpenViewWithType(
+                container,
+                AbstractFloatingView.TYPE_TOUCH_CONTROLLER_NO_INTERCEPT,
+            ) != null -> {
+                debugLog(TAG, "Not intercepting, open floating view blocking touch.")
                 false
             }
 
-            !DisplayController.getNavigationMode(container).hasGestures -> {
-                debugLog(TAG, "Not intercepting touch, not gesture mode.")
+            // Disable swiping if the task overlay is modal.
+            taskViewRecentsTouchContext.isRecentsModal -> {
+                debugLog(TAG, "Not intercepting touch in modal overlay.")
                 false
             }
 
-            else -> true
+            else ->
+                taskViewRecentsTouchContext.isRecentsInteractive.also { isRecentsInteractive ->
+                    if (!isRecentsInteractive) {
+                        debugLog(TAG, "Not intercepting touch, recents not interactive.")
+                    }
+                }
         }
 
     override fun onControllerInterceptTouchEvent(ev: MotionEvent): Boolean {
@@ -93,15 +108,10 @@ constructor(
             clearState()
         }
         if (ev.action == MotionEvent.ACTION_DOWN) {
-            canInterceptTouch = onActionDown(ev)
-            if (!canInterceptTouch) {
+            if (!onActionDown(ev)) {
                 clearState()
                 return false
             }
-        }
-        // Ignore other actions if touch intercepting has not been enabled in an ACTION_DOWN event.
-        if (!canInterceptTouch) {
-            return false
         }
         onControllerTouchEvent(ev)
         val downDirectionIsNegative = downDirection == SingleAxisSwipeDetector.DIRECTION_NEGATIVE
@@ -114,6 +124,9 @@ constructor(
     override fun onControllerTouchEvent(ev: MotionEvent) = detector.onTouchEvent(ev)
 
     private fun onActionDown(ev: MotionEvent): Boolean {
+        if (!canInterceptTouch(ev)) {
+            return false
+        }
         taskBeingDragged =
             recentsView.taskViews
                 .firstOrNull {
@@ -123,7 +136,8 @@ constructor(
                     verticalFactor =
                         recentsView.pagedOrientationHandler.getTaskDragDisplacementFactor(isRtl)
                 }
-        if (!canInterceptTouch(ev)) {
+        if (!canTaskLaunchTaskView(taskBeingDragged)) {
+            debugLog(TAG, "Not intercepting touch, task cannot be launched.")
             return false
         }
         detector.setDetectableScrollConditions(downDirection, /* ignoreSlop= */ false)
@@ -148,7 +162,7 @@ constructor(
                 .toFloat() * verticalFactor
         playbackController =
             pendingAnimation.createPlaybackController()?.apply {
-                onAnimationCreatedCallback?.accept(this)
+                taskViewRecentsTouchContext.onUserControlledAnimationCreated(this)
                 dispatchOnStart()
             }
     }

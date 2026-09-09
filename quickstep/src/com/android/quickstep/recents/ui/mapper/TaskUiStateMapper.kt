@@ -16,129 +16,94 @@
 
 package com.android.quickstep.recents.ui.mapper
 
-import android.security.Flags.appLockCore
-import android.util.Log
 import android.view.View.OnClickListener
-import com.android.launcher3.R
-import com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT
 import com.android.quickstep.recents.ui.viewmodel.TaskData
-import com.android.quickstep.task.TaskDismissButtonState
-import com.android.quickstep.task.apptimer.TaskAppTimerUiState
-import com.android.quickstep.task.thumbnail.TaskHeaderUiState
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState
-import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.AppLocked
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.BackgroundOnly
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.LiveTile
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.Snapshot
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.SnapshotSplash
+import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.ThumbnailHeader
 import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.Uninitialized
 
 object TaskUiStateMapper {
 
     /**
-     * Converts a [TaskData] object into a [TaskHeaderUiState] for display in the UI.
+     * Converts a [TaskData] object into a [TaskThumbnailUiState] for display in the UI.
      *
      * This function handles different types of [TaskData] and determines the appropriate UI state
      * based on the data and provided flags.
      *
      * @param taskData The [TaskData] to convert. Can be null or a specific subclass.
+     * @param isLiveTile A flag indicating whether the task data represents live tile.
      * @param hasHeader A flag indicating whether the UI should display a header.
      * @param clickCloseListener A callback when the close button in the UI is clicked.
-     * @return A [TaskHeaderUiState] representing the UI state for the given task data.
-     */
-    fun toTaskHeaderState(
-        taskData: TaskData?,
-        hasHeader: Boolean,
-        clickCloseListener: OnClickListener?,
-    ): TaskHeaderUiState =
-        when {
-            taskData is TaskData.Data && hasHeader && clickCloseListener != null -> {
-                TaskHeaderUiState.ShowHeader(
-                    TaskHeaderUiState.ThumbnailHeader(
-                        taskData.icon,
-                        taskData.titleDescription,
-                        clickCloseListener,
-                    )
-                )
-            }
-            else -> TaskHeaderUiState.HideHeader
-        }
-
-    /**
-     * Converts a [TaskData] object into the appropriate [TaskThumbnailUiState] for the UI.
-     *
-     * @param taskData The [TaskData] to convert. Can be null or a specific subclass.
      * @return A [TaskThumbnailUiState] representing the UI state for the given task data.
      */
-    fun toTaskThumbnailUiState(taskData: TaskData?): TaskThumbnailUiState =
+    fun toTaskThumbnailUiState(
+        taskData: TaskData?,
+        isLiveTile: Boolean,
+        hasHeader: Boolean,
+        clickCloseListener: OnClickListener?,
+    ): TaskThumbnailUiState =
         when {
             taskData !is TaskData.Data -> Uninitialized
-            taskData.isLiveTile -> LiveTile
-            taskData.isLocked -> {
-                Log.d(
-                    "b/417220811",
-                    "Task id: ${taskData.taskId}, thumbnailData: ${taskData.thumbnailData}, isLocked: true",
-                )
-                if (appLockCore()) {
-                    AppLocked(taskData.backgroundColor)
-                } else {
-                    BackgroundOnly(taskData.backgroundColor)
-                }
-            }
-            taskData.isAppLocked -> AppLocked(taskData.backgroundColor)
-            taskData.thumbnailData?.thumbnail == null ->
-                BackgroundOnly(taskData.backgroundColor).also {
-                    Log.d(
-                        "b/417220811",
-                        "Task id: ${taskData.taskId}, thumbnailData: ${taskData.thumbnailData}, isLocked: false",
-                    )
-                }
-            else ->
+            isLiveTile -> createLiveTileState(taskData, hasHeader, clickCloseListener)
+            isBackgroundOnly(taskData) -> BackgroundOnly(taskData.backgroundColor)
+            isSnapshotSplash(taskData) ->
                 SnapshotSplash(
-                    Snapshot(
-                        taskData.thumbnailData.thumbnail!!,
-                        taskData.thumbnailData.rotation,
-                        taskData.backgroundColor,
-                    ),
+                    createSnapshotState(taskData, hasHeader, clickCloseListener),
                     taskData.icon,
                 )
+            else -> Uninitialized
         }
 
-    /**
-     * Converts a [TaskData] object into a [TaskAppTimerUiState] for displaying an app timer toast
-     *
-     * @property taskData The [TaskData] to convert. Can be null or a specific sub-class.
-     * @property stagePosition the position of this task when shown as a group
-     * @return a [TaskAppTimerUiState] representing state for the information displayed in the app
-     *   timer toast.
-     */
-    fun toTaskAppTimerUiState(
-        canShowAppTimer: Boolean,
-        stagePosition: Int,
-        taskData: TaskData?,
-    ): TaskAppTimerUiState =
-        when {
-            taskData !is TaskData.Data -> TaskAppTimerUiState.Uninitialized
-
-            !canShowAppTimer || taskData.remainingAppTimerDuration == null ->
-                TaskAppTimerUiState.NoTimer(taskDescription = taskData.titleDescription)
-
-            else ->
-                TaskAppTimerUiState.Timer(
-                    taskDescription = taskData.titleDescription,
-                    timeRemaining = taskData.remainingAppTimerDuration,
-                    taskPackageName = taskData.packageName,
-                    accessibilityActionId =
-                        if (stagePosition == STAGE_POSITION_BOTTOM_OR_RIGHT) {
-                            R.id.action_digital_wellbeing_bottom_right
-                        } else {
-                            R.id.action_digital_wellbeing_top_left
-                        },
-                )
+    private fun createSnapshotState(
+        taskData: TaskData.Data,
+        hasHeader: Boolean,
+        clickCloseListener: OnClickListener?,
+    ): Snapshot =
+        if (canHeaderBeCreated(taskData, hasHeader, clickCloseListener)) {
+            Snapshot.WithHeader(
+                taskData.thumbnailData?.thumbnail!!,
+                taskData.thumbnailData.rotation,
+                taskData.backgroundColor,
+                ThumbnailHeader(taskData.icon!!, taskData.titleDescription!!, clickCloseListener!!),
+            )
+        } else {
+            Snapshot.WithoutHeader(
+                taskData.thumbnailData?.thumbnail!!,
+                taskData.thumbnailData.rotation,
+                taskData.backgroundColor,
+            )
         }
 
-    fun toTaskDismissButtonState(isDesktopTaskView: Boolean, clickCloseListener: OnClickListener) =
-        if (!isDesktopTaskView) {
-            TaskDismissButtonState.Enabled(clickCloseListener)
-        } else TaskDismissButtonState.Disabled
+    private fun isBackgroundOnly(taskData: TaskData.Data) =
+        taskData.isLocked || taskData.thumbnailData == null
+
+    private fun isSnapshotSplash(taskData: TaskData.Data) =
+        taskData.thumbnailData?.thumbnail != null && !taskData.isLocked
+
+    private fun canHeaderBeCreated(
+        taskData: TaskData.Data,
+        hasHeader: Boolean,
+        clickCloseListener: OnClickListener?,
+    ) =
+        hasHeader &&
+            taskData.icon != null &&
+            taskData.titleDescription != null &&
+            clickCloseListener != null
+
+    private fun createLiveTileState(
+        taskData: TaskData.Data,
+        hasHeader: Boolean,
+        clickCloseListener: OnClickListener?,
+    ) =
+        if (canHeaderBeCreated(taskData, hasHeader, clickCloseListener)) {
+            // TODO(http://b/353965691): figure out what to do when `icon` or `titleDescription` is
+            //  null.
+            LiveTile.WithHeader(
+                ThumbnailHeader(taskData.icon!!, taskData.titleDescription!!, clickCloseListener!!)
+            )
+        } else LiveTile.WithoutHeader
 }

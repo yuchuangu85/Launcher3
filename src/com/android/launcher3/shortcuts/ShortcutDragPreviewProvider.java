@@ -43,7 +43,7 @@ public class ShortcutDragPreviewProvider extends DragPreviewProvider {
     @Override
     public Drawable createDrawable() {
         int size = ActivityContext.lookupContext(mView.getContext())
-                .getDeviceProfile().getWorkspaceProfile().getIconSizePx();
+                .getDeviceProfile().iconSizePx;
         return new FastBitmapDrawable(
                 BitmapRenderer.createHardwareBitmap(
                         size + blurSizeOutline,
@@ -77,7 +77,7 @@ public class ShortcutDragPreviewProvider extends DragPreviewProvider {
                         + mPositionShift.x);
         outPos[1] += Math.round((scale * mView.getHeight() - preview.getIntrinsicHeight()) / 2
                 + mPositionShift.y);
-        float size = context.getDeviceProfile().getWorkspaceProfile().getIconSizePx();
+        float size = context.getDeviceProfile().iconSizePx;
         return scale * iconSize / size;
     }
 }

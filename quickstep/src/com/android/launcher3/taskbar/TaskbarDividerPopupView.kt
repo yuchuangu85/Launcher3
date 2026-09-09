@@ -29,17 +29,14 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.Switch
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.postDelayed
 import com.android.app.animation.Interpolators.EMPHASIZED_ACCELERATE
 import com.android.launcher3.Flags
-import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.R
 import com.android.launcher3.popup.ArrowPopup
 import com.android.launcher3.popup.RoundedArrowDrawable
 import com.android.launcher3.util.Themes
 import com.android.launcher3.views.ActivityContext
-import com.android.wm.shell.Flags.enableGsf
 import kotlin.math.max
 import kotlin.math.min
 
@@ -82,19 +79,14 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private val minPaddingFromScreenEdge =
         resources.getDimension(R.dimen.taskbar_pinning_popup_menu_min_padding_from_screen_edge)
 
-    private var alwaysShowTaskbarOn =
-        if (taskbarActivityContext.isTaskbarShowingDesktopTasks) {
-            LauncherPrefs.TASKBAR_PINNING_IN_DESKTOP_MODE.get(context)
-        } else {
-            !taskbarActivityContext.isTransientTaskbar
-        }
-
+    // TODO: add test for isTransientTaskbar & long presses divider and ensures the popup shows up.
+    private var alwaysShowTaskbarOn = !taskbarActivityContext.isTransientTaskbar
     private var didPreferenceChange = false
     private var verticalOffsetForPopupView =
         resources.getDimensionPixelSize(R.dimen.taskbar_pinning_popup_menu_vertical_margin)
 
     /** Callback invoked when the pinning popup view is closing. */
-    var onCloseStartedCallback: (preferenceChanged: Boolean) -> Unit = {}
+    var onCloseCallback: (preferenceChanged: Boolean) -> Unit = {}
 
     init {
         // This synchronizes the arrow and menu to open at the same time
@@ -116,15 +108,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         val taskbarSwitchOption = requireViewById<LinearLayout>(R.id.taskbar_switch_option)
         val alwaysShowTaskbarSwitch = requireViewById<Switch>(R.id.taskbar_pinning_switch)
         val taskbarVisibilityIcon = requireViewById<View>(R.id.taskbar_pinning_visibility_icon)
-
-        if (enableGsf()) {
-            taskbarVisibilityIcon.background =
-                ResourcesCompat.getDrawable(
-                    context.resources,
-                    R.drawable.ic_visibility_filled,
-                    context.theme,
-                )
-        }
 
         alwaysShowTaskbarSwitch.isChecked = alwaysShowTaskbarOn
         alwaysShowTaskbarSwitch.setOnTouchListener { view, event ->
@@ -151,27 +134,35 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     /** Orient object as usual and then center object horizontally. */
     override fun orientAboutObject() {
         super.orientAboutObject()
-        val xForCenterAlignment = horizontalPosition - measuredWidth / 2f
-        val maxX = popupContainer.width - measuredWidth - minPaddingFromScreenEdge
         x =
-            when {
-                // Left-aligned popup and its arrow pointing to the event position if there is not
-                // enough space to center it.
-                xForCenterAlignment < minPaddingFromScreenEdge ->
-                    max(
-                        minPaddingFromScreenEdge,
-                        horizontalPosition - mArrowOffsetHorizontal - mArrowWidth / 2,
-                    )
-                // Right-aligned popup and its arrow pointing to the event position if there is not
-                // enough space to center it.
-                xForCenterAlignment > maxX ->
-                    min(
-                        horizontalPosition - measuredWidth + mArrowOffsetHorizontal + mArrowWidth / 2,
-                        popupContainer.width - measuredWidth - minPaddingFromScreenEdge,
-                    )
-                // Default alignment where the popup and its arrow are centered relative to the event
-                // position.
-                else -> xForCenterAlignment
+            if (Flags.showTaskbarPinningPopupFromAnywhere()) {
+                val xForCenterAlignment = horizontalPosition - measuredWidth / 2f
+                val maxX = popupContainer.getWidth() - measuredWidth - minPaddingFromScreenEdge
+                when {
+                    // Left-aligned popup and its arrow pointing to the event position if there is
+                    // not enough space to center it.
+                    xForCenterAlignment < minPaddingFromScreenEdge ->
+                        max(
+                            minPaddingFromScreenEdge,
+                            horizontalPosition - mArrowOffsetHorizontal - mArrowWidth / 2,
+                        )
+
+                    // Right-aligned popup and its arrow pointing to the event position if there
+                    // is not enough space to center it.
+                    xForCenterAlignment > maxX ->
+                        min(
+                            horizontalPosition - measuredWidth +
+                                mArrowOffsetHorizontal +
+                                mArrowWidth / 2,
+                            popupContainer.getWidth() - measuredWidth - minPaddingFromScreenEdge,
+                        )
+
+                    // Default alignment where the popup and its arrow are centered relative to the
+                    // event position.
+                    else -> xForCenterAlignment
+                }
+            } else {
+                mTempRect.centerX() - measuredWidth / 2f
             }
     }
 
@@ -214,20 +205,53 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     override fun addArrow() {
         super.addArrow()
-        mArrow.x =
-            min(
-                max(
-                    minPaddingFromScreenEdge + mArrowOffsetHorizontal,
-                    horizontalPosition - mArrowWidth / 2,
-                ),
-                popupContainer.width -
-                    minPaddingFromScreenEdge - mArrowOffsetHorizontal - mArrowWidth,
-            )
+        if (Flags.showTaskbarPinningPopupFromAnywhere()) {
+            mArrow.x =
+                min(
+                    max(
+                        minPaddingFromScreenEdge + mArrowOffsetHorizontal,
+                        horizontalPosition - mArrowWidth / 2,
+                    ),
+                    popupContainer.getWidth() -
+                        minPaddingFromScreenEdge -
+                        mArrowOffsetHorizontal -
+                        mArrowWidth,
+                )
+        } else {
+            val location = IntArray(2)
+            popupContainer.getLocationInDragLayer(dividerView, location)
+            val dividerViewX = location[0].toFloat()
+            // Change arrow location to the middle of popup.
+            mArrow.x = (dividerViewX + dividerView.width / 2) - (mArrowWidth / 2)
+        }
+    }
+
+    override fun updateArrowColor() {
+        if (Flags.showTaskbarPinningPopupFromAnywhere()) {
+            super.updateArrowColor()
+        } else if (!Gravity.isVertical(mGravity)) {
+            mArrow.background =
+                RoundedArrowDrawable(
+                    arrowWidth,
+                    arrowHeight,
+                    arrowPointRadius,
+                    popupCornerRadius,
+                    measuredWidth.toFloat(),
+                    measuredHeight.toFloat(),
+                    (measuredWidth - arrowWidth) / 2, // arrowOffsetX
+                    -mArrowOffsetVertical.toFloat(), // arrowOffsetY
+                    false, // isPointingUp
+                    true, // leftAligned
+                    context.getColor(R.color.popup_shade_first),
+                )
+            elevation = mElevation
+            mArrow.elevation = mElevation
+        }
     }
 
     override fun getExtraVerticalOffset(): Int {
-        return (mActivityContext.deviceProfile.taskbarProfile.height -
-            mActivityContext.deviceProfile.taskbarProfile.iconSize) / 2 + verticalOffsetForPopupView
+        return (mActivityContext.deviceProfile.taskbarHeight -
+            mActivityContext.deviceProfile.taskbarIconSize) / 2 + verticalOffsetForPopupView
     }
 
     override fun onCreateCloseAnimation(anim: AnimatorSet?) {
@@ -235,8 +259,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         if (didPreferenceChange) {
             mOpenCloseAnimator = getCloseAnimator()
         }
-        onCloseStartedCallback(didPreferenceChange)
-        onCloseStartedCallback = {}
+        onCloseCallback(didPreferenceChange)
+        onCloseCallback = {}
     }
 
     /** Aligning the view pivot to center for animation. */

@@ -51,7 +51,6 @@ import static com.android.launcher3.util.VibratorWrapper.OVERVIEW_HAPTIC;
 import static com.android.launcher3.util.window.RefreshRateTracker.getSingleFrameMs;
 import static com.android.quickstep.views.RecentsView.ADJACENT_PAGE_HORIZONTAL_OFFSET;
 import static com.android.quickstep.views.RecentsView.CONTENT_ALPHA;
-import static com.android.quickstep.views.RecentsView.DESKTOP_CAROUSEL_DETACH_PROGRESS;
 import static com.android.quickstep.views.RecentsView.FULLSCREEN_PROGRESS;
 import static com.android.quickstep.views.RecentsView.RECENTS_SCALE_PROPERTY;
 import static com.android.quickstep.views.RecentsView.TASK_SECONDARY_TRANSLATION;
@@ -65,6 +64,7 @@ import android.animation.ValueAnimator;
 import android.graphics.PointF;
 import android.view.MotionEvent;
 import android.view.animation.Interpolator;
+import android.window.DesktopModeFlags;
 
 import com.android.internal.jank.Cuj;
 import com.android.launcher3.LauncherState;
@@ -73,11 +73,11 @@ import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
-import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.states.StateAnimationConfig;
 import com.android.launcher3.touch.BaseSwipeDetector;
 import com.android.launcher3.touch.BothAxesSwipeDetector;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
+import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.TouchController;
 import com.android.launcher3.util.VibratorWrapper;
 import com.android.quickstep.SystemUiProxy;
@@ -129,13 +129,13 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         mLauncher = launcher;
         mSwipeDetector = new BothAxesSwipeDetector(mLauncher, this);
         mRecentsView = mLauncher.getOverviewPanel();
-        mXRange = mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() / 2f;
+        mXRange = mLauncher.getDeviceProfile().widthPx / 2f;
         mYRange = LayoutUtils.getShelfTrackingDistance(
                 mLauncher,
                 mLauncher.getDeviceProfile(),
                 mRecentsView.getPagedOrientationHandler(),
-                mRecentsView.getContainerInterface());
-        mMaxYProgress = mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx() / mYRange;
+                mRecentsView.getSizeStrategy());
+        mMaxYProgress = mLauncher.getDeviceProfile().heightPx / mYRange;
         mMotionPauseDetector = new MotionPauseDetector(mLauncher);
         mMotionPauseMinDisplacement = mLauncher.getResources().getDimension(
                 R.dimen.motion_pause_detector_min_displacement_from_app);
@@ -187,6 +187,8 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
             return mIsTrackpadSwipe;
         }
         if (DesktopModeStatus.canEnterDesktopMode(mLauncher)
+                //TODO(b/345296916): replace with dev option once in teamfood
+                && DesktopModeFlags.ENABLE_QUICKSWITCH_DESKTOP_SPLIT_BUGFIX.isTrue()
                 && mRecentsView.getNonDesktopTaskViewCount() < 1) {
             return false;
         }
@@ -258,15 +260,10 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         RECENTS_SCALE_PROPERTY.set(mRecentsView, fromState.getOverviewScaleAndOffset(mLauncher)[0]);
         ADJACENT_PAGE_HORIZONTAL_OFFSET.set(mRecentsView, 1f);
         TASK_THUMBNAIL_SPLASH_ALPHA.set(mRecentsView, fromState.showTaskThumbnailSplash() ? 1f : 0);
-        DESKTOP_CAROUSEL_DETACH_PROGRESS.set(mRecentsView,
-                fromState.detachDesktopCarousel() ? 1f : 0);
         mRecentsView.setContentAlpha(1);
         mRecentsView.setFullscreenProgress(fromState.getOverviewFullscreenProgress());
-        final boolean isOverviewActionVisible = (
-                fromState.getVisibleElements(mLauncher.getLauncherUiState())
-                        & OVERVIEW_ACTIONS) != 0;
         mLauncher.getActionsView().getVisibilityAlpha().updateValue(
-                isOverviewActionVisible ? 1f : 0f);
+                (fromState.getVisibleElements(mLauncher) & OVERVIEW_ACTIONS) != 0 ? 1f : 0f);
         mRecentsView.setTaskIconVisible(false);
 
         float[] scaleAndOffset = toState.getOverviewScaleAndOffset(mLauncher);
@@ -278,9 +275,8 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         xAnim.setFloat(mRecentsView, ADJACENT_PAGE_HORIZONTAL_OFFSET, scaleAndOffset[1], LINEAR);
         // Use QuickSwitchState instead of OverviewState to determine scrim color,
         // since we need to take potential taskbar into account.
-        xAnim.setScrimColors(mLauncher.getScrimView(),
-                QUICK_SWITCH_FROM_HOME.getWorkspaceScrimColor(mLauncher),
-                LINEAR);
+        xAnim.setViewBackgroundColor(mLauncher.getScrimView(),
+                QUICK_SWITCH_FROM_HOME.getWorkspaceScrimColor(mLauncher), LINEAR);
         if (!mRecentsView.hasTaskViews()) {
             xAnim.addFloat(mRecentsView, CONTENT_ALPHA, 0f, 1f, LINEAR);
         }

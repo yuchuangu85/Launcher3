@@ -23,34 +23,32 @@ import android.content.IIntentReceiver
 import android.content.IIntentSender
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
-import android.graphics.Bitmap
-import android.graphics.Rect
 import android.os.Bundle
+import com.android.wm.shell.Flags.allowPrivateProfile
 import android.os.IBinder
 import android.os.UserHandle
-import android.view.DragAndDropPermissions
-import android.view.DragEvent
-import android.view.SurfaceControlViewHost
+import android.os.UserManager
+import android.util.ArrayMap
 import android.widget.Toast
 import android.window.RemoteTransition
-import android.window.ScreenCapture.ScreenCaptureParams
-import android.window.ScreenCaptureInternal
-import com.android.launcher3.BaseActivity
 import com.android.launcher3.Flags.enablePrivateSpace
+import com.android.launcher3.Flags.enablePrivateSpaceInstallShortcut
+import com.android.launcher3.Flags.privateSpaceAppInstallerButton
+import com.android.launcher3.Flags.privateSpaceSysAppsSeparation
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.proxy.ProxyActivityStarter
-import com.android.launcher3.uioverrides.touchcontrollers.StatusBarTouchController
 import com.android.launcher3.util.ApiWrapper
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.StartActivityParams
+import com.android.launcher3.util.UserIconInfo
 import com.android.quickstep.util.FadeOutRemoteTransition
-import java.util.function.Supplier
 import javax.inject.Inject
 
 /** A wrapper for the hidden API calls */
@@ -68,8 +66,42 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
             remoteTransition = RemoteTransition(FadeOutRemoteTransition(), "FadeOut")
         }
 
+    override fun queryAllUsers(): Map<UserHandle, UserIconInfo> {
+        if (!allowPrivateProfile() || !enablePrivateSpace()) {
+            return super.queryAllUsers()
+        }
+        val users = ArrayMap<UserHandle, UserIconInfo>()
+        mContext.getSystemService(UserManager::class.java)!!.userProfiles?.forEach { user ->
+            mContext.getSystemService(LauncherApps::class.java)!!.getLauncherUserInfo(user)?.apply {
+                users[user] =
+                    UserIconInfo(
+                        user,
+                        when (userType) {
+                            UserManager.USER_TYPE_PROFILE_MANAGED -> UserIconInfo.TYPE_WORK
+                            UserManager.USER_TYPE_PROFILE_CLONE -> UserIconInfo.TYPE_CLONED
+                            UserManager.USER_TYPE_PROFILE_PRIVATE -> UserIconInfo.TYPE_PRIVATE
+                            else -> UserIconInfo.TYPE_MAIN
+                        },
+                        userSerialNumber.toLong(),
+                    )
+            }
+        }
+        return users
+    }
+
+    override fun getPreInstalledSystemPackages(user: UserHandle): List<String> =
+        if (allowPrivateProfile() && enablePrivateSpace() && privateSpaceSysAppsSeparation())
+            mContext
+                .getSystemService(LauncherApps::class.java)!!
+                .getPreInstalledSystemPackages(user)
+        else ArrayList()
+
     override fun getAppMarketActivityIntent(packageName: String, user: UserHandle): Intent =
-        if (enablePrivateSpace())
+        if (
+            allowPrivateProfile() &&
+                enablePrivateSpace() &&
+                (privateSpaceAppInstallerButton() || enablePrivateSpaceInstallShortcut())
+        )
             ProxyActivityStarter.getLaunchIntent(
                 mContext,
                 StartActivityParams(null as PendingIntent?, 0).apply {
@@ -90,7 +122,7 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
 
     /** Returns an intent which can be used to open Private Space Settings. */
     override fun getPrivateSpaceSettingsIntent(): Intent? =
-        if (enablePrivateSpace())
+        if (allowPrivateProfile() && enablePrivateSpace())
             ProxyActivityStarter.getLaunchIntent(
                 mContext,
                 StartActivityParams(null as PendingIntent?, 0).apply {
@@ -166,24 +198,11 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
         }
     }
 
-    override fun createStatusBarTouchController(
-        launcher: BaseActivity,
-        isEnabledCheck: Supplier<Boolean>,
-    ): StatusBarTouchController? {
-        return StatusBarTouchController(launcher, isEnabledCheck)
-    }
+    override fun getApplicationInfoHash(appInfo: ApplicationInfo): String =
+        (appInfo.sourceDir?.hashCode() ?: 0).toString() + " " + appInfo.longVersionCode
 
-    override fun captureSnapshot(host: SurfaceControlViewHost, width: Int, height: Int): Bitmap =
-        ScreenCaptureInternal.captureLayers(
-                ScreenCaptureInternal.LayerCaptureArgs.Builder(host.surfacePackage!!.surfaceControl)
-                    .setSourceCrop(Rect(0, 0, width, height))
-                    .setProtectedContentPolicy(ScreenCaptureParams.PROTECTED_CONTENT_POLICY_CAPTURE)
-                    .setPreserveDisplayColors(true)
-                    .build()
-            )
-            .asBitmap()
-            .copy(Bitmap.Config.ARGB_8888, true)
+    override fun getRoundIconRes(appInfo: ApplicationInfo) = appInfo.roundIconRes
 
-    override fun requestDragAndDropPermissions(event: DragEvent): DragAndDropPermissions? =
-        DragAndDropPermissions.obtain(event)
+    override fun isFileDrawable(shortcutInfo: ShortcutInfo) =
+        shortcutInfo.hasIconFile() || shortcutInfo.hasIconUri()
 }

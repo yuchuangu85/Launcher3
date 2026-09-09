@@ -48,7 +48,4 @@ interface BubbleBarFlyoutPositioner {
      * the triangle.
      */
     val distanceToRevealTriangle: Float
-
-    /** Horizontal margin to align the flyout with the bubble bar. */
-    val horizontalMargin: Int
 }

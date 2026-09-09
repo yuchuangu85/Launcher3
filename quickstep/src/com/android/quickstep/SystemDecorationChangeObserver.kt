@@ -16,18 +16,17 @@
 
 package com.android.quickstep
 
+import android.content.Context
 import android.util.Log
-import com.android.app.displaylib.DisplayDecorationListener
+import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.DaggerSingletonObject
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.quickstep.dagger.QuickstepBaseAppComponent
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
-import kotlin.coroutines.EmptyCoroutineContext
-import kotlinx.coroutines.CoroutineDispatcher
 
 @LauncherAppSingleton
-class SystemDecorationChangeObserver @Inject constructor() {
+class SystemDecorationChangeObserver @Inject constructor(@ApplicationContext context: Context) {
     companion object {
         private const val TAG = "SystemDecorationChangeObserver"
         private const val DEBUG = false
@@ -39,43 +38,44 @@ class SystemDecorationChangeObserver @Inject constructor() {
             )
     }
 
+    interface DisplayDecorationListener {
+        fun onDisplayAddSystemDecorations(displayId: Int)
+
+        fun onDisplayRemoved(displayId: Int)
+
+        fun onDisplayRemoveSystemDecorations(displayId: Int)
+    }
+
     fun notifyAddSystemDecorations(displayId: Int) {
         if (DEBUG) Log.d(TAG, "SystemDecorationAdded: $displayId")
-        mListeners.forEach { (listener, dispatcher) ->
-            dispatcher.dispatch(EmptyCoroutineContext) {
-                listener.onDisplayAddSystemDecorations(displayId)
-            }
+        for (listener in mDisplayDecorationListeners) {
+            MAIN_EXECUTOR.execute { listener.onDisplayAddSystemDecorations(displayId) }
         }
     }
 
     fun notifyOnDisplayRemoved(displayId: Int) {
         if (DEBUG) Log.d(TAG, "displayRemoved: $displayId")
-        mListeners.forEach { (listener, dispatcher) ->
-            dispatcher.dispatch(EmptyCoroutineContext) { listener.onDisplayRemoved(displayId) }
+        for (listener in mDisplayDecorationListeners) {
+            MAIN_EXECUTOR.execute { listener.onDisplayRemoved(displayId) }
         }
     }
 
     fun notifyDisplayRemoveSystemDecorations(displayId: Int) {
         if (DEBUG) Log.d(TAG, "SystemDecorationRemoved: $displayId")
-        mListeners.forEach { (listener, dispatcher) ->
-            dispatcher.dispatch(EmptyCoroutineContext) {
-                listener.onDisplayRemoveSystemDecorations(displayId)
-            }
+        for (listener in mDisplayDecorationListeners) {
+            MAIN_EXECUTOR.execute { listener.onDisplayRemoveSystemDecorations(displayId) }
         }
     }
 
-    private val mListeners = ConcurrentHashMap<DisplayDecorationListener, CoroutineDispatcher>()
+    private val mDisplayDecorationListeners = ArrayList<DisplayDecorationListener>()
 
-    fun registerDisplayDecorationListener(
-        listener: DisplayDecorationListener,
-        dispatcher: CoroutineDispatcher,
-    ) {
+    fun registerDisplayDecorationListener(listener: DisplayDecorationListener) {
         if (DEBUG) Log.d(TAG, "registerDisplayDecorationListener")
-        mListeners[listener] = dispatcher
+        mDisplayDecorationListeners.add(listener)
     }
 
     fun unregisterDisplayDecorationListener(listener: DisplayDecorationListener) {
         if (DEBUG) Log.d(TAG, "unregisterDisplayDecorationListener")
-        mListeners.remove(listener)
+        mDisplayDecorationListeners.remove(listener)
     }
 }

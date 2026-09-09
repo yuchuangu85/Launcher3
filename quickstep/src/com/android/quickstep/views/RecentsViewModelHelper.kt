@@ -16,33 +16,21 @@
 
 package com.android.quickstep.views
 
-import com.android.launcher3.Flags.enableLowResThumbnailPreloading
-import com.android.launcher3.concurrent.annotations.LightweightBackground
-import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority
-import com.android.launcher3.concurrent.annotations.Ui
+import com.android.launcher3.util.coroutines.DispatcherProvider
 import com.android.quickstep.ViewUtils
-import com.android.quickstep.recents.domain.usecase.PreloadThumbnailUseCase
-import com.android.quickstep.recents.domain.usecase.UpdateThumbnailCacheSizeUseCase
 import com.android.quickstep.recents.viewmodel.RecentsViewModel
 import com.android.systemui.shared.recents.model.ThumbnailData
-import javax.inject.Inject
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Helper for [RecentsView] to interact with the [RecentsViewModel]. */
-class RecentsViewModelHelper
-@Inject
-constructor(
+class RecentsViewModelHelper(
     private val recentsViewModel: RecentsViewModel,
     private val recentsCoroutineScope: CoroutineScope,
-    @LightweightBackground(LightweightBackgroundPriority.UI)
-    private val lightweightBackgroundDispatcher: CoroutineDispatcher,
-    @Ui private val mainDispatcher: CoroutineDispatcher,
-    private val preloadThumbnailUseCase: PreloadThumbnailUseCase,
-    private val updateThumbnailCacheSizeUseCase: UpdateThumbnailCacheSizeUseCase,
+    private val dispatcherProvider: DispatcherProvider,
 ) {
     fun onDestroy() {
         recentsCoroutineScope.cancel("RecentsView is being destroyed")
@@ -56,22 +44,12 @@ constructor(
         // Update recentsViewModel and apply the thumbnailOverride ASAP, before waiting inside
         // viewAttachedScope.
         recentsViewModel.setRunningTaskShowScreenshot(true)
-        recentsCoroutineScope.launch(lightweightBackgroundDispatcher) {
+        recentsCoroutineScope.launch(dispatcherProvider.background) {
             recentsViewModel.waitForRunningTaskShowScreenshotToUpdate()
             recentsViewModel.waitForThumbnailsToUpdate(updatedThumbnails)
-            withContext(mainDispatcher) { ViewUtils.postFrameDrawn(taskView, onFinishRunnable) }
+            withContext(Dispatchers.Main.immediate) {
+                ViewUtils.postFrameDrawn(taskView, onFinishRunnable)
+            }
         }
-    }
-
-    fun startPreloading() {
-        if (!enableLowResThumbnailPreloading()) return
-
-        recentsCoroutineScope.launch(lightweightBackgroundDispatcher) {
-            preloadThumbnailUseCase.preloadThumbnails()
-        }
-    }
-
-    fun updateCacheSizeAndPreload(shouldPreloadIfNeeded: Boolean) {
-        updateThumbnailCacheSizeUseCase.updateCacheSize(shouldPreloadIfNeeded)
     }
 }

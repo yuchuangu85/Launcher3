@@ -20,14 +20,8 @@ import static com.android.launcher3.tapl.OverviewTask.OverviewTaskContainer.DEFA
 import static com.android.launcher3.tapl.OverviewTask.OverviewTaskContainer.DESKTOP;
 import static com.android.launcher3.tapl.OverviewTask.OverviewTaskContainer.SPLIT_BOTTOM_OR_RIGHT;
 import static com.android.launcher3.tapl.OverviewTask.OverviewTaskContainer.SPLIT_TOP_OR_LEFT;
-import static com.android.launcher3.tapl.TestHelpers.getOverviewPackageName;
-import static com.android.launcher3.testing.shared.TestProtocol.NORMAL_STATE_ORDINAL;
 
-import android.graphics.Point;
 import android.graphics.Rect;
-import android.os.Bundle;
-import android.os.SystemClock;
-import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
 import androidx.test.uiautomator.By;
@@ -45,10 +39,6 @@ import java.util.stream.Collectors;
  */
 public final class OverviewTask {
     private static final String SYSTEMUI_PACKAGE = "com.android.systemui";
-    private static final String DESKTOP_TASK_THUMBNAIL_VIEW_HEADER = "task_header_view";
-    private static final String DESKTOP_TASK_THUMBNAIL_VIEW_HEADER_CLOSE_BUTTON =
-            "header_close_button";
-
     static final Pattern TASK_START_EVENT = Pattern.compile("startActivityFromRecentsAsync");
     static final Pattern TASK_START_EVENT_DESKTOP = Pattern.compile("launchDesktopFromRecents");
     static final Pattern TASK_START_EVENT_LIVE_TILE = Pattern.compile(
@@ -83,15 +73,16 @@ public final class OverviewTask {
             return getCombinedSplitTaskHeight();
         }
 
-        return getTaskSnapshot(isDesktop() ? DESKTOP : DEFAULT).getVisibleBounds().height();
+        UiObject2 taskSnapshot1 = findObjectInTask((isDesktop() ? DESKTOP : DEFAULT).snapshotRes);
+        return taskSnapshot1.getVisibleBounds().height();
     }
 
     /**
      * Calculates the visible height for split tasks, containing 2 snapshot tiles and a divider.
      */
     private int getCombinedSplitTaskHeight() {
-        UiObject2 taskSnapshot1 = getTaskSnapshot(SPLIT_TOP_OR_LEFT);
-        UiObject2 taskSnapshot2 = getTaskSnapshot(SPLIT_BOTTOM_OR_RIGHT);
+        UiObject2 taskSnapshot1 = findObjectInTask(SPLIT_TOP_OR_LEFT.snapshotRes);
+        UiObject2 taskSnapshot2 = findObjectInTask(SPLIT_BOTTOM_OR_RIGHT.snapshotRes);
 
         // If the split task is partly off screen, taskSnapshot1 can be invisible.
         if (taskSnapshot1 == null) {
@@ -104,6 +95,34 @@ public final class OverviewTask {
                 taskSnapshot1.getVisibleBounds().bottom, taskSnapshot2.getVisibleBounds().bottom);
 
         return bottom - top;
+    }
+
+    /**
+     * Returns the width of the visible task, or the combined width of two tasks in split with a
+     * divider between.
+     */
+    int getVisibleWidth() {
+        if (isGrouped()) {
+            return getCombinedSplitTaskWidth();
+        }
+
+        UiObject2 taskSnapshot1 = findObjectInTask(DEFAULT.snapshotRes);
+        return taskSnapshot1.getVisibleBounds().width();
+    }
+
+    /**
+     * Calculates the visible width for split tasks, containing 2 snapshot tiles and a divider.
+     */
+    private int getCombinedSplitTaskWidth() {
+        UiObject2 taskSnapshot1 = findObjectInTask(SPLIT_TOP_OR_LEFT.snapshotRes);
+        UiObject2 taskSnapshot2 = findObjectInTask(SPLIT_BOTTOM_OR_RIGHT.snapshotRes);
+
+        int left = Math.min(
+                taskSnapshot1.getVisibleBounds().left, taskSnapshot2.getVisibleBounds().left);
+        int right = Math.max(
+                taskSnapshot1.getVisibleBounds().right, taskSnapshot2.getVisibleBounds().right);
+
+        return right - left;
     }
 
     public int getTaskCenterX() {
@@ -123,27 +142,9 @@ public final class OverviewTask {
     }
 
     /**
-     * Returns the task snapshot (thumbnail) for the given `OverviewTaskContainer`.
-     */
-    private UiObject2 getTaskSnapshot(OverviewTaskContainer overviewTaskContainer) {
-        UiObject2 taskContentView = mTask.findObject(
-                mLauncher.getOverviewObjectSelector(overviewTaskContainer.taskContentViewRes));
-        BySelector snapshotSelector = mLauncher.getOverviewObjectSelector("snapshot");
-        return mTask.findObject(snapshotSelector);
-    }
-
-    /**
      * Dismisses the task by swiping up.
      */
     public void dismiss() {
-        dismiss(this::dismissBySwipingUp);
-    }
-
-    /**
-     * Dismisses the task using the provided dismisser.
-     * @param dismisser The runnable that executes the dismiss action.
-     */
-    public void dismiss(Runnable dismisser) {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
              LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                      "want to dismiss an overview task")) {
@@ -151,8 +152,7 @@ public final class OverviewTask {
             int taskCountBeforeDismiss = mOverview.getTaskCount();
             mLauncher.assertNotEquals("Unable to find a task", 0, taskCountBeforeDismiss);
             if (taskCountBeforeDismiss == 1) {
-                mLauncher.runToState(dismisser, NORMAL_STATE_ORDINAL, "dismissing last task");
-                new Workspace(mLauncher);
+                dismissBySwipingUp();
                 return;
             }
 
@@ -163,12 +163,7 @@ public final class OverviewTask {
                     getCurrentTasksCenterXList().stream().sorted().toList();
             boolean isClearAllVisibleBeforeDismiss = mOverview.isClearAllVisible();
 
-            mLauncher.executeAndWaitForLauncherEvent(
-                    dismisser,
-                    event -> TestProtocol.DISMISS_ANIMATION_ENDS_MESSAGE.equals(
-                            event.getClassName()),
-                    () -> "Didn't receive a dismiss animation ends message",
-                    "dismissing task");
+            dismissBySwipingUp();
 
             long numNonDesktopTasks = mOverview.getCurrentTasksForTablet()
                     .stream().filter(t -> !t.isDesktop()).count();
@@ -193,30 +188,18 @@ public final class OverviewTask {
         }
     }
 
-    /**
-     * Dismisses the task by tapping on the "Clear" option in the task menu.
-     */
-    public void dismissViaMenu() {
-        dismiss(() -> tapMenu().tapClearMenuItem());
-    }
-
     private void dismissBySwipingUp() {
         verifyActiveContainer();
         // Dismiss the task via flinging it up.
         final Rect taskBounds = mLauncher.getVisibleBounds(mTask);
         final int centerX = taskBounds.centerX();
-        final int centerY = taskBounds.centerY();
-        // Magnetic detach interpolates during the attached region with y = 0.3x. We must account
-        // for this in the dismiss length to ensure the task is dragged far enough to dismiss.
-        int magneticDetachLength = mLauncher.getMagneticDetachThreshold();
-        int lengthTaskWillTravel =
-                (int) ((magneticDetachLength * 0.3f) + (centerY - magneticDetachLength));
-        int minimumDismissLength = taskBounds.bottom / 2;
-        int extraDismissLength = Math.max(minimumDismissLength - lengthTaskWillTravel, 0);
-        // Bound touch to a max of the bottom of the task, account for extra required dismiss length
-        final int startY = Math.min(centerY + extraDismissLength, taskBounds.bottom);
-        mLauncher.linearGesture(centerX, startY, centerX, 0, 10, false,
-                LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER);
+        final int centerY = taskBounds.bottom - 1;
+        mLauncher.executeAndWaitForLauncherEvent(
+                () -> mLauncher.linearGesture(centerX, centerY, centerX, 0, 10, false,
+                        LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER),
+                event -> TestProtocol.DISMISS_ANIMATION_ENDS_MESSAGE.equals(event.getClassName()),
+                () -> "Didn't receive a dismiss animation ends message: " + centerX + ", "
+                        + centerY, "swiping to dismiss");
     }
 
     private List<Integer> getCurrentTasksCenterXList() {
@@ -240,13 +223,14 @@ public final class OverviewTask {
 
             final Rect taskBounds = mLauncher.getVisibleBounds(mTask);
             final int centerX = taskBounds.centerX();
-            final int centerY = taskBounds.centerY();
+            final int centerY = taskBounds.bottom - 1;
             final int endCenterY = centerY - (taskBounds.height() / 4);
             mLauncher.executeAndWaitForLauncherEvent(
                     // Set slowDown to true so we do not fling the task at the end of the drag, as
-                    // we want it to cancel and return back to the origin.
+                    // we want it to cancel and return back to the origin. We use 30 steps to
+                    // perform the gesture slowly as well, to avoid flinging.
                     () -> mLauncher.linearGesture(centerX, centerY, centerX, endCenterY,
-                            /* steps= */ 10, /* slowDown= */ true,
+                            /* steps= */ 30, /* slowDown= */ true,
                             LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER),
                     event -> TestProtocol.DISMISS_ANIMATION_ENDS_MESSAGE.equals(
                             event.getClassName()),
@@ -262,11 +246,8 @@ public final class OverviewTask {
     public LaunchedAppState open() {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck()) {
             verifyActiveContainer();
-            final boolean isDesktopTask = mType == TaskViewType.DESKTOP;
-            final boolean hasDesktopTasks = hasDesktopTasks();
-
             mLauncher.executeAndWaitForLauncherStop(
-                    () -> mTask.click(),
+                    () -> mLauncher.clickLauncherObject(mTask),
                     "clicking an overview task");
             if (mOverview.getContainerType()
                     == LauncherInstrumentation.ContainerType.SPLIT_SCREEN_SELECT) {
@@ -283,40 +264,22 @@ public final class OverviewTask {
                 final Pattern event;
                 if (mOverview.isLiveTile(mTask)) {
                     event = TASK_START_EVENT_LIVE_TILE;
-                } else if (isDesktopTask) {
+                } else if (mType == TaskViewType.DESKTOP) {
                     event = TASK_START_EVENT_DESKTOP;
                 } else {
                     event = TASK_START_EVENT;
                 }
                 mLauncher.expectEvent(TestProtocol.SEQUENCE_MAIN, event);
 
-                if (isDesktopTask) {
+                if (mType == TaskViewType.DESKTOP) {
                     try (LauncherInstrumentation.Closable ignored = mLauncher.addContextLayer(
                             "launched desktop")) {
-                        if (hasDesktopTasks) {
-                            mLauncher.waitForSystemUiObject("desktop_mode_caption");
-                        } else {
-                            // For an empty desk, wait for the persistent taskbar to appear.
-                            mLauncher.assertTrue("Timed out waiting for persistent taskbar",
-                                    mLauncher.waitAndGet(
-                                        () -> !mLauncher.isTransientTaskbar(),
-                                        LauncherInstrumentation.WAIT_TIME_MS,
-                                        LauncherInstrumentation.DEFAULT_POLL_INTERVAL));
-                        }
+                        mLauncher.waitForSystemUiObject("desktop_mode_caption");
                     }
                 }
-                return new LaunchedAppState(mLauncher, isDesktopTask);
+                return new LaunchedAppState(mLauncher);
             }
         }
-    }
-
-    private boolean hasDesktopTasks() {
-        if (!isDesktop()) {
-            return false;
-        }
-        // A desk has content if it contains any thumbnail headers.
-        return !mTask.findObjects(By.res(getOverviewPackageName(),
-                DESKTOP_TASK_THUMBNAIL_VIEW_HEADER)).isEmpty();
     }
 
     /** Taps the task menu. Returns the task menu object. */
@@ -331,7 +294,8 @@ public final class OverviewTask {
         try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
              LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
                      "want to tap the task menu")) {
-            mLauncher.waitForObjectInContainer(mTask, task.iconAppRes).click();
+            mLauncher.clickLauncherObject(
+                    mLauncher.waitForObjectInContainer(mTask, task.iconAppRes));
 
             try (LauncherInstrumentation.Closable c1 = mLauncher.addContextLayer(
                     "tapped the task menu")) {
@@ -340,125 +304,8 @@ public final class OverviewTask {
         }
     }
 
-    /** Returns the number of the thumbnail views in the desktop task view tile. */
-    private int getDesktopThumbnailViewCount() {
-        mLauncher.assertTrue("Current task is not desktop task", isDesktop());
-        String thumbnailSelector = ":id/snapshot";
-        return mLauncher.waitForObjectsInContainer(mTask,
-                By.res(getOverviewPackageName() + thumbnailSelector)).size();
-    }
-
-    /**
-     * Closes the Task of [activityName] from the desktop task view tile.
-     * @param activityName activity name to be used to find the thumbnail.
-     */
-    public OverviewTask tapCloseDesktopThumbnailView(String activityName) {
-        mLauncher.assertTrue("Current task is not desktop task", isDesktop());
-
-        int thumbnailViewCount = getDesktopThumbnailViewCount();
-        mLauncher.assertTrue("There should be at least one thumbnail view.",
-                thumbnailViewCount > 0);
-
-        try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
-             LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
-                     "wanted to tap the close button")) {
-            UiObject2 thumbnailViewHeader = getDesktopThumbnailViewHeader(activityName);
-            mLauncher.waitForObjectInContainer(
-                    thumbnailViewHeader, DESKTOP_TASK_THUMBNAIL_VIEW_HEADER_CLOSE_BUTTON).click();
-            if (thumbnailViewCount > 1) {
-                // There still should be other thumbnail views in the desktop task view, check its
-                // count.
-                int newThumbnailViewCount = getDesktopThumbnailViewCount();
-                mLauncher.assertEquals("Had " + thumbnailViewCount + " thumbnail views "
-                                + "before, now have "
-                                + newThumbnailViewCount + " thumbnail views after clicking close. ",
-                        thumbnailViewCount - 1, newThumbnailViewCount);
-            } else {
-                mLauncher.waitUntilOverviewObjectGone(":id/snapshot");
-            }
-            return new OverviewTask(mLauncher, mTask, mOverview);
-        }
-    }
-
-    /**
-     * Taps on the Task of [activityName] from the desktop task view tile.
-     * Returns the launched app state.
-     * @param activityName activity name to be used to find the thumbnail.
-     */
-    public LaunchedAppState tapOnDesktopThumbnailView(String activityName) {
-        mLauncher.assertTrue("Current task is not desktop task", isDesktop());
-
-        try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
-             LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
-                     "wanted to tap on the thumbnail view")) {
-            UiObject2 thumbnailView = getDesktopThumbnailView(activityName);
-            mLauncher.expectEvent(TestProtocol.SEQUENCE_MAIN, TASK_START_EVENT_DESKTOP);
-            mLauncher.executeAndWaitForLauncherStop(
-                    thumbnailView::click,
-                    "clicking on a desktop thumbnail view");
-            return new LaunchedAppState(mLauncher, /* inDesktopMode= */ true);
-        }
-    }
-
-    /**
-     * Taps on the empty space of the DesktopTaskView which activates the desktop.
-     */
-    public LaunchedAppState tapOnEmptySpaceInDesktopTaskView() {
-        try (LauncherInstrumentation.Closable e = mLauncher.eventsCheck();
-             LauncherInstrumentation.Closable c = mLauncher.addContextLayer(
-                     "wanted to tap on the empty space in the desktop task view")) {
-            mLauncher.assertTrue("This task must be a desktop task.", isDesktop());
-
-            final Rect taskViewBounds = mTask.getVisibleBounds();
-            // Start with a point in the bottom-right, just inside the container bounds. It should
-            // not collide with any UI elements.
-            final Point tapPoint = new Point(taskViewBounds.right - 1, taskViewBounds.bottom - 1);
-            mLauncher.expectEvent(TestProtocol.SEQUENCE_MAIN, TASK_START_EVENT_DESKTOP);
-            mLauncher.executeAndWaitForLauncherStop(
-                    () -> {
-                        final long downTime = SystemClock.uptimeMillis();
-                        mLauncher.sendPointer(downTime, downTime, MotionEvent.ACTION_DOWN, tapPoint,
-                                LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER);
-                        mLauncher.sendPointer(downTime, downTime, MotionEvent.ACTION_UP, tapPoint,
-                                LauncherInstrumentation.GestureScope.DONT_EXPECT_PILFER);
-                    },
-                    "tapping on the empty space in the desktop task view");
-            return new LaunchedAppState(mLauncher, /* inDesktopMode= */ true);
-        }
-    }
-
-    /**
-     * Returns the thumbnail view for [activityName]. Fails the test if not found or if the
-     * current task is not a desktop task.
-     */
-    @NonNull
-    private UiObject2 getDesktopThumbnailView(String activityName) {
-        mLauncher.assertTrue("Current task is not a desktop task.", isDesktop());
-
-        String thumbnailSelector = ":id/snapshot";
-        UiObject2 activityThumbnail = mLauncher.waitForObjectBySelector(
-                By.res(getOverviewPackageName() + thumbnailSelector)
-                        .descContains(activityName));
-        return activityThumbnail;
-    }
-
-    /**
-     * Returns the thumbnail view header for [activityName]. Fails the test if not found or if the
-     * current task is not a desktop task.
-     */
-    @NonNull
-    private UiObject2 getDesktopThumbnailViewHeader(String activityName) {
-        mLauncher.assertTrue("Current task is not a desktop task.", isDesktop());
-
-        // 1. Find the specific thumbnail view for the activity within the DesktopTaskView.
-        // This call will fail the test if the thumbnail is not found.
-        UiObject2 activityThumbnail = getDesktopThumbnailView(activityName);
-
-        // 2. Find its header. Note the TaskThumbnailView and its header TaskHeaderView are sibling
-        // views. Find the header via their parent view.
-        UiObject2 activityThumbnailHeader = mLauncher.waitForObjectInContainer(
-                activityThumbnail.getParent(), DESKTOP_TASK_THUMBNAIL_VIEW_HEADER);
-        return activityThumbnailHeader;
+    private UiObject2 findObjectInTask(String resName) {
+        return mTask.findObject(mLauncher.getOverviewObjectSelector(resName));
     }
 
     /**
@@ -467,7 +314,7 @@ public final class OverviewTask {
      */
     public boolean containsContentDescription(String expected,
             OverviewTaskContainer overviewTaskContainer) {
-        String actual = getTaskSnapshot(overviewTaskContainer).getContentDescription();
+        String actual = findObjectInTask(overviewTaskContainer.snapshotRes).getContentDescription();
         if (actual == null && expected == null) {
             return true;
         }
@@ -509,35 +356,23 @@ public final class OverviewTask {
     }
 
     /**
-     * Returns the desk id of the desktop task.
-     */
-    public int getDeskId() {
-        mLauncher.assertTrue("Current task is not a desktop task.", isDesktop());
-        Bundle extras = new Bundle();
-        extras.putParcelable(TestProtocol.TEST_INFO_RESPONSE_FIELD, mTask.getVisibleBounds());
-        return mLauncher.getTestInfo(
-                TestProtocol.REQUEST_GET_DESK_ID, null, extras).getInt(
-                TestProtocol.TEST_INFO_RESPONSE_FIELD);
-    }
-
-    /**
      * Enum used to specify which resource name should be used depending on the type of the task.
      */
     public enum OverviewTaskContainer {
         // The main task when the task is not split.
-        DEFAULT("task_content_view", "icon"),
+        DEFAULT("snapshot", "icon"),
         // The first task in split task.
-        SPLIT_TOP_OR_LEFT("task_content_view", "icon"),
+        SPLIT_TOP_OR_LEFT("snapshot", "icon"),
         // The second task in split task.
-        SPLIT_BOTTOM_OR_RIGHT("bottomright_task_content_view", "bottomRight_icon"),
+        SPLIT_BOTTOM_OR_RIGHT("bottomright_snapshot", "bottomRight_icon"),
         // The desktop task.
         DESKTOP("background", "icon");
 
-        public final String taskContentViewRes;
+        public final String snapshotRes;
         public final String iconAppRes;
 
-        OverviewTaskContainer(String taskContentViewRes, String iconAppRes) {
-            this.taskContentViewRes = taskContentViewRes;
+        OverviewTaskContainer(String snapshotRes, String iconAppRes) {
+            this.snapshotRes = snapshotRes;
             this.iconAppRes = iconAppRes;
         }
     }

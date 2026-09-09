@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface RecentTasksRepository {
     /** Gets all the recent tasks, refreshing from data sources if [forceRefresh] is true. */
-    fun getAllTaskData(displayId: Int, forceRefresh: Boolean = false): Flow<List<Task>>
+    fun getAllTaskData(forceRefresh: Boolean = false): Flow<List<Task>>
 
     /**
      * Gets the data associated with a task that has id [taskId]. Flow will settle on null if the
@@ -46,8 +46,5 @@ interface RecentTasksRepository {
      * Sets the tasks that are visible, indicating that properties relating to visuals need to be
      * populated e.g. icons/thumbnails etc.
      */
-    fun setVisibleTasks(displayId: Int, visibleTaskIdList: Set<Int>)
-
-    /** Sets whether high resolution thumbnails are currently needed for this display. */
-    fun setHighResThumbnailsRequired(highResThumbnailsRequired: Boolean)
+    fun setVisibleTasks(visibleTaskIdList: Set<Int>)
 }

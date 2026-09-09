@@ -56,7 +56,7 @@ interface WorkspaceDragSource {
                         launchableCenter.x >= width
                                 ? launchableCenter.x - width / 2
                                 : launchableCenter.x + width / 2,
-                        (int) (displaySize.y / 2.5f)),
+                        displaySize.y / 2),
                 startsActivity,
                 isWidgetShortcut,
                 launchable::addExpectedEventsForLongClick);
@@ -70,7 +70,7 @@ interface WorkspaceDragSource {
      */
     default HomeAppIcon dragToWorkspace(int cellX, int cellY) {
         Launchable launchable = getLaunchable();
-        final String iconName = launchable.getText();
+        final String iconName = launchable.getObject().getText();
         LauncherInstrumentation launcher = launchable.mLauncher;
         try (LauncherInstrumentation.Closable e = launcher.eventsCheck();
              LauncherInstrumentation.Closable c = launcher.addContextLayer(

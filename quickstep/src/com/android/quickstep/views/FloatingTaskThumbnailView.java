@@ -26,32 +26,21 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.android.quickstep.task.thumbnail.TaskThumbnailView;
 
 /**
  * A child view of {@link com.android.quickstep.views.FloatingTaskView} to draw the thumbnail in a
  * rounded corner frame. While the purpose of this class sounds similar to
- * {@link TaskThumbnailView}, it doesn't need a lot of complex logic in {@link TaskThumbnailView}
+ * {@link TaskThumbnailViewDeprecated}, it doesn't need a lot of complex logic in {@link TaskThumbnailViewDeprecated}
  * in relation to moving with {@link RecentsView}.
  */
 public class FloatingTaskThumbnailView extends View {
-
-    /** Callback used to draw this view. */
-    public interface DrawCallback {
-        /** Draw onto the given {@code canvas} using the given {@code paint}. */
-        void draw(@NonNull Canvas canvas, @NonNull Paint paint);
-    }
 
     private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Matrix mMatrix = new Matrix();
 
     private @Nullable BitmapShader mBitmapShader;
     private @Nullable Bitmap mBitmap;
-    private boolean mFitXY = false;
-    private DrawCallback mDrawCallback;
 
     public FloatingTaskThumbnailView(Context context) {
         this(context, null);
@@ -71,13 +60,14 @@ public class FloatingTaskThumbnailView extends View {
             return;
         }
 
-        float scaleX = 1.0f * getMeasuredWidth() / mBitmap.getWidth();
-        float scaleY = 1.0f * getMeasuredHeight() / mBitmap.getHeight();
+        // Scale down the bitmap to fix x, and crop in y.
+        float scale = 1.0f * getMeasuredWidth() / mBitmap.getWidth();
         mMatrix.reset();
-        // Either scale to fit x and y, or fit x and crop in y.
-        mMatrix.postScale(scaleX, mFitXY ? scaleY : scaleX);
+        mMatrix.postScale(scale, scale);
         mBitmapShader.setLocalMatrix(mMatrix);
-        mDrawCallback.draw(canvas, mPaint);
+
+        FloatingTaskView parent = (FloatingTaskView) getParent();
+        parent.drawRoundedRect(canvas, mPaint);
     }
 
     public void setThumbnail(Bitmap bitmap) {
@@ -86,15 +76,5 @@ public class FloatingTaskThumbnailView extends View {
             mBitmapShader = new BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
             mPaint.setShader(mBitmapShader);
         }
-    }
-
-    /** Sets the callback to use to draw this view. */
-    public void setDrawCallback(DrawCallback callback) {
-        mDrawCallback = callback;
-    }
-
-    /** Scale the thumbnail in both x and y. */
-    public void setFitXY() {
-        mFitXY = true;
     }
 }

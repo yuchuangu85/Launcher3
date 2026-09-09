@@ -18,7 +18,7 @@ Copyright (C) 2016 The Android Open Source Project
         android:height="@dimen/options_menu_icon_size"
         android:viewportWidth="24.0"
         android:viewportHeight="24.0"
-        android:tint="@color/materialColorOnSurface" >
+        android:tint="?android:attr/textColorPrimary" >
     <path
         android:fillColor="@android:color/white"
         android:pathData="M13.85,22.25h-3.7c-0.74,0-1.36-0.54-1.45-1.27l-0.27-1.89c-0.27-0.14-0.53-0.29-0.79-0.46l-1.8,0.72

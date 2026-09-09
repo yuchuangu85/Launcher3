@@ -15,17 +15,19 @@
  */
 package com.android.launcher3.views;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.BlendMode;
 import android.graphics.BlendModeColorFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.accessibility.AccessibilityEvent;
 
@@ -33,11 +35,9 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 
 import com.android.launcher3.BubbleTextView;
-import com.android.launcher3.icons.BitmapInfo;
+import com.android.launcher3.icons.BaseIconFactory;
 import com.android.launcher3.icons.FastBitmapDrawable;
-import com.android.launcher3.icons.FastBitmapDrawableDelegate;
-import com.android.launcher3.icons.FastBitmapDrawableDelegate.DelegateFactory;
-import com.android.launcher3.icons.IconShape;
+import com.android.launcher3.icons.LauncherIcons;
 import com.android.launcher3.util.MultiTranslateDelegate;
 
 /**
@@ -74,10 +74,9 @@ public class IconButtonView extends BubbleTextView {
         if (fg == null) {
             fg = new ColorDrawable(Color.TRANSPARENT);
         }
-        setIcon(new FastBitmapDrawable(
-                BitmapInfo.LOW_RES_INFO,
-                IconShape.EMPTY,
-                new IconDelegateFactory(tint, fg)));
+        try (BaseIconFactory factory = LauncherIcons.obtain(context)) {
+            setIcon(new IconDrawable(factory.getWhiteShadowLayer(), tint, fg));
+        }
     }
 
     @Override
@@ -90,17 +89,16 @@ public class IconButtonView extends BubbleTextView {
     public void setIconDrawable(@NonNull Drawable drawable) {
         ColorStateList tintList = getBackgroundTintList();
         int tint = tintList == null ? Color.WHITE : tintList.getDefaultColor();
-        setIcon(new FastBitmapDrawable(
-                BitmapInfo.LOW_RES_INFO,
-                IconShape.EMPTY,
-                new IconDelegateFactory(tint, drawable)));
+        try (BaseIconFactory factory = LauncherIcons.obtain(getContext())) {
+            setIcon(new IconDrawable(factory.getWhiteShadowLayer(), tint, drawable));
+        }
     }
 
     /** Updates the color of the icon's foreground layer. */
     public void setForegroundTint(@ColorInt int tintColor) {
         FastBitmapDrawable icon = getIcon();
-        if (icon != null && (icon.getDelegate() instanceof IconDelegate delegate)) {
-            delegate.mFg.setTint(tintColor);
+        if (icon instanceof IconDrawable) {
+            ((IconDrawable) icon).mFg.setTint(tintColor);
         }
     }
 
@@ -116,36 +114,27 @@ public class IconButtonView extends BubbleTextView {
         getTranslateDelegate().getTranslationX(INDEX_TASKBAR_ALL_APPS_ICON).setValue(translationX);
     }
 
-    private static class IconDelegate implements FastBitmapDrawableDelegate {
+    private static class IconDrawable extends FastBitmapDrawable {
 
         private final Drawable mFg;
 
-        IconDelegate(Paint paint, int colorBg, Drawable fg) {
-            paint.setColorFilter(new BlendModeColorFilter(colorBg, BlendMode.SRC_IN));
+        @TargetApi(Build.VERSION_CODES.TIRAMISU)
+        IconDrawable(Bitmap b, int colorBg, Drawable fg) {
+            super(b);
+            mPaint.setColorFilter(new BlendModeColorFilter(colorBg, BlendMode.SRC_IN));
             mFg = fg;
         }
 
         @Override
-        public void drawContent(@NonNull BitmapInfo info,
-                @NonNull IconShape shape,
-                @NonNull Canvas canvas, @NonNull Rect bounds, @NonNull Paint paint) {
+        protected void drawInternal(Canvas canvas, Rect bounds) {
+            super.drawInternal(canvas, bounds);
             mFg.draw(canvas);
         }
 
         @Override
-        public void onBoundsChange(@NonNull Rect bounds) {
+        protected void onBoundsChange(Rect bounds) {
+            super.onBoundsChange(bounds);
             mFg.setBounds(bounds);
-        }
-    }
-
-    private record IconDelegateFactory(int colorBg, Drawable fg) implements DelegateFactory {
-
-        @NonNull
-        @Override
-        public FastBitmapDrawableDelegate newDelegate(@NonNull BitmapInfo bitmapInfo,
-                @NonNull IconShape iconShape, @NonNull Paint paint,
-                @NonNull FastBitmapDrawable host) {
-            return new IconDelegate(paint, colorBg, fg);
         }
     }
 }

@@ -16,6 +16,7 @@
 package com.android.launcher3.allapps.search;
 
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_EMPTY_SEARCH;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import android.content.Context;
 import android.os.Handler;
@@ -28,7 +29,6 @@ import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.search.SearchAlgorithm;
 import com.android.launcher3.search.SearchCallback;
 import com.android.launcher3.search.StringMatcherUtility;
-import com.android.launcher3.util.LooperExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,14 +44,13 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     private final Handler mResultHandler;
     private final boolean mAddNoResultsMessage;
 
-    public DefaultAppSearchAlgorithm(Context context, LooperExecutor uiExecutor) {
-        this(context, uiExecutor, false);
+    public DefaultAppSearchAlgorithm(Context context) {
+        this(context, false);
     }
 
-    public DefaultAppSearchAlgorithm(
-            Context context, LooperExecutor uiExecutor, boolean addNoResultsMessage) {
+    public DefaultAppSearchAlgorithm(Context context, boolean addNoResultsMessage) {
         mAppState = LauncherAppState.getInstance(context);
-        mResultHandler = new Handler(uiExecutor.getLooper());
+        mResultHandler = new Handler(MAIN_EXECUTOR.getLooper());
         mAddNoResultsMessage = addNoResultsMessage;
     }
 

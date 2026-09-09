@@ -16,22 +16,13 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
-    android:viewportWidth="960"
-    android:viewportHeight="960"
-    android:autoMirrored="true">
+    android:viewportWidth="48"
+    android:viewportHeight="48">
 
     <path
         android:fillColor="#0B57D0"
-        android:pathData="M480 0a480 480 0 1 0 0 960a480 480 0 1 0 0 -960" />
-
-    <group
-        android:scaleX="0.7"
-        android:scaleY="0.7"
-        android:translateX="144"
-        android:translateY="144">
-        <path
-            android:fillColor="@android:color/white"
-            android:pathData="M200,760h360v-200h200v-360L200,200v560ZM200,840q-33,0 -56.5,-23.5T120,760v-560q0,-33 23.5,-56.5T200,120h560q33,0 56.5,23.5T840,200v400L600,840L200,840ZM280,560v-80h200v80L280,560ZM280,400v-80h400v80L280,400ZM200,760v-560,560Z"/>
-    </group>
-
+        android:pathData="M48 24C48 10.7452 37.2548 0 24 0C10.7452 0 0 10.7452 0 24C0 37.2548 10.7452 48 24 48C37.2548 48 48 37.2548 48 24Z" />
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M32.892 16.8L31.2 15.108C30.756 14.652 30.144 14.4 29.508 14.4C28.872 14.4 28.26 14.652 27.816 15.108L18.468 24.456L15.708 27.216L14.448 32.28C14.412 32.352 14.4 32.448 14.4 32.532C14.4 33.12 14.88 33.6 15.468 33.6C15.552 33.6 15.648 33.588 15.732 33.564L20.796 32.304L23.556 29.544L32.904 20.196C33.348 19.74 33.6 19.128 33.6 18.492C33.6 17.856 33.348 17.244 32.892 16.8ZM21.852 27.852L20.652 29.052L18.96 27.36L20.16 26.16L29.508 16.8L31.2 18.492L21.852 27.852Z" />
 </vector>

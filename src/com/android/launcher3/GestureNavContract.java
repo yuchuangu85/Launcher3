@@ -25,7 +25,6 @@ import android.content.Intent;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
@@ -37,8 +36,6 @@ import android.view.SurfaceControl;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.launcher3.util.ObjectWrapper;
-import com.android.launcher3.util.StableViewInfo;
 import com.android.launcher3.views.ActivityContext;
 
 import java.lang.ref.WeakReference;
@@ -55,21 +52,13 @@ public class GestureNavContract {
     public static final String EXTRA_ICON_SURFACE = "gesture_nav_contract_surface_control";
     public static final String EXTRA_REMOTE_CALLBACK = "android.intent.extra.REMOTE_CALLBACK";
     public static final String EXTRA_ON_FINISH_CALLBACK = "gesture_nav_contract_finish_callback";
-    public static final String EXTRA_ENABLE_GESTURE_CONTRACT = "gesture_nav_contract_enable";
-    public static final String EXTRA_LAUNCH_COOKIE = "gesture_nav_contract_launch_cookie";
 
-    @Nullable public final StableViewInfo stableViewInfo;
-    @NonNull public final ComponentName componentName;
-    @NonNull public final UserHandle user;
+    public final ComponentName componentName;
+    public final UserHandle user;
 
-    @NonNull private final Message mCallback;
+    private final Message mCallback;
 
-    public GestureNavContract(
-            @Nullable StableViewInfo stableViewInfo,
-            @NonNull ComponentName componentName,
-            @NonNull UserHandle user,
-            @NonNull Message callback) {
-        this.stableViewInfo = stableViewInfo;
+    public GestureNavContract(ComponentName componentName, UserHandle user, Message callback) {
         this.componentName = componentName;
         this.user = user;
         this.mCallback = callback;
@@ -100,45 +89,22 @@ public class GestureNavContract {
     }
 
     /**
-     * Returns if a {@link GestureNavContract} can be built from the given intent without clearing
-     * the contract.
+     * Clears and returns the GestureNavContract if it was present in the intent.
      */
-    public static boolean canBuildFromIntent(@NonNull Intent intent) {
-        return fromIntent(intent, /* clearGnc= */ false) != null;
-    }
-
-    public static boolean isContractEnabled(@NonNull Intent intent) {
-        Bundle extras = intent.getBundleExtra(EXTRA_GESTURE_CONTRACT);
-
-        return extras != null && extras.getBoolean(EXTRA_ENABLE_GESTURE_CONTRACT, true);
-    }
-
-    /**
-     * Clears and returns the {@link GestureNavContract} if it was present in the intent.
-     */
-    public static GestureNavContract fromIntent(@NonNull Intent intent) {
-        return fromIntent(intent, /* clearGnc= */ true);
-    }
-
-    private static GestureNavContract fromIntent(@NonNull Intent intent, boolean clearGnc) {
+    public static GestureNavContract fromIntent(Intent intent) {
         Bundle extras = intent.getBundleExtra(EXTRA_GESTURE_CONTRACT);
         if (extras == null) {
             return null;
         }
-        if (clearGnc) {
-            intent.removeExtra(EXTRA_GESTURE_CONTRACT);
-        }
-        IBinder launchCookie = extras.getBinder(EXTRA_LAUNCH_COOKIE);
+        intent.removeExtra(EXTRA_GESTURE_CONTRACT);
+
         ComponentName componentName = extras.getParcelable(EXTRA_COMPONENT_NAME);
         UserHandle userHandle = extras.getParcelable(EXTRA_USER);
         Message callback = extras.getParcelable(EXTRA_REMOTE_CALLBACK);
 
-        if (componentName != null
-                && userHandle != null
-                && callback != null
+        if (componentName != null && userHandle != null && callback != null
                 && callback.replyTo != null) {
-            return new GestureNavContract(
-                    ObjectWrapper.unwrap(launchCookie), componentName, userHandle, callback);
+            return new GestureNavContract(componentName, userHandle, callback);
         }
         return null;
     }

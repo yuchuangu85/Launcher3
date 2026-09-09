@@ -110,17 +110,18 @@ object BarsLocationAnimatorHelper {
     ): Animator {
         val shift: Float = bubbleBarView.context.outShift
 
-        val isRtl = bubbleBarView.isLayoutRtl
-        val onLeft = newLocation.isOnLeft(isRtl)
+        val onLeft = newLocation.isOnLeft(bubbleBarView.isLayoutRtl)
+        val startTx: Float
         val finalTx =
-            if (BubbleBarLocation.isDifferentSides(newLocation, currentLocation, isRtl)) {
-                // We are animating in to a transient location, need to move the bar accordingly.
-                if (onLeft) -distanceFromOtherSide else distanceFromOtherSide
-            } else {
+            if (newLocation == currentLocation) {
                 // Animated location matches layout location.
                 0f
+            } else {
+                // We are animating in to a transient location, need to move the bar
+                // accordingly.
+                distanceFromOtherSide * (if (onLeft) -1 else 1)
             }
-        val startTx =
+        startTx =
             if (onLeft) {
                 // Bar will be shown on the left side. Start point is shifted right.
                 finalTx + shift

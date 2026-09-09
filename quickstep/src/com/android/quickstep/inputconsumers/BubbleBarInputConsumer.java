@@ -18,8 +18,6 @@ package com.android.quickstep.inputconsumers;
 
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
-import static com.android.launcher3.util.Executors.getTaskbarUiThread;
-
 import android.content.Context;
 import android.graphics.PointF;
 import android.util.Log;
@@ -28,9 +26,7 @@ import android.view.ViewConfiguration;
 
 import androidx.annotation.Nullable;
 
-import com.android.launcher3.taskbar.NavbarButtonsViewController;
 import com.android.launcher3.taskbar.TaskbarActivityContext;
-import com.android.launcher3.taskbar.TaskbarUiState;
 import com.android.launcher3.taskbar.bubbles.BubbleBarSwipeController;
 import com.android.launcher3.taskbar.bubbles.BubbleBarViewController;
 import com.android.launcher3.taskbar.bubbles.BubbleControllers;
@@ -48,14 +44,13 @@ public class BubbleBarInputConsumer implements InputConsumer {
 
     private static final String TAG = "BubbleBarInputConsumer";
 
-    private final TaskbarUiState mTaskbarUiState;
     private final BubbleStashController mBubbleStashController;
     private final BubbleBarViewController mBubbleBarViewController;
     @Nullable
     private final BubbleBarSwipeController mBubbleBarSwipeController;
     private final InputMonitorCompat mInputMonitorCompat;
 
-    private volatile boolean mPilfered;
+    private boolean mPilfered;
     private boolean mPassedTouchSlop;
     private boolean mStashedOrCollapsedOnDown;
 
@@ -71,11 +66,9 @@ public class BubbleBarInputConsumer implements InputConsumer {
 
     public BubbleBarInputConsumer(
             Context context,
-            TaskbarUiState taskbarUiState,
             int displayId,
             BubbleControllers bubbleControllers,
             InputMonitorCompat inputMonitorCompat) {
-        mTaskbarUiState = taskbarUiState;
         mDisplayId = displayId;
         mBubbleStashController = bubbleControllers.bubbleStashController;
         mBubbleBarViewController = bubbleControllers.bubbleBarViewController;
@@ -105,12 +98,12 @@ public class BubbleBarInputConsumer implements InputConsumer {
                 mActivePointerId = ev.getPointerId(0);
                 mDownPos.set(ev.getX(), ev.getY());
                 mLastPos.set(mDownPos);
-                mStashedOrCollapsedOnDown = isBubbleStashed() || isCollapsed();
+                mStashedOrCollapsedOnDown = mBubbleStashController.isStashed() || isCollapsed();
                 Log.d(TAG,
                         "ACTION_DOWN stashedOrCollapsed=" + mStashedOrCollapsedOnDown + " downPos="
                                 + mDownPos);
                 if (mBubbleBarSwipeController != null) {
-                    getTaskbarUiThread().execute(mBubbleBarSwipeController::start);
+                    mBubbleBarSwipeController.start();
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -130,16 +123,14 @@ public class BubbleBarInputConsumer implements InputConsumer {
                     }
                 }
                 if (mBubbleBarSwipeController != null) {
-                    getTaskbarUiThread().execute(() -> {
-                        mBubbleBarSwipeController.swipeTo(dY);
-                        if (!mPilfered && mBubbleBarSwipeController.isSwipeGesture()) {
-                            Log.d(TAG, "ACTION_MOVE swipe gesture, pilfering");
-                            mPilfered = true;
-                            // Bubbles is handling the swipe so make sure no one else gets it.
-                            TestLogging.recordEvent(TestProtocol.SEQUENCE_PILFER, "pilferPointers");
-                            mInputMonitorCompat.pilferPointers();
-                        }
-                    });
+                    mBubbleBarSwipeController.swipeTo(dY);
+                    if (!mPilfered && mBubbleBarSwipeController.isSwipeGesture()) {
+                        Log.d(TAG, "ACTION_MOVE swipe gesture, pilfering");
+                        mPilfered = true;
+                        // Bubbles is handling the swipe so make sure no one else gets it.
+                        TestLogging.recordEvent(TestProtocol.SEQUENCE_PILFER, "pilferPointers");
+                        mInputMonitorCompat.pilferPointers();
+                    }
                 }
                 break;
             case MotionEvent.ACTION_UP:
@@ -156,8 +147,8 @@ public class BubbleBarInputConsumer implements InputConsumer {
                         && mStashedOrCollapsedOnDown) {
                     Log.d(TAG, "ACTION_UP showing bubble bar");
                     // Taps on the handle / collapsed state should open the bar
-                    getTaskbarUiThread().execute(() -> mBubbleStashController.showBubbleBar(
-                            /* expandBubbles= */ true, /* bubbleBarGesture= */ true));
+                    mBubbleStashController.showBubbleBar(
+                            /* expandBubbles= */ true, /* bubbleBarGesture= */ true);
                 } else {
                     Log.d(TAG, "ACTION_UP nothing to do");
                 }
@@ -174,7 +165,7 @@ public class BubbleBarInputConsumer implements InputConsumer {
     private void cleanupAfterMotionEvent() {
         Log.d(TAG, "cleaning up passedSlop=" + mPassedTouchSlop + " pilfered=" + mPilfered);
         if (mBubbleBarSwipeController != null) {
-            getTaskbarUiThread().execute(mBubbleBarSwipeController::finish);
+            mBubbleBarSwipeController.finish();
         }
         mPassedTouchSlop = false;
         mPilfered = false;
@@ -182,7 +173,8 @@ public class BubbleBarInputConsumer implements InputConsumer {
     }
 
     private boolean isCollapsed() {
-        return isBubbleBarVisible() && !isBubbleBarExpanded();
+        return mBubbleStashController.isBubbleBarVisible()
+                && !mBubbleBarViewController.isExpanded();
     }
 
     /**
@@ -200,25 +192,8 @@ public class BubbleBarInputConsumer implements InputConsumer {
                 && controllers.bubbleStashedHandleViewController.isPresent()) {
             return controllers.bubbleStashedHandleViewController.get().isEventOverHandle(ev);
         } else if (controllers.bubbleBarViewController.isBubbleBarVisible()) {
-            NavbarButtonsViewController navbarButtonsViewController =
-                    tac.getNavBarButtonsViewController();
-            boolean isBlockedByRotationButton = navbarButtonsViewController != null
-                    && navbarButtonsViewController.isEventOverAnyItem(ev);
-            return !isBlockedByRotationButton
-                    && controllers.bubbleBarViewController.isEventOverBubbleBar(ev);
+            return controllers.bubbleBarViewController.isEventOverBubbleBar(ev);
         }
         return false;
-    }
-
-    private boolean isBubbleStashed() {
-        return mTaskbarUiState.isBubbleStashed();
-    }
-
-    private boolean isBubbleBarVisible() {
-        return mTaskbarUiState.getHasBubbles() && !mTaskbarUiState.isBubbleStashed();
-    }
-
-    private boolean isBubbleBarExpanded() {
-        return mTaskbarUiState.isBubbleBarExpanded();
     }
 }

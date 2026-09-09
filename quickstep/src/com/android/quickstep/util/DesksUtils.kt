@@ -19,11 +19,23 @@ package com.android.quickstep.util
 import android.app.TaskInfo
 import android.content.ComponentName
 import android.content.res.Resources
+import android.window.DesktopExperienceFlags
+import com.android.systemui.shared.recents.model.Task
 
 class DesksUtils {
     companion object {
-        private val sysUiPackage =
+        val sysUiPackage =
             Resources.getSystem().getString(com.android.internal.R.string.config_systemUi)
+
+        @JvmStatic
+        fun areMultiDesksFlagsEnabled() =
+            DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_BACKEND.isTrue &&
+                DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_FRONTEND.isTrue
+
+        /** Returns true if this [task] contains the [DesktopWallpaperActivity]. */
+        @JvmStatic
+        fun isDesktopWallpaperTask(task: Task) =
+            task.key.component?.let(::isDesktopWallpaperComponent) == true
 
         @JvmStatic
         fun isDesktopWallpaperTask(taskInfo: TaskInfo): Boolean {

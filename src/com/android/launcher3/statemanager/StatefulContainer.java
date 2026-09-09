@@ -26,7 +26,6 @@ import androidx.annotation.CallSuper;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.views.ActivityContext;
-import com.android.launcher3.views.ScrimView;
 
 import java.util.List;
 
@@ -64,14 +63,6 @@ public interface StatefulContainer<STATE_TYPE extends BaseState<STATE_TYPE>> ext
     }
 
     /**
-     * Called when transition to state is aborted because the state is already set
-     *
-     * @param state current state of State_Type
-     */
-    default void onRepeatStateSetAborted(STATE_TYPE state) {
-    }
-
-    /**
      * Called when transition to state starts
      *
      * @param state current state of State_Type
@@ -97,17 +88,7 @@ public interface StatefulContainer<STATE_TYPE extends BaseState<STATE_TYPE>> ext
      */
     boolean shouldAnimateStateChange();
 
-    /**
-     * Handles configuration change when system calls onConfigurationChanged, or on other
-     * situations that configuration might change.
-     */
-    default void handleConfigurationChanged(Configuration configuration) {
-        // no-op
+    default void handleConfigurationChanged(Configuration configuration){
+        //no op
     }
-
-    /** Returns the {@link ScrimView} to apply blur on.*/
-    ScrimView getScrimView();
-
-    /** Returns the STATE_TYPE that correspond to inside an app. */
-    STATE_TYPE getBackgroundAppState();
 }

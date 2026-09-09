@@ -21,8 +21,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:importantForAccessibility="yes"
-    launcher:focusBorderColor="@color/materialColorSecondary"
-    launcher:hoverBorderColor="@color/materialColorPrimary">
+    launcher:focusBorderColor="@color/materialColorSecondary">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/content"

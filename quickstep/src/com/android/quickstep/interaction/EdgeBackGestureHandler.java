@@ -118,7 +118,7 @@ public class EdgeBackGestureHandler implements OnTouchListener {
             // Add a nav bar panel window.
             mEdgeBackPanel = new EdgeBackGesturePanel(mContext, parent, createLayoutParams());
             mEdgeBackPanel.setBackCallback(mBackCallback);
-            mDisplaySize.set(mDeviceProfile.getDeviceProperties().getWidthPx(), mDeviceProfile.getDeviceProperties().getHeightPx());
+            mDisplaySize.set(mDeviceProfile.widthPx, mDeviceProfile.heightPx);
             mEdgeBackPanel.setDisplaySize(mDisplaySize);
         }
     }

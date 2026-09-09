@@ -20,7 +20,6 @@ import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_RECO
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_FOLDER_OPEN;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_PRIVATE_SPACE_INSTALL_APP_BUTTON_TAP;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_BY_PUBLISHER;
-import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_FILE_SYSTEM_NOT_READY;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_LOCKED_USER;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_QUIET_USER;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_SAFEMODE;
@@ -34,7 +33,6 @@ import android.content.Intent;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageInstaller.SessionInfo;
 import android.os.Process;
-import android.os.Trace;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -98,7 +96,6 @@ public class ItemClickHandler {
         Launcher launcher = Launcher.getLauncher(v.getContext());
         if (!launcher.getWorkspace().isFinishedSwitchingState()) return;
 
-        Trace.beginSection("ItemClickHandler#onClick");
         Object tag = v.getTag();
         if (tag instanceof WorkspaceItemInfo) {
             onClickAppShortcut(v, (WorkspaceItemInfo) tag, launcher);
@@ -127,7 +124,6 @@ public class ItemClickHandler {
         } else if (tag instanceof ItemClickProxy) {
             ((ItemClickProxy) tag).onItemClicked(v);
         }
-        Trace.endSection();
     }
 
     /**
@@ -159,7 +155,7 @@ public class ItemClickHandler {
         if (!isApp1Launchable || !isApp2Launchable) {
             // App pair is unlaunchable due to screen size.
             boolean isFoldable = InvariantDeviceProfile.INSTANCE.get(launcher)
-                    .supportedProfiles.stream().anyMatch(dp -> dp.getDeviceProperties().isTwoPanels());
+                    .supportedProfiles.stream().anyMatch(dp -> dp.isTwoPanels);
             Toast.makeText(launcher, isFoldable
                             ? R.string.app_pair_needs_unfold
                             : R.string.app_pair_unlaunchable_at_screen_size,
@@ -221,8 +217,7 @@ public class ItemClickHandler {
                 addFlowHandler.startBindFlow(launcher, info.appWidgetId, info,
                         REQUEST_BIND_PENDING_APPWIDGET);
             } else {
-                addFlowHandler.startConfigActivityIfSupported(launcher, info,
-                        REQUEST_RECONFIGURE_APPWIDGET);
+                addFlowHandler.startConfigActivity(launcher, info, REQUEST_RECONFIGURE_APPWIDGET);
             }
         } else {
             final String packageName = info.providerName.getPackageName();
@@ -299,16 +294,12 @@ public class ItemClickHandler {
                 return true;
             }
             // Otherwise just use a generic error message.
-            final int error;
-            final int runtimeStatusFlags = shortcut.runtimeStatusFlags;
-            if ((runtimeStatusFlags & FLAG_DISABLED_SAFEMODE) != 0) {
+            int error = R.string.activity_not_available;
+            if ((shortcut.runtimeStatusFlags & FLAG_DISABLED_SAFEMODE) != 0) {
                 error = R.string.safemode_shortcut_error;
-            } else if ((runtimeStatusFlags & FLAG_DISABLED_BY_PUBLISHER) != 0
-                    || (runtimeStatusFlags & FLAG_DISABLED_FILE_SYSTEM_NOT_READY) != 0
-                    || (runtimeStatusFlags & FLAG_DISABLED_LOCKED_USER) != 0) {
+            } else if ((shortcut.runtimeStatusFlags & FLAG_DISABLED_BY_PUBLISHER) != 0
+                    || (shortcut.runtimeStatusFlags & FLAG_DISABLED_LOCKED_USER) != 0) {
                 error = R.string.shortcut_not_available;
-            } else {
-                error = R.string.activity_not_available;
             }
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show();
             return true;

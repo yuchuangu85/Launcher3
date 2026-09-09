@@ -22,13 +22,14 @@
     android:contentDescription="@string/recent_task_desktop"
     android:defaultFocusHighlightEnabled="false"
     android:focusable="true"
-    android:clipChildren="false"
     launcher:focusBorderColor="@color/materialColorOutline"
     launcher:hoverBorderColor="@color/materialColorPrimary">
 
-    <include
+    <ViewStub
         android:id="@+id/icon"
-        layout="@layout/icon_app_chip_view" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inflatedId="@id/icon" />
 
     <com.android.quickstep.views.DesktopTaskContentView
         android:id="@+id/desktop_content"

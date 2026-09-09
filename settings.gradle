@@ -1,42 +1,6 @@
-pluginManagement {
-    repositories {
-        // Aliyun mirrors (dl.google.com / services.gradle.org unreachable on this network)
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-    }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-    }
-}
-rootProject.name = "Launcher3"
+include ':IconLoader'
+project(':IconLoader').projectDir = new File(rootDir, 'iconloaderlib')
 
-def sysui = { name, path ->
-    include ":$name"
-    project(":$name").projectDir = new File(rootDir, "platform_frameworks_libs/frameworks_libs_systemui/$path")
-}
-sysui("iconloaderlib", "iconloaderlib")
-sysui("animationlib", "animationlib")
-sysui("contextualeducationlib", "contextualeducationlib")
-sysui("usertypelib", "usertypelib")
-sysui("dynamiccolors", "dynamiccolors")
-sysui("cuebarlib", "cuebarlib")
-sysui("displaylib", "displaylib")
-sysui("tracinglib", "tracinglib")
-sysui("msdllib", "msdllib")
-include ':pccore'
-include ':sysui_anim_stub'
-include ':ext_stub'
-include ':wmshell_compat'
-project(':pccore').projectDir = new File(rootDir, 'platform_frameworks_libs/personalcontext_core')
-project(':wmshell_compat').projectDir = new File(rootDir, 'platform_frameworks_libs/wmshell_compat')
-project(':sysui_anim_stub').projectDir = new File(rootDir, 'platform_frameworks_libs/sysui_anim_stub')
-project(':ext_stub').projectDir = new File(rootDir, 'platform_frameworks_libs/ext_stub')
-sysui("acecommon", "ace/common")
-sysui("aceclient", "ace/client")
-
+include ':animationlib'
+include ':contextualeducationlib'
+include ':flags'

@@ -6,19 +6,16 @@ import android.app.backup.BackupRestoreEventLogger.BackupRestoreDataType
 import android.app.backup.BackupRestoreEventLogger.BackupRestoreError
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import com.android.launcher3.Flags.enableLauncherBrMetricsFixed
 import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.backuprestore.LauncherRestoreEventLogger
-import com.android.launcher3.dagger.ApplicationContext
-import javax.inject.Inject
 
 /**
  * Concrete implementation for wrapper to log Restore event metrics for both success and failure to
  * restore Launcher workspace from a backup. This implementation accesses SystemApis so is only
  * available to QuickStep/NexusLauncher.
  */
-class LauncherRestoreEventLoggerImpl
-@Inject
-constructor(@ApplicationContext private val context: Context) : LauncherRestoreEventLogger() {
+class LauncherRestoreEventLoggerImpl(val context: Context) : LauncherRestoreEventLogger() {
     companion object {
         const val TAG = "LauncherRestoreEventLoggerImpl"
 
@@ -46,9 +43,11 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
     override fun logLauncherItemsRestoreFailed(
         @BackupRestoreDataType dataType: String,
         count: Int,
-        @BackupRestoreError error: String?,
+        @BackupRestoreError error: String?
     ) {
-        restoreEventLogger.logItemsRestoreFailed(dataType, count, error)
+        if (enableLauncherBrMetricsFixed()) {
+            restoreEventLogger.logItemsRestoreFailed(dataType, count, error)
+        }
     }
 
     /**
@@ -58,7 +57,9 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
      * @param count the number of data items restored.
      */
     override fun logLauncherItemsRestored(@BackupRestoreDataType dataType: String, count: Int) {
-        restoreEventLogger.logItemsRestored(dataType, count)
+        if (enableLauncherBrMetricsFixed()) {
+            restoreEventLogger.logItemsRestored(dataType, count)
+        }
     }
 
     /**
@@ -67,7 +68,9 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
      * @param favoritesId The id of the item type from [Favorites] that was restored.
      */
     override fun logSingleFavoritesItemRestored(favoritesId: Int) {
-        restoreEventLogger.logItemsRestored(favoritesIdToDataType(favoritesId), 1)
+        if (enableLauncherBrMetricsFixed()) {
+            restoreEventLogger.logItemsRestored(favoritesIdToDataType(favoritesId), 1)
+        }
     }
 
     /**
@@ -77,7 +80,9 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
      * @param count number of items that restored.
      */
     override fun logFavoritesItemsRestored(favoritesId: Int, count: Int) {
-        restoreEventLogger.logItemsRestored(favoritesIdToDataType(favoritesId), count)
+        if (enableLauncherBrMetricsFixed()) {
+            restoreEventLogger.logItemsRestored(favoritesIdToDataType(favoritesId), count)
+        }
     }
 
     /**
@@ -88,9 +93,11 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
      */
     override fun logSingleFavoritesItemRestoreFailed(
         favoritesId: Int,
-        @BackupRestoreError error: String?,
+        @BackupRestoreError error: String?
     ) {
-        restoreEventLogger.logItemsRestoreFailed(favoritesIdToDataType(favoritesId), 1, error)
+        if (enableLauncherBrMetricsFixed()) {
+            restoreEventLogger.logItemsRestoreFailed(favoritesIdToDataType(favoritesId), 1, error)
+        }
     }
 
     /**
@@ -103,13 +110,15 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
     override fun logFavoritesItemsRestoreFailed(
         favoritesId: Int,
         count: Int,
-        @BackupRestoreError error: String?,
+        @BackupRestoreError error: String?
     ) {
-        restoreEventLogger.logItemsRestoreFailed(
-            favoritesIdToDataType(favoritesId),
-            count,
-            error,
-        )
+        if (enableLauncherBrMetricsFixed()) {
+            restoreEventLogger.logItemsRestoreFailed(
+                favoritesIdToDataType(favoritesId),
+                count,
+                error
+            )
+        }
     }
 
     /**
@@ -117,7 +126,9 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
      * done restoring items for Launcher.
      */
     override fun reportLauncherRestoreResults() {
-        BackupManager(context).reportDelayedRestoreResult(restoreEventLogger)
+        if (enableLauncherBrMetricsFixed()) {
+            BackupManager(context).reportDelayedRestoreResult(restoreEventLogger)
+        }
     }
 
     /**
@@ -132,7 +143,7 @@ constructor(@ApplicationContext private val context: Context) : LauncherRestoreE
             Favorites.ITEM_TYPE_APPWIDGET -> DATA_TYPE_APPWIDGET
             Favorites.ITEM_TYPE_CUSTOM_APPWIDGET -> DATA_TYPE_CUSTOM_APPWIDGET
             Favorites.ITEM_TYPE_DEEP_SHORTCUT -> DATA_TYPE_DEEP_SHORTCUT
-            Favorites.ITEM_TYPE_APP_GROUP -> DATA_TYPE_APP_PAIR
+            Favorites.ITEM_TYPE_APP_PAIR -> DATA_TYPE_APP_PAIR
             else -> DATA_TYPE_LAUNCHER_ITEM
         }
 }

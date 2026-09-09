@@ -17,7 +17,6 @@
 package com.android.launcher3.taskbar
 
 import android.content.Context
-import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK
 import android.view.View
 import com.android.launcher3.AbstractFloatingView
@@ -40,10 +39,7 @@ class NewWindowTaskbarShortcut<T>(target: T, itemInfo: ItemInfo?, originalView: 
     ) where T : Context?, T : ActivityContext? {
 
     override fun onClick(v: View?) {
-        if (mItemInfo.intent == null) {
-            return;
-        }
-        val intent = Intent(mItemInfo.intent)
+        val intent = mItemInfo.intent ?: return
         intent.addFlags(FLAG_ACTIVITY_MULTIPLE_TASK)
         mTarget?.startActivitySafely(v, intent, mItemInfo)
         AbstractFloatingView.closeAllOpenViews(mTarget)

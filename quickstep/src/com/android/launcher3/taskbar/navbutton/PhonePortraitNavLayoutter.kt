@@ -29,33 +29,25 @@ import com.android.launcher3.taskbar.TaskbarActivityContext
 
 class PhonePortraitNavLayoutter(
     resources: Resources,
-    navButtonContainer: LinearLayout,
+    navBarContainer: LinearLayout,
     endContextualContainer: ViewGroup,
     startContextualContainer: ViewGroup,
     imeSwitcher: ImageView?,
     a11yButton: ImageView?,
-    moreOptionsButton: ImageView?,
-    space: Space?,
-    backButton: ImageView?,
-    homeButton: ImageView?,
-    recentsButton: ImageView?,
+    space: Space?
 ) :
     AbstractNavButtonLayoutter(
         resources,
-        navButtonContainer,
+        navBarContainer,
         endContextualContainer,
         startContextualContainer,
         imeSwitcher,
         a11yButton,
-        moreOptionsButton,
-        space,
-        backButton,
-        homeButton,
-        recentsButton,
+        space
     ) {
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
-        val totalWidth = context.deviceProfile.deviceProperties.widthPx
+        val totalWidth = context.deviceProfile.widthPx
         val homeButtonWidth =
             resources.getDimensionPixelSize(R.dimen.taskbar_phone_home_button_size)
         val roundedCornerContentMargin =
@@ -71,7 +63,7 @@ class PhonePortraitNavLayoutter(
         val navContainerParams =
             FrameLayout.LayoutParams(
                 navButtonContainerWidth.toInt(),
-                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
         navContainerParams.apply {
             topMargin = 0
@@ -83,7 +75,12 @@ class PhonePortraitNavLayoutter(
         }
 
         // Ensure order of buttons is correct
-        addThreeButtons()
+        navButtonContainer.removeAllViews()
+        navButtonContainer.orientation = LinearLayout.HORIZONTAL
+
+        navButtonContainer.addView(backButton)
+        navButtonContainer.addView(homeButton)
+        navButtonContainer.addView(recentsButton)
 
         navButtonContainer.layoutParams = navContainerParams
         navButtonContainer.gravity = Gravity.CENTER
@@ -123,14 +120,14 @@ class PhonePortraitNavLayoutter(
             contextualButtonWidth.toInt(),
             roundedCornerContentMargin + contentPadding,
             0,
-            Gravity.START,
+            Gravity.START
         )
         repositionContextualContainer(
             endContextualContainer,
             contextualButtonWidth.toInt(),
             0,
             roundedCornerContentMargin + contentPadding,
-            Gravity.END,
+            Gravity.END
         )
 
         startContextualContainer.addView(space, MATCH_PARENT, MATCH_PARENT)

@@ -18,9 +18,9 @@ package com.android.launcher3.views;
 import static android.view.Gravity.LEFT;
 
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.launcher3.Flags.enableAdditionalHomeAnimations;
+import static com.android.launcher3.Utilities.getFullDrawable;
 import static com.android.launcher3.Utilities.mapToRange;
-import static com.android.launcher3.graphics.PreloadIconDelegate.newPendingIcon;
-import static com.android.launcher3.icons.BitmapInfo.FLAG_CUSTOM_SHAPE;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 import static com.android.launcher3.views.FloatingIconViewCompanion.setPropertiesVisible;
 
@@ -34,6 +34,7 @@ import android.graphics.drawable.Drawable;
 import android.os.CancellationSignal;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
@@ -52,15 +53,13 @@ import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.folder.FolderIcon;
-import com.android.launcher3.graphics.IconLoader;
-import com.android.launcher3.graphics.PreloadIconDelegate;
+import com.android.launcher3.graphics.PreloadIconDrawable;
 import com.android.launcher3.icons.FastBitmapDrawable;
 import com.android.launcher3.icons.IconNormalizer;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.popup.SystemShortcut;
 import com.android.launcher3.shortcuts.DeepShortcutView;
-import com.android.launcher3.util.AsyncView;
 
 import java.util.function.Supplier;
 
@@ -96,10 +95,10 @@ public class FloatingIconView extends FrameLayout implements
     private @Nullable Drawable mBadge;
 
     // A view whose visibility should update in sync with mOriginalIcon.
-    private @Nullable AsyncView<View> mMatchVisibilityView;
+    private @Nullable View mMatchVisibilityView;
 
     // A view that will fade out as the animation progresses.
-    private @Nullable AsyncView<View> mFadeOutView;
+    private @Nullable View mFadeOutView;
 
     private View mOriginalIcon;
     private RectF mPositionOut;
@@ -170,16 +169,15 @@ public class FloatingIconView extends FrameLayout implements
         // FIV hasn't fully laid out. During those frames, hide this FIV and continue drawing the
         // TaskView directly while transforming it in the place of this FIV. However, if we fade
         // the TaskView at all, we need to display this FIV regardless.
-        setAlpha(isLaidOut() || taskViewDrawAlpha < 255 ? alpha : 0f);
+        setAlpha(!enableAdditionalHomeAnimations() || isLaidOut() || taskViewDrawAlpha < 255
+                ? alpha : 0f);
         mClipIconView.update(rect, progress, shapeProgressStart, cornerRadius, isOpening, this,
                 mLauncher.getDeviceProfile(), taskViewDrawAlpha);
 
-        // The alpha goes from 1 to 0 when progress is 0 and 0.15 respectively.
-        // This value minimizes view display time while still allowing the view to fade out.
         if (mFadeOutView != null) {
-            mFadeOutView.postCallback((view) -> {
-                view.setAlpha(1 - Math.min(1f, mapToRange(progress, 0, 0.15f, 0, 1, LINEAR)));
-            });
+            // The alpha goes from 1 to 0 when progress is 0 and 0.15 respectively.
+            // This value minimizes view display time while still allowing the view to fade out.
+            mFadeOutView.setAlpha(1 - Math.min(1f, mapToRange(progress, 0, 0.15f, 0, 1, LINEAR)));
         }
     }
 
@@ -230,14 +228,14 @@ public class FloatingIconView extends FrameLayout implements
         // Position the floating view exactly on top of the original
         lp.topMargin = Math.round(pos.top);
         if (mIsRtl) {
-            lp.setMarginStart(Math.round(mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() - pos.right));
+            lp.setMarginStart(Math.round(mLauncher.getDeviceProfile().widthPx - pos.right));
         } else {
             lp.setMarginStart(Math.round(pos.left));
         }
         // Set the properties here already to make sure they are available when running the first
         // animation frame.
         int left = mIsRtl
-                ? mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx() - lp.getMarginStart() - lp.width
+                ? mLauncher.getDeviceProfile().widthPx - lp.getMarginStart() - lp.width
                 : lp.leftMargin;
         layout(left, lp.topMargin, left + lp.width, lp.topMargin + lp.height);
     }
@@ -310,8 +308,7 @@ public class FloatingIconView extends FrameLayout implements
             } else {
                 drawable = originalView.getBackground();
             }
-        } else if (btvIcon instanceof FastBitmapDrawable fbd
-                && fbd.getDelegate() instanceof PreloadIconDelegate) {
+        } else if (btvIcon instanceof PreloadIconDrawable) {
             // Force the progress bar to display.
             drawable = btvIcon;
         } else if (originalView instanceof ImageView) {
@@ -319,20 +316,18 @@ public class FloatingIconView extends FrameLayout implements
         } else {
             int width = (int) pos.width();
             int height = (int) pos.height();
-            IconLoader.Result fullIcon = null;
+            Pair<AdaptiveIconDrawable, Drawable> fullIcon = null;
             if (supportsAdaptiveIcons) {
                 boolean shouldThemeIcon = (btvIcon instanceof FastBitmapDrawable fbd)
                         && fbd.isCreatedForTheme();
-                fullIcon = l.getActivityComponent().getIconLoader().getFullDrawable(
-                        info, width, height, shouldThemeIcon);
+                fullIcon = getFullDrawable(l, info, width, height, shouldThemeIcon);
             } else if (!(originalView instanceof BubbleTextView)) {
-                fullIcon = l.getActivityComponent().getIconLoader().getFullDrawable(
-                        info, width, height, true /* shouldThemeIcon */);
+                fullIcon = getFullDrawable(l, info, width, height, true /* shouldThemeIcon */);
             }
 
             if (fullIcon != null) {
-                drawable = fullIcon.icon;
-                badge = fullIcon.badge;
+                drawable = fullIcon.first;
+                badge = fullIcon.second;
             } else {
                 drawable = btvIcon;
             }
@@ -365,20 +360,20 @@ public class FloatingIconView extends FrameLayout implements
      */
     @UiThread
     private void setIcon(@Nullable Drawable drawable, @Nullable Drawable badge,
-            @Nullable Supplier<Drawable> btvIcon, int iconOffset, boolean usingCustomShape) {
+            @Nullable Supplier<Drawable> btvIcon, int iconOffset) {
         final DeviceProfile dp = mLauncher.getDeviceProfile();
         final InsettableFrameLayout.LayoutParams lp =
                 (InsettableFrameLayout.LayoutParams) getLayoutParams();
         mBadge = badge;
-        mClipIconView.setIcon(drawable, iconOffset, lp, mIsOpening, usingCustomShape, dp);
+        mClipIconView.setIcon(drawable, iconOffset, lp, mIsOpening, dp);
         if (drawable instanceof AdaptiveIconDrawable) {
             final int originalHeight = lp.height;
             final int originalWidth = lp.width;
 
             mFinalDrawableBounds.set(0, 0, originalWidth, originalHeight);
 
-            float aspectRatio = mLauncher.getDeviceProfile().getDeviceProperties().getAspectRatio();
-            if (dp.getDeviceProperties().isLandscape()) {
+            float aspectRatio = mLauncher.getDeviceProfile().aspectRatio;
+            if (dp.isLandscape) {
                 lp.width = (int) Math.max(lp.width, lp.height * aspectRatio);
             } else {
                 lp.height = (int) Math.max(lp.height, lp.width * aspectRatio);
@@ -436,8 +431,7 @@ public class FloatingIconView extends FrameLayout implements
         synchronized (mIconLoadResult) {
             if (mIconLoadResult.isIconLoaded) {
                 setIcon(mIconLoadResult.drawable, mIconLoadResult.badge,
-                        mIconLoadResult.btvDrawable, mIconLoadResult.iconOffset,
-                        mIconLoadResult.usingCustomShape);
+                        mIconLoadResult.btvDrawable, mIconLoadResult.iconOffset);
                 setVisibility(VISIBLE);
                 updateViewsVisibility(false  /* isVisible */);
             } else {
@@ -447,8 +441,7 @@ public class FloatingIconView extends FrameLayout implements
                     }
 
                     setIcon(mIconLoadResult.drawable, mIconLoadResult.badge,
-                            mIconLoadResult.btvDrawable, mIconLoadResult.iconOffset,
-                            mIconLoadResult.usingCustomShape);
+                            mIconLoadResult.btvDrawable, mIconLoadResult.iconOffset);
 
                     setVisibility(VISIBLE);
                     updateViewsVisibility(false  /* isVisible */);
@@ -522,13 +515,9 @@ public class FloatingIconView extends FrameLayout implements
             // When closing an app, we want the item on the workspace to be invisible immediately
             updateViewsVisibility(false  /* isVisible */);
         }
-        if (mFadeOutView != null) {
-            mFadeOutView.postCallback((view -> {
-                if (view instanceof FloatingIconViewCompanion v) {
-                    v.setForceHideDot(true);
-                    v.setForceHideRing(true);
-                }
-            }));
+        if (mFadeOutView instanceof FloatingIconViewCompanion fivc) {
+            fivc.setForceHideDot(true);
+            fivc.setForceHideRing(true);
         }
     }
 
@@ -572,9 +561,12 @@ public class FloatingIconView extends FrameLayout implements
 
         final FastBitmapDrawable btvIcon;
         final Supplier<Drawable> btvDrawableSupplier;
-        if (v instanceof BubbleTextView btv) {
-            if (info instanceof ItemInfoWithIcon iiwi && iiwi.shouldShowPendingIcon()) {
-                btvIcon = newPendingIcon(iiwi, l, btv.getIconCreationFlagsForInfo(iiwi));
+        if (v instanceof BubbleTextView) {
+            BubbleTextView btv = (BubbleTextView) v;
+            if (info instanceof ItemInfoWithIcon
+                    && (((ItemInfoWithIcon) info).runtimeStatusFlags
+                    & ItemInfoWithIcon.FLAG_SHOW_DOWNLOAD_PROGRESS_MASK) != 0) {
+                btvIcon = btv.makePreloadIcon();
                 btvDrawableSupplier = () -> btvIcon;
             } else {
                 btvIcon = btv.getIcon();
@@ -586,14 +578,7 @@ public class FloatingIconView extends FrameLayout implements
             btvDrawableSupplier = null;
         }
 
-        boolean isThemed = false;
-        boolean usingCustomShape = false;
-        if (btvIcon != null) {
-            isThemed = btvIcon.isThemed();
-            usingCustomShape = (btvIcon.creationFlags & FLAG_CUSTOM_SHAPE) != 0;
-        }
-
-        IconLoadResult result = new IconLoadResult(info, isThemed, usingCustomShape);
+        IconLoadResult result = new IconLoadResult(info, btvIcon != null && btvIcon.isThemed());
         result.btvDrawable = btvDrawableSupplier;
 
         final long fetchIconId = sFetchIconId++;
@@ -627,8 +612,8 @@ public class FloatingIconView extends FrameLayout implements
      * @param isOpening True if this view replaces the icon for app open animation.
      */
     public static FloatingIconView getFloatingIconView(Launcher launcher, View originalView,
-            @Nullable AsyncView<View> visibilitySyncView, @Nullable AsyncView<View> fadeOutView,
-            boolean hideOriginal, RectF positionOut, boolean isOpening) {
+            @Nullable View visibilitySyncView, @Nullable View fadeOutView, boolean hideOriginal,
+            RectF positionOut, boolean isOpening) {
         final DragLayer dragLayer = launcher.getDragLayer();
         ViewGroup parent = (ViewGroup) dragLayer.getParent();
         FloatingIconView view = launcher.getViewCache().getView(R.layout.floating_icon_view,
@@ -669,13 +654,11 @@ public class FloatingIconView extends FrameLayout implements
             view.mEndRunnable = null;
 
             if (view.mFadeOutView != null) {
-                view.mFadeOutView.postCallback((foundView -> {
-                    foundView.setAlpha(1f);
-                    if (foundView instanceof FloatingIconViewCompanion v) {
-                        v.setForceHideDot(false);
-                        v.setForceHideRing(false);
-                    }
-                }));
+                view.mFadeOutView.setAlpha(1f);
+            }
+            if (view.mFadeOutView instanceof FloatingIconViewCompanion fivc) {
+                fivc.setForceHideDot(false);
+                fivc.setForceHideRing(false);
             }
 
             if (hideOriginal) {
@@ -701,15 +684,7 @@ public class FloatingIconView extends FrameLayout implements
             setPropertiesVisible(mOriginalIcon, isVisible);
         }
         if (mMatchVisibilityView != null) {
-            mMatchVisibilityView.postCallback(view -> {
-                if (view instanceof FloatingIconViewCompanion v) {
-                    v.setIconVisible(isVisible);
-                    v.setForceHideDot(!isVisible);
-                    v.setForceHideRing(!isVisible);
-                } else {
-                    view.setVisibility(isVisible ? View.VISIBLE : View.INVISIBLE);
-                }
-            });
+            setPropertiesVisible(mMatchVisibilityView, isVisible);
         }
     }
 
@@ -751,7 +726,6 @@ public class FloatingIconView extends FrameLayout implements
     private static class IconLoadResult {
         final ItemInfo itemInfo;
         final boolean isThemed;
-        final boolean usingCustomShape;
         Supplier<Drawable> btvDrawable;
         Drawable drawable;
         Drawable badge;
@@ -759,10 +733,9 @@ public class FloatingIconView extends FrameLayout implements
         Runnable onIconLoaded;
         boolean isIconLoaded;
 
-        IconLoadResult(ItemInfo itemInfo, boolean isThemed, boolean usingCustomShape) {
+        IconLoadResult(ItemInfo itemInfo, boolean isThemed) {
             this.itemInfo = itemInfo;
             this.isThemed = isThemed;
-            this.usingCustomShape = usingCustomShape;
         }
     }
 }

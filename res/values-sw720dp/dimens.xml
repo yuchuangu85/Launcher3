@@ -35,6 +35,10 @@
 <!-- Hotseat -->
     <dimen name="spring_loaded_hotseat_top_margin">108dp</dimen>
 
+<!-- Widget picker-->
+    <dimen name="widget_list_horizontal_margin">30dp</dimen>
+    <dimen name="widget_cell_horizontal_padding">16dp</dimen>
+
     <!--  Folder spaces  -->
     <dimen name="folder_footer_horiz_padding">24dp</dimen>
 </resources>

@@ -16,13 +16,10 @@
 
 package com.android.quickstep.recents.viewmodel
 
-import com.android.launcher3.dagger.ActivityContextSingleton
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 
 // This is far from complete but serves the purpose of enabling refactoring in other areas
-@ActivityContextSingleton
-class RecentsViewData @Inject constructor() {
+class RecentsViewData {
     // Whether the current RecentsView state supports task overlays.
     // TODO(b/331753115): Derive from RecentsView state flow once migrated to MVVM.
     val overlayEnabled = MutableStateFlow(false)

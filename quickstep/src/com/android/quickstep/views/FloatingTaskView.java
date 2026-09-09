@@ -44,9 +44,9 @@ import com.android.launcher3.taskbar.TaskbarActivityContext;
 import com.android.launcher3.util.SplitConfigurationOptions;
 import com.android.launcher3.views.BaseDragLayer;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
-import com.android.quickstep.split.SplitAnimationTimings;
 import com.android.quickstep.util.AnimUtils;
 import com.android.quickstep.util.MultiValueUpdateListener;
+import com.android.quickstep.util.SplitAnimationTimings;
 import com.android.quickstep.util.TaskCornerRadius;
 import com.android.systemui.shared.system.QuickStepContract;
 
@@ -124,8 +124,8 @@ public class FloatingTaskView extends FrameLayout {
         mSplitPlaceholderView.setAlpha(0);
     }
 
-    private void init(RecentsViewContainer recentsViewContainer, View originalView,
-            @Nullable Bitmap thumbnail, Drawable icon, RectF positionOut) {
+    private void init(RecentsViewContainer launcher, View originalView, @Nullable Bitmap thumbnail,
+            Drawable icon, RectF positionOut) {
         mStartingPosition = positionOut;
         updateInitialPositionForView(originalView);
         final InsettableFrameLayout.LayoutParams lp =
@@ -137,11 +137,10 @@ public class FloatingTaskView extends FrameLayout {
 
         // Copy bounds of exiting thumbnail into ImageView
         mThumbnailView.setThumbnail(thumbnail);
-        mThumbnailView.setDrawCallback(this::drawRoundedRect);
 
         mThumbnailView.setVisibility(VISIBLE);
 
-        RecentsView recentsView = recentsViewContainer.getOverviewPanel();
+        RecentsView recentsView = launcher.getOverviewPanel();
         mOrientationHandler = recentsView.getPagedOrientationHandler();
         mStagePosition = recentsView.getSplitSelectController().getActiveSplitStagePosition();
         mSplitPlaceholderView.setIcon(icon, mSplitHolderSize);
@@ -152,16 +151,15 @@ public class FloatingTaskView extends FrameLayout {
      * Configures and returns a an instance of {@link FloatingTaskView} initially matching the
      * appearance of {@code originalView}.
      */
-    public static FloatingTaskView getFloatingTaskView(RecentsViewContainer recentsViewContainer,
+    public static FloatingTaskView getFloatingTaskView(RecentsViewContainer launcher,
             View originalView, @Nullable Bitmap thumbnail, Drawable icon, RectF positionOut) {
-        final ViewGroup dragLayer = recentsViewContainer.getDragLayer();
-        final FloatingTaskView floatingView = (FloatingTaskView) recentsViewContainer
-                .getLayoutInflater()
+        final ViewGroup dragLayer = launcher.getDragLayer();
+        final FloatingTaskView floatingView = (FloatingTaskView) launcher.getLayoutInflater()
                 .inflate(R.layout.floating_split_select_view, dragLayer, false);
 
-        floatingView.init(recentsViewContainer, originalView, thumbnail, icon, positionOut);
+        floatingView.init(launcher, originalView, thumbnail, icon, positionOut);
         // Add this animating view underneath the existing open task menu view (if there is one)
-        View openTaskView = AbstractFloatingView.getOpenView(recentsViewContainer, TYPE_TASK_MENU);
+        View openTaskView = AbstractFloatingView.getOpenView(launcher, TYPE_TASK_MENU);
         int openTaskViewIndex = dragLayer.indexOfChild(openTaskView);
         if (openTaskViewIndex == -1) {
             // Add to top if not
@@ -241,7 +239,7 @@ public class FloatingTaskView extends FrameLayout {
         // Position the floating view exactly on top of the original
         lp.topMargin = Math.round(pos.top);
         if (mIsRtl) {
-            lp.setMarginStart(mContainer.getDeviceProfile().getDeviceProperties().getWidthPx() - Math.round(pos.right));
+            lp.setMarginStart(mContainer.getDeviceProfile().widthPx - Math.round(pos.right));
         } else {
             lp.setMarginStart(Math.round(pos.left));
         }
@@ -258,13 +256,13 @@ public class FloatingTaskView extends FrameLayout {
      */
     public void addStagingAnimation(PendingAnimation animation, RectF startingBounds,
             Rect endBounds, boolean fadeWithThumbnail, boolean isStagedTask) {
-        boolean isLargeScreen = mContainer.getDeviceProfile().getDeviceProperties().isLargeScreen();
+        boolean isTablet = mContainer.getDeviceProfile().isTablet;
         boolean splittingFromOverview = fadeWithThumbnail;
         SplitAnimationTimings timings;
 
-        if (isLargeScreen && splittingFromOverview) {
+        if (isTablet && splittingFromOverview) {
             timings = SplitAnimationTimings.TABLET_OVERVIEW_TO_SPLIT;
-        } else if (!isLargeScreen && splittingFromOverview) {
+        } else if (!isTablet && splittingFromOverview) {
             timings = SplitAnimationTimings.PHONE_OVERVIEW_TO_SPLIT;
         } else {
             // Splitting from Home is currently only available on tablets
@@ -281,8 +279,8 @@ public class FloatingTaskView extends FrameLayout {
      */
     public void addConfirmAnimation(PendingAnimation animation, RectF startingBounds,
             Rect endBounds, boolean fadeWithThumbnail, boolean isStagedTask) {
-        SplitAnimationTimings timings = AnimUtils.getDeviceSplitToConfirmTimings(
-                mContainer.getDeviceProfile().getDeviceProperties().isLargeScreen());
+        SplitAnimationTimings timings =
+                AnimUtils.getDeviceSplitToConfirmTimings(mContainer.getDeviceProfile().isTablet);
 
         addAnimation(animation, startingBounds, endBounds, fadeWithThumbnail, isStagedTask,
                 timings);
@@ -324,7 +322,7 @@ public class FloatingTaskView extends FrameLayout {
 
             // Fade in the placeholder view during Normal > OverviewSplitSelect
             if (mSplitPlaceholderView.getAlpha() == 0) {
-                mSplitPlaceholderView.getIconView().setAlpha(0);
+                mSplitPlaceholderView.getIconView().setContentAlpha(0);
                 fadeInSplitPlaceholder(animation, timings);
             }
 
@@ -364,11 +362,6 @@ public class FloatingTaskView extends FrameLayout {
         transitionAnimator.addUpdateListener(listener);
     }
 
-    /** Scale the thumbnail image so that the task view looks just like the original task. */
-    public void setUseFitXYThumbnailScale() {
-        mThumbnailView.setFitXY();
-    }
-
     void fadeInSplitPlaceholder(PendingAnimation animation, SplitAnimationTimings timings) {
         animation.setViewAlpha(mSplitPlaceholderView, 1, clampToProgress(LINEAR,
                 timings.getPlaceholderFadeInStartOffset(),
@@ -406,18 +399,6 @@ public class FloatingTaskView extends FrameLayout {
 
     public int getStagePosition() {
         return mStagePosition;
-    }
-
-    /** Add the given view underneath the existing open task menu view (if there is one). */
-    public static void addViewBelowTaskMenu(RecentsViewContainer launcher, View view) {
-        ViewGroup dragLayer = launcher.getDragLayer();
-        View openTaskView = AbstractFloatingView.getOpenView(launcher, TYPE_TASK_MENU);
-        int openTaskViewIndex = dragLayer.indexOfChild(openTaskView);
-        if (openTaskViewIndex == -1) {
-            // Add to top if not
-            openTaskViewIndex = dragLayer.getChildCount();
-        }
-        dragLayer.addView(view, openTaskViewIndex);
     }
 
     private static class SplitOverlayProperties {

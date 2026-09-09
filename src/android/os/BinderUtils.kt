@@ -16,7 +16,7 @@
 
 package android.os
 
-import com.android.launcher3.util.LooperExecutor
+import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.WeakCleanupSet
 import com.android.launcher3.util.WeakCleanupSet.OnOwnerDestroyedCallback
 
@@ -25,19 +25,16 @@ object BinderUtils {
 
     /** Creates a binder wrapper which is tied to the [lifecycle] */
     @JvmStatic
-    fun <T : Binder> T.wrapLifecycle(
-        cleanupSet: WeakCleanupSet,
-        uiExecutor: LooperExecutor,
-    ): Binder = LifecycleBinderWrapper(this, cleanupSet, uiExecutor)
+    fun <T : Binder> T.wrapLifecycle(cleanupSet: WeakCleanupSet): Binder =
+        LifecycleBinderWrapper(this, cleanupSet)
 
     private class LifecycleBinderWrapper<T : Binder>(
         private var realBinder: T?,
         cleanupSet: WeakCleanupSet,
-        uiExecutor: LooperExecutor,
     ) : Binder(realBinder?.interfaceDescriptor), OnOwnerDestroyedCallback {
 
         init {
-            uiExecutor.execute { cleanupSet.addOnOwnerDestroyedCallback(this) }
+            MAIN_EXECUTOR.execute { cleanupSet.addOnOwnerDestroyedCallback(this) }
         }
 
         override fun queryLocalInterface(descriptor: String): IInterface? =

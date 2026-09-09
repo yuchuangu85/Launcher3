@@ -19,12 +19,9 @@ package com.android.launcher3.util;
 import android.content.Context;
 import android.os.Vibrator;
 
-import androidx.annotation.Nullable;
-
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.dagger.LauncherBaseAppComponent;
-import com.android.launcher3.logging.DumpManager;
 
 import com.google.android.msdl.data.model.MSDLToken;
 import com.google.android.msdl.domain.InteractionProperties;
@@ -49,13 +46,11 @@ public class MSDLPlayerWrapper {
     private final MSDLPlayer mMSDLPlayer;
 
     @Inject
-    public MSDLPlayerWrapper(@ApplicationContext Context context,
-            DumpManager dumpManager, DaggerSingletonTracker lifeCycle) {
+    public MSDLPlayerWrapper(@ApplicationContext Context context) {
         Vibrator vibrator = context.getSystemService(Vibrator.class);
         mMSDLPlayer = MSDLPlayer.Companion.createPlayer(vibrator,
                 java.util.concurrent.Executors.newSingleThreadExecutor(),
                 null /* useHapticFeedbackForToken */);
-        lifeCycle.addCloseable(dumpManager.register(this::dump));
     }
 
     /** Perform MSDL feedback for a token with interaction properties */
@@ -73,7 +68,7 @@ public class MSDLPlayerWrapper {
     }
 
     /** Print the latest history of MSDL tokens played */
-    private void dump(String prefix, PrintWriter writer, @Nullable String[] args) {
+    public void dump(String prefix, PrintWriter writer) {
         writer.println(prefix + mMSDLPlayer.toString());
         writer.println(prefix + "MSDLPlayerWrapper history of latest events:");
         List<MSDLEvent> events = getHistory();

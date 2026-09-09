@@ -29,7 +29,6 @@ import android.window.TransitionInfo
 import androidx.core.util.Supplier
 import com.android.app.animation.Interpolators
 import com.android.internal.jank.Cuj
-import com.android.launcher3.display.DisplayController
 import com.android.quickstep.RemoteRunnable
 import com.android.wm.shell.shared.animation.WindowAnimator
 import java.util.concurrent.Executor
@@ -44,25 +43,15 @@ import java.util.concurrent.Executor
 class DesktopAppLaunchTransition
 @JvmOverloads
 constructor(
-    // If context needs to become a property, it has to be application context to avoid memory leak.
     context: Context,
-    displayController: DisplayController,
     private val launchType: AppLaunchType,
     @Cuj.CujType private val cujType: Int,
-    private val uiExecutor: Executor,
+    private val mainExecutor: Executor,
     transactionSupplier: Supplier<Transaction> = Supplier { Transaction() },
-    private val onEndCallback: Runnable? = null,
 ) : RemoteTransitionStub() {
 
     private val animatorHelper: DesktopAppLaunchAnimatorHelper =
-        DesktopAppLaunchAnimatorHelper(
-            // We need to pass application to avoid leak of activity.
-            context.applicationContext,
-            displayController,
-            launchType,
-            cujType,
-            transactionSupplier,
-        )
+        DesktopAppLaunchAnimatorHelper(context, launchType, cujType, transactionSupplier)
 
     enum class AppLaunchType(
         val boundsAnimationParams: WindowAnimator.BoundsAnimationParams,
@@ -80,15 +69,11 @@ constructor(
     ) {
         Log.v(TAG, "startAnimation: launchType=$launchType, cujType=$cujType")
         val safeTransitionFinishedCallback = RemoteRunnable {
-            onEndCallback?.run()
             transitionFinishedCallback.onTransitionFinished(/* wct= */ null, /* sct= */ null)
         }
-        uiExecutor.execute {
-            getDesktopLaunchChange(info)?.let { launchChange ->
-                transaction.reparent(launchChange.leash, info.rootLeash)
-            }
-            transaction.apply()
+        mainExecutor.execute {
             runAnimators(info, safeTransitionFinishedCallback)
+            transaction.apply()
         }
     }
 
@@ -96,16 +81,11 @@ constructor(
         val animators = mutableListOf<Animator>()
         val animatorFinishedCallback: (Animator) -> Unit = { animator ->
             animators -= animator
-            if (animators.isEmpty()) {
-                // Releases temporary-for-animation surfaces referenced by us to
-                // potentially free up memory.
-                info.releaseAnimSurfaces()
-                RemoteRunnable.executeSafely(finishedCallback)
-            }
+            if (animators.isEmpty()) finishedCallback.run()
         }
         animators += animatorHelper.createAnimators(info, animatorFinishedCallback)
         if (animators.isEmpty()) {
-            RemoteRunnable.executeSafely(finishedCallback)
+            finishedCallback.run()
             return
         }
         animators.forEach { it.start() }
@@ -113,12 +93,6 @@ constructor(
 
     companion object {
         const val TAG = "DesktopAppLaunchTransition"
-
-        fun getDesktopLaunchChange(info: TransitionInfo): TransitionInfo.Change? =
-            info.changes.firstOrNull { change ->
-                change.mode in LAUNCH_CHANGE_MODES && change.taskInfo?.isFreeform == true
-            }
-
         /** Change modes that represent a task becoming visible / launching in Desktop mode. */
         val LAUNCH_CHANGE_MODES = intArrayOf(TRANSIT_OPEN, TRANSIT_TO_FRONT)
 

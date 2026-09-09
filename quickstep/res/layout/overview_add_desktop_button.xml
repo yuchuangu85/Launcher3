@@ -21,8 +21,6 @@
     android:layout_width="@dimen/add_desktop_button_size"
     android:layout_height="@dimen/add_desktop_button_size"
     android:src="@drawable/ic_desktop_add"
-    android:background="?attr/addDesktopButtonBackgroundDrawable"
+    android:background="@drawable/bg_overview_add_desktop_button"
     launcher:focusBorderColor="@color/materialColorOutline"
-    android:tint="@color/materialColorOnSurface"
-    android:contentDescription="@string/add_desk_button_content_description"
     android:padding="10dp" />

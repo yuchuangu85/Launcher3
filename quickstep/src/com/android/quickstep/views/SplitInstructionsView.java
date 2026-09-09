@@ -17,7 +17,6 @@
 package com.android.quickstep.views;
 
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SPLIT_SELECTION_EXIT_CANCEL_BUTTON;
-import static com.android.settingslib.widget.theme.R.dimen.settingslib_preferred_minimum_touch_target;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -41,7 +40,7 @@ import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.quickstep.util.AnimUtils;
-import com.android.quickstep.split.SplitSelectStateController;
+import com.android.quickstep.util.SplitSelectStateController;
 import com.android.wm.shell.shared.TypefaceUtils;
 import com.android.wm.shell.shared.TypefaceUtils.FontFamily;
 
@@ -135,7 +134,7 @@ public class SplitInstructionsView extends LinearLayout {
         // After layout, expand touch target of cancel button to meet minimum a11y measurements.
         post(() -> {
             int minTouchSize = getResources()
-                    .getDimensionPixelSize(settingslib_preferred_minimum_touch_target);
+                    .getDimensionPixelSize(com.android.launcher3.R.dimen.settingslib_preferred_minimum_touch_target);
             Rect r = new Rect();
             cancelTextView.getHitRect(r);
 
@@ -165,7 +164,7 @@ public class SplitInstructionsView extends LinearLayout {
 
         AnimUtils.goToNormalStateWithSplitDismissal(stateManager, mContainer,
                 LAUNCHER_SPLIT_SELECTION_EXIT_CANCEL_BUTTON,
-                splitSelectController.getSplitAnimationController(), /* onEndCallback= */ null);
+                splitSelectController.getSplitAnimationController());
     }
 
     void ensureProperRotation() {

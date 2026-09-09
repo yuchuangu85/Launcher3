@@ -85,8 +85,7 @@ public class PredictionRowView<T extends Context & ActivityContext>
 
         mFocusHelper = new SimpleFocusIndicatorHelper(this);
         mActivityContext = ActivityContext.lookupContext(context);
-        mNumPredictedAppsPerRow =
-                mActivityContext.getDeviceProfile().getAllAppsProfile().getNumShownAllAppsColumns();
+        mNumPredictedAppsPerRow = mActivityContext.getDeviceProfile().numShownAllAppsColumns;
         mTopRowExtraHeight = getResources().getDimensionPixelSize(
                 R.dimen.all_apps_search_top_row_extra_height);
         mVerticalPadding = getResources().getDimensionPixelSize(
@@ -120,10 +119,12 @@ public class PredictionRowView<T extends Context & ActivityContext>
 
     private void updateVisibility() {
         setVisibility(mPredictionsEnabled ? VISIBLE : GONE);
-        if (mPredictionsEnabled) {
-            mActivityContext.getActivityComponent().getAppsStore().registerIconContainer(this);
-        } else {
-            mActivityContext.getActivityComponent().getAppsStore().unregisterIconContainer(this);
+        if (mActivityContext.getAppsView() != null) {
+            if (mPredictionsEnabled) {
+                mActivityContext.getAppsView().getAppsStore().registerIconContainer(this);
+            } else {
+                mActivityContext.getAppsView().getAppsStore().unregisterIconContainer(this);
+            }
         }
     }
 
@@ -142,10 +143,9 @@ public class PredictionRowView<T extends Context & ActivityContext>
     @Override
     public int getExpectedHeight() {
         DeviceProfile deviceProfile = mActivityContext.getDeviceProfile();
-        int iconHeight = deviceProfile.getAllAppsProfile().getIconSizePx();
-        int iconPadding = deviceProfile.getAllAppsProfile().getIconDrawablePaddingPx();
-        int textHeight = Utilities.calculateTextHeight(
-                deviceProfile.getAllAppsProfile().getIconTextSizePx());
+        int iconHeight = deviceProfile.allAppsIconSizePx;
+        int iconPadding = deviceProfile.allAppsIconDrawablePaddingPx;
+        int textHeight = Utilities.calculateTextHeight(deviceProfile.allAppsIconTextSizePx);
         int totalHeight = iconHeight + iconPadding + textHeight + mVerticalPadding * 2;
         // Prediction row height will be 4dp bigger than the regular apps in A-Z list when two line
         // is not enabled. Otherwise, the extra height will increase by just the textHeight.
@@ -200,7 +200,7 @@ public class PredictionRowView<T extends Context & ActivityContext>
 
     @Override
     public void onDeviceProfileChanged(DeviceProfile dp) {
-        mNumPredictedAppsPerRow = dp.getAllAppsProfile().getNumShownAllAppsColumns();
+        mNumPredictedAppsPerRow = dp.numShownAllAppsColumns;
         removeAllViews();
         applyPredictionApps();
     }
@@ -235,11 +235,7 @@ public class PredictionRowView<T extends Context & ActivityContext>
                     lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
                 } else {
                     // Ensure the all apps icon height matches the workspace icons in portrait mode.
-                    lp.height =
-                            mActivityContext
-                                    .getDeviceProfile()
-                                    .getAllAppsProfile()
-                                    .getCellHeightPx();
+                    lp.height = mActivityContext.getDeviceProfile().allAppsCellHeightPx;
                 }
                 lp.width = 0;
                 lp.weight = 1;

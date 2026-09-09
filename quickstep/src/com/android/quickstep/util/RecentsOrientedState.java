@@ -16,15 +16,15 @@
 
 package com.android.quickstep.util;
 
-import static android.view.Display.DEFAULT_DISPLAY;
 import static android.view.OrientationEventListener.ORIENTATION_UNKNOWN;
 import static android.view.Surface.ROTATION_0;
 import static android.view.Surface.ROTATION_180;
 import static android.view.Surface.ROTATION_270;
 import static android.view.Surface.ROTATION_90;
 
+import static com.android.launcher3.Flags.enableOverviewOnConnectedDisplays;
+import static com.android.launcher3.LauncherPrefs.ALLOW_ROTATION;
 import static com.android.launcher3.LauncherPrefs.FIXED_LANDSCAPE_MODE;
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 import static com.android.launcher3.util.SettingsCache.ROTATION_SETTING_URI;
 import static com.android.quickstep.BaseActivityInterface.getTaskDimension;
@@ -43,28 +43,24 @@ import android.view.Surface;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.Flags;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherPrefChangeListener;
 import com.android.launcher3.LauncherPrefs;
-import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.touch.PagedOrientationHandler;
-import com.android.launcher3.util.SafeCloseable;
+import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.SettingsCache;
 import com.android.quickstep.BaseContainerInterface;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.TaskAnimationManager;
+import com.android.quickstep.fallback.window.RecentsDisplayModel;
 import com.android.quickstep.orientation.RecentsPagedOrientationHandler;
-
-import kotlin.Unit;
 
 import java.lang.annotation.Retention;
 import java.util.function.IntConsumer;
-
-import javax.inject.Inject;
 
 /**
  * Container to hold orientation/rotation related information for Launcher.
@@ -95,10 +91,12 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
     private static final int FLAG_MULTIPLE_ORIENTATION_SUPPORTED_BY_ACTIVITY = 1 << 0;
     // Multiple orientation is only supported if density is < 600
     private static final int FLAG_MULTIPLE_ORIENTATION_SUPPORTED_BY_DENSITY = 1 << 1;
+    // Shared prefs for rotation, only if activity supports it
+    private static final int FLAG_HOME_ROTATION_ALLOWED_IN_PREFS = 1 << 2;
     // If the user has enabled system rotation
     private static final int FLAG_SYSTEM_ROTATION_ALLOWED = 1 << 3;
-    // 1 << 4 is deprecated
-    // private static final int FLAG_MULTIWINDOW_ROTATION_ALLOWED = 1 << 4;
+    // Multiple orientation is not supported in multiwindow mode
+    private static final int FLAG_MULTIWINDOW_ROTATION_ALLOWED = 1 << 4;
     // Whether to rotation sensor is supported on the device
     private static final int FLAG_ROTATION_WATCHER_SUPPORTED = 1 << 5;
     // Whether to enable rotation watcher when multi-rotation is supported
@@ -128,47 +126,35 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
     private final Context mContext;
     private final BaseContainerInterface mContainerInterface;
     private final OrientationEventListener mOrientationListener;
-    private @Nullable IntConsumer mRotationChangeListener;
     private final SettingsCache mSettingsCache;
-    private @Nullable SafeCloseable mRotationChangeSafeCloseable;
+    private final SettingsCache.OnChangeListener mRotationChangeListener =
+            isEnabled -> updateAutoRotateSetting();
 
     private final Matrix mTmpMatrix = new Matrix();
 
     private int mFlags;
-    private int mRotation = ROTATION_0;
-    private boolean mListenersInitialized = false;
-    private int mPreviousRotationCount = 0;
     private int mPreviousRotation = ROTATION_0;
-
-    private static final int CONTINUOUS_ROTATION_COUNT_THRESHOLD = 3;
+    private boolean mListenersInitialized = false;
 
     // Combined int which encodes the full state.
     private int mStateId = 0;
 
-    @Inject
-    public RecentsOrientedState(Context context, BaseContainerInterface containerInterface) {
+    /**
+     * @param rotationChangeListener Callback for receiving rotation events when rotation watcher
+     *                              is enabled
+     * @see #setRotationWatcherEnabled(boolean)
+     */
+    public RecentsOrientedState(Context context, BaseContainerInterface containerInterface,
+            IntConsumer rotationChangeListener) {
         mContext = context;
         mContainerInterface = containerInterface;
-        mOrientationListener = new OrientationEventListener(mContext) {
+        mOrientationListener = new OrientationEventListener(context) {
             @Override
             public void onOrientationChanged(int degrees) {
-                int newRotation = getRotationForUserDegreesRotated(degrees, mRotation);
-                if (newRotation != mRotation) {
-                    // To avoid the animation being triggered by rotation noises (for example, if
-                    // the user is running), only rotate when receiving a few consecutive rotations
-                    // in a row
-                    if (newRotation == mPreviousRotation) {
-                        mPreviousRotationCount++;
-                    } else {
-                        mPreviousRotation = newRotation;
-                        mPreviousRotationCount = 1;
-                    }
-                    if (mPreviousRotationCount >= CONTINUOUS_ROTATION_COUNT_THRESHOLD) {
-                        mRotation = newRotation;
-                        if (mRotationChangeListener != null) {
-                            mRotationChangeListener.accept(newRotation);
-                        }
-                    }
+                int newRotation = getRotationForUserDegreesRotated(degrees, mPreviousRotation);
+                if (newRotation != mPreviousRotation) {
+                    mPreviousRotation = newRotation;
+                    rotationChangeListener.accept(newRotation);
                 }
             }
         };
@@ -190,8 +176,7 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
      */
     public void setDeviceProfile(DeviceProfile deviceProfile) {
         boolean oldMultipleOrientationsSupported = isMultipleOrientationSupportedByDevice();
-        setFlag(FLAG_MULTIPLE_ORIENTATION_SUPPORTED_BY_DENSITY,
-                !deviceProfile.getDeviceProperties().isLargeScreen());
+        setFlag(FLAG_MULTIPLE_ORIENTATION_SUPPORTED_BY_DENSITY, !deviceProfile.isTablet);
         if (mListenersInitialized) {
             boolean newMultipleOrientationsSupported = isMultipleOrientationSupportedByDevice();
             // If isMultipleOrientationSupportedByDevice is changed, init or destroy listeners
@@ -207,21 +192,19 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
     }
 
     /**
-     * Sets a callback for receiving rotation events when rotation watcher is enabled
-     *
-     * @see #setRotationWatcherEnabled(boolean)
-     */
-    public void setRotationChangeListener(IntConsumer rotationChangeListener) {
-        this.mRotationChangeListener = rotationChangeListener;
-    }
-
-    /**
      * Sets the rotation for the recents activity, which could affect the appearance of task view.
      * @see #update(int, int)
      */
     public boolean setRecentsRotation(@SurfaceRotation int recentsRotation) {
         mRecentsRotation = recentsRotation;
         return updateHandler();
+    }
+
+    /**
+     * Sets if the host is in multi-window mode
+     */
+    public void setMultiWindowMode(boolean isMultiWindow) {
+        setFlag(FLAG_MULTIWINDOW_ROTATION_ALLOWED, isMultiWindow);
     }
 
     /**
@@ -243,7 +226,7 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
             @SurfaceRotation int touchRotation, @SurfaceRotation int displayRotation) {
         mDisplayRotation = displayRotation;
         mTouchRotation = touchRotation;
-        mRotation = touchRotation;
+        mPreviousRotation = touchRotation;
         return updateHandler();
     }
 
@@ -311,24 +294,32 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
 
     @Override
     public void onPrefChanged(String s) {
+        if (LauncherPrefs.ALLOW_ROTATION.getSharedPrefKey().equals(s)) {
+            updateHomeRotationSetting();
+        }
         if (LauncherPrefs.FIXED_LANDSCAPE_MODE.getSharedPrefKey().equals(s)) {
             updateFixedLandscapeSetting();
         }
     }
 
-    private Unit updateAutoRotateSetting() {
-        setFlag(FLAG_SYSTEM_ROTATION_ALLOWED, mSettingsCache.getValue(ROTATION_SETTING_URI));
-        return null;
+    private void updateAutoRotateSetting() {
+        setFlag(FLAG_SYSTEM_ROTATION_ALLOWED,
+                mSettingsCache.getValue(ROTATION_SETTING_URI, 1));
     }
 
     private void updateFixedLandscapeSetting() {
-        SystemUiProxy.INSTANCE.get(mContext).setHomeRotationEnabled(
-                !LauncherPrefs.get(mContext).get(FIXED_LANDSCAPE_MODE)
-        );
-        setFlag(
-                FLAG_HOME_FIXED_LANDSCAPE_PREFS,
-                LauncherPrefs.get(mContext).get(FIXED_LANDSCAPE_MODE)
-        );
+        if (Flags.oneGridSpecs()) {
+            setFlag(
+                    FLAG_HOME_FIXED_LANDSCAPE_PREFS,
+                    LauncherPrefs.get(mContext).get(FIXED_LANDSCAPE_MODE)
+            );
+        }
+    }
+
+    private void updateHomeRotationSetting() {
+        boolean homeRotationEnabled = LauncherPrefs.get(mContext).get(ALLOW_ROTATION);
+        setFlag(FLAG_HOME_ROTATION_ALLOWED_IN_PREFS, homeRotationEnabled);
+        SystemUiProxy.INSTANCE.get(mContext).setHomeRotationEnabled(homeRotationEnabled);
     }
 
     private void initFlags() {
@@ -336,21 +327,19 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
 
         // initialize external flags
         updateAutoRotateSetting();
+        updateHomeRotationSetting();
         updateFixedLandscapeSetting();
     }
 
     private void initMultipleOrientationListeners() {
-        LauncherPrefs.get(mContext).addListener(this, FIXED_LANDSCAPE_MODE);
-        mRotationChangeSafeCloseable = mSettingsCache.getListenableRef(ROTATION_SETTING_URI)
-                .forEach(MAIN_EXECUTOR, (v) -> updateAutoRotateSetting());
+        LauncherPrefs.get(mContext).addListener(this, ALLOW_ROTATION);
+        mSettingsCache.register(ROTATION_SETTING_URI, mRotationChangeListener);
+        updateAutoRotateSetting();
     }
 
     private void destroyMultipleOrientationListeners() {
-        LauncherPrefs.get(mContext).removeListener(this, FIXED_LANDSCAPE_MODE);
-        if (mRotationChangeSafeCloseable != null) {
-            mRotationChangeSafeCloseable.close();
-            mRotationChangeSafeCloseable = null;
-        }
+        LauncherPrefs.get(mContext).removeListener(this, ALLOW_ROTATION);
+        mSettingsCache.unregister(ROTATION_SETTING_URI, mRotationChangeListener);
     }
 
     /**
@@ -426,21 +415,9 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
         return ((mFlags & MASK_MULTIPLE_ORIENTATION_SUPPORTED_BY_DEVICE)
                 != MASK_MULTIPLE_ORIENTATION_SUPPORTED_BY_DEVICE)
                 || (mFlags & (FLAG_IGNORE_ALLOW_HOME_ROTATION_PREF
+                | FLAG_HOME_ROTATION_ALLOWED_IN_PREFS
+                | FLAG_MULTIWINDOW_ROTATION_ALLOWED
                 | FLAG_HOME_ROTATION_FORCE_ENABLED_FOR_TESTING)) != 0;
-    }
-
-    /**
-     * Returns if we should show the action buttons on the recent view based on the orientation
-     * state.
-     */
-    public boolean shouldHideActionButtons() {
-        // In fixed landscape always show the action buttons
-        return !isLauncherFixedLandscape()
-                // When not in fixed landscape, do not show actions buttons when using
-                // fake landscape which happens when the rotation is not ROTATION_0 unless
-                // rotation is allowed
-                && (getTouchRotation() != ROTATION_0 || getRecentsActivityRotation() != ROTATION_0)
-                && !isRecentsActivityRotationAllowed();
     }
 
     /**
@@ -454,7 +431,7 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
      * Returns the scale and pivot so that the provided taskRect can fit the provided full size
      */
     public float getFullScreenScaleAndPivot(Rect taskView, DeviceProfile dp, PointF outPivot) {
-        getTaskDimension(dp, outPivot);
+        getTaskDimension(mContext, dp, outPivot);
         float scale = Math.min(outPivot.x / taskView.width(), outPivot.y / taskView.height());
         if (scale == 1) {
             outPivot.set(taskView.centerX(), taskView.centerY());
@@ -623,8 +600,9 @@ public class RecentsOrientedState implements LauncherPrefChangeListener {
      * Returns the device profile based on expected launcher rotation
      */
     public DeviceProfile getLauncherDeviceProfile(int displayId) {
-        if (displayId != DEFAULT_DISPLAY) {
-            return mContainerInterface.getCreatedContainer().getDeviceProfile();
+        if (enableOverviewOnConnectedDisplays()) {
+            return RecentsDisplayModel.getINSTANCE().get(mContext).getRecentsWindowManager(
+                    displayId).getDeviceProfile();
         } else {
             InvariantDeviceProfile idp = InvariantDeviceProfile.INSTANCE.get(mContext);
             Point currentSize = DisplayController.INSTANCE.get(mContext).getInfo().currentSize;

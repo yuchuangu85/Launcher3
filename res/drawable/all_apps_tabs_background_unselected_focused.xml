@@ -28,7 +28,7 @@
         android:top="@dimen/all_apps_tabs_focus_border">
         <shape android:shape="rectangle">
             <corners android:radius="13dp" />
-            <solid android:color="?attr/allAppsUnselectedTab" />
+            <solid android:color="@color/materialColorSurfaceBright" />
             <stroke
                 android:width="@dimen/all_apps_tabs_focus_padding"
                 android:color="@color/materialColorSurfaceDim" />

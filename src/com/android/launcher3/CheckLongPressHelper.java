@@ -22,7 +22,6 @@ import android.view.View;
 import android.view.ViewConfiguration;
 
 import com.android.launcher3.util.TouchUtil;
-import com.android.window.flags.Flags;
 
 /**
  * Utility class to handle tripper long press or right click on a view with custom timeout and
@@ -142,7 +141,7 @@ public class CheckLongPressHelper {
 
     private void triggerLongPress() {
         if ((mView.getParent() != null)
-                && (Flags.showHomeBehindDesktop() || mView.hasWindowFocus())
+                && mView.hasWindowFocus()
                 && (!mView.isPressed() || mListener != null)
                 && !mHasPerformedLongPress) {
             boolean handled;

@@ -1,10 +1,11 @@
 # Launcher3
 
-## 更新：20260906
-* update: android-17-release
+## 更新：20260909
+* update: android-16-Qc
 
 ## 主要分支
-* main (fork from lawnchair-17-release)--Android-17
+* main (fork from android-17-release)--Android-17
+* Launcher3-16-Qc (高通版本)
 * Launcher3-16-s2-release (android16-s2-release)
 * Launcher3-15-qc（高通版本，可以编译Quickstep版本）
 * Launcher3-15-s1-release (android15-s1-release)

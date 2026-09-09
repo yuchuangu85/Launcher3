@@ -1,5 +1,7 @@
 package com.android.launcher3.widget;
 
+import static com.android.launcher3.InvariantDeviceProfile.TYPE_PHONE;
+
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
@@ -11,14 +13,14 @@ import android.graphics.drawable.Drawable;
 import android.os.Parcel;
 import android.os.UserHandle;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.Flags;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherAppState;
+import com.android.launcher3.icons.cache.BaseIconCache;
 import com.android.launcher3.icons.cache.CachedObject;
-import com.android.launcher3.icons.cache.IconLoadRequest;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 
 /**
@@ -29,7 +31,7 @@ import com.android.launcher3.model.data.LauncherAppWidgetInfo;
  */
 public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo implements CachedObject {
 
-    public static final String CUSTOM_WIDGET_PACKAGE = "custom-widget";
+    public static final String CLS_CUSTOM_WIDGET_PREFIX = "#custom-widget-";
 
     /**
      * The desired number of cells that this widget occupies horizontally in
@@ -110,41 +112,36 @@ public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo impleme
         Point cellSize = new Point();
         for (DeviceProfile dp : idp.supportedProfiles) {
             // On phones we no longer support regular landscape, only fixed landscape for this
-            // reason we don't need to take regular landscape into account in phones. Foldables
-            // still support regular landscape when unfolded.
-            if (!dp.getDeviceProperties().isLargeScreen()
-                    && dp.inv.isFixedLandscape != dp.getDeviceProperties().isLandscape()) {
+            // reason we don't need to take regular landscape into account in phones
+            if (Flags.oneGridSpecs() && dp.inv.deviceType == TYPE_PHONE
+                    && dp.inv.isFixedLandscape != dp.isLandscape) {
                 continue;
             }
 
-            cellSize = dp.getWorkspaceProfile().getCellSize();
-            Rect widgetPadding = dp.getWorkspaceProfile().getWidgetPadding();
+            dp.getCellSize(cellSize);
+            Rect widgetPadding = dp.widgetPadding;
 
             minSpanX = Math.max(minSpanX,
-                    getSpanX(widgetPadding, minResizeWidth,
-                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x,
+                    getSpanX(widgetPadding, minResizeWidth, dp.cellLayoutBorderSpacePx.x,
                             cellSize.x));
             minSpanY = Math.max(minSpanY,
-                    getSpanY(widgetPadding, minResizeHeight,
-                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().y,
+                    getSpanY(widgetPadding, minResizeHeight, dp.cellLayoutBorderSpacePx.y,
                             cellSize.y));
 
             if (maxResizeWidth > 0) {
                 maxSpanX = Math.min(maxSpanX, getSpanX(widgetPadding, maxResizeWidth,
-                        dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x, cellSize.x));
+                        dp.cellLayoutBorderSpacePx.x, cellSize.x));
             }
             if (maxResizeHeight > 0) {
                 maxSpanY = Math.min(maxSpanY, getSpanY(widgetPadding, maxResizeHeight,
-                        dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().y, cellSize.y));
+                        dp.cellLayoutBorderSpacePx.y, cellSize.y));
             }
 
             spanX = Math.max(spanX,
-                    getSpanX(widgetPadding, minWidth,
-                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().x,
+                    getSpanX(widgetPadding, minWidth, dp.cellLayoutBorderSpacePx.x,
                             cellSize.x));
             spanY = Math.max(spanY,
-                    getSpanY(widgetPadding, minHeight,
-                            dp.getWorkspaceProfile().getCellLayoutBorderSpacePx().y,
+                    getSpanY(widgetPadding, minHeight, dp.cellLayoutBorderSpacePx.y,
                             cellSize.y));
         }
 
@@ -213,7 +210,7 @@ public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo impleme
     }
 
     public boolean isCustomWidget() {
-        return provider.getPackageName().equals(CUSTOM_WIDGET_PACKAGE);
+        return provider.getClassName().startsWith(CLS_CUSTOM_WIDGET_PREFIX);
     }
 
     public int getWidgetFeatures() {
@@ -240,8 +237,8 @@ public class LauncherAppWidgetProviderInfo extends AppWidgetProviderInfo impleme
     }
 
     @Override
-    public Drawable getFullResIcon(@NonNull IconLoadRequest<CachedObject> request) {
-        return request.getIcon(getActivityInfo());
+    public Drawable getFullResIcon(BaseIconCache cache) {
+        return cache.getFullResIcon(getActivityInfo());
     }
 
     @Nullable

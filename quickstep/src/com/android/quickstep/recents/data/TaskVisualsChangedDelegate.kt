@@ -18,7 +18,6 @@ package com.android.quickstep.recents.data
 
 import android.os.UserHandle
 import android.util.Log
-import com.android.launcher3.Flags.enableLowResThumbnailPreloading
 import com.android.quickstep.HighResLoadingState.HighResLoadingStateChangedCallback
 import com.android.quickstep.recents.data.TaskVisualsChangedDelegate.TaskIconChangedCallback
 import com.android.quickstep.recents.data.TaskVisualsChangedDelegate.TaskThumbnailChangedCallback
@@ -26,7 +25,6 @@ import com.android.quickstep.util.TaskVisualsChangeListener
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
 import java.util.concurrent.ConcurrentHashMap
-import javax.inject.Inject
 
 /** Delegates the checking of task visuals (thumbnails, high res changes, icons) */
 interface TaskVisualsChangedDelegate :
@@ -65,9 +63,7 @@ interface TaskVisualsChangedDelegate :
     }
 }
 
-class TaskVisualsChangedDelegateImpl
-@Inject
-constructor(
+class TaskVisualsChangedDelegateImpl(
     private val taskVisualsChangeNotifier: TaskVisualsChangeNotifier,
     private val highResLoadingStateNotifier: HighResLoadingStateNotifier,
 ) : TaskVisualsChangedDelegate {
@@ -96,8 +92,6 @@ constructor(
     }
 
     override fun onHighResLoadingStateChanged(enabled: Boolean) {
-        if (enableLowResThumbnailPreloading()) return
-
         Log.d(TAG, "onHighResLoadingStateChanged(enabled = $enabled)")
         taskThumbnailChangedCallbacks.values.forEach { (_, callback) ->
             callback.onHighResLoadingStateChanged(enabled)

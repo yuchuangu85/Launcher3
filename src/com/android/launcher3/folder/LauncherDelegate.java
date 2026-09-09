@@ -17,6 +17,7 @@ package com.android.launcher3.folder;
 
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_FOLDER_CONVERTED_TO_ICON;
 
+import android.content.Context;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -24,14 +25,19 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.CellLayout;
 import com.android.launcher3.DragSource;
+import com.android.launcher3.DropTarget;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.dragndrop.DragOptions;
+import com.android.launcher3.logging.InstanceId;
 import com.android.launcher3.logging.StatsLogManager.StatsLogger;
+import com.android.launcher3.model.ModelWriter;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BaseDragLayer;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -45,12 +51,21 @@ public class LauncherDelegate {
         mLauncher = launcher;
     }
 
+    void init(Folder folder, FolderIcon icon) {
+        folder.setDragController(mLauncher.getDragController());
+        icon.setOnFocusChangeListener(mLauncher.getFocusHandler());
+    }
+
     boolean isDraggingEnabled() {
         return mLauncher.isDraggingEnabled();
     }
 
     void beginDragShared(View child, DragSource source, DragOptions options) {
         mLauncher.getWorkspace().beginDragShared(child, source, options);
+    }
+
+    ModelWriter getModelWriter() {
+        return mLauncher.getModelWriter();
     }
 
     void forEachVisibleWorkspacePage(Consumer<View> callback) {
@@ -79,7 +94,8 @@ public class LauncherDelegate {
                         CellLayout cellLayout = mLauncher.getCellLayout(info.container,
                                 mLauncher.getCellPosMapper().mapModelToPresenter(info).screenId);
                         finalItem =  info.getContents().remove(0);
-                        newIcon = mLauncher.getItemInflater().inflateItem(finalItem, cellLayout);
+                        newIcon = mLauncher.getItemInflater().inflateItem(
+                                finalItem, mLauncher.getModelWriter(), cellLayout);
                         mLauncher.getModelWriter().addOrMoveItemInDatabase(finalItem,
                                 info.container, info.screenId, info.cellX, info.cellY);
                     }
@@ -87,6 +103,9 @@ public class LauncherDelegate {
                     // Remove the folder
                     mLauncher.removeItem(folder.mFolderIcon, info, true /* deleteFromDb */,
                             "folder removed because there's only 1 item in it");
+                    if (folder.mFolderIcon instanceof DropTarget) {
+                        folder.mDragController.removeDropTarget((DropTarget) folder.mFolderIcon);
+                    }
 
                     if (newIcon != null) {
                         // We add the child after removing the folder to prevent both from existing
@@ -100,7 +119,7 @@ public class LauncherDelegate {
                     if (finalItem != null) {
                         StatsLogger logger = mLauncher.getStatsLogManager().logger()
                                 .withItemInfo(finalItem);
-                        mLauncher.getDragController().getLogInstanceId()
+                        ((Optional<InstanceId>) folder.mDragController.getLogInstanceId())
                                 .map(logger::withInstanceId)
                                 .orElse(logger)
                                 .log(LAUNCHER_FOLDER_CONVERTED_TO_ICON);
@@ -116,6 +135,7 @@ public class LauncherDelegate {
         }
         return true;
     }
+
 
     boolean interceptOutsideTouch(MotionEvent ev, BaseDragLayer dl, Folder folder) {
         if (mLauncher.getAccessibilityDelegate().isInAccessibleDrag()) {
@@ -134,10 +154,16 @@ public class LauncherDelegate {
     private static class FallbackDelegate extends LauncherDelegate {
 
         private final ActivityContext mContext;
+        private ModelWriter mWriter;
 
         FallbackDelegate(ActivityContext context) {
             super(null);
             mContext = context;
+        }
+
+        @Override
+        void init(Folder folder, FolderIcon icon) {
+            folder.setDragController(mContext.getDragController());
         }
 
         @Override
@@ -147,6 +173,15 @@ public class LauncherDelegate {
 
         @Override
         void beginDragShared(View child, DragSource source, DragOptions options) { }
+
+        @Override
+        ModelWriter getModelWriter() {
+            if (mWriter == null) {
+                mWriter = LauncherAppState.getInstance((Context) mContext).getModel().getWriter(
+                        false, mContext.getCellPosMapper(), null);
+            }
+            return mWriter;
+        }
 
         @Override
         void forEachVisibleWorkspacePage(Consumer<View> callback) { }
@@ -169,8 +204,8 @@ public class LauncherDelegate {
     }
 
     static LauncherDelegate from(ActivityContext context) {
-        return context instanceof Launcher l
-                ? new LauncherDelegate(l)
+        return context instanceof Launcher
+                ? new LauncherDelegate((Launcher) context)
                 : new FallbackDelegate(context);
     }
 }

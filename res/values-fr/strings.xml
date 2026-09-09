@@ -32,10 +32,8 @@
     <string name="recent_task_option_aspect_ratio" msgid="7008605516391096989">"Modifier le format"</string>
     <string name="split_app_info_accessibility" msgid="5475288491241414932">"Infos sur l\'appli pour %1$s"</string>
     <string name="split_app_usage_settings" msgid="7214375263347964093">"Paramètres d\'utilisation pour %1$s"</string>
-    <string name="close_task_accessibility" msgid="4765872229211282647">"Fermer %1$s"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"Nouvelle fenêtre"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"Gérer les fenêtres"</string>
-    <string name="close_app_taskbar" msgid="3238979263877091273">"Fermer"</string>
     <string name="save_app_pair" msgid="5647523853662686243">"Enregistrer une paire d\'applis"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"Cette paire d\'applications n\'est pas prise en charge sur cet appareil"</string>
@@ -63,6 +61,8 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# raccourci}one{# raccourci}other{# raccourcis}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"Widgets"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"Rechercher"</string>
+    <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"Effacer le texte du champ de recherche"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"Les widgets et les raccourcis ne sont pas disponibles"</string>
     <string name="no_search_results" msgid="3787956167293097509">"Aucun widget ni raccourci trouvé"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"Personnels"</string>
@@ -89,7 +89,7 @@
     <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"Appuyez deux fois et maintenez la pression pour déplacer un raccourci ou utiliser les actions personnalisées."</string>
     <string name="out_of_space" msgid="6455557115204099579">"Espace insuffisant sur cet écran d\'accueil"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"Plus d\'espace disponible dans la zone de favoris."</string>
-    <string name="all_apps_button_label" msgid="8130441508702294465">"Liste des applis"</string>
+    <string name="all_apps_button_label" msgid="8130441508702294465">"Liste d\'applications"</string>
     <string name="all_apps_search_results" msgid="5889367432531296759">"Résultats de recherche"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"Liste des applications personnelles"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"Liste des applications professionnelles"</string>
@@ -101,29 +101,7 @@
     <string name="install_drop_target_label" msgid="2539096853673231757">"Installer"</string>
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"Ne pas suggérer d\'appli"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"Épingler la prédiction"</string>
-    <string name="bubble" msgid="3072951361014076670">"Activer les bulles"</string>
-    <string name="enable_app_lock" msgid="5606772593969266718">"Verrouillage d\'appli"</string>
-    <string name="disable_app_lock" msgid="2252606435270354961">"Retirer verr. appli"</string>
-    <string name="widget_settings" msgid="5280157748464495511">"Paramètres"</string>
-    <string name="add_to_taskbar" msgid="1442306985857150792">"Ajouter à la barre des tâches"</string>
-    <string name="remove_from_taskbar" msgid="5817026706030273018">"Supprimer de la barre des tâches"</string>
-    <string name="no_room_in_taskbar" msgid="6885243748717395469">"Pas de place dans la barre des tâches"</string>
-    <string name="app_added_to_taskbar" msgid="6348755169793615171">"Application ajoutée à la barre des tâches"</string>
-    <string name="app_removed_from_taskbar" msgid="3471754847898675396">"Application supprimée de la barre des tâches"</string>
-    <string name="remove_system_shortcut_label" msgid="3991201411148073972">"Supprimer"</string>
-    <string name="home_screen_files_context_menu_copy_label" msgid="8769381168712216221">"Copier"</string>
-    <string name="home_screen_files_context_menu_open_in_app_label" msgid="7930552598671791537">"Ouvrir"</string>
-    <string name="home_screen_files_context_menu_rename_label" msgid="699579827537411711">"Renommer"</string>
-    <string name="home_screen_files_context_menu_delete_permanently_label" msgid="8660443461874174185">"Supprimer définitivement"</string>
-    <string name="home_screen_files_context_menu_move_to_trash_label" msgid="1145655050674479315">"Placer dans la corbeille"</string>
-    <string name="home_screen_files_moved_to_trash_message" msgid="2848141584483641247">"Élément placé dans la corbeille"</string>
-    <string name="home_screen_files_move_to_trash_error_message" msgid="3836240816166417826">"Mise à la corbeille impossible. Un problème est survenu."</string>
-    <string name="home_screen_files_restore_from_trash_error_message" msgid="994941644161090497">"Impossible d\'annuler l\'action. Accédez à l\'appli Files pour restaurer."</string>
-    <string name="actions_popup_menu_button" msgid="2442187572711557413">"Actions"</string>
-    <string name="shortcuts_popup_menu_button" msgid="766598805805882499">"Raccourcis"</string>
-    <string name="actions_popup_menu_button_description" msgid="4224192559473869722">"Afficher le menu d\'actions"</string>
-    <string name="shortcuts_popup_menu_button_description" msgid="7566698511556454634">"Afficher le menu des raccourcis d\'application"</string>
-    <string name="pause_app_label" msgid="6796255881727695791">"Suspendre l\'appli"</string>
+    <string name="bubble" msgid="3072951361014076670">"Bulle"</string>
     <string name="permlab_install_shortcut" msgid="5632423390354674437">"installer des raccourcis"</string>
     <string name="permdesc_install_shortcut" msgid="923466509822011139">"Permettre à une application d\'ajouter des raccourcis sans l\'intervention de l\'utilisateur"</string>
     <string name="permlab_read_settings" msgid="5136500343007704955">"Lire les paramètres et les raccourcis de la page d\'accueil"</string>
@@ -135,11 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"Appuyez pour terminer la configuration"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"Impossible de désinstaller cette application, car il s\'agit d\'une application système."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"Modifier le nom"</string>
-    <string name="paginate_left" msgid="7915437358451360433">"Paginer à gauche"</string>
-    <string name="paginate_right" msgid="6701038155201975878">"Paginer à droite"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> est désactivé."</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} a # notification}one{{app_name} a # notification}other{{app_name} a # notifications}}"</string>
-    <string name="hotseat_prediction_content_description" msgid="7680403232742709704">"Application prédite : <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"Page %1$d sur %2$d"</string>
     <string name="workspace_scroll_format" msgid="8458889198184077399">"Écran d\'accueil %1$d sur %2$d"</string>
     <string name="workspace_new_page" msgid="257366611030256142">"Nouvelle page d\'écran d\'accueil"</string>
@@ -150,26 +125,18 @@
     <string name="folder_tap_to_rename" msgid="4017685068016979677">"Appuyez pour enregistrer le nouveau nom du dossier."</string>
     <string name="folder_closed" msgid="4100806530910930934">"Dossier fermé"</string>
     <string name="folder_renamed" msgid="1794088362165669656">"Nouveau nom du dossier : <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="folder_type_name" msgid="506043307348675355">"Dossier"</string>
-    <string name="app_folder_type_name" msgid="149643408248060284">"Dossier d\'application"</string>
-    <string name="apps_folder_name_format_exact" msgid="891345161390366700">"<xliff:g id="TYPE">%1$s</xliff:g> : <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> éléments"</string>
-    <string name="apps_folder_name_format_exact_with_dot" msgid="7729062268048931718">"<xliff:g id="TYPE">%1$s</xliff:g> : <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> éléments, contient des notifications"</string>
-    <string name="apps_folder_name_format_overflow" msgid="4614729357510054194">"<xliff:g id="TYPE">%1$s</xliff:g> : <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> éléments ou plus"</string>
-    <string name="apps_folder_name_format_overflow_with_dot" msgid="4738681518782744688">"<xliff:g id="TYPE">%1$s</xliff:g> : <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> éléments ou plus, contient des notifications"</string>
+    <string name="folder_name_format_exact" msgid="8626242716117004803">"Dossier : <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> éléments"</string>
+    <string name="folder_name_format_overflow" msgid="4270108890534995199">"Dossier : <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> éléments ou plus"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"Dossier sans nom"</string>
-    <string name="files_folder_name" msgid="7712191128817533622">"Dossier de fichiers : <xliff:g id="NAME">%1$s</xliff:g>"</string>
     <string name="app_pair_name_format" msgid="8134106404716224054">"Paire d\'applications : <xliff:g id="APP1">%1$s</xliff:g> et <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"Fond d\'écran et style"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"Modifier l\'écran d\'accueil"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"Paramètres de l\'accueil"</string>
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"Désactivé par votre administrateur"</string>
-    <string name="settings_home_organizer" msgid="5184766349407080054">"Organisateur accueil"</string>
+    <string name="allow_rotation_title" msgid="7222049633713050106">"Autoriser la rotation de l\'écran d\'accueil"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"Lorsque vous faites pivoter le téléphone"</string>
-    <string name="compose_developer_options_section" msgid="8211460486549952595">"Jetpack Compose"</string>
-    <string name="enable_composition_tracing_title" msgid="8989606591739368424">"Activer le traçage de composition"</string>
-    <string name="enable_composition_tracing_desc" msgid="7187566039216492405">"Activer le traçage de composition lors de la capture de trace perfetto dans l\'aperçu"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"Mode Paysage"</string>
-    <string name="landscape_mode_desc" msgid="3085236452297838664">"Activer le mode Paysage pour l\'écran d\'accueil"</string>
+    <string name="landscape_mode_desc" msgid="7372569859592816793">"Paramétrer le téléphone en mode Paysage"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"Pastilles de notification"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"Activé"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"Désactivées"</string>
@@ -206,12 +173,9 @@
     <string name="move_to_hotseat_position" msgid="6295412897075147808">"Déplacer vers la position <xliff:g id="NUMBER">%1$s</xliff:g> dans les favoris"</string>
     <string name="item_moved" msgid="4606538322571412879">"Élément déplacé"</string>
     <string name="add_to_folder" msgid="9040534766770853243">"Ajouter au dossier \"<xliff:g id="NAME">%1$s</xliff:g>\""</string>
-    <string name="add_to_folder_with_position" msgid="4457486890869662">"Ajouter au dossier <xliff:g id="NAME">%1$s</xliff:g>. Ligne <xliff:g id="NUMBER_0">%2$s</xliff:g>, colonne <xliff:g id="NUMBER_1">%3$s</xliff:g> dans <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="add_to_folder_with_app" msgid="4534929978967147231">"Ajouter au dossier contenant \"<xliff:g id="NAME">%1$s</xliff:g>\""</string>
-    <string name="add_to_folder_with_app_with_position" msgid="6670979489897093325">"Ajouter au dossier avec <xliff:g id="NAME">%1$s</xliff:g>. Ligne <xliff:g id="NUMBER_0">%2$s</xliff:g>, colonne <xliff:g id="NUMBER_1">%3$s</xliff:g>, dans <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="added_to_folder" msgid="4793259502305558003">"Élément ajouté au dossier"</string>
     <string name="create_folder_with" msgid="4050141361160214248">"Créer un dossier avec \"<xliff:g id="NAME">%1$s</xliff:g>\""</string>
-    <string name="create_folder_with_position" msgid="3093164349445159115">"Créer un dossier avec <xliff:g id="NAME">%1$s</xliff:g>. Ligne <xliff:g id="NUMBER_0">%2$s</xliff:g>, colonne <xliff:g id="NUMBER_1">%3$s</xliff:g>, dans <xliff:g id="STRING">%4$s</xliff:g>"</string>
     <string name="folder_created" msgid="6409794597405184510">"Dossier créé"</string>
     <string name="action_move_to_workspace" msgid="39528912300293768">"Déplacer sur l\'écran d\'accueil"</string>
     <string name="action_resize" msgid="1802976324781771067">"Redimensionner"</string>
@@ -219,11 +183,6 @@
     <string name="action_increase_height" msgid="459390020612501122">"Augmenter la hauteur"</string>
     <string name="action_decrease_width" msgid="1374549771083094654">"Diminuer la largeur"</string>
     <string name="action_decrease_height" msgid="282377193880900022">"Diminuer la hauteur"</string>
-    <string name="resize_handle_start" msgid="431073846880883794">"Poignée de redimensionnement gauche"</string>
-    <string name="resize_handle_top" msgid="280799523356834542">"Poignée de redimensionnement supérieure"</string>
-    <string name="resize_handle_end" msgid="8411240534474246075">"Poignée de redimensionnement droite"</string>
-    <string name="resize_handle_bottom" msgid="4217171801060928429">"Poignée de redimensionnement inférieure"</string>
-    <string name="tap_to_show_resize_buttons" msgid="964815552123289232">"Afficher les boutons de redimensionnement"</string>
     <string name="widget_resized" msgid="9130327887929620">"Le widget a bien été redimensionné (largeur : <xliff:g id="NUMBER_0">%1$s</xliff:g>, hauteur : <xliff:g id="NUMBER_1">%2$s</xliff:g>)."</string>
     <string name="action_deep_shortcut" msgid="4766835855579976045">"Menu de raccourci"</string>
     <string name="widget_frame_name" msgid="8782828448471444270">"Cadre de redimensionnement du widget pour <xliff:g id="STRING">%1$s</xliff:g>"</string>
@@ -236,6 +195,7 @@
     <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"Onglet \"Applications professionnelles\""</string>
     <string name="work_profile_toggle_label" msgid="3081029915775481146">"Profil professionnel"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"Les applis professionnelles sont identifiées par un badge et votre administrateur informatique peut les voir"</string>
+    <string name="work_profile_edu_accept" msgid="6069788082535149071">"OK"</string>
     <string name="work_apps_paused_title" msgid="3040901117349444598">"Applis professionnelles en pause"</string>
     <string name="work_apps_paused_info_body" msgid="1687828929959237477">"Vous ne recevrez pas de notifications de vos applications professionnelles"</string>
     <string name="work_apps_paused_body" msgid="261634750995824906">"Vos applis professionnelles ne peuvent pas vous envoyer de notifications, utiliser votre batterie ni accéder à votre position"</string>
@@ -251,28 +211,11 @@
     <string name="private_space_secondary_label" msgid="9203933341714508907">"Appuyer pour ouvrir ou configurer"</string>
     <string name="ps_container_title" msgid="4391796149519594205">"Privé"</string>
     <string name="ps_container_settings" msgid="6059734123353320479">"Paramètres d\'Espace privé"</string>
-    <string name="ps_container_unlock_button_content_description" msgid="9181551784092204234">"Privé, déverrouillé."</string>
-    <string name="ps_container_lock_button_content_description" msgid="5961993384382649530">"Privé, verrouillé."</string>
+    <string name="ps_container_unlock_button_content_description" msgid="9181551784092204234">"Privé, déverrouillé"</string>
+    <string name="ps_container_lock_button_content_description" msgid="5961993384382649530">"Privé, verrouillé"</string>
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Verrouiller"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"Transition vers Espace privé"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Installer"</string>
-    <string name="ps_app_label_override" msgid="6876160706011676804">"Ajouter"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"Installer des applis dans l\'espace privé"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Ajoutez des fichiers et bien plus à votre espace privé"</string>
-    <string name="circle_shape_title" msgid="3582075061179674565">"Cercle"</string>
-    <string name="square_shape_title" msgid="3085320803149569308">"Carré"</string>
-    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"Biscuit à quatre côtés"</string>
-    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"Biscuit à sept côtés"</string>
-    <string name="arch_shape_title" msgid="2213843822192871318">"Arc"</string>
-    <string name="create_new_folder_button_text" msgid="4037052463794735069">"Nouveau dossier"</string>
-    <string name="default_new_folder_name" msgid="8821062664729412079">"Nouveau dossier"</string>
-    <string name="home_screen_files_rename_dialog_clear_button" msgid="1516608063079626727">"Effacer"</string>
-    <string name="home_screen_files_rename_dialog_neutral_button" msgid="961781261154618336">"Annuler"</string>
-    <string name="home_screen_files_rename_dialog_positive_button" msgid="6506701192246379747">"Renommer"</string>
-    <string name="home_screen_files_rename_dialog_file_title" msgid="3540941610992603887">"Renommer le fichier"</string>
-    <string name="home_screen_files_rename_dialog_folder_title" msgid="2453152990256864379">"Renommer le dossier"</string>
-    <string name="something_went_wrong" msgid="1492883246069060632">"Un problème est survenu"</string>
-    <string name="organizer_create_screen_title" msgid="1052454457895703433">"Créer un écran"</string>
-    <string name="organizer_create_screen_description" msgid="3224132391919219061">"Choisissez une catégorie pour ajouter des applis et des widgets depuis votre téléphone"</string>
-    <string name="organizer_choose_layout_title" msgid="127228966942084947">"Choisir une mise en page"</string>
 </resources>

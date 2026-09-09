@@ -21,7 +21,6 @@ import static androidx.dynamicanimation.animation.DynamicAnimation.MIN_VISIBLE_C
 import static com.android.app.animation.Interpolators.ACCELERATE_2;
 import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.app.animation.Interpolators.ZOOM_OUT;
-import static com.android.launcher3.Flags.centerSpringLoadedStateVertically;
 import static com.android.launcher3.LauncherAnimUtils.HOTSEAT_SCALE_PROPERTY_FACTORY;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_INDEX_WORKSPACE_STATE;
 import static com.android.launcher3.LauncherAnimUtils.VIEW_ALPHA;
@@ -123,7 +122,7 @@ public class WorkspaceStateTransitionAnimation {
                     propertySetter, config);
         }
 
-        int elements = state.getVisibleElements(mLauncher.getLauncherUiState());
+        int elements = state.getVisibleElements(mLauncher);
         Hotseat hotseat = mWorkspace.getHotseat();
         Interpolator scaleInterpolator = config.getInterpolator(ANIM_WORKSPACE_SCALE, ZOOM_OUT);
         LauncherState fromState = mLauncher.getStateManager().getState();
@@ -193,12 +192,6 @@ public class WorkspaceStateTransitionAnimation {
         propertySetter.setFloat(mWorkspace.getPageIndicator(), VIEW_TRANSLATE_Y,
                 hotseatScaleAndTranslation.translationY, hotseatTranslationInterpolator);
 
-        if (centerSpringLoadedStateVertically()) {
-            DropTargetBar dropTargetBar = mLauncher.getDropTargetBar();
-            propertySetter.setFloat(dropTargetBar, VIEW_TRANSLATE_Y,
-                    state.getDropTargetBarTranslationY(mLauncher), translationInterpolator);
-        }
-
         if (!config.hasAnimationFlag(SKIP_SCRIM)) {
             setScrim(propertySetter, state, config);
         }
@@ -214,7 +207,7 @@ public class WorkspaceStateTransitionAnimation {
         propertySetter.setFloat(sysUiScrim.getSysUIProgress(), AnimatedFloat.VALUE,
                 state.hasFlag(FLAG_HAS_SYS_UI_SCRIM) ? 1 : 0, LINEAR);
 
-        propertySetter.setScrimColors(mLauncher.getScrimView(),
+        propertySetter.setViewBackgroundColor(mLauncher.getScrimView(),
                 state.getWorkspaceScrimColor(mLauncher),
                 config.getInterpolator(ANIM_SCRIM_FADE, ACCELERATE_2));
     }
@@ -229,7 +222,7 @@ public class WorkspaceStateTransitionAnimation {
             StateAnimationConfig config) {
         float pageAlpha = pageAlphaProvider.getPageAlpha(childIndex);
         float springLoadedProgress =
-                (state instanceof SpringLoadedState || state instanceof EditModeState) ? 1f : 0f;
+                (state instanceof  SpringLoadedState || state instanceof EditModeState) ? 1f : 0f;
         propertySetter.setFloat(cl,
                 CellLayout.SPRING_LOADED_PROGRESS, springLoadedProgress, ZOOM_OUT);
         Interpolator fadeInterpolator = config.getInterpolator(ANIM_WORKSPACE_FADE,

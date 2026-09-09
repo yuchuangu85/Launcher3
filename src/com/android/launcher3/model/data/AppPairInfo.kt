@@ -23,28 +23,14 @@ import com.android.launcher3.R
 import com.android.launcher3.icons.IconCache
 import com.android.launcher3.logger.LauncherAtom
 import com.android.launcher3.views.ActivityContext
-import com.android.wm.shell.Flags
+import java.util.stream.Collectors
 
 /** A type of app collection that launches multiple apps into split screen. */
 class AppPairInfo() : CollectionInfo() {
-    companion object {
-        const val MIN_ITEMS = 2
-        const val MAX_ITEMS = 3
-
-        @JvmStatic
-        fun hasValidItemCount(count: Int): Boolean {
-            if (Flags.enable2x1Split()) {
-                return count in MIN_ITEMS..MAX_ITEMS
-            }
-
-            return count == 2
-        }
-    }
-
-    private var contents = mutableListOf<WorkspaceItemInfo>()
+    private var contents: ArrayList<WorkspaceItemInfo> = ArrayList()
 
     init {
-        itemType = LauncherSettings.Favorites.ITEM_TYPE_APP_GROUP
+        itemType = LauncherSettings.Favorites.ITEM_TYPE_APP_PAIR
     }
 
     /** Convenience constructor, calls primary constructor and init block */
@@ -54,7 +40,7 @@ class AppPairInfo() : CollectionInfo() {
 
     /** Creates a new AppPairInfo that is a copy of the provided one. */
     constructor(appPairInfo: AppPairInfo) : this() {
-        contents = appPairInfo.contents.toMutableList()
+        contents = appPairInfo.contents.clone() as ArrayList<WorkspaceItemInfo>
         copyFrom(appPairInfo)
     }
 
@@ -68,10 +54,11 @@ class AppPairInfo() : CollectionInfo() {
     }
 
     /** Returns the app pair's member apps as an ArrayList of [ItemInfo]. */
-    override fun getContents(): List<ItemInfo> = contents.map { it }
+    override fun getContents(): ArrayList<ItemInfo> =
+        ArrayList(contents.stream().map { it as ItemInfo }.collect(Collectors.toList()))
 
     /** Returns the app pair's member apps as an ArrayList of [WorkspaceItemInfo]. */
-    override fun getAppContents(): List<WorkspaceItemInfo> = contents
+    override fun getAppContents(): ArrayList<WorkspaceItemInfo> = contents
 
     /** Returns the first app in the pair. */
     fun getFirstApp() = contents[0]
@@ -85,10 +72,7 @@ class AppPairInfo() : CollectionInfo() {
     /** Checks if member apps are launchable at the current screen size. */
     fun isLaunchable(context: Context): Pair<Boolean, Boolean> {
         val isTablet =
-            (ActivityContext.lookupContext(context) as ActivityContext)
-                .getDeviceProfile()
-                .deviceProperties
-                .isLargeScreen
+            (ActivityContext.lookupContext(context) as ActivityContext).getDeviceProfile().isTablet
         return Pair(
             isTablet || !getFirstApp().isNonResizeable,
             isTablet || !getSecondApp().isNonResizeable,
@@ -98,8 +82,9 @@ class AppPairInfo() : CollectionInfo() {
     /** Fetches high-res icons for member apps if needed. */
     fun fetchHiResIconsIfNeeded(iconCache: IconCache) {
         getAppContents()
+            .stream()
             .filter { it.matchingLookupFlag.isVisuallyLessThan(DESKTOP_ICON_FLAG) }
-            .forEach { iconCache.getTitleAndIcon(it, DESKTOP_ICON_FLAG) }
+            .forEach { member -> iconCache.getTitleAndIcon(member, DESKTOP_ICON_FLAG) }
     }
 
     /**

@@ -38,10 +38,4 @@ public class SplitScreenSelect extends Overview {
         // We don't show overview actions in split select state.
         return false;
     }
-
-    @Override
-    protected boolean isAddDesktopButtonExpected() {
-        // We don't show addDesktopButton in split select state.
-        return false;
-    }
 }

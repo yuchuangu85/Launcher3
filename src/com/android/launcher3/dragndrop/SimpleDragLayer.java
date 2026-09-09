@@ -39,7 +39,6 @@ public class SimpleDragLayer<T extends Context & ActivityContext> extends BaseDr
 
     @Override
     public void recreateControllers() {
-        super.recreateControllers();
         mControllers = new TouchController[] {};
     }
 }

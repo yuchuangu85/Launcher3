@@ -22,32 +22,23 @@ import com.android.quickstep.recents.data.RecentsDeviceProfileRepository
 import com.android.quickstep.recents.data.RecentsRotationStateRepository
 import com.android.systemui.shared.recents.model.ThumbnailData
 import com.android.systemui.shared.recents.utilities.PreviewPositionHelper
-import com.android.wm.shell.shared.split.SplitBounds
-import javax.inject.Inject
-import javax.inject.Provider
 
 /** Use case for retrieving [Matrix] for positioning Thumbnail in a View */
-class GetThumbnailPositionUseCase
-@Inject
-constructor(
+class GetThumbnailPositionUseCase(
     private val deviceProfileRepository: RecentsDeviceProfileRepository,
     private val rotationStateRepository: RecentsRotationStateRepository,
-    private val previewPositionHelperProvider: Provider<PreviewPositionHelper>,
+    private val previewPositionHelperFactory: PreviewPositionHelper.PreviewPositionHelperFactory,
 ) {
     operator fun invoke(
         thumbnailData: ThumbnailData?,
         width: Int,
         height: Int,
         isRtl: Boolean,
-        splitBounds: SplitBounds?,
-        splitPosition: Int,
-        densityDpi: Int,
     ): ThumbnailPosition {
         val thumbnail =
             thumbnailData?.thumbnail ?: return ThumbnailPosition(Matrix.IDENTITY_MATRIX, false)
 
-        val previewPositionHelper = previewPositionHelperProvider.get()
-        previewPositionHelper.setSplitBounds(splitBounds, splitPosition)
+        val previewPositionHelper = previewPositionHelperFactory.create()
         previewPositionHelper.updateThumbnailMatrix(
             Rect(0, 0, thumbnail.width, thumbnail.height),
             thumbnailData,
@@ -56,7 +47,6 @@ constructor(
             deviceProfileRepository.getRecentsDeviceProfile().isLargeScreen,
             rotationStateRepository.getRecentsRotationState().activityRotation,
             isRtl,
-            densityDpi,
         )
         return ThumbnailPosition(
             matrix = previewPositionHelper.matrix,

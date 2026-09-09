@@ -16,7 +16,6 @@
 
 package com.android.launcher3;
 
-import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_HOME_SCREEN_FILES_DELETE_VIA_DRAG_AND_DROP;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ITEM_DROPPED_ON_CANCEL;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ITEM_DROPPED_ON_REMOVE;
 
@@ -28,11 +27,11 @@ import android.view.View;
 
 import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
 import com.android.launcher3.dragndrop.DragOptions;
-import com.android.launcher3.homescreenfiles.HomeScreenFilesUtils;
-import com.android.launcher3.homescreenfiles.HomeScreenFilesUtilsKt;
 import com.android.launcher3.logging.StatsLogManager;
+import com.android.launcher3.model.data.CollectionInfo;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.util.Preconditions;
+import com.android.launcher3.model.data.LauncherAppWidgetInfo;
+import com.android.launcher3.model.data.WorkspaceItemInfo;
 
 public class DeleteDropTarget extends ButtonDropTarget {
 
@@ -69,16 +68,15 @@ public class DeleteDropTarget extends ButtonDropTarget {
     /**
      * @return true for items that should have a "Remove" action in accessibility.
      */
-    private boolean supportsAccessibilityDrop(ItemInfo info, View view) {
-        return UtilitiesKt.isPersistedModelItem(info);
-    }
-
     @Override
-    public int getSupportedAccessibilityAction(ItemInfo info, View view) {
-        if (supportsAccessibilityDrop(info, view)) {
-            return getAccessibilityAction();
+    public boolean supportsAccessibilityDrop(ItemInfo info, View view) {
+        if (info instanceof WorkspaceItemInfo) {
+            // Support the action unless the item is in a context menu.
+            return canRemove(info);
         }
-        return LauncherAccessibilityDelegate.INVALID;
+
+        return (info instanceof LauncherAppWidgetInfo)
+                || (info instanceof CollectionInfo);
     }
 
     @Override
@@ -95,24 +93,13 @@ public class DeleteDropTarget extends ButtonDropTarget {
     }
 
     /**
-     * Set the drop target's text to either "Remove", "Delete permanently", "Move to trash" or
-     * "Cancel" depending on the drag item.
+     * Set the drop target's text to either "Remove" or "Cancel" depending on the drag item.
      */
     private void setTextBasedOnDragSource(ItemInfo item) {
         if (!TextUtils.isEmpty(mText)) {
-            int resId;
-            if (canRemove(item)) {
-                if (HomeScreenFilesUtilsKt.isFileSystemItem(item)) {
-                    resId = HomeScreenFilesUtils.Companion.isTrashingEnabled()
-                            ? R.string.home_screen_files_context_menu_move_to_trash_label
-                            : R.string.home_screen_files_context_menu_delete_permanently_label;
-                } else {
-                    resId = R.string.remove_drop_target_label;
-                }
-            } else {
-                resId = android.R.string.cancel;
-            }
-            mText = getResources().getString(resId);
+            mText = getResources().getString(canRemove(item)
+                    ? R.string.remove_drop_target_label
+                    : android.R.string.cancel);
             setContentDescription(mText);
             requestLayout();
         }
@@ -133,7 +120,7 @@ public class DeleteDropTarget extends ButtonDropTarget {
     @Override
     public void onDrop(DragObject d, DragOptions options) {
         if (canRemove(d.dragInfo)) {
-            mDropTargetHandler.prepareToUndoDelete(d.dragInfo);
+            mDropTargetHandler.prepareToUndoDelete();
         }
         super.onDrop(d, options);
         mStatsLogManager.logger().withInstanceId(d.logInstanceId)
@@ -144,11 +131,7 @@ public class DeleteDropTarget extends ButtonDropTarget {
     public void completeDrop(DragObject d) {
         ItemInfo item = d.dragInfo;
         if (canRemove(item)) {
-            if (HomeScreenFilesUtilsKt.isFileSystemItem(item)) {
-                mStatsLogManager.logger().withItemInfo(item).log(
-                        LAUNCHER_HOME_SCREEN_FILES_DELETE_VIA_DRAG_AND_DROP);
-            }
-            mDropTargetHandler.onDeleteComplete(item, /* view */ null);
+            mDropTargetHandler.onDeleteComplete(item);
         } else if (mText == getResources().getText(R.string.remove_drop_target_label)) {
             Log.wtf("b/379606516", "If the drop target text is 'remove', then"
                     + " users should always be able to delete the item from launcher's db."
@@ -160,14 +143,11 @@ public class DeleteDropTarget extends ButtonDropTarget {
      * Removes the item from the workspace. If the view is not null, it also removes the view.
      */
     @Override
-    public void onAccessibilityDrop(View view, ItemInfo item, int action) {
-        Preconditions.assertTrue(action == getAccessibilityAction());
+    public void onAccessibilityDrop(View view, ItemInfo item) {
         // Remove the item from launcher and the db, we can ignore the containerInfo in this call
         // because we already remove the drag view from the folder (if the drag originated from
         // a folder) in Folder.beginDrag()
-        if (canRemove(item)) {
-            mDropTargetHandler.prepareToUndoDelete(item);
-            mDropTargetHandler.onDeleteComplete(item, view);
-        }
+        CharSequence announcement = getContext().getString(R.string.item_removed);
+        mDropTargetHandler.onAccessibilityDelete(view, item, announcement);
     }
 }

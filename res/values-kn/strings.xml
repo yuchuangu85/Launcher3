@@ -32,10 +32,8 @@
     <string name="recent_task_option_aspect_ratio" msgid="7008605516391096989">"ದೃಶ್ಯಾನುಪಾತವನ್ನು ಬದಲಾಯಿಸಿ"</string>
     <string name="split_app_info_accessibility" msgid="5475288491241414932">"%1$s ಗಾಗಿ ಆ್ಯಪ್ ಮಾಹಿತಿ"</string>
     <string name="split_app_usage_settings" msgid="7214375263347964093">"%1$s ಗೆ ಸಂಬಂಧಿಸಿದ ಬಳಕೆಯ ಸೆಟ್ಟಿಂಗ್‌ಗಳು"</string>
-    <string name="close_task_accessibility" msgid="4765872229211282647">"%1$s ಮುಚ್ಚಿರಿ"</string>
     <string name="new_window_option_taskbar" msgid="6448780542727767211">"ಹೊಸ ವಿಂಡೋ"</string>
     <string name="manage_windows_option_taskbar" msgid="2294109489960654212">"ವಿಂಡೋಗಳನ್ನು ನಿರ್ವಹಿಸಿ"</string>
-    <string name="close_app_taskbar" msgid="3238979263877091273">"ಮುಚ್ಚಿರಿ"</string>
     <string name="save_app_pair" msgid="5647523853662686243">"ಆ್ಯಪ್ ಪೇರ್ ಸೇವ್ ಮಾಡಿ"</string>
     <string name="app_pair_default_title" msgid="4045241727446873529">"<xliff:g id="APP1">%1$s</xliff:g> | <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="app_pair_unlaunchable_at_screen_size" msgid="3446551575502685376">"ಈ ಆ್ಯಪ್ ಜೋಡಿಯು ಈ ಸಾಧನದಲ್ಲಿ ಬೆಂಬಲಿತವಾಗಿಲ್ಲ"</string>
@@ -63,6 +61,8 @@
     <string name="shortcuts_count" msgid="8471715556199592381">"{count,plural, =1{# ಶಾರ್ಟ್‌ಕಟ್}one{# ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು}other{# ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು}}"</string>
     <string name="widgets_and_shortcuts_count" msgid="7209136747878365116">"<xliff:g id="WIDGETS_COUNT">%1$s</xliff:g>, <xliff:g id="SHORTCUTS_COUNT">%2$s</xliff:g>"</string>
     <string name="widget_button_text" msgid="2880537293434387943">"ವಿಜೆಟ್‌ಗಳು"</string>
+    <string name="widgets_full_sheet_search_bar_hint" msgid="8484659090860596457">"ಹುಡುಕಿ"</string>
+    <string name="widgets_full_sheet_cancel_button_description" msgid="5766167035728653605">"ಹುಡುಕಾಟ ಪೆಟ್ಟಿಗೆಯಿಂದ ಪಠ್ಯವನ್ನು ತೆರವುಗೊಳಿಸಿ"</string>
     <string name="no_widgets_available" msgid="4337693382501046170">"ವಿಜೆಟ್‌ಗಳು ಮತ್ತು ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು ಲಭ್ಯವಿಲ್ಲ"</string>
     <string name="no_search_results" msgid="3787956167293097509">"ಯಾವುದೇ ವಿಜೆಟ್‌ಗಳು ಅಥವಾ ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು ಪತ್ತೆಯಾಗಿಲ್ಲ"</string>
     <string name="widgets_full_sheet_personal_tab" msgid="2743540105607120182">"ವೈಯಕ್ತಿಕ"</string>
@@ -89,7 +89,7 @@
     <string name="long_accessible_way_to_add_shortcut" msgid="2199537273817090740">"ಶಾರ್ಟ್‌ಕಟ್ ಸರಿಸಲು ಅಥವಾ ಕಸ್ಟಮ್ ಕ್ರಿಯೆಗಳನ್ನು ಬಳಸಲು ಡಬಲ್-ಟ್ಯಾಪ್ ಮಾಡಿ ಮತ್ತು ಹಿಡಿದುಕೊಳ್ಳಿ."</string>
     <string name="out_of_space" msgid="6455557115204099579">"ಈ ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ ಸ್ಥಳಾವಕಾಶವಿಲ್ಲ"</string>
     <string name="hotseat_out_of_space" msgid="7448809638125333693">"ಮೆಚ್ಚಿನವುಗಳ ಟ್ರೇನಲ್ಲಿ ಹೆಚ್ಚಿನ ಸ್ಥಳಾವಕಾಶವಿಲ್ಲ"</string>
-    <string name="all_apps_button_label" msgid="8130441508702294465">"ಆ್ಯಪ್‌ಗಳ ಪಟ್ಟಿ"</string>
+    <string name="all_apps_button_label" msgid="8130441508702294465">"ಅಪ್ಲಿಕೇಶನ್‌ಗಳ ಪಟ್ಟಿ"</string>
     <string name="all_apps_search_results" msgid="5889367432531296759">"ಹುಡುಕಾಟ ಫಲಿತಾಂಶಗಳು"</string>
     <string name="all_apps_button_personal_label" msgid="1315764287305224468">"ವೈಯಕ್ತಿಕ ಅಪ್ಲಿಕೇಶನ್‌ಗಳ ಪಟ್ಟಿ"</string>
     <string name="all_apps_button_work_label" msgid="7270707118948892488">"ಕೆಲಸದ ಅಪ್ಲಿಕೇಶನ್‌ಗಳ ಪಟ್ಟಿ"</string>
@@ -102,28 +102,6 @@
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"ಆ್ಯಪ್ ಅನ್ನು ಸೂಚಿಸಬೇಡಿ"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"ಮುನ್ನೋಟ ಪಿನ್ ಮಾಡಿ"</string>
     <string name="bubble" msgid="3072951361014076670">"ಬಬಲ್"</string>
-    <string name="enable_app_lock" msgid="5606772593969266718">"ಆ್ಯಪ್ ಲಾಕ್"</string>
-    <string name="disable_app_lock" msgid="2252606435270354961">"ಆ್ಯಪ್ ಲಾಕ್ ತೆಗೆಯಿರಿ"</string>
-    <string name="widget_settings" msgid="5280157748464495511">"ಸೆಟ್ಟಿಂಗ್‌ಗಳು"</string>
-    <string name="add_to_taskbar" msgid="1442306985857150792">"ಟಾಸ್ಕ್‌ಬಾರ್‌ಗೆ ಸೇರಿಸಿ"</string>
-    <string name="remove_from_taskbar" msgid="5817026706030273018">"ಟಾಸ್ಕ್‌ಬಾರ್‌ನಿಂದ ತೆಗೆದುಹಾಕಿ"</string>
-    <string name="no_room_in_taskbar" msgid="6885243748717395469">"ಟಾಸ್ಕ್‌ಬಾರ್‌ನಲ್ಲಿ ಯಾವುದೇ ಕೊಠಡಿ ಇಲ್ಲ"</string>
-    <string name="app_added_to_taskbar" msgid="6348755169793615171">"ಆ್ಯಪ್ ಅನ್ನು ಟಾಸ್ಕ್‌ಬಾರ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ"</string>
-    <string name="app_removed_from_taskbar" msgid="3471754847898675396">"ಆ್ಯಪ್ ಅನ್ನು ಟಾಸ್ಕ್‌ಬಾರ್‌ನಿಂದ ತೆಗೆದುಹಾಕಲಾಗಿದೆ"</string>
-    <string name="remove_system_shortcut_label" msgid="3991201411148073972">"ತೆಗೆದುಹಾಕಿ"</string>
-    <string name="home_screen_files_context_menu_copy_label" msgid="8769381168712216221">"ಕಾಪಿ ಮಾಡಿ"</string>
-    <string name="home_screen_files_context_menu_open_in_app_label" msgid="7930552598671791537">"ತೆರೆಯಿರಿ"</string>
-    <string name="home_screen_files_context_menu_rename_label" msgid="699579827537411711">"ಮರುಹೆಸರಿಸಿ"</string>
-    <string name="home_screen_files_context_menu_delete_permanently_label" msgid="8660443461874174185">"ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಿ"</string>
-    <string name="home_screen_files_context_menu_move_to_trash_label" msgid="1145655050674479315">"ಟ್ರ್ಯಾಶ್‌ಗೆ ಸರಿಸಿ"</string>
-    <string name="home_screen_files_moved_to_trash_message" msgid="2848141584483641247">"ಐಟಂ ಅನ್ನು ಟ್ರ್ಯಾಶ್‌ಗೆ ಸರಿಸಲಾಗಿದೆ"</string>
-    <string name="home_screen_files_move_to_trash_error_message" msgid="3836240816166417826">"ಟ್ರ್ಯಾಶ್‌ಗೆ ಸರಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ ಏನೋ ತಪ್ಪಾಗಿದೆ."</string>
-    <string name="home_screen_files_restore_from_trash_error_message" msgid="994941644161090497">"ರದ್ದುಗೊಳಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ ಮರುಸ್ಥಾಪಿಸಲು Files ಆ್ಯಪ್‌ಗೆ ಹೋಗಿ."</string>
-    <string name="actions_popup_menu_button" msgid="2442187572711557413">"ಕ್ರಿಯೆಗಳು"</string>
-    <string name="shortcuts_popup_menu_button" msgid="766598805805882499">"ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು"</string>
-    <string name="actions_popup_menu_button_description" msgid="4224192559473869722">"ಕ್ರಿಯೆಗಳ ಮೆನುವನ್ನು ತೋರಿಸಿ"</string>
-    <string name="shortcuts_popup_menu_button_description" msgid="7566698511556454634">"ಆ್ಯಪ್ ಶಾರ್ಟ್‌ಕಟ್‌ಗಳ ಮೆನುವನ್ನು ತೋರಿಸಿ"</string>
-    <string name="pause_app_label" msgid="6796255881727695791">"ಆ್ಯಪ್ ವಿರಾಮಗೊಳಿಸಿ"</string>
     <string name="permlab_install_shortcut" msgid="5632423390354674437">"ಶಾರ್ಟ್‌ಕಟ್‌ಗಳನ್ನು ಸ್ಥಾಪಿಸಿ"</string>
     <string name="permdesc_install_shortcut" msgid="923466509822011139">"ಬಳಕೆದಾರರ ಹಸ್ತಕ್ಷೇಪವಿಲ್ಲದೆ ಶಾರ್ಟ್‌ಕಟ್‌ಗಳನ್ನು ಸೇರಿಸಲು ಅಪ್ಲಿಕೇಶನ್‌ಗೆ ಅನುಮತಿಸುತ್ತದೆ."</string>
     <string name="permlab_read_settings" msgid="5136500343007704955">"ಹೋಮ್ ಸ್ಕ್ರೀನ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಮತ್ತು ಶಾರ್ಟ್‌ಕಟ್‌ಗಳನ್ನು ಓದಿ"</string>
@@ -135,11 +113,8 @@
     <string name="gadget_complete_setup_text" msgid="309040266978007925">"ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ"</string>
     <string name="uninstall_system_app_text" msgid="4172046090762920660">"ಇದೊಂದು ಆ್ಯಪ್‌ ಆಗಿದೆ ಮತ್ತು ಅಸ್ಥಾಪಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ."</string>
     <string name="folder_hint_text" msgid="5174843001373488816">"ಹೆಸರನ್ನು ಎಡಿಟ್ ಮಾಡಿ"</string>
-    <string name="paginate_left" msgid="7915437358451360433">"ಎಡಕ್ಕೆ ಪುಟ ವಿಂಗಡಿಸಿ"</string>
-    <string name="paginate_right" msgid="6701038155201975878">"ಬಲಕ್ಕೆ ಪುಟ ವಿಂಗಡಿಸಿ"</string>
     <string name="disabled_app_label" msgid="6673129024321402780">"<xliff:g id="APP_NAME">%1$s</xliff:g> ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ"</string>
     <string name="dotted_app_label" msgid="1865617679843363410">"{count,plural, =1{{app_name} ಆ್ಯಪ್ # ಅಧಿಸೂಚನೆಯನ್ನು ಹೊಂದಿದೆ}one{{app_name} ಆ್ಯಪ್ # ಅಧಿಸೂಚನೆಗಳನ್ನು ಹೊಂದಿದೆ}other{{app_name} ಆ್ಯಪ್ # ಅಧಿಸೂಚನೆಗಳನ್ನು ಹೊಂದಿದೆ}}"</string>
-    <string name="hotseat_prediction_content_description" msgid="7680403232742709704">"ನಿರೀಕ್ಷಿತ ಆ್ಯಪ್: <xliff:g id="TITLE">%1$s</xliff:g>"</string>
     <string name="default_scroll_format" msgid="7475544710230993317">"%2$d ರಲ್ಲಿ %1$d ಪುಟ"</string>
     <string name="workspace_scroll_format" msgid="8458889198184077399">"%2$d ರಲ್ಲಿ %1$d ಮುಖಪುಟದ ಸ್ಕ್ರೀನ್"</string>
     <string name="workspace_new_page" msgid="257366611030256142">"ಹೊಸ ಮುಖಪುಟ ಸ್ಕ್ರೀನ್"</string>
@@ -150,26 +125,18 @@
     <string name="folder_tap_to_rename" msgid="4017685068016979677">"ಮರುಹೆಸರನ್ನು ಉಳಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ"</string>
     <string name="folder_closed" msgid="4100806530910930934">"ಫೋಲ್ಡರ್ ಮುಚ್ಚಿದೆ"</string>
     <string name="folder_renamed" msgid="1794088362165669656">"ಫೋಲ್ಡರ್‌ ಅನ್ನು <xliff:g id="NAME">%1$s</xliff:g> ಗೆ ಮರುಹೆಸರಿಸಲಾಗಿದೆ"</string>
-    <string name="folder_type_name" msgid="506043307348675355">"ಫೋಲ್ಡರ್"</string>
-    <string name="app_folder_type_name" msgid="149643408248060284">"ಆ್ಯಪ್ ಫೋಲ್ಡರ್"</string>
-    <string name="apps_folder_name_format_exact" msgid="891345161390366700">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> ಐಟಂಗಳು"</string>
-    <string name="apps_folder_name_format_exact_with_dot" msgid="7729062268048931718">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> ಐಟಂಗಳು, ನೋಟಿಫಿಕೇಶನ್‌ಗಳನ್ನು ಹೊಂದಿದೆ"</string>
-    <string name="apps_folder_name_format_overflow" msgid="4614729357510054194">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> ಅಥವಾ ಹೆಚ್ಚಿನ ಐಟಂಗಳು"</string>
-    <string name="apps_folder_name_format_overflow_with_dot" msgid="4738681518782744688">"<xliff:g id="TYPE">%1$s</xliff:g>: <xliff:g id="NAME">%2$s</xliff:g>, <xliff:g id="SIZE">%3$d</xliff:g> ಅಥವಾ ಹೆಚ್ಚಿನ ಐಟಂಗಳು, ನೋಟಿಫಿಕೇಶನ್‌ಗಳನ್ನು ಹೊಂದಿದೆ"</string>
+    <string name="folder_name_format_exact" msgid="8626242716117004803">"ಫೋಲ್ಡರ್: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> ಐಟಂಗಳು"</string>
+    <string name="folder_name_format_overflow" msgid="4270108890534995199">"ಫೋಲ್ಡರ್: <xliff:g id="NAME">%1$s</xliff:g>, <xliff:g id="SIZE">%2$d</xliff:g> ಅಥವಾ ಹೆಚ್ಚಿನ ಐಟಂಗಳು"</string>
     <string name="unnamed_folder" msgid="2420192029474044442">"ಹೆಸರಿಲ್ಲದ ಫೋಲ್ಡರ್"</string>
-    <string name="files_folder_name" msgid="7712191128817533622">"ಫೈಲ್ ಫೋಲ್ಡರ್: <xliff:g id="NAME">%1$s</xliff:g>"</string>
     <string name="app_pair_name_format" msgid="8134106404716224054">"ಆ್ಯಪ್ ಜೋಡಿ: <xliff:g id="APP1">%1$s</xliff:g> ಮತ್ತು <xliff:g id="APP2">%2$s</xliff:g>"</string>
     <string name="styles_wallpaper_button_text" msgid="8216961355289236794">"ವಾಲ್‌ಪೇಪರ್ ಮತ್ತು ಶೈಲಿ"</string>
     <string name="edit_home_screen" msgid="8947858375782098427">"ಹೋಮ್ ಸ್ಕ್ರೀನ್ ಅನ್ನು ಎಡಿಟ್ ಮಾಡಿ"</string>
     <string name="settings_button_text" msgid="8873672322605444408">"ಹೋಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು"</string>
     <string name="msg_disabled_by_admin" msgid="6898038085516271325">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿದ್ದಾರೆ"</string>
-    <string name="settings_home_organizer" msgid="5184766349407080054">"ಹೋಮ್ ಆರ್ಗನೈಸರ್"</string>
+    <string name="allow_rotation_title" msgid="7222049633713050106">"ಹೋಮ್ ಸ್ಕ್ರೀನ್ ತಿರುಗುವಿಕೆಯನ್ನು ಅನುಮತಿಸಿ"</string>
     <string name="allow_rotation_desc" msgid="8662546029078692509">"ಫೋನ್‌ ತಿರುಗಿಸಿದಾಗ"</string>
-    <string name="compose_developer_options_section" msgid="8211460486549952595">"Jetpack Compose"</string>
-    <string name="enable_composition_tracing_title" msgid="8989606591739368424">"ಕಾಂಪೋಸಿಶನ್ ಜಾಡನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ"</string>
-    <string name="enable_composition_tracing_desc" msgid="7187566039216492405">"ಅವಲೋಕನದಲ್ಲಿ perfetto ಜಾಡನ್ನು ತೆಗೆದುಕೊಳ್ಳುವಾಗ ಸಂಯೋಜನೆ ಜಾಡನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ"</string>
     <string name="landscape_mode_title" msgid="5138814555934843926">"ಲ್ಯಾಂಡ್‌ಸ್ಕೇಪ್ ಮೋಡ್"</string>
-    <string name="landscape_mode_desc" msgid="3085236452297838664">"ಹೋಮ್ ಸ್ಕ್ರೀನ್ ಅನ್ನು ಲ್ಯಾಂಡ್‌ಸ್ಕೇಪ್ ಮೋಡ್‌ಗೆ ಸೆಟ್ ಮಾಡಿ"</string>
+    <string name="landscape_mode_desc" msgid="7372569859592816793">"ಫೋನ್ ಅನ್ನು ಲ್ಯಾಂಡ್‌ಸ್ಕೇಪ್ ಮೋಡ್‌ಗೆ ಸೆಟ್ ಮಾಡಿ"</string>
     <string name="notification_dots_title" msgid="9062440428204120317">"ನೋಟಿಫಿಕೇಶನ್ ಡಾಟ್‌ಗಳು"</string>
     <string name="notification_dots_desc_on" msgid="1679848116452218908">"ಆನ್ ಆಗಿದೆ"</string>
     <string name="notification_dots_desc_off" msgid="1760796511504341095">"ಆಫ್ ಆಗಿದೆ"</string>
@@ -179,7 +146,7 @@
     <string name="notification_dots_service_title" msgid="4284221181793592871">"ನೋಟಿಫಿಕೇಶನ್ ಡಾಟ್‌ಗಳನ್ನು ತೋರಿಸಿ"</string>
     <string name="developer_options_title" msgid="700788437593726194">"ಡೆವಲಪರ್ ಆಯ್ಕೆಗಳು"</string>
     <string name="auto_add_shortcuts_label" msgid="4926805029653694105">"ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ಗೆ ಆ್ಯಪ್ ಐಕಾನ್‌ಗಳನ್ನು ಸೇರಿಸಿ"</string>
-    <string name="auto_add_shortcuts_description" msgid="7117251166066978730">"ಹೊಸ ಆ್ಯಪ್‌ಗಳಿಗೆ"</string>
+    <string name="auto_add_shortcuts_description" msgid="7117251166066978730">"ಹೊಸ ಅಪ್ಲಿಕೇಶನ್‌ಗಳಿಗೆ"</string>
     <string name="package_state_unknown" msgid="7592128424511031410">"ಅಪರಿಚಿತ"</string>
     <string name="abandoned_clean_this" msgid="7610119707847920412">"ತೆಗೆದುಹಾಕಿ"</string>
     <string name="abandoned_search" msgid="891119232568284442">"ಹುಡುಕಿ"</string>
@@ -187,7 +154,7 @@
     <string name="abandoned_promise_explanation" msgid="3990027586878167529">"ಈ ಐಕಾನ್ ಅಪ್ಲಿಕೇಶನ್ ಸ್ಥಾಪನೆಗೊಂಡಿಲ್ಲ. ನೀವು ಅದನ್ನು ತೆಗೆದುಹಾಕಬಹುದು ಅಥವಾ ಅಪ್ಲಿಕೇಶನ್ ಹುಡುಕಬಹುದು ಮತ್ತು ಹಸ್ತಚಾಲಿತವಾಗಿ ಅದನ್ನು ಸ್ಥಾಪಿಸಬಹುದು."</string>
     <string name="app_installing_title" msgid="5864044122733792085">"<xliff:g id="NAME">%1$s</xliff:g> ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಲಾಗುತ್ತಿದೆ, <xliff:g id="PROGRESS">%2$s</xliff:g> ಪೂರ್ಣಗೊಂಡಿದೆ"</string>
     <string name="app_downloading_title" msgid="8336702962104482644">"<xliff:g id="NAME">%1$s</xliff:g> ಡೌನ್‌ಲೋಡ್‌ ಮಾಡಲಾಗುತ್ತಿದೆ, <xliff:g id="PROGRESS">%2$s</xliff:g> ಪೂರ್ಣಗೊಂಡಿದೆ"</string>
-    <string name="app_waiting_download_title" msgid="7053938513995617849">"<xliff:g id="NAME">%1$s</xliff:g> ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಲು ಕಾಯುತ್ತಿದೆ"</string>
+    <string name="app_waiting_download_title" msgid="7053938513995617849">"<xliff:g id="NAME">%1$s</xliff:g> ಸ್ಥಾಪಿಸಲು ಕಾಯಲಾಗುತ್ತಿದೆ"</string>
     <string name="app_archived_title" msgid="4548283110222420708">"<xliff:g id="NAME">%1$s</xliff:g> ಅನ್ನು ಆರ್ಕೈವ್ ಮಾಡಲಾಗಿದೆ."</string>
     <string name="app_unarchiving_action" msgid="5736107006413929484">"ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ ಮತ್ತು ಮರುಸ್ಥಾಪಿಸಿ"</string>
     <string name="dialog_update_title" msgid="114234265740994042">"ಆ್ಯಪ್ ಅಪ್‌ಡೇಟ್ ಅಗತ್ಯವಿದೆ"</string>
@@ -206,12 +173,9 @@
     <string name="move_to_hotseat_position" msgid="6295412897075147808">"ಮೆಚ್ಚಿನ <xliff:g id="NUMBER">%1$s</xliff:g> ಸ್ಥಾನಕ್ಕೆ ಸರಿಸಿ"</string>
     <string name="item_moved" msgid="4606538322571412879">"ಐಟಂ ಸರಿಸಲಾಗಿದೆ"</string>
     <string name="add_to_folder" msgid="9040534766770853243">"ಫೋಲ್ಡರ್‌ಗೆ ಸೇರಿಸಿ: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="add_to_folder_with_position" msgid="4457486890869662">"<xliff:g id="NAME">%1$s</xliff:g> ಫೋಲ್ಡರ್‌ಗೆ ಸೇರಿಸಿ <xliff:g id="STRING">%4$s</xliff:g> ನಲ್ಲಿ ಸಾಲು <xliff:g id="NUMBER_0">%2$s</xliff:g>, ಕಾಲಮ್ <xliff:g id="NUMBER_1">%3$s</xliff:g>"</string>
     <string name="add_to_folder_with_app" msgid="4534929978967147231">"<xliff:g id="NAME">%1$s</xliff:g> ಮೂಲಕ ಫೋಲ್ಡರ್‌ಗೆ ಸೇರಿಸಿ"</string>
-    <string name="add_to_folder_with_app_with_position" msgid="6670979489897093325">"<xliff:g id="NAME">%1$s</xliff:g> ಜೊತೆಗೆ ಫೋಲ್ಡರ್‌ಗೆ ಸೇರಿಸಿ. <xliff:g id="STRING">%4$s</xliff:g> ನಲ್ಲಿ, ಸಾಲು <xliff:g id="NUMBER_0">%2$s</xliff:g>, ಕಾಲಮ್ <xliff:g id="NUMBER_1">%3$s</xliff:g>"</string>
     <string name="added_to_folder" msgid="4793259502305558003">"ಐಟಂ ಅನ್ನು ಫೋಲ್ಡರ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ"</string>
     <string name="create_folder_with" msgid="4050141361160214248">"ಇದನ್ನು ಬಳಸಿಕೊಂಡು ಫೋಲ್ಡರ್ ರಚಿಸಿ: <xliff:g id="NAME">%1$s</xliff:g>"</string>
-    <string name="create_folder_with_position" msgid="3093164349445159115">"<xliff:g id="NAME">%1$s</xliff:g> ನೊಂದಿಗೆ ಫೋಲ್ಡರ್ ರಚಿಸಿ. <xliff:g id="STRING">%4$s</xliff:g> ನಲ್ಲಿ, ಸಾಲು <xliff:g id="NUMBER_0">%2$s</xliff:g>, ಕಾಲಮ್ <xliff:g id="NUMBER_1">%3$s</xliff:g>"</string>
     <string name="folder_created" msgid="6409794597405184510">"ಫೋಲ್ಡರ್ ರಚಿಸಲಾಗಿದೆ"</string>
     <string name="action_move_to_workspace" msgid="39528912300293768">"ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ಗೆ ಸರಿಸಿ"</string>
     <string name="action_resize" msgid="1802976324781771067">"ಮರುಗಾತ್ರ"</string>
@@ -219,11 +183,6 @@
     <string name="action_increase_height" msgid="459390020612501122">"ಎತ್ತರವನ್ನು ಹೆಚ್ಚು ಮಾಡಿ"</string>
     <string name="action_decrease_width" msgid="1374549771083094654">"ಅಗಲವನ್ನು ಕಡಿಮೆ ಮಾಡಿ"</string>
     <string name="action_decrease_height" msgid="282377193880900022">"ಎತ್ತರವನ್ನು ಕಡಿಮೆ ಮಾಡಿ"</string>
-    <string name="resize_handle_start" msgid="431073846880883794">"ಎಡಭಾಗದ ರೀಸೈಜ್ ಹ್ಯಾಂಡಲ್"</string>
-    <string name="resize_handle_top" msgid="280799523356834542">"ಮೇಲಿನ ರೀಸೈಜ್ ಹ್ಯಾಂಡಲ್"</string>
-    <string name="resize_handle_end" msgid="8411240534474246075">"ಬಲಭಾಗದ ರೀಸೈಜ್ ಹ್ಯಾಂಡಲ್"</string>
-    <string name="resize_handle_bottom" msgid="4217171801060928429">"ಕೆಳಗಿನ ರೀಸೈಜ್ ಹ್ಯಾಂಡಲ್"</string>
-    <string name="tap_to_show_resize_buttons" msgid="964815552123289232">"ರೀಸೈಜ್ ಬಟನ್ ಅನ್ನು ತೋರಿಸಿ"</string>
     <string name="widget_resized" msgid="9130327887929620">"ವಿಜೆಟ್ ಅನ್ನು <xliff:g id="NUMBER_0">%1$s</xliff:g> ಅಗಲ <xliff:g id="NUMBER_1">%2$s</xliff:g> ಎತ್ತರಕ್ಕೆ ಮರುಗಾತ್ರಗೊಳಿಸಲಾಗಿದೆ"</string>
     <string name="action_deep_shortcut" msgid="4766835855579976045">"ಶಾರ್ಟ್‌ಕಟ್ ಮೆನು"</string>
     <string name="widget_frame_name" msgid="8782828448471444270">"<xliff:g id="STRING">%1$s</xliff:g> ಗಾಗಿ ವಿಜೆಟ್ ಮರುಗಾತ್ರಗೊಳಿಸುವಿಕೆ ಫ್ರೇಮ್"</string>
@@ -236,9 +195,10 @@
     <string name="all_apps_work_tab_content_description" msgid="3835637212347968316">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳ ಟ್ಯಾಬ್"</string>
     <string name="work_profile_toggle_label" msgid="3081029915775481146">"ಕೆಲಸದ ಪ್ರೊಫೈಲ್"</string>
     <string name="work_profile_edu_work_apps" msgid="7895468576497746520">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ಬ್ಯಾಡ್ಜ್ ಮಾಡಲಾಗಿದೆ ಮತ್ತು ಅವುಗಳು ನಿಮ್ಮ IT ನಿರ್ವಾಹಕರಿಗೆ ಗೋಚರಿಸುತ್ತವೆ"</string>
+    <string name="work_profile_edu_accept" msgid="6069788082535149071">"ಸರಿ"</string>
     <string name="work_apps_paused_title" msgid="3040901117349444598">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ವಿರಾಮಗೊಳಿಸಲಾಗಿದೆ"</string>
     <string name="work_apps_paused_info_body" msgid="1687828929959237477">"ನಿಮ್ಮ ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳಿಂದ ನೀವು ಅಧಿಸೂಚನೆಗಳನ್ನು ಸ್ವೀಕರಿಸುವುದಿಲ್ಲ"</string>
-    <string name="work_apps_paused_body" msgid="261634750995824906">"ನಿಮ್ಮ ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳಿಗೆ ನಿಮಗೆ ಅಧಿಸೂಚನೆಗಳನ್ನು ಕಳುಹಿಸಲು, ನಿಮ್ಮ ಬ್ಯಾಟರಿಯನ್ನು ಬಳಸಲು ಅಥವಾ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗದು"</string>
+    <string name="work_apps_paused_body" msgid="261634750995824906">"ನಿಮ್ಮ ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳಿಗೆ ನಿಮಗೆ ಅಧಿಸೂಚನೆಗಳನ್ನು ಕಳುಹಿಸಲು, ನಿಮ್ಮ ಬ್ಯಾಟರಿಯನ್ನು ಬಳಸಲು ಅಥವಾ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಪ್ರವೇಶಿಸಲು ಸಾಧ್ಯವಾಗದು"</string>
     <string name="work_apps_paused_telephony_unavailable_body" msgid="8358872357502756790">"ನಿಮ್ಮ ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳಿಂದ ನೀವು ಫೋನ್ ಕರೆಗಳು, ಪಠ್ಯ ಸಂದೇಶಗಳು ಅಥವಾ ಅಧಿಸೂಚನೆಗಳನ್ನು ಸ್ವೀಕರಿಸುವುದಿಲ್ಲ"</string>
     <string name="work_apps_paused_edu_banner" msgid="8872412121608402058">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳು ಬ್ಯಾಡ್ಜ್ ಮಾಡಲಾಗಿದೆ ಮತ್ತು ನಿಮ್ಮ IT ನಿರ್ವಾಹಕರಿಗೆ ಗೋಚರಿಸುತ್ತದೆ"</string>
     <string name="work_apps_paused_edu_accept" msgid="6377476824357318532">"ಅರ್ಥವಾಯಿತು"</string>
@@ -249,30 +209,13 @@
     <string name="remote_action_failed" msgid="1383965239183576790">"ವಿಫಲವಾಗಿದೆ: <xliff:g id="WHAT">%1$s</xliff:g>"</string>
     <string name="private_space_label" msgid="2359721649407947001">"ಖಾಸಗಿ ಸ್ಪೇಸ್"</string>
     <string name="private_space_secondary_label" msgid="9203933341714508907">"ಸೆಟಪ್ ಮಾಡಲು ಅಥವಾ ತೆರೆಯಲು ಟ್ಯಾಪ್ ಮಾಡಿ"</string>
-    <string name="ps_container_title" msgid="4391796149519594205">"ಖಾಸಗಿ"</string>
+    <string name="ps_container_title" msgid="4391796149519594205">"ಪ್ರೈವೆಟ್"</string>
     <string name="ps_container_settings" msgid="6059734123353320479">"ಖಾಸಗಿ ಸ್ಪೇಸ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು"</string>
     <string name="ps_container_unlock_button_content_description" msgid="9181551784092204234">"ಖಾಸಗಿ, ಅನ್‌ಲಾಕ್ ಮಾಡಲಾಗಿದೆ."</string>
     <string name="ps_container_lock_button_content_description" msgid="5961993384382649530">"ಖಾಸಗಿ, ಲಾಕ್ ಮಾಡಲಾಗಿದೆ."</string>
     <string name="ps_container_lock_title" msgid="2640257399982364682">"ಲಾಕ್ ಮಾಡಿ"</string>
     <string name="ps_container_transition" msgid="8667331812048014412">"ಖಾಸಗಿ ಸ್ಪೇಸ್ ಪರಿವರ್ತನೆಯಾಗುತ್ತಿದೆ"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"ಇನ್‌ಸ್ಟಾಲ್"</string>
-    <string name="ps_app_label_override" msgid="6876160706011676804">"ಸೇರಿಸಿ"</string>
     <string name="ps_add_button_content_description" msgid="3254274107740952556">"ಆ್ಯಪ್‌ಗಳನ್ನು ಪ್ರೈವೇಟ್ ಸ್ಪೇಸ್‌ನಲ್ಲಿ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"ಪ್ರೈವೆಟ್ ಸ್ಪೇಸ್‌ಗೆ ಫೈಲ್‌ಗಳು ಮತ್ತು ಹೆಚ್ಚಿನದನ್ನು ಸೇರಿಸಿ"</string>
-    <string name="circle_shape_title" msgid="3582075061179674565">"ವಲಯ"</string>
-    <string name="square_shape_title" msgid="3085320803149569308">"ಚೌಕ"</string>
-    <string name="four_sided_cookie_shape_title" msgid="3275212586290522151">"4-ಬದಿಯ ಕುಕಿ"</string>
-    <string name="seven_sided_cookie_shape_title" msgid="4862560582029671668">"7-ಬದಿಯ ಕುಕಿ"</string>
-    <string name="arch_shape_title" msgid="2213843822192871318">"ಕಮಾನು"</string>
-    <string name="create_new_folder_button_text" msgid="4037052463794735069">"ಹೊಸ ಫೋಲ್ಡರ್"</string>
-    <string name="default_new_folder_name" msgid="8821062664729412079">"ಹೊಸ ಫೋಲ್ಡರ್"</string>
-    <string name="home_screen_files_rename_dialog_clear_button" msgid="1516608063079626727">"ತೆರವುಗೊಳಿಸಿ"</string>
-    <string name="home_screen_files_rename_dialog_neutral_button" msgid="961781261154618336">"ರದ್ದುಮಾಡಿ"</string>
-    <string name="home_screen_files_rename_dialog_positive_button" msgid="6506701192246379747">"ಮರುಹೆಸರಿಸಿ"</string>
-    <string name="home_screen_files_rename_dialog_file_title" msgid="3540941610992603887">"ಫೈಲ್‌ ಅನ್ನು ಮರುಹೆಸರಿಸಿ"</string>
-    <string name="home_screen_files_rename_dialog_folder_title" msgid="2453152990256864379">"ಫೋಲ್ಡರ್ ಅನ್ನು ಮರುಹೆಸರಿಸಿ"</string>
-    <string name="something_went_wrong" msgid="1492883246069060632">"ಏನೋ ತಪ್ಪಾಗಿದೆ"</string>
-    <string name="organizer_create_screen_title" msgid="1052454457895703433">"ಸ್ಕ್ರೀನ್‌ ಅನ್ನು ರಚಿಸಿ"</string>
-    <string name="organizer_create_screen_description" msgid="3224132391919219061">"ನಿಮ್ಮ ಫೋನ್‌ನಿಂದ ಆ್ಯಪ್‌ಗಳು ಮತ್ತು ವಿಜೆಟ್‌ಗಳನ್ನು ಸೇರಿಸಲು ಒಂದು ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
-    <string name="organizer_choose_layout_title" msgid="127228966942084947">"ಲೇಔಟ್‌ ಅನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
 </resources>

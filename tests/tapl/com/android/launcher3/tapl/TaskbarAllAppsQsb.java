@@ -22,12 +22,8 @@ import androidx.test.uiautomator.UiObject2;
  */
 public class TaskbarAllAppsQsb extends Qsb {
 
-    private final Taskbar.TaskbarLocation mTaskbarLocation;
-
-    TaskbarAllAppsQsb(LauncherInstrumentation launcher, UiObject2 allAppsContainer,
-            Taskbar.TaskbarLocation taskbarLocation) {
+    TaskbarAllAppsQsb(LauncherInstrumentation launcher, UiObject2 allAppsContainer) {
         super(launcher, allAppsContainer, "search_container_all_apps");
-        mTaskbarLocation = taskbarLocation;
     }
 
     @Override
@@ -37,6 +33,6 @@ public class TaskbarAllAppsQsb extends Qsb {
 
     @Override
     protected SearchResultFromTaskbarQsb createSearchResult() {
-        return new SearchResultFromTaskbarQsb(mLauncher, mTaskbarLocation);
+        return new SearchResultFromTaskbarQsb(mLauncher);
     }
 }
